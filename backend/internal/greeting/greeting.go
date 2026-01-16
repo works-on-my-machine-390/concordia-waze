@@ -1,4 +1,4 @@
-package service
+package greeting
 
 import (
 	"net/http"
@@ -13,7 +13,11 @@ import (
 // @Success 200 {string} string "hello world"
 // @Router /index [get]
 func GetGreetingString(c *gin.Context) {
-	c.String(http.StatusOK, "hello world")
+	c.String(http.StatusOK, generateGreeting())
+}
+
+func generateGreeting() string {
+	return "hello world"
 }
 
 // @Summary Get greeting object
@@ -23,5 +27,5 @@ func GetGreetingString(c *gin.Context) {
 // @Success 200 {object} map[string]string
 // @Router /index/obj [get]
 func GetGreetingObject(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"message": "hello world"})
+	c.JSON(http.StatusOK, gin.H{"message": generateGreeting()})
 }

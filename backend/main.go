@@ -1,12 +1,8 @@
 package main
 
 import (
-	"github.com/gin-gonic/gin"
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
-
-	_ "works-on-my-machine/concordia-waze/docs"
-	"works-on-my-machine/concordia-waze/internal/service"
+	_ "github.com/works-on-my-machine-390/concordia-waze/docs"
+	"github.com/works-on-my-machine-390/concordia-waze/internal/router"
 )
 
 // @title Concordia Waze API
@@ -17,19 +13,7 @@ import (
 
 func main() {
 
-	router := setupRouter()
+	router := router.SetupRouter()
 	router.Run("localhost:8080")
 
-}
-
-func setupRouter() *gin.Engine {
-	router := gin.Default()
-
-	router.GET("/index", service.GetGreetingString)
-	router.GET("/index/obj", service.GetGreetingObject)
-
-	// Swagger route
-	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-
-	return router
 }

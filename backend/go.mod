@@ -1,4 +1,4 @@
-module works-on-my-machine/concordia-waze
+module github.com/works-on-my-machine-390/concordia-waze
 
 go 1.25.5
 
