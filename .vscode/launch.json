@@ -1,0 +1,44 @@
+{
+  "version": "0.2.0",
+  "compounds": [
+    {
+      "name": "Local Development",
+      "configurations": [
+          "backend",
+          "frontend"
+      ],
+      "presentation": {
+        "order": 0
+      }
+    }
+  ],
+  "configurations": [
+    {
+      "type": "node",
+      "name": "backend",
+      "request": "launch",
+      "console": "integratedTerminal",
+      "presentation": {
+        "order": 1
+      },
+      "cwd": "${workspaceFolder}/backend",
+      "runtimeExecutable": "air",
+      "args": [],
+    },
+    {
+      "name": "frontend",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/frontend",
+      "presentation": {
+        "order": 2
+      },
+      "runtimeExecutable": "bun",
+      "runtimeArgs": [
+        "run",
+        "start"
+      ],
+      "console": "integratedTerminal"
+    }
+  ]
+}
