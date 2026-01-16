@@ -11,7 +11,7 @@ import (
 // @Tags greeting
 // @Produce plain
 // @Success 200 {string} string "hello world"
-// @Router /index [get]
+// @Router /greeting [get]
 func GetGreetingString(c *gin.Context) {
 	c.String(http.StatusOK, generateGreeting())
 }
@@ -25,7 +25,7 @@ func generateGreeting() string {
 // @Tags greeting
 // @Produce json
 // @Success 200 {object} map[string]string
-// @Router /index/obj [get]
+// @Router /greeting/obj [get]
 func GetGreetingObject(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": generateGreeting()})
 }

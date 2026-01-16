@@ -6,7 +6,7 @@ info:
   title: Concordia Waze API
   version: "1.0"
 paths:
-  /index:
+  /greeting:
     get:
       description: Returns a simple greeting string
       produces:
@@ -19,7 +19,7 @@ paths:
       summary: Get greeting string
       tags:
       - greeting
-  /index/obj:
+  /greeting/obj:
     get:
       description: Returns a greeting message as JSON object
       produces:
