@@ -1,6 +1,9 @@
+import { useGetGreeting } from "@/hooks/queries/greetingQueries";
 import { Text, View } from "react-native";
 
 export default function Index() {
+  const greetingsQuery = useGetGreeting();
+  
   return (
     <View
       style={{
@@ -9,7 +12,13 @@ export default function Index() {
         alignItems: "center",
       }}
     >
-      <Text>Edit app/index.tsx to edit this screen.</Text>
+      {greetingsQuery.isLoading ? (
+        <Text>Loading...</Text>
+      ) : greetingsQuery.isError ? (
+        <Text>Error loading greeting. API may be down.</Text>
+      ) : (
+        <Text>{greetingsQuery.data?.message}</Text>
+      )}
     </View>
   );
 }

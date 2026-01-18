@@ -15,7 +15,7 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/index": {
+        "/greeting": {
             "get": {
                 "description": "Returns a simple greeting string",
                 "produces": [
@@ -35,7 +35,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/index/obj": {
+        "/greeting/obj": {
             "get": {
                 "description": "Returns a greeting message as JSON object",
                 "produces": [

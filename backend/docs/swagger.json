@@ -9,7 +9,7 @@
     "host": "localhost:8080",
     "basePath": "/",
     "paths": {
-        "/index": {
+        "/greeting": {
             "get": {
                 "description": "Returns a simple greeting string",
                 "produces": [
@@ -29,7 +29,7 @@
                 }
             }
         },
-        "/index/obj": {
+        "/greeting/obj": {
             "get": {
                 "description": "Returns a greeting message as JSON object",
                 "produces": [
