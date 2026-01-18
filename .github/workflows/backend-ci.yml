@@ -62,7 +62,7 @@ jobs:
         run: cd backend && go build -v -o bin/api main.go
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: backend-binary
           path: backend/bin/api
