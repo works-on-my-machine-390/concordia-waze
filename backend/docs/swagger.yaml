@@ -1,0 +1,37 @@
+basePath: /
+host: localhost:8080
+info:
+  contact: {}
+  description: This is the Concordia Waze API server.
+  title: Concordia Waze API
+  version: "1.0"
+paths:
+  /index:
+    get:
+      description: Returns a simple greeting string
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: hello world
+          schema:
+            type: string
+      summary: Get greeting string
+      tags:
+      - greeting
+  /index/obj:
+    get:
+      description: Returns a greeting message as JSON object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get greeting object
+      tags:
+      - greeting
+swagger: "2.0"

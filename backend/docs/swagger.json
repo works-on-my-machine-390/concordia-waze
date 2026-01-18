@@ -1,0 +1,56 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "This is the Concordia Waze API server.",
+        "title": "Concordia Waze API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "host": "localhost:8080",
+    "basePath": "/",
+    "paths": {
+        "/index": {
+            "get": {
+                "description": "Returns a simple greeting string",
+                "produces": [
+                    "text/plain"
+                ],
+                "tags": [
+                    "greeting"
+                ],
+                "summary": "Get greeting string",
+                "responses": {
+                    "200": {
+                        "description": "hello world",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/index/obj": {
+            "get": {
+                "description": "Returns a greeting message as JSON object",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "greeting"
+                ],
+                "summary": "Get greeting object",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
