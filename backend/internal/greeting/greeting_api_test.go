@@ -12,7 +12,7 @@ func TestGetGreetingEndpoint_ReturnsOK(t *testing.T) {
 
 	router := router.SetupTestRouter()
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/index", nil)
+	req, _ := http.NewRequest("GET", "/greeting", nil)
 	router.ServeHTTP(w, req)
 
 	if w.Code != http.StatusOK {
@@ -25,7 +25,7 @@ func TestGetGreetingObjectEndpoint_ReturnsOK(t *testing.T) {
 
 	router := router.SetupTestRouter()
 	w := httptest.NewRecorder()
-	req, _ := http.NewRequest("GET", "/index/obj", nil)
+	req, _ := http.NewRequest("GET", "/greeting/obj", nil)
 	router.ServeHTTP(w, req)
 	if w.Code != http.StatusOK {
 		t.Errorf("Expected status 200, got %d", w.Code)
