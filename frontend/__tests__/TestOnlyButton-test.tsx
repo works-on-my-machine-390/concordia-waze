@@ -2,6 +2,12 @@ import { fireEvent, render } from "@testing-library/react-native";
 
 import TestOnlyButton, { TEST_BUTTON_DEFAULT_STYLES } from "@/components/TestOnlyButton";
 
+/**
+ * This suite of tests is an example of how to write tests for a simple React Native component.
+ * The TestOnlyButton component is used solely for testing purposes, and is never included in the app itself.
+ * These tests should always pass in CI. We wrote them to set up our CI.
+ */
+
 describe("TestOnlyButton", () => {
   test("Provided button label renders correctly", () => {
     const labelText = "Test Button";
