@@ -65,7 +65,5 @@ jobs:
       - name: Install dependencies
         run: cd frontend && bun install
 
-      - name: Build web bundle
-        run: cd frontend && bun run web
-        env:
-          CI: true
+      - name: Type check
+        run: cd frontend && bun run tsc --noEmit
