@@ -13,7 +13,6 @@ func TestCreate_Success(t *testing.T) {
 	user := &domain.User{
 		ID:        "user-123",
 		Name:      "John Doe",
-		StudentID: "40123456",
 		Email:     "john.doe@concordia.ca",
 		Password:  "hashed_password",
 	}
@@ -30,7 +29,6 @@ func TestCreate_GeneratesID(t *testing.T) {
 
 	user := &domain.User{
 		Name:      "John Doe",
-		StudentID: "40123456",
 		Email:     "john.doe@concordia.ca",
 		Password:  "hashed_password",
 	}
@@ -51,7 +49,6 @@ func TestFindByEmail_Success(t *testing.T) {
 	user1 := &domain.User{
 		ID:        "user-123",
 		Name:      "John Doe",
-		StudentID: "40123456",
 		Email:     "john.doe@concordia.ca",
 		Password:  "hashed_password",
 	}
@@ -84,7 +81,6 @@ func TestFindByID_Success(t *testing.T) {
 	user1 := &domain.User{
 		ID:        "user-123",
 		Name:      "John Doe",
-		StudentID: "40123456",
 		Email:     "john.doe@concordia.ca",
 		Password:  "hashed_password",
 	}
@@ -117,7 +113,6 @@ func TestUpdate_Success(t *testing.T) {
 	user1 := &domain.User{
 		ID:        "user-123",
 		Name:      "John Doe",
-		StudentID: "40123456",
 		Email:     "john.doe@concordia.ca",
 		Password:  "hashed_password",
 	}

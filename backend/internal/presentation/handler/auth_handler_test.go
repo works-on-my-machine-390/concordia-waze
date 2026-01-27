@@ -32,7 +32,6 @@ func TestSignUp_Success(t *testing.T) {
 
 	reqBody := handler.SignUpRequest{
 		Name:      "John Doe",
-		StudentID: "40123456",
 		Email:     "john.doe@concordia.ca",
 		Password:  "password123",
 	}
@@ -72,17 +71,6 @@ func TestSignUp_MissingFields(t *testing.T) {
 			name: "missing name",
 			req: handler.SignUpRequest{
 				Name:      "",
-				StudentID: "40123456",
-				Email:     "john.doe@concordia.ca",
-				Password:  "password123",
-			},
-			wantCode: http.StatusBadRequest,
-		},
-		{
-			name: "missing student_id",
-			req: handler.SignUpRequest{
-				Name:      "John Doe",
-				StudentID: "",
 				Email:     "john.doe@concordia.ca",
 				Password:  "password123",
 			},
@@ -92,7 +80,6 @@ func TestSignUp_MissingFields(t *testing.T) {
 			name: "missing email",
 			req: handler.SignUpRequest{
 				Name:      "John Doe",
-				StudentID: "40123456",
 				Email:     "",
 				Password:  "password123",
 			},
@@ -102,7 +89,6 @@ func TestSignUp_MissingFields(t *testing.T) {
 			name: "missing password",
 			req: handler.SignUpRequest{
 				Name:      "John Doe",
-				StudentID: "40123456",
 				Email:     "john.doe@concordia.ca",
 				Password:  "",
 			},
@@ -143,7 +129,6 @@ func TestLogin_Success(t *testing.T) {
 	// Signup first
 	signupReq := handler.SignUpRequest{
 		Name:      "John Doe",
-		StudentID: "40123456",
 		Email:     "john.doe@concordia.ca",
 		Password:  "password123",
 	}
@@ -189,7 +174,6 @@ func TestLogin_WrongPassword(t *testing.T) {
 	// Signup
 	signupReq := handler.SignUpRequest{
 		Name:      "John Doe",
-		StudentID: "40123456",
 		Email:     "john.doe@concordia.ca",
 		Password:  "password123",
 	}
@@ -253,7 +237,6 @@ func TestGetProfile_Success(t *testing.T) {
 	// Signup first
 	signupReq := handler.SignUpRequest{
 		Name:      "John Doe",
-		StudentID: "40123456",
 		Email:     "john.doe@concordia.ca",
 		Password:  "password123",
 	}
@@ -333,7 +316,6 @@ func TestLogout_Success(t *testing.T) {
 	// Signup first
 	signupReq := handler.SignUpRequest{
 		Name:      "John Doe",
-		StudentID: "40123456",
 		Email:     "john.doe@concordia.ca",
 		Password:  "password123",
 	}
@@ -410,7 +392,6 @@ func TestLogout_TokenRevoked(t *testing.T) {
 	// Signup
 	signupReq := handler.SignUpRequest{
 		Name:      "John Doe",
-		StudentID: "40123456",
 		Email:     "john.doe@concordia.ca",
 		Password:  "password123",
 	}

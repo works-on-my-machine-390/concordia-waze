@@ -32,7 +32,6 @@ func NewJWTManager(secretKey string, duration time.Duration) *JWTManager {
 func (m *JWTManager) GenerateToken(user *domain.User) (string, error) {
 	claims := jwt.MapClaims{
 		"id":         user.ID,
-		"student_id": user.StudentID,
 		"email":      user.Email,
 		"exp":        time.Now().Add(m.duration).Unix(),
 		"iat":        time.Now().Unix(),
@@ -76,7 +75,6 @@ func (m *JWTManager) ValidateToken(tokenString string) (*domain.UserClaims, erro
 
 	userClaims := &domain.UserClaims{
 		ID:        claims["id"].(string),
-		StudentID: claims["student_id"].(string),
 		Email:     claims["email"].(string),
 	}
 
@@ -105,13 +103,10 @@ func NewUserService(repo repository.UserRepository, jwtManager *JWTManager) *Use
 }
 
 // SignUp registers a new student
-func (s *UserService) SignUp(name, studentID, email, password string) (*domain.User, string, error) {
+func (s *UserService) SignUp(name, email, password string) (*domain.User, string, error) {
 	// Validation
 	if name == "" {
 		return nil, "", domain.ErrEmptyName
-	}
-	if studentID == "" {
-		return nil, "", domain.ErrEmptyStudentID
 	}
 	if email == "" {
 		return nil, "", domain.ErrEmptyEmail
@@ -126,7 +121,6 @@ func (s *UserService) SignUp(name, studentID, email, password string) (*domain.U
 	// Create user
 	user := &domain.User{
 		Name:      name,
-		StudentID: studentID,
 		Email:     email,
 		Password:  hashedPassword,
 	}

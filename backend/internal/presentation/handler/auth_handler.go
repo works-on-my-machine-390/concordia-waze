@@ -24,7 +24,6 @@ func NewAuthHandler(userService *application.UserService) *AuthHandler {
 // SignUpRequest is the request body for sign up
 type SignUpRequest struct {
 	Name      string `json:"name" binding:"required"`
-	StudentID string `json:"student_id" binding:"required"`
 	Email     string `json:"email" binding:"required,email"`
 	Password  string `json:"password" binding:"required,min=6"`
 }
@@ -39,7 +38,6 @@ type LoginRequest struct {
 type AuthResponse struct {
 	ID        string `json:"id"`
 	Name      string `json:"name"`
-	StudentID string `json:"student_id"`
 	Email     string `json:"email"`
 	Token     string `json:"token,omitempty"`
 }
@@ -62,7 +60,7 @@ func (h *AuthHandler) SignUp(c *gin.Context) {
 		return
 	}
 
-	user, token, err := h.userService.SignUp(req.Name, req.StudentID, req.Email, req.Password)
+	user, token, err := h.userService.SignUp(req.Name, req.Email, req.Password)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -71,7 +69,6 @@ func (h *AuthHandler) SignUp(c *gin.Context) {
 	response := AuthResponse{
 		ID:        user.ID,
 		Name:      user.Name,
-		StudentID: user.StudentID,
 		Email:     user.Email,
 		Token:     token,
 	}
@@ -110,7 +107,6 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	response := AuthResponse{
 		ID:        user.ID,
 		Name:      user.Name,
-		StudentID: user.StudentID,
 		Email:     user.Email,
 		Token:     token,
 	}
@@ -146,7 +142,6 @@ func (h *AuthHandler) GetProfile(c *gin.Context) {
 	response := AuthResponse{
 		ID:        user.ID,
 		Name:      user.Name,
-		StudentID: user.StudentID,
 		Email:     user.Email,
 	}
 

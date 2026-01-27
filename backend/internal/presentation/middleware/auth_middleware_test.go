@@ -18,7 +18,6 @@ func TestAuthMiddleware_WithValidToken(t *testing.T) {
 	jwtManager := application.NewJWTManager("test-secret", time.Hour)
 	user := &domain.User{
 		ID:        "user-123",
-		StudentID: "40123456",
 		Email:     "john.doe@concordia.ca",
 	}
 
@@ -37,7 +36,6 @@ func TestAuthMiddleware_WithValidToken(t *testing.T) {
 		}
 		c.JSON(http.StatusOK, gin.H{
 			"id":         claims.ID,
-			"student_id": claims.StudentID,
 			"email":      claims.Email,
 		})
 	})
@@ -130,7 +128,6 @@ func TestRequireAuth_WithAuthentication(t *testing.T) {
 	jwtManager := application.NewJWTManager("test-secret", time.Hour)
 	user := &domain.User{
 		ID:        "user-123",
-		StudentID: "40123456",
 		Email:     "john.doe@concordia.ca",
 	}
 
@@ -181,7 +178,6 @@ func TestGetUserFromContext_WithClaims(t *testing.T) {
 	jwtManager := application.NewJWTManager("test-secret", time.Hour)
 	user := &domain.User{
 		ID:        "user-123",
-		StudentID: "40123456",
 		Email:     "john.doe@concordia.ca",
 	}
 

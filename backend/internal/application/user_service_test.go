@@ -45,7 +45,6 @@ func TestSignUp_EmptyName(t *testing.T) {
 
 	_, _, err := service.SignUp(
 		"",
-		"40123456",
 		"john.doe@concordia.ca",
 		"password123",
 	)
@@ -62,7 +61,6 @@ func TestSignUp_EmptyPassword(t *testing.T) {
 
 	_, _, err := service.SignUp(
 		"John Doe",
-		"40123456",
 		"john.doe@concordia.ca",
 		"",
 	)
@@ -80,7 +78,6 @@ func TestLogin_Success(t *testing.T) {
 	// Signup first
 	_, _, err := service.SignUp(
 		"John Doe",
-		"40123456",
 		"john.doe@concordia.ca",
 		"password123",
 	)
@@ -110,7 +107,6 @@ func TestLogin_WrongPassword(t *testing.T) {
 	// Signup
 	_, _, err := service.SignUp(
 		"John Doe",
-		"40123456",
 		"john.doe@concordia.ca",
 		"password123",
 	)
@@ -143,7 +139,6 @@ func TestJWTManager_GenerateAndValidateToken(t *testing.T) {
 	user := &domain.User{
 		ID:        "user-123",
 		Name:      "John Doe",
-		StudentID: "40123456",
 		Email:     "john.doe@concordia.ca",
 	}
 
@@ -161,9 +156,6 @@ func TestJWTManager_GenerateAndValidateToken(t *testing.T) {
 
 	if claims.ID != user.ID {
 		t.Errorf("Expected ID %s, got %s", user.ID, claims.ID)
-	}
-	if claims.StudentID != user.StudentID {
-		t.Errorf("Expected StudentID %s, got %s", user.StudentID, claims.StudentID)
 	}
 	if claims.Email != user.Email {
 		t.Errorf("Expected email %s, got %s", user.Email, claims.Email)
@@ -186,7 +178,6 @@ func TestJWTManager_WrongSecret(t *testing.T) {
 
 	user := &domain.User{
 		ID:        "user-123",
-		StudentID: "40123456",
 		Email:     "john.doe@concordia.ca",
 	}
 
@@ -205,7 +196,6 @@ func TestJWTManager_RevokeToken(t *testing.T) {
 	jwtManager := application.NewJWTManager("test-secret", time.Hour)
 	user := &domain.User{
 		ID:        "user-123",
-		StudentID: "40123456",
 		Email:     "john.doe@concordia.ca",
 	}
 
@@ -236,7 +226,6 @@ func TestUserService_Logout(t *testing.T) {
 	// Signup
 	_, token, err := service.SignUp(
 		"John Doe",
-		"40123456",
 		"john.doe@concordia.ca",
 		"password123",
 	)
