@@ -346,3 +346,127 @@ func TestGetProfile_InvalidToken(t *testing.T) {
 		t.Errorf("Expected status %d, got %d", http.StatusUnauthorized, w.Code)
 	}
 }
+
+func TestLogout_Success(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	authHandler, jwtManager := setupAuthTest(t)
+
+	router := gin.New()
+	router.Use(middleware.AuthMiddleware(jwtManager))
+	router.POST("/auth/signup", authHandler.SignUp)
+	router.POST("/auth/logout", middleware.RequireAuth(), authHandler.Logout)
+
+	// Signup first
+	signupReq := handler.SignUpRequest{
+		Name:      "John Doe",
+		StudentID: "40123456",
+		Email:     "john.doe@concordia.ca",
+		Password:  "password123",
+	}
+
+	body, _ := json.Marshal(signupReq)
+	req := httptest.NewRequest("POST", "/auth/signup", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	var signupResp handler.AuthResponse
+	json.Unmarshal(w.Body.Bytes(), &signupResp)
+
+	// Logout
+	req = httptest.NewRequest("POST", "/auth/logout", nil)
+	req.Header.Set("Authorization", "Bearer "+signupResp.Token)
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
+	}
+}
+
+func TestLogout_NoToken(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	authHandler, jwtManager := setupAuthTest(t)
+
+	router := gin.New()
+	router.Use(middleware.AuthMiddleware(jwtManager))
+	router.POST("/auth/logout", middleware.RequireAuth(), authHandler.Logout)
+
+	req := httptest.NewRequest("POST", "/auth/logout", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("Expected status %d, got %d", http.StatusUnauthorized, w.Code)
+	}
+}
+
+func TestLogout_InvalidToken(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	authHandler, jwtManager := setupAuthTest(t)
+
+	router := gin.New()
+	router.Use(middleware.AuthMiddleware(jwtManager))
+	router.POST("/auth/logout", middleware.RequireAuth(), authHandler.Logout)
+
+	req := httptest.NewRequest("POST", "/auth/logout", nil)
+	req.Header.Set("Authorization", "Bearer invalid.token.here")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("Expected status %d, got %d", http.StatusUnauthorized, w.Code)
+	}
+}
+
+func TestLogout_TokenRevoked(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	authHandler, jwtManager := setupAuthTest(t)
+
+	repo := repository.NewInMemoryUserRepository()
+	userService := application.NewUserService(repo, jwtManager)
+	authHandler = handler.NewAuthHandler(userService)
+
+	router := gin.New()
+	router.Use(middleware.AuthMiddleware(jwtManager))
+	router.POST("/auth/signup", authHandler.SignUp)
+	router.POST("/auth/logout", middleware.RequireAuth(), authHandler.Logout)
+	router.GET("/auth/profile", middleware.RequireAuth(), authHandler.GetProfile)
+
+	// Signup
+	signupReq := handler.SignUpRequest{
+		Name:      "John Doe",
+		StudentID: "40123456",
+		Email:     "john.doe@concordia.ca",
+		Password:  "password123",
+	}
+
+	body, _ := json.Marshal(signupReq)
+	req := httptest.NewRequest("POST", "/auth/signup", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	var signupResp handler.AuthResponse
+	json.Unmarshal(w.Body.Bytes(), &signupResp)
+
+	// Logout
+	req = httptest.NewRequest("POST", "/auth/logout", nil)
+	req.Header.Set("Authorization", "Bearer "+signupResp.Token)
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
+	}
+
+	// Try to use token after logout
+	req = httptest.NewRequest("GET", "/auth/profile", nil)
+	req.Header.Set("Authorization", "Bearer "+signupResp.Token)
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("Expected status %d after logout, got %d", http.StatusUnauthorized, w.Code)
+	}
+}

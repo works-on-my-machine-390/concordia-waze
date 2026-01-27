@@ -36,6 +36,7 @@ func SetupRouter() *gin.Engine {
 		authGroup.POST("/signup", authHandler.SignUp)
 		authGroup.POST("/login", authHandler.Login)
 		authGroup.GET("/profile", middleware.RequireAuth(), authHandler.GetProfile)
+		authGroup.POST("/logout", middleware.RequireAuth(), authHandler.Logout)
 	}
 
 	// Swagger documentation

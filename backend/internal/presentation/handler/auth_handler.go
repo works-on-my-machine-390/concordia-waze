@@ -153,6 +153,42 @@ func (h *AuthHandler) GetProfile(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-// func (h *AuthHandler) LogOut(c *gin.Context) {
+// Logout handles user logout
+// @Summary Logout user
+// @Description Logout the authenticated student and revoke their token
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param Authorization header string true "Bearer token"
+// @Success 200 {object} map[string]string "Logout successful"
+// @Failure 401 {object} map[string]string "Not authenticated"
+// @Router /auth/logout [post]
+func (h *AuthHandler) Logout(c *gin.Context) {
+	claims := middleware.GetUserFromContext(c)
+	if claims == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "not authenticated"})
+		return
+	}
 
-// }
+	// Get token from Authorization header
+	authHeader := c.GetHeader("Authorization")
+	if authHeader == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing authorization header"})
+		return
+	}
+
+	// Extract token (format: "Bearer <token>")
+	var token string
+	if len(authHeader) > 7 && authHeader[:7] == "Bearer " {
+		token = authHeader[7:]
+	} else {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid authorization header format"})
+		return
+	}
+
+	// Logout (revoke token)
+	h.userService.Logout(token, c.GetTime("token_exp"))
+
+	c.JSON(http.StatusOK, gin.H{"message": "logged out successfully"})
+}

@@ -1,9 +1,11 @@
- package middleware
+package middleware
 
 import (
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/application"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
 )
@@ -42,8 +44,20 @@ func AuthMiddleware(jwtManager *application.JWTManager) gin.HandlerFunc {
 			return
 		}
 
-		// Set user in context
+		// Extract expiration time from token
+		jwtClaims := jwt.MapClaims{}
+		jwt.ParseWithClaims(tokenString, jwtClaims, func(token *jwt.Token) (interface{}, error) {
+			return []byte(""), nil
+		})
+
+		var expTime time.Time
+		if exp, ok := jwtClaims["exp"].(float64); ok {
+			expTime = time.Unix(int64(exp), 0)
+		}
+
+		// Set user and token expiration in context
 		c.Set("user", claims)
+		c.Set("token_exp", expTime)
 		c.Next()
 	}
 }

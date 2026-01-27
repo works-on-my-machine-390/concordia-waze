@@ -230,3 +230,60 @@ func TestJWTManager_WrongSecret(t *testing.T) {
 		t.Errorf("Expected ErrInvalidToken, got %v", err)
 	}
 }
+
+func TestJWTManager_RevokeToken(t *testing.T) {
+	jwtManager := application.NewJWTManager("test-secret", time.Hour)
+	user := &domain.User{
+		ID:        "user-123",
+		StudentID: "40123456",
+		Email:     "john.doe@concordia.ca",
+	}
+
+	// Generate token
+	token, _ := jwtManager.GenerateToken(user)
+
+	// Validate token (should work)
+	_, err := jwtManager.ValidateToken(token)
+	if err != nil {
+		t.Fatalf("Token validation failed: %v", err)
+	}
+
+	// Revoke token
+	jwtManager.RevokeToken(token, time.Now().Add(time.Hour))
+
+	// Try to validate revoked token
+	_, err = jwtManager.ValidateToken(token)
+	if err != domain.ErrInvalidToken {
+		t.Errorf("Expected ErrInvalidToken for revoked token, got %v", err)
+	}
+}
+
+func TestUserService_Logout(t *testing.T) {
+	repo := repository.NewInMemoryUserRepository()
+	jwtManager := application.NewJWTManager("test-secret", time.Hour)
+	service := application.NewUserService(repo, jwtManager)
+
+	// Signup
+	_, token, err := service.SignUp(
+		"John Doe",
+		"40123456",
+		"john.doe@concordia.ca",
+		"password123",
+	)
+	if err != nil {
+		t.Fatalf("SignUp failed: %v", err)
+	}
+
+	// Logout
+	expTime := time.Now().Add(time.Hour)
+	err = service.Logout(token, expTime)
+	if err != nil {
+		t.Fatalf("Logout failed: %v", err)
+	}
+
+	// Token should be revoked
+	_, err = jwtManager.ValidateToken(token)
+	if err != domain.ErrInvalidToken {
+		t.Errorf("Expected ErrInvalidToken after logout, got %v", err)
+	}
+}

@@ -3,6 +3,7 @@ package application
 import (
 	"crypto/sha256"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -11,21 +12,22 @@ import (
 )
 
 type JWTManager struct {
-	secretKey string
-	duration  time.Duration
+	secretKey      string
+	duration       time.Duration
+	revokedTokens  map[string]time.Time // token -> expiration time
+	revokedTokenMu sync.RWMutex
 }
-
 
 func NewJWTManager(secretKey string, duration time.Duration) *JWTManager {
 	if secretKey == "" {
 		secretKey = "your-secret-key-change-in-production"
 	}
 	return &JWTManager{
-		secretKey: secretKey,
-		duration:  duration,
+		secretKey:     secretKey,
+		duration:      duration,
+		revokedTokens: make(map[string]time.Time),
 	}
 }
-
 
 func (m *JWTManager) GenerateToken(user *domain.User) (string, error) {
 	claims := jwt.MapClaims{
@@ -41,6 +43,23 @@ func (m *JWTManager) GenerateToken(user *domain.User) (string, error) {
 }
 
 func (m *JWTManager) ValidateToken(tokenString string) (*domain.UserClaims, error) {
+	// Check if token is revoked
+	m.revokedTokenMu.RLock()
+	if expTime, exists := m.revokedTokens[tokenString]; exists {
+		m.revokedTokenMu.RUnlock()
+		// Token is revoked and still in the list
+		if time.Now().Before(expTime) {
+			return nil, domain.ErrInvalidToken
+		}
+		// Clean up expired revoked token
+		m.revokedTokenMu.RUnlock()
+		m.revokedTokenMu.Lock()
+		delete(m.revokedTokens, tokenString)
+		m.revokedTokenMu.Unlock()
+		m.revokedTokenMu.RLock()
+	}
+	m.revokedTokenMu.RUnlock()
+
 	claims := jwt.MapClaims{}
 
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
@@ -62,6 +81,13 @@ func (m *JWTManager) ValidateToken(tokenString string) (*domain.UserClaims, erro
 	}
 
 	return userClaims, nil
+}
+
+// RevokeToken adds a token to the revocation list
+func (m *JWTManager) RevokeToken(token string, expiration time.Time) {
+	m.revokedTokenMu.Lock()
+	defer m.revokedTokenMu.Unlock()
+	m.revokedTokens[token] = expiration
 }
 
 // UserService handles user-related business logic
@@ -150,6 +176,12 @@ func (s *UserService) Login(email, password string) (*domain.User, string, error
 	}
 
 	return user, token, nil
+}
+
+// Logout revokes a token
+func (s *UserService) Logout(token string, expiration time.Time) error {
+	s.jwtManager.RevokeToken(token, expiration)
+	return nil
 }
 
 // GetUserByID retrieves a user by ID
