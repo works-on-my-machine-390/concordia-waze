@@ -1,28 +1,50 @@
 package router
 
 import (
+	"time"
+
+	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
-
 	_ "github.com/works-on-my-machine-390/concordia-waze/docs"
-
-	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
-	"github.com/works-on-my-machine-390/concordia-waze/internal/greeting"
+	"github.com/works-on-my-machine-390/concordia-waze/internal/application"
+	"github.com/works-on-my-machine-390/concordia-waze/internal/persistence/repository"
+	"github.com/works-on-my-machine-390/concordia-waze/internal/presentation/handler"
+	"github.com/works-on-my-machine-390/concordia-waze/internal/presentation/middleware"
 )
 
+// SetupRouter configures all routes and middleware
 func SetupRouter() *gin.Engine {
 	router := gin.Default()
 
-	router.Use(cors.Default()) // All origins allowed by default
+	// Initialize repositories (persistance layer)
+	userRepo := repository.NewInMemoryUserRepository()
 
-	router.GET("/greeting", greeting.GetGreetingString)
-	router.GET("/greeting/obj", greeting.GetGreetingObject)
+	// Initialize services (application layer)
+	jwtManager := application.NewJWTManager("your-secret-key", 24*time.Hour)
+	userService := application.NewUserService(userRepo, jwtManager)
 
+	// Initialize handlers (presentation layer)
+	authHandler := handler.NewAuthHandler(userService)
+
+	// Apply auth middleware globally
+	router.Use(middleware.AuthMiddleware(jwtManager))
+
+	// Auth routes (public)
+	authGroup := router.Group("/auth")
+	{
+		authGroup.POST("/signup", authHandler.SignUp)
+		authGroup.POST("/login", authHandler.Login)
+		authGroup.GET("/profile", middleware.RequireAuth(), authHandler.GetProfile)
+	}
+
+	// Swagger documentation
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
 	return router
 }
 
+// SetupTestRouter creates a router for testing
 func SetupTestRouter() *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	return SetupRouter()
