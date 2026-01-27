@@ -37,14 +37,24 @@ type LoginRequest struct {
 
 // AuthResponse is the response for auth endpoints
 type AuthResponse struct {
-	ID        string      `json:"id"`
-	Name      string      `json:"name"`
-	StudentID string      `json:"student_id"`
-	Email     string      `json:"email"`
-	Token     string      `json:"token,omitempty"`
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	StudentID string `json:"student_id"`
+	Email     string `json:"email"`
+	Token     string `json:"token,omitempty"`
 }
 
 // SignUp handles user registration
+// @Summary Register a new student
+// @Description Create a new student account with name, student ID, Concordia email, and password
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body SignUpRequest true "Sign up details"
+// @Success 201 {object} AuthResponse
+// @Failure 400 {object} map[string]string "Validation error"
+// @Failure 409 {object} map[string]string "User already exists"
+// @Router /auth/signup [post]
 func (h *AuthHandler) SignUp(c *gin.Context) {
 	var req SignUpRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -70,6 +80,16 @@ func (h *AuthHandler) SignUp(c *gin.Context) {
 }
 
 // Login handles user authentication
+// @Summary Login user
+// @Description Authenticate a student with email and password, receive JWT token
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body LoginRequest true "Login credentials"
+// @Success 200 {object} AuthResponse
+// @Failure 400 {object} map[string]string "Validation error"
+// @Failure 401 {object} map[string]string "Invalid credentials"
+// @Router /auth/login [post]
 func (h *AuthHandler) Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -99,6 +119,17 @@ func (h *AuthHandler) Login(c *gin.Context) {
 }
 
 // GetProfile returns the authenticated user's profile
+// @Summary Get user profile
+// @Description Get the authenticated student's information
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param Authorization header string true "Bearer token"
+// @Success 200 {object} AuthResponse
+// @Failure 401 {object} map[string]string "Not authenticated"
+// @Failure 404 {object} map[string]string "User not found"
+// @Router /auth/profile [get]
 func (h *AuthHandler) GetProfile(c *gin.Context) {
 	claims := middleware.GetUserFromContext(c)
 	if claims == nil {

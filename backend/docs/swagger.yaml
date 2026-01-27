@@ -1,4 +1,45 @@
 basePath: /
+definitions:
+  handler.AuthResponse:
+    properties:
+      email:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      student_id:
+        type: string
+      token:
+        type: string
+    type: object
+  handler.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  handler.SignUpRequest:
+    properties:
+      email:
+        type: string
+      name:
+        type: string
+      password:
+        minLength: 6
+        type: string
+      student_id:
+        type: string
+    required:
+    - email
+    - name
+    - password
+    - student_id
+    type: object
 host: localhost:8080
 info:
   contact: {}
@@ -6,32 +47,108 @@ info:
   title: Concordia Waze API
   version: "1.0"
 paths:
-  /greeting:
-    get:
-      description: Returns a simple greeting string
-      produces:
-      - text/plain
-      responses:
-        "200":
-          description: hello world
-          schema:
-            type: string
-      summary: Get greeting string
-      tags:
-      - greeting
-  /greeting/obj:
-    get:
-      description: Returns a greeting message as JSON object
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate a student with email and password, receive JWT token
+      parameters:
+      - description: Login credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.LoginRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
+            $ref: '#/definitions/handler.AuthResponse'
+        "400":
+          description: Validation error
+          schema:
             additionalProperties:
               type: string
             type: object
-      summary: Get greeting object
+        "401":
+          description: Invalid credentials
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Login user
       tags:
-      - greeting
+      - auth
+  /auth/profile:
+    get:
+      consumes:
+      - application/json
+      description: Get the authenticated student's information
+      parameters:
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.AuthResponse'
+        "401":
+          description: Not authenticated
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: User not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get user profile
+      tags:
+      - auth
+  /auth/signup:
+    post:
+      consumes:
+      - application/json
+      description: Create a new student account with name, student ID, Concordia email,
+        and password
+      parameters:
+      - description: Sign up details
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.SignUpRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/handler.AuthResponse'
+        "400":
+          description: Validation error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: User already exists
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Register a new student
+      tags:
+      - auth
 swagger: "2.0"
