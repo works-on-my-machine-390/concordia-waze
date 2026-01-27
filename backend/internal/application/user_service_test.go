@@ -16,7 +16,6 @@ func TestSignUp_Success(t *testing.T) {
 
 	user, token, err := service.SignUp(
 		"John Doe",
-		"40123456",
 		"john.doe@concordia.ca",
 		"password123",
 	)
