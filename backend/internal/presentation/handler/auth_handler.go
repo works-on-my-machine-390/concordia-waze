@@ -23,9 +23,9 @@ func NewAuthHandler(userService *application.UserService) *AuthHandler {
 
 // SignUpRequest is the request body for sign up
 type SignUpRequest struct {
-	Name      string `json:"name" binding:"required"`
-	Email     string `json:"email" binding:"required,email"`
-	Password  string `json:"password" binding:"required,min=6"`
+	Name     string `json:"name" binding:"required"`
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required,min=6"`
 }
 
 // LoginRequest is the request body for login
@@ -36,10 +36,10 @@ type LoginRequest struct {
 
 // AuthResponse is the response for auth endpoints
 type AuthResponse struct {
-	ID        string `json:"id"`
-	Name      string `json:"name"`
-	Email     string `json:"email"`
-	Token     string `json:"token,omitempty"`
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	Email string `json:"email"`
+	Token string `json:"token,omitempty"`
 }
 
 // SignUp handles user registration
@@ -67,10 +67,10 @@ func (h *AuthHandler) SignUp(c *gin.Context) {
 	}
 
 	response := AuthResponse{
-		ID:        user.ID,
-		Name:      user.Name,
-		Email:     user.Email,
-		Token:     token,
+		ID:    user.ID,
+		Name:  user.Name,
+		Email: user.Email,
+		Token: token,
 	}
 
 	c.JSON(http.StatusCreated, response)
@@ -105,10 +105,10 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	}
 
 	response := AuthResponse{
-		ID:        user.ID,
-		Name:      user.Name,
-		Email:     user.Email,
-		Token:     token,
+		ID:    user.ID,
+		Name:  user.Name,
+		Email: user.Email,
+		Token: token,
 	}
 
 	c.JSON(http.StatusOK, response)
@@ -140,9 +140,9 @@ func (h *AuthHandler) GetProfile(c *gin.Context) {
 	}
 
 	response := AuthResponse{
-		ID:        user.ID,
-		Name:      user.Name,
-		Email:     user.Email,
+		ID:    user.ID,
+		Name:  user.Name,
+		Email: user.Email,
 	}
 
 	c.JSON(http.StatusOK, response)

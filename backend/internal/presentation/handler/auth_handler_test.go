@@ -31,9 +31,9 @@ func TestSignUp_Success(t *testing.T) {
 	router.POST("/auth/signup", authHandler.SignUp)
 
 	reqBody := handler.SignUpRequest{
-		Name:      "John Doe",
-		Email:     "john.doe@concordia.ca",
-		Password:  "password123",
+		Name:     "John Doe",
+		Email:    "john.doe@concordia.ca",
+		Password: "password123",
 	}
 
 	body, _ := json.Marshal(reqBody)
@@ -70,27 +70,27 @@ func TestSignUp_MissingFields(t *testing.T) {
 		{
 			name: "missing name",
 			req: handler.SignUpRequest{
-				Name:      "",
-				Email:     "john.doe@concordia.ca",
-				Password:  "password123",
+				Name:     "",
+				Email:    "john.doe@concordia.ca",
+				Password: "password123",
 			},
 			wantCode: http.StatusBadRequest,
 		},
 		{
 			name: "missing email",
 			req: handler.SignUpRequest{
-				Name:      "John Doe",
-				Email:     "",
-				Password:  "password123",
+				Name:     "John Doe",
+				Email:    "",
+				Password: "password123",
 			},
 			wantCode: http.StatusBadRequest,
 		},
 		{
 			name: "missing password",
 			req: handler.SignUpRequest{
-				Name:      "John Doe",
-				Email:     "john.doe@concordia.ca",
-				Password:  "",
+				Name:     "John Doe",
+				Email:    "john.doe@concordia.ca",
+				Password: "",
 			},
 			wantCode: http.StatusBadRequest,
 		},
@@ -128,9 +128,9 @@ func TestLogin_Success(t *testing.T) {
 
 	// Signup first
 	signupReq := handler.SignUpRequest{
-		Name:      "John Doe",
-		Email:     "john.doe@concordia.ca",
-		Password:  "password123",
+		Name:     "John Doe",
+		Email:    "john.doe@concordia.ca",
+		Password: "password123",
 	}
 
 	body, _ := json.Marshal(signupReq)
@@ -173,9 +173,9 @@ func TestLogin_WrongPassword(t *testing.T) {
 
 	// Signup
 	signupReq := handler.SignUpRequest{
-		Name:      "John Doe",
-		Email:     "john.doe@concordia.ca",
-		Password:  "password123",
+		Name:     "John Doe",
+		Email:    "john.doe@concordia.ca",
+		Password: "password123",
 	}
 
 	body, _ := json.Marshal(signupReq)
@@ -236,9 +236,9 @@ func TestGetProfile_Success(t *testing.T) {
 
 	// Signup first
 	signupReq := handler.SignUpRequest{
-		Name:      "John Doe",
-		Email:     "john.doe@concordia.ca",
-		Password:  "password123",
+		Name:     "John Doe",
+		Email:    "john.doe@concordia.ca",
+		Password: "password123",
 	}
 
 	body, _ := json.Marshal(signupReq)
@@ -315,9 +315,9 @@ func TestLogout_Success(t *testing.T) {
 
 	// Signup first
 	signupReq := handler.SignUpRequest{
-		Name:      "John Doe",
-		Email:     "john.doe@concordia.ca",
-		Password:  "password123",
+		Name:     "John Doe",
+		Email:    "john.doe@concordia.ca",
+		Password: "password123",
 	}
 
 	body, _ := json.Marshal(signupReq)
@@ -391,9 +391,9 @@ func TestLogout_TokenRevoked(t *testing.T) {
 
 	// Signup
 	signupReq := handler.SignUpRequest{
-		Name:      "John Doe",
-		Email:     "john.doe@concordia.ca",
-		Password:  "password123",
+		Name:     "John Doe",
+		Email:    "john.doe@concordia.ca",
+		Password: "password123",
 	}
 
 	body, _ := json.Marshal(signupReq)

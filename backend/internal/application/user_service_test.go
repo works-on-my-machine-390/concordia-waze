@@ -136,9 +136,9 @@ func TestLogin_UserNotFound(t *testing.T) {
 func TestJWTManager_GenerateAndValidateToken(t *testing.T) {
 	jwtManager := application.NewJWTManager("test-secret", time.Hour)
 	user := &domain.User{
-		ID:        "user-123",
-		Name:      "John Doe",
-		Email:     "john.doe@concordia.ca",
+		ID:    "user-123",
+		Name:  "John Doe",
+		Email: "john.doe@concordia.ca",
 	}
 
 	// Generate token
@@ -176,8 +176,8 @@ func TestJWTManager_WrongSecret(t *testing.T) {
 	jwtManager2 := application.NewJWTManager("secret-2", time.Hour)
 
 	user := &domain.User{
-		ID:        "user-123",
-		Email:     "john.doe@concordia.ca",
+		ID:    "user-123",
+		Email: "john.doe@concordia.ca",
 	}
 
 	// Generate with secret-1
@@ -194,8 +194,8 @@ func TestJWTManager_WrongSecret(t *testing.T) {
 func TestJWTManager_RevokeToken(t *testing.T) {
 	jwtManager := application.NewJWTManager("test-secret", time.Hour)
 	user := &domain.User{
-		ID:        "user-123",
-		Email:     "john.doe@concordia.ca",
+		ID:    "user-123",
+		Email: "john.doe@concordia.ca",
 	}
 
 	// Generate token

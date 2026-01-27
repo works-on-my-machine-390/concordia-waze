@@ -31,10 +31,10 @@ func NewJWTManager(secretKey string, duration time.Duration) *JWTManager {
 
 func (m *JWTManager) GenerateToken(user *domain.User) (string, error) {
 	claims := jwt.MapClaims{
-		"id":         user.ID,
-		"email":      user.Email,
-		"exp":        time.Now().Add(m.duration).Unix(),
-		"iat":        time.Now().Unix(),
+		"id":    user.ID,
+		"email": user.Email,
+		"exp":   time.Now().Add(m.duration).Unix(),
+		"iat":   time.Now().Unix(),
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -74,8 +74,8 @@ func (m *JWTManager) ValidateToken(tokenString string) (*domain.UserClaims, erro
 	}
 
 	userClaims := &domain.UserClaims{
-		ID:        claims["id"].(string),
-		Email:     claims["email"].(string),
+		ID:    claims["id"].(string),
+		Email: claims["email"].(string),
 	}
 
 	return userClaims, nil
@@ -120,9 +120,9 @@ func (s *UserService) SignUp(name, email, password string) (*domain.User, string
 
 	// Create user
 	user := &domain.User{
-		Name:      name,
-		Email:     email,
-		Password:  hashedPassword,
+		Name:     name,
+		Email:    email,
+		Password: hashedPassword,
 	}
 
 	// Save to repository
@@ -195,4 +195,3 @@ func hashPassword(password string) string {
 func verifyPassword(hashedPassword, password string) bool {
 	return hashPassword(password) == hashedPassword
 }
-

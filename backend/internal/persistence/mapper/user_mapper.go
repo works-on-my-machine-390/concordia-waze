@@ -4,10 +4,10 @@ import "github.com/works-on-my-machine-390/concordia-waze/internal/domain"
 
 // UserDataModel represents the user as stored in the database
 type UserDataModel struct {
-	ID        string
-	Email     string
-	Password  string
-	Name      string
+	ID       string
+	Email    string
+	Password string
+	Name     string
 }
 
 // ToEntity converts a data model to a domain entity

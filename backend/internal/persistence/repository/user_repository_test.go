@@ -11,10 +11,10 @@ func TestCreate_Success(t *testing.T) {
 	repo := repository.NewInMemoryUserRepository()
 
 	user := &domain.User{
-		ID:        "user-123",
-		Name:      "John Doe",
-		Email:     "john.doe@concordia.ca",
-		Password:  "hashed_password",
+		ID:       "user-123",
+		Name:     "John Doe",
+		Email:    "john.doe@concordia.ca",
+		Password: "hashed_password",
 	}
 
 	err := repo.Create(user)
@@ -28,9 +28,9 @@ func TestCreate_GeneratesID(t *testing.T) {
 	repo := repository.NewInMemoryUserRepository()
 
 	user := &domain.User{
-		Name:      "John Doe",
-		Email:     "john.doe@concordia.ca",
-		Password:  "hashed_password",
+		Name:     "John Doe",
+		Email:    "john.doe@concordia.ca",
+		Password: "hashed_password",
 	}
 
 	err := repo.Create(user)
@@ -47,10 +47,10 @@ func TestFindByEmail_Success(t *testing.T) {
 	repo := repository.NewInMemoryUserRepository()
 
 	user1 := &domain.User{
-		ID:        "user-123",
-		Name:      "John Doe",
-		Email:     "john.doe@concordia.ca",
-		Password:  "hashed_password",
+		ID:       "user-123",
+		Name:     "John Doe",
+		Email:    "john.doe@concordia.ca",
+		Password: "hashed_password",
 	}
 
 	repo.Create(user1)
@@ -79,10 +79,10 @@ func TestFindByID_Success(t *testing.T) {
 	repo := repository.NewInMemoryUserRepository()
 
 	user1 := &domain.User{
-		ID:        "user-123",
-		Name:      "John Doe",
-		Email:     "john.doe@concordia.ca",
-		Password:  "hashed_password",
+		ID:       "user-123",
+		Name:     "John Doe",
+		Email:    "john.doe@concordia.ca",
+		Password: "hashed_password",
 	}
 
 	repo.Create(user1)
@@ -111,10 +111,10 @@ func TestUpdate_Success(t *testing.T) {
 	repo := repository.NewInMemoryUserRepository()
 
 	user1 := &domain.User{
-		ID:        "user-123",
-		Name:      "John Doe",
-		Email:     "john.doe@concordia.ca",
-		Password:  "hashed_password",
+		ID:       "user-123",
+		Name:     "John Doe",
+		Email:    "john.doe@concordia.ca",
+		Password: "hashed_password",
 	}
 
 	repo.Create(user1)

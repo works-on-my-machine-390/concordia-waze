@@ -17,8 +17,8 @@ func TestAuthMiddleware_WithValidToken(t *testing.T) {
 
 	jwtManager := application.NewJWTManager("test-secret", time.Hour)
 	user := &domain.User{
-		ID:        "user-123",
-		Email:     "john.doe@concordia.ca",
+		ID:    "user-123",
+		Email: "john.doe@concordia.ca",
 	}
 
 	token, err := jwtManager.GenerateToken(user)
@@ -35,8 +35,8 @@ func TestAuthMiddleware_WithValidToken(t *testing.T) {
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{
-			"id":         claims.ID,
-			"email":      claims.Email,
+			"id":    claims.ID,
+			"email": claims.Email,
 		})
 	})
 
@@ -127,8 +127,8 @@ func TestRequireAuth_WithAuthentication(t *testing.T) {
 
 	jwtManager := application.NewJWTManager("test-secret", time.Hour)
 	user := &domain.User{
-		ID:        "user-123",
-		Email:     "john.doe@concordia.ca",
+		ID:    "user-123",
+		Email: "john.doe@concordia.ca",
 	}
 
 	token, err := jwtManager.GenerateToken(user)
@@ -177,8 +177,8 @@ func TestRequireAuth_WithoutAuthentication(t *testing.T) {
 func TestGetUserFromContext_WithClaims(t *testing.T) {
 	jwtManager := application.NewJWTManager("test-secret", time.Hour)
 	user := &domain.User{
-		ID:        "user-123",
-		Email:     "john.doe@concordia.ca",
+		ID:    "user-123",
+		Email: "john.doe@concordia.ca",
 	}
 
 	token, _ := jwtManager.GenerateToken(user)
