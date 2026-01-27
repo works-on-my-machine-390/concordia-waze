@@ -38,36 +38,6 @@ func TestSignUp_Success(t *testing.T) {
 	}
 }
 
-func TestSignUp_InvalidEmail(t *testing.T) {
-	repo := repository.NewInMemoryUserRepository()
-	jwtManager := application.NewJWTManager("test-secret", time.Hour)
-	service := application.NewUserService(repo, jwtManager)
-
-	tests := []struct {
-		name  string
-		email string
-	}{
-		{"non-concordia email", "john@gmail.com"},
-		{"missing domain", "john@"},
-		{"wrong domain", "john@utoronto.ca"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			_, _, err := service.SignUp(
-				"John Doe",
-				"40123456",
-				tt.email,
-				"password123",
-			)
-
-			if err != domain.ErrInvalidEmail {
-				t.Errorf("Expected ErrInvalidEmail, got %v", err)
-			}
-		})
-	}
-}
-
 func TestSignUp_EmptyName(t *testing.T) {
 	repo := repository.NewInMemoryUserRepository()
 	jwtManager := application.NewJWTManager("test-secret", time.Hour)

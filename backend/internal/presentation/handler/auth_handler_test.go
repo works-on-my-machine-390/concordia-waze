@@ -62,32 +62,6 @@ func TestSignUp_Success(t *testing.T) {
 	}
 }
 
-func TestSignUp_InvalidEmail(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	authHandler, _ := setupAuthTest(t)
-
-	router := gin.New()
-	router.POST("/auth/signup", authHandler.SignUp)
-
-	reqBody := handler.SignUpRequest{
-		Name:      "John Doe",
-		StudentID: "40123456",
-		Email:     "john@gmail.com",
-		Password:  "password123",
-	}
-
-	body, _ := json.Marshal(reqBody)
-	req := httptest.NewRequest("POST", "/auth/signup", bytes.NewBuffer(body))
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-
-	router.ServeHTTP(w, req)
-
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("Expected status %d, got %d", http.StatusBadRequest, w.Code)
-	}
-}
-
 func TestSignUp_MissingFields(t *testing.T) {
 	tests := []struct {
 		name     string

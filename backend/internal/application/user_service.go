@@ -116,9 +116,6 @@ func (s *UserService) SignUp(name, studentID, email, password string) (*domain.U
 	if email == "" {
 		return nil, "", domain.ErrEmptyEmail
 	}
-	if !isValidConcordiaEmail(email) {
-		return nil, "", domain.ErrInvalidEmail
-	}
 	if password == "" {
 		return nil, "", domain.ErrEmptyPassword
 	}
@@ -205,11 +202,3 @@ func verifyPassword(hashedPassword, password string) bool {
 	return hashPassword(password) == hashedPassword
 }
 
-// isValidConcordiaEmail checks if email ends with concordia.ca
-func isValidConcordiaEmail(email string) bool {
-	const concordiaSuffix = "concordia.ca"
-	if len(email) < len(concordiaSuffix) {
-		return false
-	}
-	return email[len(email)-len(concordiaSuffix):] == concordiaSuffix
-}

@@ -12,7 +12,6 @@ var (
 	// Validation errors
 	ErrEmptyName         = errors.New("Name cannot be empty")
 	ErrEmptyEmail        = errors.New("Email cannot be empty")
-	ErrInvalidEmail      = errors.New("Email must end with concordia.ca")
 	ErrEmptyPassword     = errors.New("Password cannot be empty")
 	ErrEmptyStudentID    = errors.New("Student ID cannot be empty")
 )
