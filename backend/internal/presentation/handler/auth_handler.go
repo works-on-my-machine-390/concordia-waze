@@ -1,0 +1,189 @@
+package handler
+
+import (
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+	"github.com/works-on-my-machine-390/concordia-waze/internal/application"
+	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
+	"github.com/works-on-my-machine-390/concordia-waze/internal/presentation/middleware"
+)
+
+// AuthHandler handles authentication requests
+type AuthHandler struct {
+	userService *application.UserService
+}
+
+// NewAuthHandler creates a new auth handler
+func NewAuthHandler(userService *application.UserService) *AuthHandler {
+	return &AuthHandler{
+		userService: userService,
+	}
+}
+
+// SignUpRequest is the request body for sign up
+type SignUpRequest struct {
+	Name     string `json:"name" binding:"required"`
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required,min=6"`
+}
+
+// LoginRequest is the request body for login
+type LoginRequest struct {
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required"`
+}
+
+// AuthResponse is the response for auth endpoints
+type AuthResponse struct {
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	Email string `json:"email"`
+	Token string `json:"token,omitempty"`
+}
+
+// SignUp handles user registration
+// @Summary Register a new user
+// @Description Create a new user account with name, email, and password
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body SignUpRequest true "Sign up details"
+// @Success 201 {object} AuthResponse
+// @Failure 400 {object} map[string]string "Validation error"
+// @Failure 409 {object} map[string]string "User already exists"
+// @Router /auth/signup [post]
+func (h *AuthHandler) SignUp(c *gin.Context) {
+	var req SignUpRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	user, token, err := h.userService.SignUp(req.Name, req.Email, req.Password)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	response := AuthResponse{
+		ID:    user.ID,
+		Name:  user.Name,
+		Email: user.Email,
+		Token: token,
+	}
+
+	c.JSON(http.StatusCreated, response)
+}
+
+// Login handles user authentication
+// @Summary Login user
+// @Description Authenticate a user with email and password, receive JWT token
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param request body LoginRequest true "Login credentials"
+// @Success 200 {object} AuthResponse
+// @Failure 400 {object} map[string]string "Validation error"
+// @Failure 401 {object} map[string]string "Invalid credentials"
+// @Router /auth/login [post]
+func (h *AuthHandler) Login(c *gin.Context) {
+	var req LoginRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	user, token, err := h.userService.Login(req.Email, req.Password)
+	if err != nil {
+		if err == domain.ErrInvalidCredentials {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		}
+		return
+	}
+
+	response := AuthResponse{
+		ID:    user.ID,
+		Name:  user.Name,
+		Email: user.Email,
+		Token: token,
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// GetProfile returns the authenticated user's profile
+// @Summary Get user profile
+// @Description Get the authenticated user's information
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param Authorization header string true "Bearer token"
+// @Success 200 {object} AuthResponse
+// @Failure 401 {object} map[string]string "Not authenticated"
+// @Failure 404 {object} map[string]string "User not found"
+// @Router /auth/profile [get]
+func (h *AuthHandler) GetProfile(c *gin.Context) {
+	claims := middleware.GetUserFromContext(c)
+	if claims == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "not authenticated"})
+		return
+	}
+
+	user, err := h.userService.GetUserByID(claims.ID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	response := AuthResponse{
+		ID:    user.ID,
+		Name:  user.Name,
+		Email: user.Email,
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+// Logout handles user logout
+// @Summary Logout user
+// @Description Logout the authenticated user and revoke their token
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param Authorization header string true "Bearer token"
+// @Success 200 {object} map[string]string "Logout successful"
+// @Failure 401 {object} map[string]string "Not authenticated"
+// @Router /auth/logout [post]
+func (h *AuthHandler) Logout(c *gin.Context) {
+	claims := middleware.GetUserFromContext(c)
+	if claims == nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "not authenticated"})
+		return
+	}
+
+	// Get token from Authorization header
+	authHeader := c.GetHeader("Authorization")
+	if authHeader == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing authorization header"})
+		return
+	}
+
+	// Extract token (format: "Bearer <token>")
+	var token string
+	if len(authHeader) > 7 && authHeader[:7] == "Bearer " {
+		token = authHeader[7:]
+	} else {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid authorization header format"})
+		return
+	}
+
+	// Logout (revoke token)
+	h.userService.Logout(token, c.GetTime("token_exp"))
+
+	c.JSON(http.StatusOK, gin.H{"message": "logged out successfully"})
+}
