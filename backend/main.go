@@ -12,7 +12,7 @@ import (
 // @version 1.0
 // @description This is the Concordia Waze API server.
 // @host localhost:8080
-// @BasePath 
+// @BasePath
 // @securityDefinitions.apikey BearerAuth
 // @in header
 // @name Authorization
