@@ -43,8 +43,8 @@ type AuthResponse struct {
 }
 
 // SignUp handles user registration
-// @Summary Register a new student
-// @Description Create a new student account with name, student ID, Concordia email, and password
+// @Summary Register a new user
+// @Description Create a new user account with name, email, and password
 // @Tags auth
 // @Accept json
 // @Produce json
@@ -78,7 +78,7 @@ func (h *AuthHandler) SignUp(c *gin.Context) {
 
 // Login handles user authentication
 // @Summary Login user
-// @Description Authenticate a student with email and password, receive JWT token
+// @Description Authenticate a user with email and password, receive JWT token
 // @Tags auth
 // @Accept json
 // @Produce json
@@ -116,7 +116,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 // GetProfile returns the authenticated user's profile
 // @Summary Get user profile
-// @Description Get the authenticated student's information
+// @Description Get the authenticated user's information
 // @Tags auth
 // @Accept json
 // @Produce json
@@ -150,7 +150,7 @@ func (h *AuthHandler) GetProfile(c *gin.Context) {
 
 // Logout handles user logout
 // @Summary Logout user
-// @Description Logout the authenticated student and revoke their token
+// @Description Logout the authenticated user and revoke their token
 // @Tags auth
 // @Accept json
 // @Produce json

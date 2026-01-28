@@ -7,11 +7,10 @@
         "version": "1.0"
     },
     "host": "localhost:8080",
-    "basePath": "/",
     "paths": {
         "/auth/login": {
             "post": {
-                "description": "Authenticate a student with email and password, receive JWT token",
+                "description": "Authenticate a user with email and password, receive JWT token",
                 "consumes": [
                     "application/json"
                 ],
@@ -68,7 +67,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Logout the authenticated student and revoke their token",
+                "description": "Logout the authenticated user and revoke their token",
                 "consumes": [
                     "application/json"
                 ],
@@ -117,7 +116,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get the authenticated student's information",
+                "description": "Get the authenticated user's information",
                 "consumes": [
                     "application/json"
                 ],
@@ -167,7 +166,7 @@
         },
         "/auth/signup": {
             "post": {
-                "description": "Create a new student account with name, student ID, Concordia email, and password",
+                "description": "Create a new user account with name, email, and password",
                 "consumes": [
                     "application/json"
                 ],
@@ -177,7 +176,7 @@
                 "tags": [
                     "auth"
                 ],
-                "summary": "Register a new student",
+                "summary": "Register a new user",
                 "parameters": [
                     {
                         "description": "Sign up details",
@@ -231,9 +230,6 @@
                 "name": {
                     "type": "string"
                 },
-                "student_id": {
-                    "type": "string"
-                },
                 "token": {
                     "type": "string"
                 }
@@ -259,8 +255,7 @@
             "required": [
                 "email",
                 "name",
-                "password",
-                "student_id"
+                "password"
             ],
             "properties": {
                 "email": {
@@ -272,11 +267,16 @@
                 "password": {
                     "type": "string",
                     "minLength": 6
-                },
-                "student_id": {
-                    "type": "string"
                 }
             }
+        }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "description": "Type \"Bearer\" followed by a space and JWT token.",
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
         }
     }
 }

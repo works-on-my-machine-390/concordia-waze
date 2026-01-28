@@ -17,7 +17,7 @@ const docTemplate = `{
     "paths": {
         "/auth/login": {
             "post": {
-                "description": "Authenticate a student with email and password, receive JWT token",
+                "description": "Authenticate a user with email and password, receive JWT token",
                 "consumes": [
                     "application/json"
                 ],
@@ -74,7 +74,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Logout the authenticated student and revoke their token",
+                "description": "Logout the authenticated user and revoke their token",
                 "consumes": [
                     "application/json"
                 ],
@@ -123,7 +123,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Get the authenticated student's information",
+                "description": "Get the authenticated user's information",
                 "consumes": [
                     "application/json"
                 ],
@@ -173,7 +173,7 @@ const docTemplate = `{
         },
         "/auth/signup": {
             "post": {
-                "description": "Create a new student account with name, student ID, Concordia email, and password",
+                "description": "Create a new user account with name, email, and password",
                 "consumes": [
                     "application/json"
                 ],
@@ -183,7 +183,7 @@ const docTemplate = `{
                 "tags": [
                     "auth"
                 ],
-                "summary": "Register a new student",
+                "summary": "Register a new user",
                 "parameters": [
                     {
                         "description": "Sign up details",
@@ -237,9 +237,6 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
-                "student_id": {
-                    "type": "string"
-                },
                 "token": {
                     "type": "string"
                 }
@@ -265,8 +262,7 @@ const docTemplate = `{
             "required": [
                 "email",
                 "name",
-                "password",
-                "student_id"
+                "password"
             ],
             "properties": {
                 "email": {
@@ -278,11 +274,16 @@ const docTemplate = `{
                 "password": {
                     "type": "string",
                     "minLength": 6
-                },
-                "student_id": {
-                    "type": "string"
                 }
             }
+        }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "description": "Type \"Bearer\" followed by a space and JWT token.",
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
         }
     }
 }`
@@ -291,7 +292,7 @@ const docTemplate = `{
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
 	Host:             "localhost:8080",
-	BasePath:         "/",
+	BasePath:         "",
 	Schemes:          []string{},
 	Title:            "Concordia Waze API",
 	Description:      "This is the Concordia Waze API server.",

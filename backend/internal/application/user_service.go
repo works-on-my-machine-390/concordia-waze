@@ -3,6 +3,7 @@ package application
 import (
 	"crypto/sha256"
 	"fmt"
+	"os"
 	"sync"
 	"time"
 
@@ -20,7 +21,7 @@ type JWTManager struct {
 
 func NewJWTManager(secretKey string, duration time.Duration) *JWTManager {
 	if secretKey == "" {
-		secretKey = "your-secret-key-change-in-production"
+		secretKey = os.Getenv("JWT_TOKEN")
 	}
 	return &JWTManager{
 		secretKey:     secretKey,
@@ -102,7 +103,7 @@ func NewUserService(repo repository.UserRepository, jwtManager *JWTManager) *Use
 	}
 }
 
-// SignUp registers a new student
+// SignUp registers a new user
 func (s *UserService) SignUp(name, email, password string) (*domain.User, string, error) {
 	// Validation
 	if name == "" {

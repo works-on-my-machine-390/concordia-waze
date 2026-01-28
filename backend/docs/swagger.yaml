@@ -1,4 +1,3 @@
-basePath: /
 definitions:
   handler.AuthResponse:
     properties:
@@ -7,8 +6,6 @@ definitions:
       id:
         type: string
       name:
-        type: string
-      student_id:
         type: string
       token:
         type: string
@@ -32,13 +29,10 @@ definitions:
       password:
         minLength: 6
         type: string
-      student_id:
-        type: string
     required:
     - email
     - name
     - password
-    - student_id
     type: object
 host: localhost:8080
 info:
@@ -51,7 +45,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Authenticate a student with email and password, receive JWT token
+      description: Authenticate a user with email and password, receive JWT token
       parameters:
       - description: Login credentials
         in: body
@@ -85,7 +79,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Logout the authenticated student and revoke their token
+      description: Logout the authenticated user and revoke their token
       parameters:
       - description: Bearer token
         in: header
@@ -116,7 +110,7 @@ paths:
     get:
       consumes:
       - application/json
-      description: Get the authenticated student's information
+      description: Get the authenticated user's information
       parameters:
       - description: Bearer token
         in: header
@@ -151,8 +145,7 @@ paths:
     post:
       consumes:
       - application/json
-      description: Create a new student account with name, student ID, Concordia email,
-        and password
+      description: Create a new user account with name, email, and password
       parameters:
       - description: Sign up details
         in: body
@@ -179,7 +172,13 @@ paths:
             additionalProperties:
               type: string
             type: object
-      summary: Register a new student
+      summary: Register a new user
       tags:
       - auth
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer" followed by a space and JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

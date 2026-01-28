@@ -1,6 +1,6 @@
 package domain
 
-// User represents a student in the system
+// User represents a user in the system
 type User struct {
 	ID       string `json:"id"`
 	Name     string `json:"name"`

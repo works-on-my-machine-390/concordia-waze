@@ -1,6 +1,7 @@
 package router
 
 import (
+	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -21,7 +22,7 @@ func SetupRouter() *gin.Engine {
 	userRepo := repository.NewInMemoryUserRepository()
 
 	// Initialize services (application layer)
-	jwtManager := application.NewJWTManager("your-secret-key", 24*time.Hour)
+	jwtManager := application.NewJWTManager(os.Getenv("JWT_SECRET"), 24*time.Hour)
 	userService := application.NewUserService(userRepo, jwtManager)
 
 	// Initialize handlers (presentation layer)
