@@ -4,8 +4,8 @@ Checking password minimum length (6 characters), confirming password match, and 
 Returning field-specific error messages.
 */
 
-export const CONCORDIA_EMAIL_REGEX =
-  /^[A-Za-z0-9._%+-]+@(?:(?:mail|live)\.)?concordia\.ca$/i;
+export const CONCORDIA_EMAIL_REGEX = /^[^@\s]+@[^@\s.]+\.[^@\s.]+$/i;
+
 
 export function validateRegister({
   fullName,
@@ -25,7 +25,7 @@ export function validateRegister({
   if (!email) {
     errors.email = "Email is required.";
   } else if (!CONCORDIA_EMAIL_REGEX.test(email)) {
-    errors.email = "Please use your Concordia email (example@live.concordia.ca).";
+    errors.email = "Please use an email in the format content@content.content.";
   }
   if (!password) {
     errors.password = "Password is required.";
@@ -45,7 +45,7 @@ export function validateLogin({ email, password }: { email: string; password: st
   if (!email) {
     errors.email = "Email is required.";
   } else if (!CONCORDIA_EMAIL_REGEX.test(email)) {
-    errors.email = "Please use your Concordia email (example@live.concordia.ca).";
+    errors.email = "Please use an email in the format content@content.content.";
   }
   if (!password) {
     errors.password = "Password is required.";

@@ -3,7 +3,10 @@
   "compilerOptions": {
     "target": "ES2020",
     "module": "ESNext",
-    "lib": ["ES2020", "DOM"],
+    "lib": [
+      "ES2020",
+      "DOM"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
@@ -17,20 +20,26 @@
     "jsxImportSource": "react",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"],
-      "~/*": ["./*"]
+      "@/*": [
+        "./*"
+      ],
+      "~/*": [
+        "./*"
+      ]
     }
   },
   "include": [
-    "**/*.ts", 
-    "**/*.tsx", 
-    "app/**/*", 
-    "components/**/*", 
-    "hooks/**/*"
+    "**/*.ts",
+    "**/*.tsx",
+    "app/**/*",
+    "components/**/*",
+    "hooks/**/*",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
   ],
   "exclude": [
-    "node_modules", 
-    "babel.config.js", 
+    "node_modules",
+    "babel.config.js",
     "metro.config.js"
   ]
 }
