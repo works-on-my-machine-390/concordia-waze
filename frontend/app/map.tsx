@@ -93,7 +93,7 @@ export default function Map() {
         onCampusChange={setCampus}
         searchText={searchText}
         onSearchTextChange={setSearchText}
-        onMenuPress={() => router.push("/menu")}
+        onMenuPress={() => router.push("/menu")} // navigate to menu screen, to be created
       />
       <LocationButton onPress={goToMyLocation} />
     </View>

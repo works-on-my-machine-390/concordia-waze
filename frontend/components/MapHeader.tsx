@@ -26,7 +26,7 @@ export function MapHeader({
       <View style={styles.headerRow}>
         {/* menu section */}
         <Pressable style={styles.iconButton} onPress={onMenuPress}>
-          <Ionicons name="menu" size={24} color={MAROON} />
+          <Ionicons name="menu" size={26} color={MAROON} />
         </Pressable>
 
         {/* search section */}
@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
   iconButton: {
     width: 44,
     height: 44,
-    borderRadius: 12,
+    borderRadius: 26,
     backgroundColor: "white",
     alignItems: "center",
     justifyContent: "center",
@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
   chip: {
     height: 32,
     paddingHorizontal: 14,
-    borderRadius: 16,
+    borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
   },
