@@ -4,8 +4,15 @@ import { StyleSheet, View } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import * as Location from 'expo-location'
 import LocationButton from "../components/LocationButton";
+import { MapHeader } from "../components/MapHeader";
+import { useRouter } from "expo-router";
+
 
 export default function Map() {
+  const router = useRouter();
+  const [campus, setCampus] = useState<"SGW" | "Loyola">("SGW");
+  const [searchText, setSearchText] = useState("");
+
  const [location, setLocation] = useState<Location.LocationObject | null>(null);
  const [errorMsg, setErrorMsg] = useState<string | null>(null);
  const mapRef = useRef<MapView>(null);
@@ -79,6 +86,15 @@ export default function Map() {
 
         />
       )}
+
+       
+      <MapHeader
+        campus={campus}
+        onCampusChange={setCampus}
+        searchText={searchText}
+        onSearchTextChange={setSearchText}
+        onMenuPress={() => router.push("/menu")}
+      />
       <LocationButton onPress={goToMyLocation} />
     </View>
   );
