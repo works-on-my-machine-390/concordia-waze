@@ -6,6 +6,15 @@ import { Ionicons } from "@expo/vector-icons";
 const MAROON = "#912338";
 const SOFT_PINK = "#DEBDC4";
 
+const SHADOW = {
+  shadowColor: "#000",
+  shadowOpacity: 0.18,
+  shadowRadius: 12,
+  shadowOffset: { width: 0, height: 6 },
+  elevation: 6,
+};
+
+
 type Props = {
   campus: "SGW" | "Loyola";
   onCampusChange: (campus: "SGW" | "Loyola") => void;
@@ -101,12 +110,7 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     alignItems: "center",
     justifyContent: "center",
-
-    shadowColor: "#000",
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 4,
+    ...SHADOW,
   },
 
   iconText: {
@@ -122,11 +126,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    shadowColor: "#000",
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 4,
+    ...SHADOW,
   },
 
   searchIcon: { fontSize: 14 },
@@ -151,11 +151,13 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
+
   },
 
   chipActive: {
     backgroundColor: MAROON, 
   },
+
   chipInactive: {
     backgroundColor: "white",
     borderWidth: 1,
