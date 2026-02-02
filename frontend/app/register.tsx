@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
     height: LOGO_SIZE_LOGIN,
   },
   title: { 
-    fontSize: 20, 
+    fontSize: 25, 
     fontWeight: "700", 
     textAlign: "center",
     marginTop: 8,

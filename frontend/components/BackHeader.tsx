@@ -1,3 +1,8 @@
+/*
+Back header to go back to previous page
+(Make sure to pass the "prev" param when navigating from page to page so that header knows what previous page was)
+*/
+
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Image } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -32,12 +37,12 @@ const BackHeader = ({ title }: HeaderProps) => {
     return (
         <View style={styles.container}>
             <TouchableOpacity 
-                style={styles.backButton} 
+                style={styles.backButtonTitle} 
                 onPress={() => router.back()}
             >
                 <Image source={BACK_ICON} style={styles.backIcon} />
+                <Text style={styles.title}>{headerTitle}</Text>
             </TouchableOpacity>
-            <Text style={styles.title}>{headerTitle}</Text>
         </View>
     );
 };
@@ -53,17 +58,17 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#ddd",
   },
-  backButton: {
-    width: 24,
-    height: 24,
-  },
+  backButtonTitle: {
+    flexDirection: "row", 
+    alignItems: "center",
+    flex: 1,
+    },
   backIcon: {
     width: 24,
     height: 24,
     resizeMode: "contain",
   },
   title: {
-    flex: 1,
     textAlign: "left",
     marginLeft: 10,
     fontSize: 16,
