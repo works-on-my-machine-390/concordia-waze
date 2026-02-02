@@ -44,7 +44,7 @@ export default function HomeScreen() {
           >
             <View style={styles.buttonContent}>
                   <View style={[styles.iconCircle, styles.iconCirclePrimaryButton]}>
-                    {AccountIcon(undefined, COLORS.maroon)}
+                    <AccountIcon size={35} color={COLORS.maroon}/>
                   </View>
               <View style={styles.buttonTextContainer}>
                 <Text style={styles.buttonPrimaryText}>Sign Up / Log in</Text>
@@ -62,7 +62,7 @@ export default function HomeScreen() {
           >
             <View style={styles.buttonContent}>
               <View style={[styles.iconCircle, styles.iconCircleSecondaryButton]}>
-                    {NoAccountIcon(undefined, COLORS.gold)}
+                    <NoAccountIcon size={35} color={COLORS.gold}/>
               </View>
               <View style={styles.buttonTextContainer}>
                 <Text style={styles.buttonPrimaryText}>Use without account</Text>

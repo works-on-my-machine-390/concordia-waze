@@ -142,8 +142,8 @@ export default function RegisterScreen() {
               right={
                   <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                           {showPassword 
-                            ? EyeHidingIcon(24, COLORS.maroon)   
-                            : EyeShowingIcon(24, COLORS.maroon) 
+                            ? <EyeHidingIcon size={24} color={COLORS.maroon}/>  
+                            : <EyeShowingIcon size={24} color={COLORS.maroon}/>
                           }
                   </TouchableOpacity>
               }
@@ -172,8 +172,8 @@ export default function RegisterScreen() {
               right={
                   <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
                           {showConfirmPassword 
-                            ? EyeHidingIcon(24, COLORS.maroon)   
-                            : EyeShowingIcon(24, COLORS.maroon) 
+                            ? <EyeHidingIcon size={24} color={COLORS.maroon}/>  
+                            : <EyeShowingIcon size={24} color={COLORS.maroon}/>
                           }
                   </TouchableOpacity>
               }

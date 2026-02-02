@@ -41,7 +41,7 @@ const BackHeader = ({ title }: HeaderProps) => {
                 style={styles.backButtonTitle} 
                 onPress={() => router.back()}
             >
-                {BackIcon(24)}
+                <BackIcon size={24}/>
                 <Text style={styles.title}>{headerTitle}</Text>
             </TouchableOpacity>
         </View>
