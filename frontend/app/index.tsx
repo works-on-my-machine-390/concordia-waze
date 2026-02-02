@@ -7,7 +7,8 @@ Home Page displaying the Concordia Waze logo, app name, tagline, and two buttons
 import React from "react";
 import { View, Text, Image, TouchableOpacity, StyleSheet, SafeAreaView } from "react-native";
 import { useRouter } from "expo-router";
-import { APP_INFO, COLORS, LOGO_IMAGE, ACCOUNT_ICON, NO_ACCOUNT_ICON } from "./constants";
+import { APP_INFO, COLORS, LOGO_IMAGE } from "./constants";
+import { AccountIcon, NoAccountIcon } from "./icons";
 
 const LOGO_SIZE_HOME = 200;
 
@@ -43,7 +44,7 @@ export default function HomeScreen() {
           >
             <View style={styles.buttonContent}>
                   <View style={[styles.iconCircle, styles.iconCirclePrimaryButton]}>
-                    <Image source={ACCOUNT_ICON} style={styles.buttonIcon}/>
+                    {AccountIcon(undefined, COLORS.maroon)}
                   </View>
               <View style={styles.buttonTextContainer}>
                 <Text style={styles.buttonPrimaryText}>Sign Up / Log in</Text>
@@ -61,7 +62,7 @@ export default function HomeScreen() {
           >
             <View style={styles.buttonContent}>
               <View style={[styles.iconCircle, styles.iconCircleSecondaryButton]}>
-                    <Image source={NO_ACCOUNT_ICON} style={styles.buttonIcon}/>
+                    {NoAccountIcon(undefined, COLORS.gold)}
               </View>
               <View style={styles.buttonTextContainer}>
                 <Text style={styles.buttonPrimaryText}>Use without account</Text>
@@ -164,11 +165,6 @@ const styles = StyleSheet.create({
   },
   iconCircleSecondaryButton: {
     backgroundColor: "#e6e2d6"
-  },
-  buttonIcon: {
-    width: 40,               
-    height: 40,
-    resizeMode: "contain",  
   },
   buttonTextContainer : {
     flex: 1

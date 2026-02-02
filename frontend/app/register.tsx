@@ -23,8 +23,9 @@ import AuthButton from "../components/AuthButton";
 import { TermsText } from "../components/SharedUI";
 import { useAuth } from "../hooks/useAuth";
 import { validateRegister } from "./utils/validators";
-import { APP_INFO, COLORS, LOGO_IMAGE, LOGO_SIZE, SHOW_PASSWORD_ICON } from "./constants";
+import { APP_INFO, COLORS, LOGO_IMAGE, LOGO_SIZE } from "./constants";
 import BackHeader from "../components/BackHeader";
+import { EyeHidingIcon, EyeShowingIcon } from "./icons";
 
 
 const MIN_PASSWORD_LENGTH = 6;
@@ -140,10 +141,10 @@ export default function RegisterScreen() {
               error={errors.password}
               right={
                   <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                    <Image
-                      source={SHOW_PASSWORD_ICON} 
-                      style={styles.showPasswordIcon}
-                    />
+                          {showPassword 
+                            ? EyeHidingIcon(24, COLORS.maroon)   
+                            : EyeShowingIcon(24, COLORS.maroon) 
+                          }
                   </TouchableOpacity>
               }
             />
@@ -170,10 +171,10 @@ export default function RegisterScreen() {
               error={errors.confirmPassword}
               right={
                   <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
-                    <Image
-                      source={SHOW_PASSWORD_ICON} 
-                      style={styles.showPasswordIcon}
-                    />
+                          {showConfirmPassword 
+                            ? EyeHidingIcon(24, COLORS.maroon)   
+                            : EyeShowingIcon(24, COLORS.maroon) 
+                          }
                   </TouchableOpacity>
               }
             />
@@ -248,11 +249,6 @@ const styles = StyleSheet.create({
     marginTop: -8,
     marginBottom: 8,
     marginLeft: 4,
-  },
-  showPasswordIcon: {
-    width: 24,      
-    height: 24,
-    resizeMode: "contain",
   },
   serverError: { 
     color: COLORS.error,

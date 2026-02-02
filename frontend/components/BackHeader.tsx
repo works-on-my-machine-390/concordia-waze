@@ -6,7 +6,8 @@ Back header to go back to previous page
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Image } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { COLORS, BACK_ICON } from "../app/constants";
+import { COLORS } from "../app/constants";
+import { BackIcon } from "../app/icons";
 
 interface HeaderProps {
     title?:String
@@ -40,7 +41,7 @@ const BackHeader = ({ title }: HeaderProps) => {
                 style={styles.backButtonTitle} 
                 onPress={() => router.back()}
             >
-                <Image source={BACK_ICON} style={styles.backIcon} />
+                {BackIcon(24)}
                 <Text style={styles.title}>{headerTitle}</Text>
             </TouchableOpacity>
         </View>
@@ -63,11 +64,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flex: 1,
     },
-  backIcon: {
-    width: 24,
-    height: 24,
-    resizeMode: "contain",
-  },
   title: {
     textAlign: "left",
     marginLeft: 10,

@@ -23,7 +23,8 @@ import { TermsText } from "../components/SharedUI";
 import BackHeader from "../components/BackHeader";
 import { validateLogin } from "./utils/validators";
 import { useAuth } from "../hooks/useAuth";
-import { APP_INFO, COLORS, LOGO_IMAGE, LOGO_SIZE, SHOW_PASSWORD_ICON } from "./constants";
+import { APP_INFO, COLORS, LOGO_IMAGE, LOGO_SIZE } from "./constants";
+import { EyeHidingIcon, EyeShowingIcon } from "./icons";
 
 const LOGO_SIZE_LOGIN = 150;
 
@@ -116,10 +117,10 @@ export default function LoginScreen() {
                 error={errors.password}
                 right={
                   <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                    <Image
-                      source={SHOW_PASSWORD_ICON} 
-                      style={styles.showPasswordIcon}
-                    />
+                          {showPassword 
+                            ? EyeHidingIcon(24, COLORS.maroon)   
+                            : EyeShowingIcon(24, COLORS.maroon) 
+                          }
                   </TouchableOpacity>
                 }
               />
@@ -214,11 +215,6 @@ const styles = StyleSheet.create({
     color: COLORS.maroon,
     fontWeight: "600",
     fontSize: 14,
-  },
-  showPasswordIcon: {
-    width: 24,      
-    height: 24,
-    resizeMode: "contain",
   },
   serverError: { 
     color: COLORS.error,
