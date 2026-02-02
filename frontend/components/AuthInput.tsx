@@ -39,7 +39,7 @@ export default function AuthInput({
           onChangeText={onChange}
           secureTextEntry={secureTextEntry}
           keyboardType={keyboardType}
-          style={[s.input, error ? s.inputError : null]}
+          style={[s.input, error ? s.inputError : null, right ? { paddingRight: 40 } : null,]}
           autoCapitalize={autoCapitalize}
           placeholderTextColor="#999"
         />
@@ -59,12 +59,17 @@ const s = StyleSheet.create({
     height: 48,
     borderRadius: 10,
     borderWidth: 1.8,
-    borderColor: colors.accent,
+    borderColor: colors.muted,
     paddingHorizontal: 12,
     backgroundColor: "#fff",
     color: colors.text,
   },
-  inputError: { borderColor: colors.inputError },
+  inputError: { borderColor: colors.inputError, backgroundColor: "#e1c4c9" },
   error: { color: colors.inputError, marginTop: 6 },
-  right: { marginLeft: 8 },
+  right: {
+    position: "absolute",
+    right: 12,     
+    top: "50%",   
+    transform: [{ translateY: -12 }], // adjust if height changes
+  },
 });

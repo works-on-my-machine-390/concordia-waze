@@ -39,7 +39,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   termsContainer: {
-    marginTop: 16,
+    marginTop: 30,
     paddingTop: 16,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,

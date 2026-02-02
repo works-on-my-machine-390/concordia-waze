@@ -14,14 +14,18 @@ import {
   Platform,
   Image,
   ScrollView,
+  SafeAreaView
 } from "react-native";
 import { useRouter } from "expo-router";
 import AuthInput from "../components/AuthInput";
 import AuthButton from "../components/AuthButton";
 import { PasswordToggle, TermsText } from "../components/SharedUI";
+import BackHeader from "../components/BackHeader";
 import { validateLogin } from "./utils/validators";
 import { useAuth } from "../hooks/useAuth";
-import { APP_INFO, COLORS, LOGO_IMAGE, LOGO_SIZE } from "./constants";
+import { APP_INFO, COLORS, LOGO_IMAGE, LOGO_SIZE, SHOW_PASSWORD_ICON } from "./constants";
+
+const LOGO_SIZE_LOGIN = 150;
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -59,100 +63,120 @@ export default function LoginScreen() {
   }
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === "ios" ? "padding" : undefined} 
-      style={styles.page}
-    >
-      <ScrollView 
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+    <SafeAreaView style={styles.page}>
+      <BackHeader/>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === "ios" ? "padding" : undefined} 
+        style={styles.page}
       >
-        <View style={styles.container}>
-          <Image source={LOGO_IMAGE} style={LOGO_SIZE} />
-          
-          <Text style={styles.title}>{APP_INFO.name}</Text>
-          <Text style={styles.subtitle}>{APP_INFO.tagline}</Text>
-          <Text style={styles.heading}>Welcome back!</Text>
-          
-          <AuthInput
-            label="Email"
-            placeholder="you@live.concordia.ca"
-            value={email}
-            onChange={(v) => {
-              setEmail(v);
-              clearFieldError("email");
-            }}
-            keyboardType="email-address"
-            error={errors.email}
-          />
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.container}>
 
-          <AuthInput
-            label="Password"
-            placeholder="••••••••"
-            value={password}
-            onChange={(v) => {
-              setPassword(v);
-              clearFieldError("password");
-            }}
-            secureTextEntry={!showPassword}
-            error={errors.password}
-            right={
-              <PasswordToggle 
-                show={showPassword} 
-                onToggle={() => setShowPassword(!showPassword)} 
+            <View style={styles.logoNameContainer}>
+              <Image
+                source={LOGO_IMAGE}
+                style={styles.logo}
               />
-            }
-          />
+              <Text style={styles.title}>Welcome back!</Text>
+            </View>
+            
+            <AuthInput
+              label="Email"
+              placeholder="you@live.concordia.ca"
+              value={email}
+              onChange={(v) => {
+                setEmail(v);
+                clearFieldError("email");
+              }}
+              keyboardType="email-address"
+              error={errors.email}
+            />
 
-          <TouchableOpacity 
-            onPress={() => console.log("Forgot password")}
-            style={styles.forgotPassword}
-          >
-            <Text style={styles.forgotPasswordText}>Forgot password?</Text>
-          </TouchableOpacity>
+            <View style={styles.passwordContainer}>
+              {/* Row with password label + forgot password link */}
+              <View style={styles.passwordLabelRow}>
+                <Text style={styles.inputLabel}>Password</Text>
+                <TouchableOpacity onPress={() => console.log("Forgot password")}>
+                  <Text style={styles.forgotPasswordText}>Forgot password?</Text>
+                </TouchableOpacity>
+              </View>
 
-          {serverError && <Text style={styles.serverError}>{serverError}</Text>}
+              {/* Input field */}
+              <AuthInput
+                placeholder="••••••••"
+                value={password}
+                onChange={(v) => {
+                  setPassword(v);
+                  clearFieldError("password");
+                }}
+                secureTextEntry={!showPassword}
+                error={errors.password}
+                right={
+                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                    <Image
+                      source={SHOW_PASSWORD_ICON} 
+                      style={styles.showPasswordIcon}
+                    />
+                  </TouchableOpacity>
+                }
+              />
+            </View>
 
-          <AuthButton title="Sign in" onPress={handleSubmit} loading={loading} />
 
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Don't have an account? </Text>
-            <TouchableOpacity onPress={() => router.push("/register")}>
-              <Text style={styles.footerLink}>Sign up</Text>
-            </TouchableOpacity>
+            {serverError && <Text style={styles.serverError}>{serverError}</Text>}
+
+            <AuthButton title="Sign in" onPress={handleSubmit} loading={loading} />
+
+            <View style={styles.footer}>
+              <Text style={styles.footerText}>Don't have an account? </Text>
+              <TouchableOpacity onPress={() => router.push("/register")}>
+                <Text style={styles.footerLink}>Sign up</Text>
+              </TouchableOpacity>
+            </View>
+
+            <TermsText />
           </View>
-
-          <TermsText />
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   page: { 
     flex: 1, 
-    backgroundColor: COLORS.background,
+    backgroundColor: COLORS.background
   },
   scrollContent: {
+    width: "100%",
     flexGrow: 1,
     alignItems: "center",
+
     paddingVertical: 30,
   },
   container: {
-    width: 620,
-    maxWidth: "94%",
-    backgroundColor: COLORS.surface,
-    padding: 24,
-    borderRadius: 10,
+    width: "100%",
+    maxWidth: 620,
+    backgroundColor: COLORS.background,
     alignItems: "stretch",
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 18,
-    elevation: 4,
+    flex: 1,
+    paddingHorizontal: 16,
+    marginTop: 30
+  },
+  logoNameContainer : {
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 30
+  },
+  logo: {
+    width: LOGO_SIZE_LOGIN,
+    height: LOGO_SIZE_LOGIN,
   },
   title: { 
-    fontSize: 20, 
+    fontSize: 30, 
     fontWeight: "700", 
     textAlign: "center",
     marginTop: 8,
@@ -168,6 +192,22 @@ const styles = StyleSheet.create({
     fontWeight: "700", 
     marginVertical: 8,
   },
+  passwordContainer: {
+    width: "100%",
+    marginTop: 12,
+    marginBottom: 12, // spacing between fields
+  },
+  passwordLabelRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4, 
+  },
+  inputLabel: {
+    fontWeight: "600",
+    fontSize: 14,
+    color: COLORS.textPrimary,
+  },
   forgotPassword: {
     alignSelf: "flex-end",
     marginVertical: 4,
@@ -176,6 +216,11 @@ const styles = StyleSheet.create({
     color: COLORS.maroon,
     fontWeight: "600",
     fontSize: 14,
+  },
+  showPasswordIcon: {
+    width: 24,      
+    height: 24,
+    resizeMode: "contain",
   },
   serverError: { 
     color: COLORS.error,
@@ -186,7 +231,7 @@ const styles = StyleSheet.create({
   footer: { 
     flexDirection: "row", 
     justifyContent: "center", 
-    marginTop: 12, 
+    marginTop: 20, 
     alignItems: "center",
   },
   footerText: {

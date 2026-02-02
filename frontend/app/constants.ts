@@ -27,8 +27,8 @@ export const COLORS = {
   export const LOGO_SIZE = { width: 86, height: 86 };
   export const ACCOUNT_ICON = require("../assets/images/account.png")
   export const NO_ACCOUNT_ICON = require("../assets/images/no-account.png")
-  
-  
+  export const SHOW_PASSWORD_ICON = require("../assets/images/show-password-icon.png")
+  export const BACK_ICON = require("../assets/images/back-arrow.png")
   
   
   
