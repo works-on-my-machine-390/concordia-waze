@@ -114,13 +114,14 @@ const styles = StyleSheet.create({
   button : {
     width: "100%",
     backgroundColor: COLORS.background,
-    borderWidth: 3,
+    borderWidth: 2.5,
     paddingVertical: 14,
     paddingHorizontal: 20,
     borderRadius: 20,
     alignItems: "flex-start",
     justifyContent: "center",
     marginTop: 10,
+    marginBottom: 10,
     marginHorizontal: 15,
     minHeight: 100,
     // Styling for shadow
