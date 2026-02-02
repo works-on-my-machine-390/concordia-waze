@@ -4,27 +4,27 @@ Login screen with email/password inputs, Concordia email validation, show/hide p
 - Navigation to register screen for new users (Sign Up link)
 */
 
-import React, { useState } from "react";
+import { useRouter } from "expo-router";
+import { useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
+  Image,
   KeyboardAvoidingView,
   Platform,
-  Image,
+  SafeAreaView,
   ScrollView,
-  SafeAreaView
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from "react-native";
-import { useRouter } from "expo-router";
-import AuthInput from "../components/AuthInput";
 import AuthButton from "../components/AuthButton";
-import { TermsText } from "../components/SharedUI";
+import AuthInput from "../components/AuthInput";
 import BackHeader from "../components/BackHeader";
-import { validateLogin } from "./utils/validators";
+import { TermsText } from "../components/SharedUI";
 import { useAuth } from "../hooks/useAuth";
-import { APP_INFO, COLORS, LOGO_IMAGE, LOGO_SIZE } from "./constants";
+import { COLORS, LOGO_IMAGE } from "./constants";
 import { EyeHidingIcon, EyeShowingIcon } from "./icons";
+import { validateLogin } from "./utils/validators";
 
 const LOGO_SIZE_LOGIN = 150;
 

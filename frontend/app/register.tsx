@@ -5,27 +5,27 @@ Registration form collecting full name, email, password, and password confirmati
 - Automatic navigation to login if successful registration
 */
 
-import React, { useState } from "react";
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  KeyboardAvoidingView, 
-  Platform,
-  TouchableOpacity,
-  Image,
-  ScrollView,
-  SafeAreaView
-} from "react-native";
 import { useRouter } from "expo-router";
-import AuthInput from "../components/AuthInput";
+import { useState } from "react";
+import {
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from "react-native";
 import AuthButton from "../components/AuthButton";
+import AuthInput from "../components/AuthInput";
+import BackHeader from "../components/BackHeader";
 import { TermsText } from "../components/SharedUI";
 import { useAuth } from "../hooks/useAuth";
-import { validateRegister } from "./utils/validators";
-import { APP_INFO, COLORS, LOGO_IMAGE, LOGO_SIZE } from "./constants";
-import BackHeader from "../components/BackHeader";
+import { COLORS, LOGO_IMAGE } from "./constants";
 import { EyeHidingIcon, EyeShowingIcon } from "./icons";
+import { validateRegister } from "./utils/validators";
 
 
 const MIN_PASSWORD_LENGTH = 6;

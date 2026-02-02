@@ -4,9 +4,8 @@ Home Page displaying the Concordia Waze logo, app name, tagline, and two buttons
     "Use without account" offers guest access (not available yet)
 */
 
-import React from "react";
-import { View, Text, Image, TouchableOpacity, StyleSheet, SafeAreaView } from "react-native";
 import { useRouter } from "expo-router";
+import { Image, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { APP_INFO, COLORS, LOGO_IMAGE } from "./constants";
 import { AccountIcon, NoAccountIcon } from "./icons";
 

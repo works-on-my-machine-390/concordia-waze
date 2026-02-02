@@ -3,9 +3,8 @@ Back header to go back to previous page
 (Make sure to pass the "prev" param when navigating from page to page so that header knows what previous page was)
 */
 
-import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Image } from "react-native";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { COLORS } from "../app/constants";
 import { BackIcon } from "../app/icons";
 

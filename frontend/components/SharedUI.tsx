@@ -1,5 +1,4 @@
-import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { COLORS } from "../app/constants";
 
 // Reusable Terms and Privacy Text

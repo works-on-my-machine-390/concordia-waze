@@ -1,7 +1,7 @@
 
 import React from "react";
-import { TextInput, View, Text, StyleSheet } from "react-native";
-import theme, { colors } from "../app/styles/theme";
+import { StyleSheet, Text, TextInput, View } from "react-native";
+import { colors } from "../app/styles/theme";
 
 interface Props {
   label?: string | React.ReactNode;

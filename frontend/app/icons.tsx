@@ -1,8 +1,8 @@
-import React from "react";
-import { COLORS } from "./constants";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import Ionicons from "@expo/vector-icons/Ionicons";
+import React from "react";
+import { COLORS } from "./constants";
 
 // Standard defaults
 const DEFAULT_ICON_SIZE = 35;

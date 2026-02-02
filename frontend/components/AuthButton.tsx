@@ -1,9 +1,8 @@
 /*
 Button component that displays a loading spinner when authentication is in progress
 */
-import React from "react";
-import { TouchableOpacity, Text, StyleSheet, ActivityIndicator } from "react-native";
-import theme, { colors } from "../app/styles/theme";
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity } from "react-native";
+import { colors } from "../app/styles/theme";
 
 export default function AuthButton({
   title,
