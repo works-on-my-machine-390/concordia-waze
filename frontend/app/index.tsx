@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
     alignItems: "center",
     justifyContent: "center",
-    padding: 28
+    padding: 10
   },
   container : {
     width: "100%",
@@ -123,7 +123,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginTop: 10,
     marginBottom: 10,
-    marginHorizontal: 15,
     minHeight: 100,
     // Styling for shadow
     shadowColor: "#000",        // shadow color
