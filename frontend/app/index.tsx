@@ -136,7 +136,8 @@ const styles = StyleSheet.create({
   buttonPrimaryText: {
     color: COLORS.textPrimary,
     fontWeight: "700",
-    marginBottom: 3
+    marginBottom: 3,
+    fontSize: 15
   },
   buttonSecondaryText: {
     color: COLORS.textMuted,
@@ -164,8 +165,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#e6e2d6"
   },
   buttonIcon: {
-    width: 45,               
-    height: 45,
+    width: 40,               
+    height: 40,
     resizeMode: "contain",  
   },
   buttonTextContainer : {
