@@ -142,7 +142,8 @@ const styles = StyleSheet.create({
     marginTop: 10,
     flexDirection: "row",
     gap: 10,
-    paddingLeft: 54, 
+    justifyContent: "center",
+    ...SHADOW,
   },
 
   chip: {
