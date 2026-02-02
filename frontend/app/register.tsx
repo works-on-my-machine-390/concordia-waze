@@ -131,7 +131,7 @@ export default function RegisterScreen() {
                   <Text style={{ color: COLORS.maroon }}>*</Text>
                 </Text>
               }  
-              placeholder="••••••••" 
+              placeholder="Password" 
               value={password} 
               onChange={(v) => {
                 setPassword(v);
@@ -161,7 +161,7 @@ export default function RegisterScreen() {
                   <Text style={{ color: COLORS.maroon }}>*</Text>
                 </Text>
               } 
-              placeholder="••••••••" 
+              placeholder="Password" 
               value={confirmPassword} 
               onChange={(v) => {
                 setConfirmPassword(v);
