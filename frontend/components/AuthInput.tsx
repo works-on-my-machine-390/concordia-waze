@@ -4,7 +4,7 @@ import { TextInput, View, Text, StyleSheet } from "react-native";
 import theme, { colors } from "../app/styles/theme";
 
 interface Props {
-  label?: string;
+  label?: string | React.ReactNode;
   placeholder?: string;
   value: string;
   onChange: (v: string) => void;
@@ -33,7 +33,7 @@ export default function AuthInput({
       {label ? <Text style={s.label}>{label}</Text> : null}
       <View style={s.row}>
         <TextInput
-          accessibilityLabel={accessibleLabel ?? label}
+          accessibilityLabel={accessibleLabel ?? (typeof label === "string" ? label : "")}
           placeholder={placeholder}
           value={value}
           onChangeText={onChange}

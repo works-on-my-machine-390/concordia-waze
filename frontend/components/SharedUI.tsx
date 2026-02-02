@@ -2,23 +2,6 @@ import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { COLORS } from "../app/constants";
 
-// Reusable Password Show/Hide Toggle
-export function PasswordToggle({ 
-  show, 
-  onToggle 
-}: { 
-  show: boolean; 
-  onToggle: () => void;
-}) {
-  return (
-    <TouchableOpacity onPress={onToggle}>
-      <Text style={styles.toggleText}>
-        {show ? "Hide" : "Show"}
-      </Text>
-    </TouchableOpacity>
-  );
-}
-
 // Reusable Terms and Privacy Text
 export function TermsText() {
   return (
@@ -33,11 +16,6 @@ export function TermsText() {
 }
 
 const styles = StyleSheet.create({
-  toggleText: {
-    color: COLORS.maroon,
-    fontWeight: "700",
-    paddingHorizontal: 6,
-  },
   termsContainer: {
     marginTop: 30,
     paddingTop: 16,

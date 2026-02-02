@@ -19,7 +19,7 @@ import {
 import { useRouter } from "expo-router";
 import AuthInput from "../components/AuthInput";
 import AuthButton from "../components/AuthButton";
-import { PasswordToggle, TermsText } from "../components/SharedUI";
+import { TermsText } from "../components/SharedUI";
 import BackHeader from "../components/BackHeader";
 import { validateLogin } from "./utils/validators";
 import { useAuth } from "../hooks/useAuth";
@@ -151,10 +151,8 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background
   },
   scrollContent: {
-    width: "100%",
     flexGrow: 1,
     alignItems: "center",
-
     paddingVertical: 30,
   },
   container: {

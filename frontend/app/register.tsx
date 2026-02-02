@@ -15,16 +15,20 @@ import {
   TouchableOpacity,
   Image,
   ScrollView,
+  SafeAreaView
 } from "react-native";
 import { useRouter } from "expo-router";
 import AuthInput from "../components/AuthInput";
 import AuthButton from "../components/AuthButton";
-import { PasswordToggle, TermsText } from "../components/SharedUI";
+import { TermsText } from "../components/SharedUI";
 import { useAuth } from "../hooks/useAuth";
 import { validateRegister } from "./utils/validators";
-import { APP_INFO, COLORS, LOGO_IMAGE, LOGO_SIZE } from "./constants";
+import { APP_INFO, COLORS, LOGO_IMAGE, LOGO_SIZE, SHOW_PASSWORD_ICON } from "./constants";
+import BackHeader from "../components/BackHeader";
+
 
 const MIN_PASSWORD_LENGTH = 6;
+const LOGO_SIZE_LOGIN = 125;
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -65,101 +69,131 @@ export default function RegisterScreen() {
   }
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === "ios" ? "padding" : undefined} 
-      style={styles.page}
-    >
-      <ScrollView 
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+    <SafeAreaView style={styles.page}>
+      <BackHeader/>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === "ios" ? "padding" : undefined} 
+        style={styles.page}
       >
-        <View style={styles.card}>
-          <Image source={LOGO_IMAGE} style={LOGO_SIZE} />
-          
-          <Text style={styles.title}>{APP_INFO.name}</Text>
-          <Text style={styles.subtitle}>{APP_INFO.taglineShort}</Text>
-          <Text style={styles.heading}>Create an account</Text>
+        <ScrollView 
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.container}>
 
-          <AuthInput 
-            label="Full name*" 
-            placeholder="John Doe" 
-            value={fullName} 
-            onChange={(v) => {
-              setFullName(v);
-              clearFieldError("fullName");
-            }}
-            error={errors.fullName}
-            autoCapitalize="words"
-          />
-          
-          <AuthInput 
-            label="Email*" 
-            placeholder="you@live.concordia.ca" 
-            value={email} 
-            onChange={(v) => {
-              setEmail(v);
-              clearFieldError("email");
-            }}
-            keyboardType="email-address"
-            error={errors.email}
-          />
-          
-          <AuthInput 
-            label="Password*" 
-            placeholder="••••••••" 
-            value={password} 
-            onChange={(v) => {
-              setPassword(v);
-              clearFieldError("password");
-            }}
-            secureTextEntry={!showPassword}
-            error={errors.password}
-            right={
-              <PasswordToggle 
-                show={showPassword} 
-                onToggle={() => setShowPassword(!showPassword)} 
+            <View style={styles.logoNameContainer}>
+              <Image
+                source={LOGO_IMAGE}
+                style={styles.logo}
               />
-            }
-          />
-          {showPasswordHelper && (
-            <Text style={styles.helperText}>
-              Must be at least {MIN_PASSWORD_LENGTH} characters
-            </Text>
-          )}
+              <Text style={styles.title}>Create an account!</Text>
+            </View>
 
-          <AuthInput 
-            label="Confirm Password*" 
-            placeholder="••••••••" 
-            value={confirmPassword} 
-            onChange={(v) => {
-              setConfirmPassword(v);
-              clearFieldError("confirmPassword");
-            }}
-            secureTextEntry={!showConfirmPassword}
-            error={errors.confirmPassword}
-            right={
-              <PasswordToggle 
-                show={showConfirmPassword} 
-                onToggle={() => setShowConfirmPassword(!showConfirmPassword)} 
-              />
-            }
-          />
+            <AuthInput 
+              label={
+                  <Text>
+                    Full name
+                    <Text style={{ color: COLORS.maroon }}>*</Text>
+                  </Text>
+              } 
+              placeholder="John Doe" 
+              value={fullName} 
+              onChange={(v) => {
+                setFullName(v);
+                clearFieldError("fullName");
+              }}
+              error={errors.fullName}
+              autoCapitalize="words"
+            />
+            
+            <AuthInput 
+              label={
+                <Text>
+                  Email
+                  <Text style={{ color: COLORS.maroon }}>*</Text>
+                </Text>
+              } 
+              placeholder="you@live.concordia.ca" 
+              value={email} 
+              onChange={(v) => {
+                setEmail(v);
+                clearFieldError("email");
+              }}
+              keyboardType="email-address"
+              error={errors.email}
+            />
+            
+            <AuthInput 
+              label={
+                <Text>
+                  Password
+                  <Text style={{ color: COLORS.maroon }}>*</Text>
+                </Text>
+              }  
+              placeholder="••••••••" 
+              value={password} 
+              onChange={(v) => {
+                setPassword(v);
+                clearFieldError("password");
+              }}
+              secureTextEntry={!showPassword}
+              error={errors.password}
+              right={
+                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                    <Image
+                      source={SHOW_PASSWORD_ICON} 
+                      style={styles.showPasswordIcon}
+                    />
+                  </TouchableOpacity>
+              }
+            />
+            {showPasswordHelper && (
+              <Text style={styles.helperText}>
+                Must be at least {MIN_PASSWORD_LENGTH} characters
+              </Text>
+            )}
 
-          {serverError && <Text style={styles.serverError}>{serverError}</Text>}
+            <AuthInput 
+              label={
+                <Text>
+                  Confirm Password
+                  <Text style={{ color: COLORS.maroon }}>*</Text>
+                </Text>
+              } 
+              placeholder="••••••••" 
+              value={confirmPassword} 
+              onChange={(v) => {
+                setConfirmPassword(v);
+                clearFieldError("confirmPassword");
+              }}
+              secureTextEntry={!showConfirmPassword}
+              error={errors.confirmPassword}
+              right={
+                  <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+                    <Image
+                      source={SHOW_PASSWORD_ICON} 
+                      style={styles.showPasswordIcon}
+                    />
+                  </TouchableOpacity>
+              }
+            />
 
-          <AuthButton title="Sign up" onPress={handleSubmit} loading={loading} />
+            {serverError && <Text style={styles.serverError}>{serverError}</Text>}
 
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Already have an account? </Text>
-            <TouchableOpacity onPress={() => router.push("/login")}>
-              <Text style={styles.footerLink}>Sign in</Text>
-            </TouchableOpacity>
+            <AuthButton title="Sign up" onPress={handleSubmit} loading={loading} />
+
+            <View style={styles.footer}>
+              <Text style={styles.footerText}>Already have an account? </Text>
+              <TouchableOpacity onPress={() => router.push("/login")}>
+                <Text style={styles.footerLink}>Sign in</Text>
+              </TouchableOpacity>
+            </View>
+
+            <TermsText />
           </View>
-
-          <TermsText />
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -171,18 +205,24 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     alignItems: "center",
-    paddingVertical: 30,
   },
-  card: {
-    width: 620,
-    maxWidth: "94%",
-    backgroundColor: COLORS.surface,
-    padding: 24,
-    borderRadius: 10,
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 18,
-    elevation: 4,
+  container: {
+    width: "100%",
+    maxWidth: 620,
+    backgroundColor: COLORS.background,
+    alignItems: "stretch",
+    flex: 1,
+    paddingHorizontal: 16,
+    marginTop: 10
+  },
+    logoNameContainer : {
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 30
+  },
+  logo: {
+    width: LOGO_SIZE_LOGIN,
+    height: LOGO_SIZE_LOGIN,
   },
   title: { 
     fontSize: 20, 
@@ -208,6 +248,11 @@ const styles = StyleSheet.create({
     marginTop: -8,
     marginBottom: 8,
     marginLeft: 4,
+  },
+  showPasswordIcon: {
+    width: 24,      
+    height: 24,
+    resizeMode: "contain",
   },
   serverError: { 
     color: COLORS.error,
