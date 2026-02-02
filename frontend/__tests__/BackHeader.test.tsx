@@ -40,6 +40,12 @@ describe("BackHeader", () => {
     getByText("Sign Up");
   });
 
+  test("shows 'Home Page' when prev param is 'index'", () => {
+    (useLocalSearchParams as jest.Mock).mockReturnValue({ prev: "index" });
+    const { getByText } = render(<BackHeader />);
+    getByText("Home Page");
+  });
+
   test("uses custom title prop if provided", () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ prev: "login" });
     const { getByText } = render(<BackHeader title="Custom Title" />);

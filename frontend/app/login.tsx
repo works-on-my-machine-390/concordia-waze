@@ -107,7 +107,7 @@ export default function LoginScreen() {
 
               {/* Input field */}
               <AuthInput
-                placeholder="Password"
+                placeholder=""
                 value={password}
                 onChange={(v) => {
                   setPassword(v);
