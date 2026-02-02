@@ -58,7 +58,7 @@ export default function LoginScreen() {
       alert("Login successful!");
     } else {
       setPassword("");
-      setServerError(result.error);
+      setServerError((result as { success: false; error: string }).error);
     }
   }
 

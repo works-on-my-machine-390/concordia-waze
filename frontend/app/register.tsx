@@ -64,7 +64,7 @@ export default function RegisterScreen() {
       alert("Registration successful! Please log in.");
       router.push({ pathname: "/login", params: { prev: "register" } });
     } else {
-      setServerError(result.error);
+      setServerError((result as { success: false; error: string }).error);
     }
   }
 
