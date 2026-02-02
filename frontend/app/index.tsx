@@ -7,36 +7,69 @@ Home Page displaying the Concordia Waze logo, app name, tagline, and two buttons
 import React from "react";
 import { View, Text, Image, TouchableOpacity, StyleSheet, SafeAreaView } from "react-native";
 import { useRouter } from "expo-router";
-import { APP_INFO, COLORS, LOGO_IMAGE } from "./constants";
+import { APP_INFO, COLORS, LOGO_IMAGE, ACCOUNT_ICON, NO_ACCOUNT_ICON } from "./constants";
 
-const LOGO_SIZE_HOME = 96;
+const LOGO_SIZE_HOME = 200;
 
 export default function HomeScreen() {
   const router = useRouter();
 
   return (
     <SafeAreaView style={styles.page}>
-      <View style={styles.card}>
-        <Image
-          source={LOGO_IMAGE}
-          style={styles.logo}
-        />
-        <Text style={styles.title}>{APP_INFO.name}</Text>
-        <Text style={styles.subtitle}>{APP_INFO.tagline}</Text>
+      <View style={styles.container}>
+        
+        {/*
+          View for the logo + name + text
+        */}
+        <View style={styles.logoNameContainer}>
+          <Image
+            source={LOGO_IMAGE}
+            style={styles.logo}
+          />
+          <Text style={styles.title}>{APP_INFO.name}</Text>
+          <Text style={styles.subtitle}>{APP_INFO.tagline}</Text>
+        </View>
 
-        <TouchableOpacity
-          onPress={() => router.push("/login")}
-          style={styles.primaryButton}
-        >
-          <Text style={styles.primaryButtonText}>Sign Up / Log in</Text>
-        </TouchableOpacity>
+        {/*
+          View for the "signup/login" button + "use without account" button
+        */}
+        <View>
+          {/*
+          Signup/login button
+          */}
+          <TouchableOpacity
+            onPress={() => router.push("/login")}
+            style={[styles.button, styles.primaryButton]}
+          >
+            <View style={styles.buttonContent}>
+                  <View style={[styles.iconCircle, styles.iconCirclePrimaryButton]}>
+                    <Image source={ACCOUNT_ICON} style={styles.buttonIcon}/>
+                  </View>
+              <View style={styles.buttonTextContainer}>
+                <Text style={styles.buttonPrimaryText}>Sign Up / Log in</Text>
+                <Text style={styles.buttonSecondaryText}>Save your schedule and favorites for long-term use</Text>
+              </View>
+            </View>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={() => console.log("Use without account")}
-          style={styles.secondaryButton}
-        >
-          <Text style={styles.secondaryButtonText}>Use without account</Text>
-        </TouchableOpacity>
+          {/*
+          No account button
+          */}
+          <TouchableOpacity
+            onPress={() => console.log("Use without account")}
+            style={[styles.button, styles.secondaryButton]}
+          >
+            <View style={styles.buttonContent}>
+              <View style={[styles.iconCircle, styles.iconCircleSecondaryButton]}>
+                    <Image source={NO_ACCOUNT_ICON} style={styles.buttonIcon}/>
+              </View>
+              <View style={styles.buttonTextContainer}>
+                <Text style={styles.buttonPrimaryText}>Use without account</Text>
+                <Text style={styles.buttonSecondaryText}>Your data stays on this device only</Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+        </View>
       </View>
     </SafeAreaView>
   );
@@ -47,19 +80,19 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
     alignItems: "center",
-    paddingTop: 40,
+    justifyContent: "center",
+    padding: 28
   },
-  card: {
-    width: 620,
-    maxWidth: "90%",
-    backgroundColor: COLORS.surface,
-    borderRadius: 10,
-    padding: 28,
+  container : {
+    width: "100%",
+    maxWidth: 400,
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 20,
-    elevation: 6,
+    paddingHorizontal: 16,
+    paddingBottom: 40
+  },
+  logoNameContainer : {
+    alignItems: "center",
+    justifyContent: "center"
   },
   logo: {
     width: LOGO_SIZE_HOME,
@@ -67,7 +100,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   title: {
-    fontSize: 22,
+    fontSize: 32,
     fontWeight: "700",
     marginTop: 8,
   },
@@ -76,32 +109,66 @@ const styles = StyleSheet.create({
     marginTop: 6,
     marginBottom: 20,
     textAlign: "center",
+    fontSize: 15,
   },
-  primaryButton: {
-    backgroundColor: COLORS.maroon,
+  button : {
+    width: "100%",
+    backgroundColor: COLORS.background,
+    borderWidth: 3,
     paddingVertical: 14,
     paddingHorizontal: 20,
-    borderRadius: 10,
-    width: "100%",
-    alignItems: "center",
+    borderRadius: 20,
+    alignItems: "flex-start",
+    justifyContent: "center",
     marginTop: 10,
+    marginHorizontal: 15,
+    minHeight: 100,
+    // Styling for shadow
+    shadowColor: "#000",        // shadow color
+    shadowOffset: { width: 0, height: 2 }, // offset of shadow
+    shadowOpacity: 0.25,        // opacity of shadow
+    shadowRadius: 3.84,         // blur radius
+    elevation: 5 //this is shadow for Android because the above shadow styling doesn't work on Android (manel - not sure how it renders since I am on iOS)
   },
-  primaryButtonText: {
-    color: COLORS.surface,
+  primaryButton: {
+    borderColor: COLORS.maroon,
+  },
+  buttonPrimaryText: {
+    color: COLORS.textPrimary,
     fontWeight: "700",
+    marginBottom: 3
+  },
+  buttonSecondaryText: {
+    color: COLORS.textMuted,
+    fontWeight: "400",
   },
   secondaryButton: {
-    marginTop: 12,
     borderColor: COLORS.gold,
-    borderWidth: 2,
-    paddingVertical: 12,
-    width: "100%",
-    borderRadius: 8,
-    alignItems: "center",
-    backgroundColor: COLORS.surface,
   },
-  secondaryButtonText: {
-    color: "#7f6a53",
-    fontWeight: "700",
+  buttonContent : {
+    flexDirection: "row",
+    alignItems: "center"
   },
+  iconCircle: {
+    width: 60,                
+    height: 60,              
+    borderRadius: 30,        
+    alignItems: "center",    
+    justifyContent: "center", 
+    marginRight: 15,          
+  },
+  iconCirclePrimaryButton: {
+    backgroundColor: "#e1c4c9", 
+  },
+  iconCircleSecondaryButton: {
+    backgroundColor: "#e6e2d6"
+  },
+  buttonIcon: {
+    width: 45,               
+    height: 45,
+    resizeMode: "contain",  
+  },
+  buttonTextContainer : {
+    flex: 1
+  }
 });

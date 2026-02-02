@@ -10,7 +10,7 @@ export const COLORS = {
     textPrimary: "#222",
     textSecondary: "#666",
     textMuted: "#7a7a7a",
-    background: "#f5f2f2",
+    background: "#FBFAFA",
     surface: "#fff",
     border: "#e0e0e0",
   };
@@ -25,6 +25,8 @@ export const COLORS = {
   // Image Assets
   export const LOGO_IMAGE = require("../assets/images/icon.png");
   export const LOGO_SIZE = { width: 86, height: 86 };
+  export const ACCOUNT_ICON = require("../assets/images/account.png")
+  export const NO_ACCOUNT_ICON = require("../assets/images/no-account.png")
   
   
   
