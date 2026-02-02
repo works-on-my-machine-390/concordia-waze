@@ -38,7 +38,7 @@ export default function HomeScreen() {
           Signup/login button
           */}
           <TouchableOpacity
-            onPress={() => router.push("/login")}
+            onPress={() => router.push({ pathname: "/login", params: { prev: "index" } })}
             style={[styles.button, styles.primaryButton]}
           >
             <View style={styles.buttonContent}>

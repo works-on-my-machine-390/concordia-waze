@@ -9,7 +9,7 @@ interface HeaderProps {
 
 const BackHeader = ({ title }: HeaderProps) => {
     const router = useRouter();
-    const params = useLocalSearchParams();
+    const params = useLocalSearchParams<{ prev?: string }>();
 
     // Determine the previous page
     let headerTitle = title;

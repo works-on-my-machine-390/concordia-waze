@@ -62,7 +62,7 @@ export default function RegisterScreen() {
     
     if (result.success) {
       alert("Registration successful! Please log in.");
-      router.push("/login");
+      router.push({ pathname: "/login", params: { prev: "register" } });
     } else {
       setServerError(result.error);
     }
@@ -184,7 +184,7 @@ export default function RegisterScreen() {
 
             <View style={styles.footer}>
               <Text style={styles.footerText}>Already have an account? </Text>
-              <TouchableOpacity onPress={() => router.push("/login")}>
+              <TouchableOpacity onPress={() => router.push({ pathname: "/login", params: { prev: "register" } })}>
                 <Text style={styles.footerLink}>Sign in</Text>
               </TouchableOpacity>
             </View>
