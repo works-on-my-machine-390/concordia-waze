@@ -10,13 +10,13 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import AuthButton from "../components/AuthButton";
 import AuthInput from "../components/AuthInput";
 import BackHeader from "../components/BackHeader";

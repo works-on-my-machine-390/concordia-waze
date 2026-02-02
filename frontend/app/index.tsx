@@ -5,7 +5,8 @@ Home Page displaying the Concordia Waze logo, app name, tagline, and two buttons
 */
 
 import { useRouter } from "expo-router";
-import { Image, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { APP_INFO, COLORS, LOGO_IMAGE } from "./constants";
 import { AccountIcon, NoAccountIcon } from "./icons";
 
