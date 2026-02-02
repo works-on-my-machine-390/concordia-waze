@@ -2,8 +2,8 @@
  * Tests for AuthButton component
  */
 
-import { fireEvent, render } from "@testing-library/react-native";
 import AuthButton from "@/components/AuthButton";
+import { fireEvent, render } from "@testing-library/react-native";
 
 
 describe("AuthButton", () => {

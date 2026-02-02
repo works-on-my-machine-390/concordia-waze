@@ -2,10 +2,9 @@
  * Tests for BackHeader component
  */
 
-import React from "react";
-import { render, fireEvent } from "@testing-library/react-native";
 import BackHeader from "@/components/BackHeader";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { fireEvent, render } from "@testing-library/react-native";
+import { useLocalSearchParams } from "expo-router";
 
 // Mock router
 const mockBack = jest.fn();

@@ -2,9 +2,8 @@
  * Tests for AuthInput component
  */
 
-import React from "react";
-import { render, fireEvent } from "@testing-library/react-native";
-import AuthInput from "@/components/AuthInput"; 
+import AuthInput from "@/components/AuthInput";
+import { fireEvent, render } from "@testing-library/react-native";
 import { Text } from "react-native";
 
 describe("AuthInput", () => {
