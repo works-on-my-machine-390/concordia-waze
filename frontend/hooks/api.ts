@@ -1,7 +1,18 @@
 import wretch from "wretch";
+import Constants from "expo-constants";
 
-export const API_URL = process.env.REACT_APP_API_BASE || "http://localhost:8080";
+const debuggerHost = Constants.expoConfig?.hostUri?.split(":").shift();
 
-export const api = (token?: string) => 
-    wretch(API_URL).headers(token ? {Authorization: `Bearer ${token}` } : {});
+const getBaseUrl = () => {
+  if (__DEV__ && debuggerHost) {
+    return `http://${debuggerHost}:8080`;
+  }
+  return "http://localhost:8080";
+};
+
+export const API_URL = getBaseUrl();
+
+
+export const api = (token?: string) =>
+  wretch(API_URL).headers(token ? { Authorization: `Bearer ${token}` } : {});
 
