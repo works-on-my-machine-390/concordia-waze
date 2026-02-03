@@ -95,6 +95,7 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
     paddingHorizontal: 16,
     width: "100%",
+    top: 40, // need to test on different devices (gap from top of screen))
   },
 
   headerRow: {

@@ -16,6 +16,12 @@ export default function Map() {
  const [location, setLocation] = useState<Location.LocationObject | null>(null);
  const [errorMsg, setErrorMsg] = useState<string | null>(null);
  const mapRef = useRef<MapView>(null);
+
+ const CAMPUS_COORDS = {
+  SGW: { latitude: 45.4972, longitude: -73.5791 },    // SGW campus
+  Loyola: { latitude: 45.4589, longitude: -73.6400 }, // Loyola campus
+};
+
  useEffect(() => {
     async function getCurrentLocation() {
       
@@ -32,7 +38,6 @@ export default function Map() {
     getCurrentLocation();
   }, []);
 
-  // need to test permissions on Android. Works on iOS
   const goToMyLocation = async () => {
     try {
       let coords = location?.coords;
@@ -63,6 +68,20 @@ export default function Map() {
     }
   };
   
+  const handleCampusChange = (nextCampus: "SGW" | "Loyola") => {
+    setCampus(nextCampus);
+    const coords = CAMPUS_COORDS[nextCampus];
+    mapRef.current?.animateToRegion(
+      {
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+        latitudeDelta: 0.005,
+        longitudeDelta: 0.005,
+      },
+      500
+    );
+  };
+
   return (
     <View style={styles.container}>
       <MapView
@@ -71,9 +90,9 @@ export default function Map() {
         style={styles.map}
         showsUserLocation={true}
         initialRegion={{
-        // coordinates for SGW campus
-          latitude: 45.4970,
-          longitude: -73.5781,
+        // coordinates for SGW campus (default)
+          latitude: CAMPUS_COORDS.SGW.latitude,
+          longitude: CAMPUS_COORDS.SGW.longitude,
           latitudeDelta: 0.005,  
           longitudeDelta: 0.005,
         }}
@@ -91,7 +110,7 @@ export default function Map() {
        
       <MapHeader
         campus={campus}
-        onCampusChange={setCampus}
+        onCampusChange={handleCampusChange}
         searchText={searchText}
         onSearchTextChange={setSearchText}
         onMenuPress={() => {}}
