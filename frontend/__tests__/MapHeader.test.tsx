@@ -30,6 +30,32 @@ describe("MapHeader", () => {
     );
   });
 
+  test("Loyola button is active when campus prop is 'Loyola'", () => {
+  const { getByText } = render(
+    <MapHeader
+      campus="Loyola"
+      onCampusChange={jest.fn()}
+      onMenuPress={jest.fn()}
+      searchText=""
+      onSearchTextChange={jest.fn()}
+    />
+  );
+
+  const loyolaButton = getByText("Loyola");
+  const sgwButton = getByText("SGW");
+
+  // Loyola button should now be active (soft pink)
+  expect(loyolaButton.props.style).toEqual(
+    expect.arrayContaining([expect.objectContaining({ color: "#DEBDC4" })])
+  );
+
+  // SGW button should now be inactive (dark gray)
+  expect(sgwButton.props.style).toEqual(
+    expect.arrayContaining([expect.objectContaining({ color: "#222" })])
+  );
+});
+
+
   test("Clicking SGW or Loyola button calls onCampusChange with correct value", () => {
     const mockOnCampusChange = jest.fn();
 
