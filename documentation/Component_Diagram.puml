@@ -1,0 +1,85 @@
+@startuml Campus Navigation System
+!define COMPONENT_STYLE
+skinparam component {
+    BackgroundColor<<external>> LightBlue
+    BackgroundColor<<core>> LightGreen
+    BorderColor Black
+}
+' External Systems
+package "External Systems" {
+    component [Google Calendar API] <<external>> as GCalAPI
+    component [Concordia Open Data API] <<external>> as ConcordiaAPI
+}
+' Core System Components
+package "Concordia Waze System" {
+
+    ' User Management Component
+    component [User Management] <<core>> as UserMgmt
+
+    ' Scheduling Component
+    component [Scheduling System] <<core>> as Scheduling
+
+    ' Navigation Component
+    component [Navigation Engine] <<core>> as Navigation
+
+    ' Accessibility Component
+    component [Accessibility Manager] <<core>> as Accessibility
+
+    ' Map/Location Component
+    component [Map & Location Services] <<core>> as MapServices
+
+    ' Calendar Sync Component
+    component [Google Calendar Sync] <<core>> as CalSync
+}
+' Database Layer
+package "Data Layer" {
+    database "Application Database" as AppDB {
+        component [User Repository] as UserRepo
+        component [Schedule Repository] as ScheduleRepo
+        component [Location Repository] as LocationRepo
+    }
+}
+' Interfaces - Provided
+interface "IUserAuthentication" as IUserAuth
+interface "IUserProfile" as IUserProfile
+interface "IScheduleManagement" as ISchedule
+interface "IRouting" as IRouting
+interface "IAccessibility" as IAccessibilityIF
+interface "IMapData" as IMapData
+interface "ICalendarSync" as ICalSync
+
+' Interfaces - Required
+interface "IDatabase" as IDB
+interface "IGoogleCalendar" as IGCal
+interface "IConcordiaData" as ICData
+
+' Provided Interfaces
+UserMgmt -up- IUserAuth
+UserMgmt -up- IUserProfile
+Scheduling -up- ISchedule
+Navigation -up- IRouting
+Accessibility -up- IAccessibilityIF
+MapServices -up- IMapData
+CalSync -- ICalSync
+
+' Dependencies between components
+Scheduling ..> IUserProfile : <<use>>
+Scheduling ..> ICalSync : <<use>>
+Navigation ..> IMapData : <<use>>
+Navigation ..> IAccessibilityIF : <<use>>
+Scheduling ..> IAccessibilityIF : <<use>>
+
+' Database dependencies
+UserMgmt ..> IDB : <<use>>
+Scheduling ..> IDB : <<use>>
+MapServices ..> IDB : <<use>>
+IDB -- UserRepo
+IDB -- ScheduleRepo
+IDB -- LocationRepo
+
+' External API dependencies
+CalSync ..> IGCal : <<use>>
+MapServices ..> ICData : <<use>>
+IGCal -- GCalAPI
+ICData -- ConcordiaAPI
+@enduml 
