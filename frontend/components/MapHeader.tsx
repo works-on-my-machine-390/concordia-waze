@@ -80,7 +80,11 @@ function CampusButton({
   return (
     <Pressable
       onPress={onPress}
-      style={[styles.chip, active ? styles.chipActive : styles.chipInactive]}
+      style={({ pressed }) => [
+        styles.chip,
+        active ? styles.chipActive : styles.chipInactive,
+        pressed && styles.chipPressed,
+      ]}
     >
       <Text style={[styles.chipText, active ? styles.chipTextActive : styles.chipTextInactive]}>
         {label}
@@ -148,12 +152,18 @@ const styles = StyleSheet.create({
   },
 
   chip: {
-    height: 32,
+    height: 34,
+    width: 80,
     paddingHorizontal: 14,
     borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
 
+  },
+
+  chipPressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.98 }],
   },
 
   chipActive: {
@@ -166,7 +176,7 @@ const styles = StyleSheet.create({
     borderColor: "#E5E5E5",
   },
 
-  chipText: { fontSize: 12, fontWeight: "600" },
+  chipText: { fontSize: 14, fontWeight: "700" },
   chipTextActive: { color: SOFT_PINK },
   chipTextInactive: { color: "#222" },
 });
