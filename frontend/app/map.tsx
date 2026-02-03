@@ -67,6 +67,7 @@ export default function Map() {
     <View style={styles.container}>
       <MapView
         ref={mapRef}
+        showsMyLocationButton={false} // remove default google location button 
         style={styles.map}
         showsUserLocation={true}
         initialRegion={{

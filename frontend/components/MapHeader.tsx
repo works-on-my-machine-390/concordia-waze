@@ -92,9 +92,9 @@ function CampusButton({
 const styles = StyleSheet.create({
   wrapper: {
     position: "absolute",
-    top: 55, 
-    left: 16,
-    right: 16,
+    paddingVertical: 24,
+    paddingHorizontal: 16,
+    width: "100%",
   },
 
   headerRow: {
