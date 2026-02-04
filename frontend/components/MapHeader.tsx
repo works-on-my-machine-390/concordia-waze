@@ -1,8 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet, Pressable, TextInput } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { SHADOW } from "../app/styles/theme";
-import { colors } from "../app/styles/theme";
+import {colors, SHADOW } from "../app/styles/theme";
 
 
 type Props = Readonly<{

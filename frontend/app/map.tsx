@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { StyleSheet, View } from "react-native";
-import { Alert } from "react-native";
+import { StyleSheet, View, Alert } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import * as Location from "expo-location";
 import LocationButton from "../components/LocationButton";
@@ -31,7 +30,7 @@ export default function MainMap() {
         let fetchedLocation = await Location.getCurrentPositionAsync({});
         setLocation(fetchedLocation);
       } catch (e) {
-        Alert.alert("Error", "Failed to get your location.");
+        console.error("Failed to get location.",e);
       }
     }
   
@@ -65,7 +64,7 @@ export default function MainMap() {
         );
       }
     } catch (e) {
-      Alert.alert("Error", "Failed to get your location.");
+      console.error("Failed to get to your location.");
     }
   };
   

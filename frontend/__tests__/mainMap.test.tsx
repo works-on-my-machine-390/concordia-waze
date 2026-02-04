@@ -77,6 +77,7 @@ jest.mock("react-native-maps", () => {
 describe("MainMap screen", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.spyOn(console, "error").mockImplementation(() => {}); // Mock console.error
   });
 
   test("requests location permission on mount", async () => {
@@ -229,7 +230,7 @@ describe("MainMap screen", () => {
     );
   });
 
-  test("shows Alert if goToMyLocation throws", async () => {
+  test("shows error if goToMyLocation throws", async () => {
     (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
       status: "granted",
     });
@@ -257,7 +258,7 @@ describe("MainMap screen", () => {
     fireEvent.press(getByText("My Location"));
 
     await waitFor(() => {
-      expect(Alert.alert).toHaveBeenCalledWith("Error", "Failed to get your location.");
+      expect(console.error).toHaveBeenCalledWith("Failed to get to your location.");
     });
   });
 });
