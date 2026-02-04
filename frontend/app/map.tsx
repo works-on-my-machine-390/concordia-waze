@@ -12,7 +12,6 @@ export default function MainMap() {
   const [searchText, setSearchText] = useState("");
 
   const [location, setLocation] = useState<Location.LocationObject | null>(null);
-  const [, setErrorMsg] = useState<string | null>(null);
   const mapRef = useRef<MapView>(null);
 
   const CAMPUS_COORDS = {
@@ -25,7 +24,7 @@ export default function MainMap() {
       try {
         let { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== "granted") {
-          setErrorMsg("Permission to access location was denied");
+          Alert.alert("Permission to access location was denied");
           return;
         }
   
@@ -46,7 +45,7 @@ export default function MainMap() {
       if (!coords) {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
-          setErrorMsg('Permission to access location was denied');
+          Alert.alert('Permission to access location was denied');
           return;
         }
         const current = await Location.getCurrentPositionAsync({});
