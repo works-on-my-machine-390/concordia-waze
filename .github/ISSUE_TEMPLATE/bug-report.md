@@ -4,6 +4,7 @@ about: Document a bug
 title: 'BUG: '
 labels: bug
 assignees: ''
+type: 'Bug'
 
 ---
 
