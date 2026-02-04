@@ -12,6 +12,8 @@ type: 'Bug'
 
 ## Repro steps
 
+## Actual behavior
+
 ## Expected behavior
 
 ## Additional information
