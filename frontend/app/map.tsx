@@ -1,15 +1,12 @@
-import React from "react";
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from "react";
 import { StyleSheet, View } from "react-native";
 import MapView, { Marker } from "react-native-maps";
-import * as Location from 'expo-location'
+import * as Location from 'expo-location';
 import LocationButton from "../components/LocationButton";
 import { MapHeader } from "../components/MapHeader";
-import { useRouter } from "expo-router";
 
 
 export default function Map() {
-  const router = useRouter();
   const [campus, setCampus] = useState<"SGW" | "Loyola">("SGW");
   const [searchText, setSearchText] = useState("");
 
@@ -31,8 +28,8 @@ export default function Map() {
         return;
       }
 
-      let location = await Location.getCurrentPositionAsync({});
-      setLocation(location);
+      let fetchedLocation = await Location.getCurrentPositionAsync({});
+      setLocation(fetchedLocation);
     }
 
     getCurrentLocation();
