@@ -1,27 +1,17 @@
 import React from "react";
 import { View, Text, StyleSheet, Pressable, TextInput } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { SHADOW } from "../app/styles/theme";
+import { colors } from "../app/styles/theme";
 
 
-const MAROON = "#912338";
-const SOFT_PINK = "#DEBDC4";
-
-const SHADOW = {
-  shadowColor: "#000",
-  shadowOpacity: 0.18,
-  shadowRadius: 12,
-  shadowOffset: { width: 0, height: 6 },
-  elevation: 6,
-};
-
-
-type Props = {
+type Props = Readonly<{
   campus: "SGW" | "Loyola";
   onCampusChange: (campus: "SGW" | "Loyola") => void;
   onMenuPress: () => void;
   searchText: string;
   onSearchTextChange: (t: string) => void;
-};
+}>;
 
 export function MapHeader({
   campus,
@@ -35,12 +25,12 @@ export function MapHeader({
       <View style={styles.headerRow}>
         {/* menu section */}
         <Pressable style={styles.iconButton} onPress={onMenuPress}>
-          <Ionicons name="menu" size={26} color={MAROON} />
+          <Ionicons name="menu" size={26} color={colors.maroon} />
         </Pressable>
 
         {/* search section */}
         <View style={styles.searchPill}>
-          <Ionicons name="search" size={18} color={MAROON} />
+          <Ionicons name="search" size={18} color={colors.maroon} />
           <TextInput
             value={searchText}
             onChangeText={onSearchTextChange}
@@ -72,11 +62,11 @@ function CampusButton({
   label,
   active,
   onPress,
-}: {
+}: Readonly<{
   label: "SGW" | "Loyola";
   active: boolean;
   onPress: () => void;
-}) {
+}>) {
   return (
     <Pressable
       onPress={onPress}
@@ -134,8 +124,6 @@ const styles = StyleSheet.create({
     ...SHADOW,
   },
 
-  searchIcon: { fontSize: 14 },
-
   searchInput: {
     flex: 1,
     fontSize: 14,
@@ -167,7 +155,7 @@ const styles = StyleSheet.create({
   },
 
   chipActive: {
-    backgroundColor: MAROON, 
+    backgroundColor: colors.maroon, 
   },
 
   chipInactive: {
@@ -177,6 +165,6 @@ const styles = StyleSheet.create({
   },
 
   chipText: { fontSize: 14, fontWeight: "700" },
-  chipTextActive: { color: SOFT_PINK },
+  chipTextActive: { color: colors.pink },
   chipTextInactive: { color: "#222" },
 });

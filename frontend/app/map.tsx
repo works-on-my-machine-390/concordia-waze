@@ -1,39 +1,44 @@
 import React, { useState, useEffect, useRef } from "react";
 import { StyleSheet, View } from "react-native";
+import { Alert } from "react-native";
 import MapView, { Marker } from "react-native-maps";
-import * as Location from 'expo-location';
+import * as Location from "expo-location";
 import LocationButton from "../components/LocationButton";
 import { MapHeader } from "../components/MapHeader";
 
 
-export default function Map() {
+export default function MainMap() {
   const [campus, setCampus] = useState<"SGW" | "Loyola">("SGW");
   const [searchText, setSearchText] = useState("");
 
- const [location, setLocation] = useState<Location.LocationObject | null>(null);
- const [errorMsg, setErrorMsg] = useState<string | null>(null);
- const mapRef = useRef<MapView>(null);
+  const [location, setLocation] = useState<Location.LocationObject | null>(null);
+  const [, setErrorMsg] = useState<string | null>(null);
+  const mapRef = useRef<MapView>(null);
 
- const CAMPUS_COORDS = {
-  SGW: { latitude: 45.4972, longitude: -73.5791 },    // SGW campus
-  Loyola: { latitude: 45.4589, longitude: -73.6400 }, // Loyola campus
-};
+  const CAMPUS_COORDS = {
+    SGW: { latitude: 45.4972, longitude: -73.5791 },    // SGW campus
+    Loyola: { latitude: 45.4589, longitude: -73.64 }, // Loyola campus
+  };
 
- useEffect(() => {
+  useEffect(() => {
     async function getCurrentLocation() {
-      
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setErrorMsg('Permission to access location was denied');
-        return;
+      try {
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") {
+          setErrorMsg("Permission to access location was denied");
+          return;
+        }
+  
+        let fetchedLocation = await Location.getCurrentPositionAsync({});
+        setLocation(fetchedLocation);
+      } catch (e) {
+        Alert.alert("Error", "Failed to get your location.");
       }
-
-      let fetchedLocation = await Location.getCurrentPositionAsync({});
-      setLocation(fetchedLocation);
     }
-
+  
     getCurrentLocation();
   }, []);
+  
 
   const goToMyLocation = async () => {
     try {
@@ -61,7 +66,7 @@ export default function Map() {
         );
       }
     } catch (e) {
-      setErrorMsg('Failed to get location');
+      Alert.alert("Error", "Failed to get your location.");
     }
   };
   
@@ -93,16 +98,16 @@ export default function Map() {
           latitudeDelta: 0.005,  
           longitudeDelta: 0.005,
         }}
-      />
-      {location?.coords && (
-        <Marker
-          coordinate={{
-            latitude: location.coords.latitude,
-            longitude: location.coords.longitude,
-          }}
-
-        />
-      )}
+      >
+        {location?.coords && (
+          <Marker
+            coordinate={{
+              latitude: location.coords.latitude,
+              longitude: location.coords.longitude,
+            }}
+          />
+        )}
+      </MapView>
 
        
       <MapHeader

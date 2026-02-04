@@ -6,7 +6,7 @@ interface LocationButtonProps {
   onPress: () => void; // function to go to current location
 }
 
-export default function LocationButton({ onPress }: LocationButtonProps) {
+export default function LocationButton({ onPress }: Readonly<LocationButtonProps>) {
   return (
     <View style={styles.wrapper}>
         {/* Adds fade (opacity) effect on press */}
@@ -45,7 +45,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 4,
-    // // Android elevation
-    // elevation: 3,
+    // Android elevation
+    elevation: 3,
   },
 });
