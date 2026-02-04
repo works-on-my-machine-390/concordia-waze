@@ -7,8 +7,7 @@
     "test-ui": "cd frontend && bun run test",
     "test-api": "cd backend && go test ./...",
     "dev": "powershell -Command \"Start-Process cmd -ArgumentList '/k', 'cd backend && air' -WindowStyle Normal\" && cd frontend && bun run start",
-    "postinstall": "cd frontend && bun install",
-    "prepare": "husky install"
+    "postinstall": "cd frontend && bun install"
   },
   "repository": {
     "type": "git",
@@ -21,6 +20,8 @@
   },
   "homepage": "https://github.com/works-on-my-machine-390/concordia-waze#readme",
   "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
     "prettier": "^3.8.1"
   },
   "lint-staged": {
