@@ -37,3 +37,13 @@ export const EyeHidingIcon: React.FC<IconProps> = ({ size = DEFAULT_ICON_SIZE, c
 export const BackIcon: React.FC<IconProps> = ({ size = DEFAULT_ICON_SIZE, color = DEFAULT_ICON_COLOR }) => (
   <Ionicons name="arrow-back" size={size} color={color} />
 );
+
+// Logout icon 
+export const LogoutIcon: React.FC<IconProps> = ({ size = DEFAULT_ICON_SIZE, color = DEFAULT_ICON_COLOR }) => (
+  <MaterialIcons name="logout" size={size} color={color} />
+);
+
+// Login icon 
+export const LoginIcon: React.FC<IconProps> = ({ size = DEFAULT_ICON_SIZE, color = DEFAULT_ICON_COLOR }) => (
+  <MaterialIcons name="login" size={size} color={color} />
+);
