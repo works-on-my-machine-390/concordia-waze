@@ -55,7 +55,7 @@ export default function LoginScreen() {
 
     if (result.success) {
       console.log("Login successful!", result.data);
-      // router.replace("/(tabs)"); // Navigate to main app
+      router.replace("/map"); // Navigate to main app
       alert("Login successful!");
     } else {
       setPassword("");

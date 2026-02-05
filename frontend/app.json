@@ -26,6 +26,13 @@
     "plugins": [
       "expo-router",
       [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow Concordia Waze to use your location.",
+          "isAndroidBackgroundLocationEnabled": true
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "imageWidth": 200,
