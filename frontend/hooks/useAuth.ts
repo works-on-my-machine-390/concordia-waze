@@ -24,48 +24,41 @@ export function useAuth() {
     checkToken();
   }, []);
 
-  async function login(email: string, password: string): Promise<AuthResult> {
+  async function authenticate(
+    endpoint: string,
+    payload: object,
+    defaultError: string
+  ): Promise<AuthResult> {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/auth/login`, {
+      const res = await fetch(`${API_BASE}${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify(payload),
       });
+
       const json = await res.json();
       setLoading(false);
-      if (res.ok && json?.token){
+
+      if (res.ok && json?.token) {
         await AsyncStorage.setItem("accessToken", json.token);
         setLoggedIn(true);
         return { success: true, data: json };
-      } 
-      return { success: false, error: json?.error || json?.message || "Invalid credentials." };
+      }
+
+      return { success: false, error: json?.error || json?.message || defaultError };
     } catch (err: any) {
       setLoading(false);
       return { success: false, error: err?.message || "Network error." };
     }
   }
 
+  async function login(email: string, password: string): Promise<AuthResult> {
+    return authenticate("/auth/login", { email, password }, "Invalid credentials.");
+  }
+
   async function register(fullName: string, email: string, password: string): Promise<AuthResult> {
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_BASE}/auth/signup`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: fullName, email, password }),
-      });
-      const json = await res.json();
-      setLoading(false);
-      if (res.ok && json?.token){
-        await AsyncStorage.setItem("accessToken", json.token);
-        setLoggedIn(true);
-        return { success: true, data: json };
-      } 
-      return { success: false, error: json?.error || json?.message || "Registration failed." };
-    } catch (err: any) {
-      setLoading(false);
-      return { success: false, error: err?.message || "Network error." };
-    }
+    return authenticate("/auth/signup", { name: fullName, email, password }, "Registration failed.");
   }
 
   async function logout() {
