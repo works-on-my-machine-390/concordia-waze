@@ -1,4 +1,3 @@
-
 import React from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
 import { colors } from "../app/styles/theme";
@@ -14,6 +13,7 @@ interface Props {
   autoCapitalize?: "none" | "sentences" | "words" | "characters";
   accessibleLabel?: string;
   right?: React.ReactNode;
+  testID?: string; 
 }
 
 export default function AuthInput({
@@ -27,12 +27,14 @@ export default function AuthInput({
   autoCapitalize = "none",
   accessibleLabel,
   right,
+  testID,  
 }: Props) {
   return (
     <View style={s.container}>
       {label ? <Text style={s.label}>{label}</Text> : null}
       <View style={s.row}>
         <TextInput
+          testID={testID} 
           accessibilityLabel={accessibleLabel ?? (typeof label === "string" ? label : "")}
           placeholder={placeholder}
           value={value}

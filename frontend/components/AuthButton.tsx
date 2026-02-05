@@ -9,14 +9,17 @@ export default function AuthButton({
   onPress,
   disabled,
   loading,
+  testID, 
 }: {
   title: string;
   onPress?: () => void;
   disabled?: boolean;
   loading?: boolean;
+  testID?: string; 
 }) {
   return (
     <TouchableOpacity
+      testID={testID} 
       accessibilityRole="button"
       onPress={onPress}
       disabled={disabled || loading}

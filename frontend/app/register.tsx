@@ -105,6 +105,7 @@ export default function RegisterScreen() {
               }}
               error={errors.fullName}
               autoCapitalize="words"
+              testID="fullname-input"
             />
             
             <AuthInput 
@@ -122,6 +123,7 @@ export default function RegisterScreen() {
               }}
               keyboardType="email-address"
               error={errors.email}
+              testID="email-input"
             />
             
             <AuthInput 
@@ -139,6 +141,7 @@ export default function RegisterScreen() {
               }}
               secureTextEntry={!showPassword}
               error={errors.password}
+              testID="password-input"
               right={
                   <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                           {showPassword 
@@ -169,6 +172,7 @@ export default function RegisterScreen() {
               }}
               secureTextEntry={!showConfirmPassword}
               error={errors.confirmPassword}
+              testID="confirm-password-input"
               right={
                   <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
                           {showConfirmPassword 
@@ -181,7 +185,7 @@ export default function RegisterScreen() {
 
             {serverError && <Text style={styles.serverError}>{serverError}</Text>}
 
-            <AuthButton title="Sign up" onPress={handleSubmit} loading={loading} />
+            <AuthButton title="Sign up" onPress={handleSubmit} loading={loading} testID="signup-button" />
 
             <View style={styles.footer}>
               <Text style={styles.footerText}>Already have an account? </Text>

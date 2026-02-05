@@ -1,0 +1,10 @@
+appId: com.concordiawaze.app
+
+env:
+  TEST_EMAIL_DOMAIN: "john@gmail.com"
+  TEST_PASSWORD: "TestPassword123!"
+  
+config:
+  assertionTimeout: 5000
+  launchTimeout: 15000
+  continueOnFailure: false

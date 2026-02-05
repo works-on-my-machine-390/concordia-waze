@@ -1,10 +1,10 @@
 /*
-Validation functions for login and register forms using regex pattern to verify Concordia email addresses (@concordia.ca, @mail.concordia.ca, @live.concordia.ca)
+Validation functions for login and register forms using regex pattern to verify valid email addresses (@gmail.com, @mail.concordia.ca, @live.concordia.ca, etc.)
 Checking password minimum length (6 characters), confirming password match, and full name presence.
 Returning field-specific error messages.
 */
 
-export const CONCORDIA_EMAIL_REGEX = /^[^@\s]+@[^@\s.]+\.[^@\s.]+$/i;
+export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/i;
 
 
 export function validateRegister({
@@ -24,8 +24,8 @@ export function validateRegister({
   }
   if (!email) {
     errors.email = "Email is required.";
-  } else if (!CONCORDIA_EMAIL_REGEX.test(email)) {
-    errors.email = "Please use an email in the format content@content.content.";
+  } else if (!EMAIL_REGEX.test(email)) {
+    errors.email = "Please use an email in the format content@content.content";
   }
   if (!password) {
     errors.password = "Password is required.";
@@ -44,8 +44,8 @@ export function validateLogin({ email, password }: { email: string; password: st
   const errors: Record<string, string> = {};
   if (!email) {
     errors.email = "Email is required.";
-  } else if (!CONCORDIA_EMAIL_REGEX.test(email)) {
-    errors.email = "Please use an email in the format content@content.content.";
+  } else if (!EMAIL_REGEX.test(email)) {
+    errors.email = "Please use an email in the format content@content.content";
   }
   if (!password) {
     errors.password = "Password is required.";

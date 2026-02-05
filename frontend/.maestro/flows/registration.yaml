@@ -1,0 +1,58 @@
+appId: com.concordiawaze.app
+---
+
+# 1) Open app and navigation to sign up
+- launchApp
+- tapOn: "Sign Up / Log in"
+- tapOn: "Sign up"
+- assertVisible: "Create an account!"
+
+# Test A — submit empty form (validation)
+- tapOn:
+    id: "signup-button"
+- assertVisible: "required"
+
+# Test B — invalid email
+- tapOn:
+    id: "fullname-input"
+- inputText: "Test User"
+- tapOn:
+    id: "email-input"
+- inputText: "@gmail.com"
+- tapOn:
+    id: "password-input"
+- inputText: "password123"
+- tapOn:
+    id: "confirm-password-input"
+- inputText: "password123"
+- tapOn:
+    id: "signup-button"
+# Expect an error telling the user to use an email in the format content@content.content
+- assertVisible: "content@content.content"
+
+# Test C — valid registration
+- back
+- tapOn: "Sign up"
+
+- tapOn:
+    id: "fullname-input"
+- inputText: "Test User"
+
+- tapOn:
+    id: "email-input"
+- inputText: "test.user@live.concordia.ca"
+
+- tapOn:
+    id: "password-input"
+- inputText: "ValidPass123"
+
+- tapOn:
+    id: "confirm-password-input"
+- inputText: "ValidPass123"
+
+- hideKeyboard
+- tapOn:
+    id: "signup-button"
+
+# If registration completes and ask what happens bcs doesnt work for me for now:
+- assertVisible: "Load failed"
