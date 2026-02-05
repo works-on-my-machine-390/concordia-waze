@@ -1,16 +1,18 @@
-appId: com.concordiawaze.app
+appId: host.exp.Exponent
 ---
 
 # 1) Open app and navigation to sign up
 - launchApp
-- tapOn: "Sign Up / Log in"
+- tapOn: "frontend"
+- tapOn:
+    id: "signin-signup-button"
 - tapOn: "Sign up"
 - assertVisible: "Create an account!"
 
 # Test A — submit empty form (validation)
 - tapOn:
     id: "signup-button"
-- assertVisible: "required"
+- assertVisible: "Email is required."
 
 # Test B — invalid email
 - tapOn:
@@ -19,19 +21,30 @@ appId: com.concordiawaze.app
 - tapOn:
     id: "email-input"
 - inputText: "@gmail.com"
+
+- scroll
+
 - tapOn:
     id: "password-input"
 - inputText: "password123"
+- scroll
 - tapOn:
     id: "confirm-password-input"
 - inputText: "password123"
+
 - tapOn:
     id: "signup-button"
+- tapOn:
+    id: "signup-button"
+
 # Expect an error telling the user to use an email in the format content@content.content
-- assertVisible: "content@content.content"
+- assertVisible: "Please use an email in the format content@content.content"
 
 # Test C — valid registration
-- back
+- launchApp
+- tapOn: "frontend"
+- tapOn:
+    id: "signin-signup-button"
 - tapOn: "Sign up"
 
 - tapOn:
@@ -42,15 +55,22 @@ appId: com.concordiawaze.app
     id: "email-input"
 - inputText: "test.user@live.concordia.ca"
 
+- scroll
+
 - tapOn:
     id: "password-input"
 - inputText: "ValidPass123"
+- scroll
 
 - tapOn:
     id: "confirm-password-input"
 - inputText: "ValidPass123"
 
+- scroll
+
 - hideKeyboard
+- tapOn:
+    id: "signup-button"
 - tapOn:
     id: "signup-button"
 
