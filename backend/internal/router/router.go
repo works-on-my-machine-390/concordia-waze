@@ -14,24 +14,26 @@ import (
 	"github.com/works-on-my-machine-390/concordia-waze/internal/presentation/middleware"
 )
 
-// SetupRouter configures all routes and middleware
 func SetupRouter() *gin.Engine {
 	router := gin.Default()
 
-	// Initialize repositories (persistance layer)
 	userRepo := repository.NewInMemoryUserRepository()
 
-	// Initialize services (application layer)
+	buildingDataRepo := repository.NewBuildingDataRepository("building_information.json")
+
 	jwtManager := application.NewJWTManager(os.Getenv("JWT_SECRET"), 24*time.Hour)
 	userService := application.NewUserService(userRepo, jwtManager)
 
-	// Initialize handlers (presentation layer)
+	buildingService := application.NewBuildingService(buildingDataRepo)
+	campusService := application.NewCampusService(buildingDataRepo)
+
 	authHandler := handler.NewAuthHandler(userService)
 
-	// Apply auth middleware globally
+	buildingHandler := handler.NewBuildingHandler(buildingService)
+	campusHandler := handler.NewCampusHandler(campusService)
+
 	router.Use(middleware.AuthMiddleware(jwtManager))
 
-	// Auth routes (public)
 	authGroup := router.Group("/auth")
 	{
 		authGroup.POST("/signup", authHandler.SignUp)
@@ -40,13 +42,15 @@ func SetupRouter() *gin.Engine {
 		authGroup.POST("/logout", middleware.RequireAuth(), authHandler.Logout)
 	}
 
-	// Swagger documentation
+	router.GET("/buildings/:code", middleware.RequireAuth(), buildingHandler.GetBuilding)
+
+	router.GET("/campuses/:campus/buildings", middleware.RequireAuth(), campusHandler.GetCampusBuildings)
+
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	return router
 }
 
-// SetupTestRouter creates a router for testing
 func SetupTestRouter() *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	return SetupRouter()
