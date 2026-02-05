@@ -21,14 +21,18 @@ export default function MainMap() {
 
   useEffect(() => {
     async function getCurrentLocation() {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert("Permission to access location was denied");
-        return;
-      }
+      try {
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") {
+          Alert.alert("Permission to access location was denied");
+          return;
+        }
 
-      let fetchedLocation = await Location.getCurrentPositionAsync({});
-      setLocation(fetchedLocation);
+        let fetchedLocation = await Location.getCurrentPositionAsync({});
+        setLocation(fetchedLocation);
+      } catch (e) {
+        console.error("Failed to get location.", e);
+      }
     }
 
     getCurrentLocation();
@@ -60,7 +64,8 @@ export default function MainMap() {
         );
       }
     } catch (e) {
-      console.error("Failed to get to your location.");
+      console.error("Failed to go to location.", e);
+      Alert.alert("Error", "Failed to get your location. Please try again.");
     }
   };
 
