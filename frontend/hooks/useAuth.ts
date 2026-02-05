@@ -1,7 +1,6 @@
 /* 
 React hook managing authentication state and API interactions: providing login and register functions 
 After need to change all API calls with real backend
-MOCK DATA IS BEING USED TO ENSURE FRONTEND WORKS
 */
 import { useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -18,7 +17,6 @@ export function useAuth() {
   useEffect(() => {
     const checkToken = async () => {
       const token = await AsyncStorage.getItem("accessToken");
-      const storedUser = await AsyncStorage.getItem("user");
       if (token) {
         setLoggedIn(true);
       }
@@ -36,8 +34,8 @@ export function useAuth() {
       });
       const json = await res.json();
       setLoading(false);
-      if (res.ok){
-        if (json?.token) await AsyncStorage.setItem("accessToken", json.token);
+      if (res.ok && json?.token){
+        await AsyncStorage.setItem("accessToken", json.token);
         setLoggedIn(true);
         return { success: true, data: json };
       } 
@@ -58,8 +56,8 @@ export function useAuth() {
       });
       const json = await res.json();
       setLoading(false);
-      if (res.ok){
-        if (json?.token) await AsyncStorage.setItem("accessToken", json.token);
+      if (res.ok && json?.token){
+        await AsyncStorage.setItem("accessToken", json.token);
         setLoggedIn(true);
         return { success: true, data: json };
       } 
