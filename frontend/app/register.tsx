@@ -179,7 +179,7 @@ export default function RegisterScreen() {
               }
             />
 
-            {serverError && <Text style={styles.serverError}>{serverError}</Text>}
+            {!!serverError && <Text style={styles.serverError}>{serverError}</Text>}
 
             <AuthButton title="Sign up" onPress={handleSubmit} loading={loading} />
 
