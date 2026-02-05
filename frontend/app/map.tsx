@@ -64,7 +64,7 @@ export default function MainMap() {
         );
       }
     } catch (e) {
-      console.error("Failed to go to location.", e);
+      console.error("Failed to get to your location.");
       Alert.alert("Error", "Failed to get your location. Please try again.");
     }
   };
