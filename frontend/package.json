@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
+    "@react-native-async-storage/async-storage": "2.2.0",
     "@react-navigation/bottom-tabs": "^7.4.0",
     "@react-navigation/elements": "^2.6.3",
     "@react-navigation/native": "^7.1.8",
@@ -44,8 +45,7 @@
     "react-native-screens": "~4.16.0",
     "react-native-web": "~0.21.0",
     "react-native-worklets": "0.5.1",
-    "wretch": "^3.0.6",
-    "@react-native-async-storage/async-storage": "2.2.0"
+    "wretch": "^3.0.6"
   },
   "devDependencies": {
     "@testing-library/jest-native": "^5.4.3",
