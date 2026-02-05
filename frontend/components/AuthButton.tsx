@@ -1,7 +1,12 @@
 /*
 Button component that displays a loading spinner when authentication is in progress
 */
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity } from "react-native";
+import {
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+} from "react-native";
 import { colors } from "../app/styles/theme";
 
 export default function AuthButton({
@@ -9,12 +14,12 @@ export default function AuthButton({
   onPress,
   disabled,
   loading,
-}: {
+}: Readonly<{
   title: string;
   onPress?: () => void;
   disabled?: boolean;
   loading?: boolean;
-}) {
+}>) {
   return (
     <TouchableOpacity
       accessibilityRole="button"
@@ -22,7 +27,11 @@ export default function AuthButton({
       disabled={disabled || loading}
       style={[styles.button, disabled ? styles.buttonDisabled : null]}
     >
-      {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.text}>{title}</Text>}
+      {loading ? (
+        <ActivityIndicator color="#fff" />
+      ) : (
+        <Text style={styles.text}>{title}</Text>
+      )}
     </TouchableOpacity>
   );
 }

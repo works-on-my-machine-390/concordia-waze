@@ -27,7 +27,7 @@ export default function AuthInput({
   autoCapitalize = "none",
   accessibleLabel,
   right,
-}: Props) {
+}: Readonly<Props>) {
   return (
     <View style={s.container}>
       {label ? <Text style={s.label}>{label}</Text> : null}
