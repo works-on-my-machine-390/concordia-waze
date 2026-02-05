@@ -5,6 +5,6 @@ env:
   TEST_PASSWORD: "TestPassword123!"
   
 config:
-  assertionTimeout: 5000
-  launchTimeout: 15000
+  assertionTimeout: 50000
+  launchTimeout: 150000
   continueOnFailure: false

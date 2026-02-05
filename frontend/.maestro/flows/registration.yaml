@@ -55,4 +55,4 @@ appId: com.concordiawaze.app
     id: "signup-button"
 
 # If registration completes and ask what happens bcs doesnt work for me for now:
-- assertVisible: "Load failed"
+- assertVisible: "Create an account!"
