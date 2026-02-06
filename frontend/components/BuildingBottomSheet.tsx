@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
 
   scrollContent: {
     paddingHorizontal: 16,
-    paddingBottom: 32,
+    paddingBottom: 20,
   },
 
   listContainer: {
