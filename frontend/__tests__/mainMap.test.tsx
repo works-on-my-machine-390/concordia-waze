@@ -2,11 +2,11 @@
  * Tests for Map screen
  */
 
-import { render, fireEvent, waitFor } from "@testing-library/react-native";
+import { fireEvent, render, waitFor } from "@testing-library/react-native";
 import { Alert } from "react-native";
 
-import MainMap from "../app/map"; 
 import * as Location from "expo-location";
+import MainMap from "../app/map";
 
 /**
  * -----------------------------
