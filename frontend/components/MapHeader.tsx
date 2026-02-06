@@ -1,13 +1,13 @@
-import React from "react";
-import { View, Text, StyleSheet, Pressable, TextInput } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import {colors, SHADOW } from "../app/styles/theme";
-
+import { DrawerActions } from "@react-navigation/native";
+import { useNavigation } from "expo-router";
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { colors, SHADOW } from "../app/styles/theme";
 
 type Props = Readonly<{
   campus: "SGW" | "Loyola";
   onCampusChange: (campus: "SGW" | "Loyola") => void;
-  onMenuPress: () => void;
+  onMenuPress?: () => void;
   searchText: string;
   onSearchTextChange: (t: string) => void;
 }>;
@@ -19,17 +19,25 @@ export function MapHeader({
   searchText,
   onSearchTextChange,
 }: Props) {
+  const navigation = useNavigation();
+
+  const handleMenuButtonPress = () => {
+    navigation.dispatch(DrawerActions.openDrawer());
+
+    onMenuPress?.();
+  };
+
   return (
     <View style={styles.wrapper} pointerEvents="box-none">
       <View style={styles.headerRow}>
         {/* menu section */}
-        <Pressable style={styles.iconButton} onPress={onMenuPress}>
+        <Pressable style={styles.iconButton} onPress={handleMenuButtonPress}>
           <Ionicons name="menu" size={26} color={colors.maroon} />
         </Pressable>
 
         {/* search section */}
         <View style={styles.searchPill}>
-          <Ionicons name="search" size={18} color={colors.maroon} />
+          <Ionicons name="search" size={26} color={colors.maroon} />
           <TextInput
             value={searchText}
             onChangeText={onSearchTextChange}
@@ -75,7 +83,12 @@ function CampusButton({
         pressed && styles.chipPressed,
       ]}
     >
-      <Text style={[styles.chipText, active ? styles.chipTextActive : styles.chipTextInactive]}>
+      <Text
+        style={[
+          styles.chipText,
+          active ? styles.chipTextActive : styles.chipTextInactive,
+        ]}
+      >
         {label}
       </Text>
     </Pressable>
@@ -125,7 +138,7 @@ const styles = StyleSheet.create({
 
   searchInput: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 16,
     color: "#111",
     paddingVertical: 0,
   },
@@ -145,7 +158,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
-
   },
 
   chipPressed: {
@@ -154,7 +166,7 @@ const styles = StyleSheet.create({
   },
 
   chipActive: {
-    backgroundColor: colors.maroon, 
+    backgroundColor: colors.maroon,
   },
 
   chipInactive: {
@@ -163,7 +175,7 @@ const styles = StyleSheet.create({
     borderColor: "#E5E5E5",
   },
 
-  chipText: { fontSize: 14, fontWeight: "700" },
+  chipText: { fontSize: 16, fontWeight: "700" },
   chipTextActive: { color: colors.pink },
   chipTextInactive: { color: "#222" },
 });

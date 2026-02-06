@@ -1,9 +1,11 @@
 import * as Location from "expo-location";
+import { Drawer } from "expo-router/drawer";
 import { useEffect, useRef, useState } from "react";
 import { Alert, StyleSheet, View } from "react-native";
 import MapView, { Marker } from "react-native-maps";
-import LocationButton from "../components/LocationButton";
-import { MapHeader } from "../components/MapHeader";
+import { Toast } from "toastify-react-native";
+import LocationButton from "../../components/LocationButton";
+import { MapHeader } from "../../components/MapHeader";
 
 export default function MainMap() {
   const [campus, setCampus] = useState<"SGW" | "Loyola">("SGW");
@@ -64,8 +66,8 @@ export default function MainMap() {
         );
       }
     } catch (e) {
-      console.error("Failed to get to your location.");
-      Alert.alert("Error", "Failed to get your location. Please try again.");
+      console.error("Failed to get to your location.", e);
+      Toast.error("Failed to get your location. Please try again.");
     }
   };
 
@@ -85,38 +87,40 @@ export default function MainMap() {
 
   return (
     <View style={styles.container}>
-      <MapView
-        ref={mapRef}
-        showsMyLocationButton={false} // remove default google location button
-        style={styles.map}
-        showsUserLocation={true}
-        initialRegion={{
-          // coordinates for SGW campus (default)
-          latitude: CAMPUS_COORDS.SGW.latitude,
-          longitude: CAMPUS_COORDS.SGW.longitude,
-          latitudeDelta: 0.005,
-          longitudeDelta: 0.005,
-        }}
-      >
-        {location?.coords && (
-          <Marker
-            coordinate={{
-              latitude: location.coords.latitude,
-              longitude: location.coords.longitude,
-            }}
-          />
-        )}
-      </MapView>
+      <Drawer>
+        <MapView
+          ref={mapRef}
+          showsMyLocationButton={false} // remove default google location button
+          style={styles.map}
+          showsUserLocation={true}
+          initialRegion={{
+            // coordinates for SGW campus (default)
+            latitude: CAMPUS_COORDS.SGW.latitude,
+            longitude: CAMPUS_COORDS.SGW.longitude,
+            latitudeDelta: 0.005,
+            longitudeDelta: 0.005,
+          }}
+        >
+          {location?.coords && (
+            <Marker
+              coordinate={{
+                latitude: location.coords.latitude,
+                longitude: location.coords.longitude,
+              }}
+            />
+          )}
+        </MapView>
 
-      <MapHeader
-        campus={campus}
-        onCampusChange={handleCampusChange}
-        searchText={searchText}
-        onSearchTextChange={setSearchText}
-        onMenuPress={() => {}}
-        // onMenuPress={() => router.push("/menu")} // navigate to menu screen, to be created
-      />
-      <LocationButton onPress={goToMyLocation} />
+        <MapHeader
+          campus={campus}
+          onCampusChange={handleCampusChange}
+          searchText={searchText}
+          onSearchTextChange={setSearchText}
+          onMenuPress={() => {}}
+          // onMenuPress={() => router.push("/menu")} // navigate to menu screen, to be created
+        />
+        <LocationButton onPress={goToMyLocation} />
+      </Drawer>
     </View>
   );
 }

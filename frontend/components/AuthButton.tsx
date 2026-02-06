@@ -30,12 +30,12 @@ export default function AuthButton({
 }>) {
   // Determining the title (Sign In/ Log Out) and icon for menu signin/logout buttons
   const menuTitle = loggedIn ? "Log out" : "Login";
-  const icon = loggedIn ? <LogoutIcon /> : <LoginIcon />;
+  const icon = loggedIn ? <LogoutIcon size={24} /> : <LoginIcon size={24} />;
 
   const renderTitleElement = () => {
     if (variant === "menu") {
       return (
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <View style={{ marginRight: 8 }}>{icon}</View>
           <Text style={styles.menuText}>{menuTitle}</Text>
         </View>
@@ -80,12 +80,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    gap: 20,
+    width: "100%",
   },
   buttonDisabled: { opacity: 0.6 },
   text: { color: "#fff", fontWeight: "700" },
   menuText: {
     color: colors.text,
     fontWeight: "700",
+    fontSize: 16,
   },
 });

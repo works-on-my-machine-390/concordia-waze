@@ -2,13 +2,14 @@
 React hook managing authentication state and API interactions: providing login and register functions 
 After need to change all API calls with real backend
 */
-import { useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useEffect, useState } from "react";
 
 type AuthResult =
   | { success: true; data?: any }
   | { success: false; error: string };
 
+import { Toast } from "toastify-react-native";
 import { API_URL } from "./api";
 const API_BASE = process.env.REACT_APP_API_BASE || API_URL;
 
@@ -95,6 +96,7 @@ export function useAuth() {
       console.warn("Logout request failed:", err);
     } finally {
       await AsyncStorage.removeItem("accessToken");
+      Toast.success("Logged out successfully.");
       setLoggedIn(false);
     }
   }

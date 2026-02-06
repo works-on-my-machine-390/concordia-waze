@@ -5,7 +5,7 @@
 import { render, fireEvent, waitFor } from "@testing-library/react-native";
 import { Alert } from "react-native";
 
-import MainMap from "../app/map"; 
+import MainMap from "../app/drawer/map";
 import * as Location from "expo-location";
 
 /**
@@ -81,9 +81,11 @@ describe("MainMap screen", () => {
   });
 
   test("requests location permission on mount", async () => {
-    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
-      status: "granted",
-    });
+    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue(
+      {
+        status: "granted",
+      },
+    );
 
     (Location.getCurrentPositionAsync as jest.Mock).mockResolvedValue({
       coords: { latitude: 45.5, longitude: -73.6 },
@@ -97,9 +99,11 @@ describe("MainMap screen", () => {
   });
 
   test("fetches current position when permission is granted", async () => {
-    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
-      status: "granted",
-    });
+    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue(
+      {
+        status: "granted",
+      },
+    );
 
     (Location.getCurrentPositionAsync as jest.Mock).mockResolvedValue({
       coords: { latitude: 45.5, longitude: -73.6 },
@@ -113,9 +117,11 @@ describe("MainMap screen", () => {
   });
 
   test("does NOT fetch position if permission is denied", async () => {
-    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
-      status: "denied",
-    });
+    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue(
+      {
+        status: "denied",
+      },
+    );
 
     render(<MainMap />);
 
@@ -127,9 +133,11 @@ describe("MainMap screen", () => {
   });
 
   test("renders a Marker when location is available", async () => {
-    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
-      status: "granted",
-    });
+    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue(
+      {
+        status: "granted",
+      },
+    );
 
     (Location.getCurrentPositionAsync as jest.Mock).mockResolvedValue({
       coords: { latitude: 45.5, longitude: -73.6 },
@@ -142,9 +150,11 @@ describe("MainMap screen", () => {
   });
 
   test("pressing LocationButton animates map to current location (when location already exists)", async () => {
-    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
-      status: "granted",
-    });
+    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue(
+      {
+        status: "granted",
+      },
+    );
 
     (Location.getCurrentPositionAsync as jest.Mock).mockResolvedValue({
       coords: { latitude: 45.5, longitude: -73.6 },
@@ -167,20 +177,22 @@ describe("MainMap screen", () => {
           latitudeDelta: 0.005,
           longitudeDelta: 0.005,
         },
-        500
+        500,
       );
     });
   });
 
   test("pressing LocationButton requests permission and gets location if location is missing", async () => {
     // first: mount permission granted + fetch location (but we will override to return null by making it throw)
-    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
-      status: "granted",
-    });
+    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue(
+      {
+        status: "granted",
+      },
+    );
 
     // For mount: make it fail so location remains null
     (Location.getCurrentPositionAsync as jest.Mock).mockRejectedValueOnce(
-      new Error("no location on mount")
+      new Error("no location on mount"),
     );
 
     // For button press: return valid location
@@ -205,15 +217,17 @@ describe("MainMap screen", () => {
           latitudeDelta: 0.005,
           longitudeDelta: 0.005,
         },
-        500
+        500,
       );
     });
   });
 
   test("changing campus animates map to Loyola coords", async () => {
-    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
-      status: "denied",
-    });
+    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue(
+      {
+        status: "denied",
+      },
+    );
 
     const { getByText } = render(<MainMap />);
 
@@ -226,14 +240,16 @@ describe("MainMap screen", () => {
         latitudeDelta: 0.005,
         longitudeDelta: 0.005,
       },
-      500
+      500,
     );
   });
 
   test("shows error if goToMyLocation throws", async () => {
-    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
-      status: "granted",
-    });
+    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue(
+      {
+        status: "granted",
+      },
+    );
 
     // mount works
     (Location.getCurrentPositionAsync as jest.Mock).mockResolvedValueOnce({
@@ -244,21 +260,23 @@ describe("MainMap screen", () => {
 
     // Make button press throw
     (Location.getCurrentPositionAsync as jest.Mock).mockRejectedValueOnce(
-      new Error("boom")
+      new Error("boom"),
     );
 
     // Force location to be missing by calling before mount finishes is messy,
     // so we just press and let it run (it may not call getCurrentPositionAsync again if coords exist).
     // The simplest: clear location path by failing mount instead in your code,
     // but we can still validate the catch branch by rejecting permission call:
-    (Location.requestForegroundPermissionsAsync as jest.Mock).mockRejectedValueOnce(
-      new Error("permission request failed")
-    );
+    (
+      Location.requestForegroundPermissionsAsync as jest.Mock
+    ).mockRejectedValueOnce(new Error("permission request failed"));
 
     fireEvent.press(getByText("My Location"));
 
     await waitFor(() => {
-      expect(console.error).toHaveBeenCalledWith("Failed to get to your location.");
+      expect(console.error).toHaveBeenCalledWith(
+        "Failed to get to your location.",
+      );
     });
   });
 });
