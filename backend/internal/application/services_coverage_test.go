@@ -6,7 +6,6 @@ import (
 	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
 )
 
-
 type fakeBuildingRepo struct {
 	b   *domain.Building
 	err error
@@ -30,7 +29,6 @@ func (f *fakeCampusRepo) GetCampusPolygons(campus string) ([]domain.BuildingPoly
 	}
 	return f.polys, nil
 }
-
 
 func TestBuildingService_GetBuilding_Success(t *testing.T) {
 	repo := &fakeBuildingRepo{
@@ -59,7 +57,6 @@ func TestBuildingService_GetBuilding_NotFound(t *testing.T) {
 		t.Fatalf("expected ErrNotFound, got %v", err)
 	}
 }
-
 
 func TestCampusService_GetCampusBuildings_Success(t *testing.T) {
 	repo := &fakeCampusRepo{

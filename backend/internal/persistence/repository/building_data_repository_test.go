@@ -133,7 +133,6 @@ func TestGetCampusPolygons_Found_ReturnsPolygonPointsAndMapsLngLatToLatLng(t *te
 		t.Fatalf("expected 3 points, got %d", len(polys[0].Polygon))
 	}
 
-	
 	first := polys[0].Polygon[0]
 	if first.Lat != 45.4971 || first.Lng != -73.5792 {
 		t.Fatalf("unexpected point mapping: %+v", first)
@@ -216,7 +215,6 @@ func TestGetCampusPolygons_SkipsBuildingsWithNilOrEmptyOrInvalidShape(t *testing
 		t.Fatalf("expected GOOD building polygon to be present")
 	}
 }
-
 
 func TestGetCampusPolygons_InvalidCampus_ReturnsDomainErrNotFound(t *testing.T) {
 	jsonContent := `{
