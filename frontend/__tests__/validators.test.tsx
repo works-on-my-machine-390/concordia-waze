@@ -1,4 +1,4 @@
-import { validateRegister } from "../app/utils/validators";
+import { validateRegister, validateLogin } from "../app/utils/validators";
 
 describe("validateRegistration", () => {
   it("should return no errors for valid input", () => {
@@ -230,5 +230,109 @@ describe("validateRegistration", () => {
     });
     expect(errors.password).toBeUndefined();
     expect(errors.confirmPassword).toBeUndefined();
+  });
+});
+
+describe("validateLogin", () => {
+  // happy path
+  it("should return no errors for valid input", () => {
+    const errors = validateLogin({
+      email: "john@example.com",
+      password: "password123",
+    });
+    expect(errors).toEqual({});
+  });
+
+  // email validation
+  it("should return error when email is missing", () => {
+    const errors = validateLogin({
+      email: "",
+      password: "password",
+    });
+    expect(errors.email).toBe("Email is required.");
+  });
+
+  it("should return error when email format is invalid", () => {
+    const errors = validateLogin({
+      email: "invalid-email",
+      password: "password",
+    });
+    expect(errors.email).toBe(
+      "Please use an email in the format content@content.content",
+    );
+  });
+
+  it("should accept valid email with subdomain", () => {
+    const errors = validateLogin({
+      email: "test@mail.concordia.ca",
+      password: "password",
+    });
+    expect(errors.email).toBeUndefined();
+  });
+
+  it("should reject email without @ symbol", () => {
+    const errors = validateLogin({
+      email: "testconcordia.ca",
+      password: "password",
+    });
+    expect(errors.email).toBe(
+      "Please use an email in the format content@content.content",
+    );
+  });
+
+  it("should reject email without domain", () => {
+    const errors = validateLogin({
+      email: "test@",
+      password: "password",
+    });
+    expect(errors.email).toBe(
+      "Please use an email in the format content@content.content",
+    );
+  });
+
+  it("should accept email with dots and underscores", () => {
+    const errors = validateLogin({
+      email: "first.last_name@example.com",
+      password: "password",
+    });
+    expect(errors.email).toBeUndefined();
+  });
+
+  // password validation
+  it("should return error when password is missing", () => {
+    const errors = validateLogin({
+      email: "john@example.com",
+      password: "",
+    });
+    expect(errors.password).toBe("Password is required.");
+  });
+
+  it("should accept any password length (no minimum check)", () => {
+    const errors = validateLogin({
+      email: "john@example.com",
+      password: "12",
+    });
+    expect(errors.password).toBeUndefined();
+  });
+
+  // combination
+  it("should return multiple errors when both fields are invalid", () => {
+    const errors = validateLogin({
+      email: "invalid",
+      password: "",
+    });
+    expect(errors.email).toBe(
+      "Please use an email in the format content@content.content",
+    );
+    expect(errors.password).toBe("Password is required.");
+  });
+
+  it("should return all errors when all fields are empty", () => {
+    const errors = validateLogin({
+      email: "",
+      password: "",
+    });
+    expect(errors.email).toBe("Email is required.");
+    expect(errors.password).toBe("Password is required.");
   });
 });
