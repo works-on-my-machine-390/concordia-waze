@@ -29,6 +29,19 @@ export default function AuthButton({
   // Determining the title (Sign In/ Log Out) and icon for menu signin/logout buttons
   const menuTitle = loggedIn ? "Log out" : "Login";
   const icon = loggedIn ? <LogoutIcon /> : <LoginIcon />;
+
+  const renderTitleElement = () => {
+    if (variant === "menu") {
+      return (
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <View style={{ marginRight: 8 }}>{icon}</View>
+          <Text style={styles.menuText}>{menuTitle}</Text>
+        </View>
+      );
+    } else {
+      return <Text style={styles.text}>{title}</Text>;
+    }
+  };
   return (
     <TouchableOpacity
       accessibilityRole="button"
@@ -39,16 +52,7 @@ export default function AuthButton({
         disabled ? styles.buttonDisabled : null,
       ]}
     >
-      {loading ? (
-        <ActivityIndicator color="#fff" />
-      ) : variant === "menu" ? (
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <View style={{ marginRight: 8 }}>{icon}</View>
-          <Text style={styles.menuText}>{menuTitle}</Text>
-        </View>
-      ) : (
-        <Text style={styles.text}>{title}</Text>
-      )}
+      {loading ? <ActivityIndicator color="#fff" /> : renderTitleElement()}
     </TouchableOpacity>
   );
 }
