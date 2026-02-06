@@ -26,8 +26,5 @@
   },
   "lint-staged": {
     "*.{js,css,md,ts,less,tsx,jsx,json}": "prettier --write"
-  },
-  "dependencies": {
-    "@react-native-async-storage/async-storage": "^2.2.0"
   }
 }
