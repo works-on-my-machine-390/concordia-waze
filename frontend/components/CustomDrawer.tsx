@@ -33,7 +33,7 @@ export default function CustomDrawer(props: any) {
         end={{ x: 1, y: 1 }}
         style={[
           styles.header,
-          { paddingTop: top + 20, borderTopRightRadius: 8 },
+          { paddingTop: top + 20, borderTopRightRadius: 16 },
         ]}
       >
         <View style={styles.headerContent}>
