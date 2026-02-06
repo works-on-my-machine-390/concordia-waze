@@ -2,8 +2,6 @@
 Design system exporting color palette, spacing scale, border radii, and typography sizes used throughout the app for consistent styling.
 */
 
-import { StyleSheet } from "react-native";
-
 export const colors = {
   background: "#f5f3f3",
   surface: "#ffffff",

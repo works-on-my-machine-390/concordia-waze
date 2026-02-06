@@ -15,7 +15,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AuthButton from "../components/AuthButton";
@@ -27,14 +27,13 @@ import { COLORS, LOGO_IMAGE } from "./constants";
 import { EyeHidingIcon, EyeShowingIcon } from "./icons";
 import { validateRegister } from "./utils/validators";
 
-
 const MIN_PASSWORD_LENGTH = 6;
 const LOGO_SIZE_LOGIN = 125;
 
 export default function RegisterScreen() {
   const router = useRouter();
   const { register, loading } = useAuth();
-  
+
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -50,17 +49,27 @@ export default function RegisterScreen() {
     }
   };
 
-  const showPasswordHelper = password.length > 0 && password.length < MIN_PASSWORD_LENGTH;
+  const showPasswordHelper =
+    password.length > 0 && password.length < MIN_PASSWORD_LENGTH;
 
   async function handleSubmit() {
     setServerError(null);
-    
-    const validation = validateRegister({ fullName, email, password, confirmPassword });
+
+    const validation = validateRegister({
+      fullName,
+      email,
+      password,
+      confirmPassword,
+    });
     setErrors(validation);
     if (Object.keys(validation).length) return;
 
-    const result = await register(fullName, email.trim().toLowerCase(), password);
-    
+    const result = await register(
+      fullName,
+      email.trim().toLowerCase(),
+      password,
+    );
+
     if (result.success) {
       alert("Registration successful! Please log in.");
       router.push({ pathname: "/login", params: { prev: "register" } });
@@ -71,34 +80,30 @@ export default function RegisterScreen() {
 
   return (
     <SafeAreaView style={styles.page}>
-      <BackHeader/>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === "ios" ? "padding" : undefined} 
+      <BackHeader />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={styles.page}
       >
-        <ScrollView 
+        <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.container}>
-
             <View style={styles.logoNameContainer}>
-              <Image
-                source={LOGO_IMAGE}
-                style={styles.logo}
-              />
+              <Image source={LOGO_IMAGE} style={styles.logo} />
               <Text style={styles.title}>Create an account!</Text>
             </View>
 
-            <AuthInput 
+            <AuthInput
               label={
-                  <Text>
-                    Full name
-                    <Text style={{ color: COLORS.maroon }}>*</Text>
-                  </Text>
-              } 
-              placeholder="John Doe" 
-              value={fullName} 
+                <Text>
+                  Full name
+                  <Text style={{ color: COLORS.maroon }}>*</Text>
+                </Text>
+              }
+              placeholder="John Doe"
+              value={fullName}
               onChange={(v) => {
                 setFullName(v);
                 clearFieldError("fullName");
@@ -106,16 +111,16 @@ export default function RegisterScreen() {
               error={errors.fullName}
               autoCapitalize="words"
             />
-            
-            <AuthInput 
+
+            <AuthInput
               label={
                 <Text>
                   Email
                   <Text style={{ color: COLORS.maroon }}>*</Text>
                 </Text>
-              } 
-              placeholder="you@live.concordia.ca" 
-              value={email} 
+              }
+              placeholder="you@live.concordia.ca"
+              value={email}
               onChange={(v) => {
                 setEmail(v);
                 clearFieldError("email");
@@ -123,16 +128,16 @@ export default function RegisterScreen() {
               keyboardType="email-address"
               error={errors.email}
             />
-            
-            <AuthInput 
+
+            <AuthInput
               label={
                 <Text>
                   Password
                   <Text style={{ color: COLORS.maroon }}>*</Text>
                 </Text>
-              }  
-              placeholder="Password" 
-              value={password} 
+              }
+              placeholder="Password"
+              value={password}
               onChange={(v) => {
                 setPassword(v);
                 clearFieldError("password");
@@ -140,12 +145,15 @@ export default function RegisterScreen() {
               secureTextEntry={!showPassword}
               error={errors.password}
               right={
-                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                          {showPassword 
-                            ? <EyeHidingIcon size={24} color={COLORS.maroon}/>  
-                            : <EyeShowingIcon size={24} color={COLORS.maroon}/>
-                          }
-                  </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeHidingIcon size={24} color={COLORS.maroon} />
+                  ) : (
+                    <EyeShowingIcon size={24} color={COLORS.maroon} />
+                  )}
+                </TouchableOpacity>
               }
             />
             {showPasswordHelper && (
@@ -154,15 +162,15 @@ export default function RegisterScreen() {
               </Text>
             )}
 
-            <AuthInput 
+            <AuthInput
               label={
                 <Text>
                   Confirm Password
                   <Text style={{ color: COLORS.maroon }}>*</Text>
                 </Text>
-              } 
-              placeholder="Password" 
-              value={confirmPassword} 
+              }
+              placeholder="Password"
+              value={confirmPassword}
               onChange={(v) => {
                 setConfirmPassword(v);
                 clearFieldError("confirmPassword");
@@ -170,22 +178,38 @@ export default function RegisterScreen() {
               secureTextEntry={!showConfirmPassword}
               error={errors.confirmPassword}
               right={
-                  <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
-                          {showConfirmPassword 
-                            ? <EyeHidingIcon size={24} color={COLORS.maroon}/>  
-                            : <EyeShowingIcon size={24} color={COLORS.maroon}/>
-                          }
-                  </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  {showConfirmPassword ? (
+                    <EyeHidingIcon size={24} color={COLORS.maroon} />
+                  ) : (
+                    <EyeShowingIcon size={24} color={COLORS.maroon} />
+                  )}
+                </TouchableOpacity>
               }
             />
 
-            {serverError && <Text style={styles.serverError}>{serverError}</Text>}
+            {!!serverError && (
+              <Text style={styles.serverError}>{serverError}</Text>
+            )}
 
-            <AuthButton title="Sign up" onPress={handleSubmit} loading={loading} />
+            <AuthButton
+              title="Sign up"
+              onPress={handleSubmit}
+              loading={loading}
+            />
 
             <View style={styles.footer}>
               <Text style={styles.footerText}>Already have an account? </Text>
-              <TouchableOpacity onPress={() => router.push({ pathname: "/login", params: { prev: "register" } })}>
+              <TouchableOpacity
+                onPress={() =>
+                  router.push({
+                    pathname: "/login",
+                    params: { prev: "register" },
+                  })
+                }
+              >
                 <Text style={styles.footerLink}>Sign in</Text>
               </TouchableOpacity>
             </View>
@@ -199,8 +223,8 @@ export default function RegisterScreen() {
 }
 
 const styles = StyleSheet.create({
-  page: { 
-    flex: 1, 
+  page: {
+    flex: 1,
     backgroundColor: COLORS.background,
   },
   scrollContent: {
@@ -214,32 +238,32 @@ const styles = StyleSheet.create({
     alignItems: "stretch",
     flex: 1,
     paddingHorizontal: 16,
-    marginTop: 10
+    marginTop: 10,
   },
-    logoNameContainer : {
+  logoNameContainer: {
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 30
+    marginBottom: 30,
   },
   logo: {
     width: LOGO_SIZE_LOGIN,
     height: LOGO_SIZE_LOGIN,
   },
-  title: { 
-    fontSize: 25, 
-    fontWeight: "700", 
+  title: {
+    fontSize: 25,
+    fontWeight: "700",
     textAlign: "center",
     marginTop: 8,
   },
-  subtitle: { 
-    textAlign: "center", 
+  subtitle: {
+    textAlign: "center",
     color: COLORS.textMuted,
-    marginBottom: 16, 
+    marginBottom: 16,
     marginTop: 6,
   },
-  heading: { 
-    fontSize: 18, 
-    fontWeight: "700", 
+  heading: {
+    fontSize: 18,
+    fontWeight: "700",
     marginBottom: 12,
     marginTop: 8,
   },
@@ -250,7 +274,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     marginLeft: 4,
   },
-  serverError: { 
+  serverError: {
     color: COLORS.error,
     marginVertical: 8,
     textAlign: "center",

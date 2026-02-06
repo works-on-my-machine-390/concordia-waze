@@ -14,7 +14,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AuthButton from "../components/AuthButton";
@@ -46,7 +46,7 @@ export default function LoginScreen() {
 
   async function handleSubmit() {
     setServerError(null);
-    
+
     const validation = validateLogin({ email, password });
     setErrors(validation);
     if (Object.keys(validation).length) return;
@@ -65,25 +65,21 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={styles.page}>
-      <BackHeader/>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === "ios" ? "padding" : undefined} 
+      <BackHeader />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={styles.page}
       >
-        <ScrollView 
+        <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.container}>
-
             <View style={styles.logoNameContainer}>
-              <Image
-                source={LOGO_IMAGE}
-                style={styles.logo}
-              />
+              <Image source={LOGO_IMAGE} style={styles.logo} />
               <Text style={styles.title}>Welcome back!</Text>
             </View>
-            
+
             <AuthInput
               label="Email"
               placeholder="you@live.concordia.ca"
@@ -100,8 +96,12 @@ export default function LoginScreen() {
               {/* Row with password label + forgot password link */}
               <View style={styles.passwordLabelRow}>
                 <Text style={styles.inputLabel}>Password</Text>
-                <TouchableOpacity onPress={() => console.log("Forgot password")}>
-                  <Text style={styles.forgotPasswordText}>Forgot password?</Text>
+                <TouchableOpacity
+                  onPress={() => console.log("Forgot password")}
+                >
+                  <Text style={styles.forgotPasswordText}>
+                    Forgot password?
+                  </Text>
                 </TouchableOpacity>
               </View>
 
@@ -116,24 +116,39 @@ export default function LoginScreen() {
                 secureTextEntry={!showPassword}
                 error={errors.password}
                 right={
-                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                          {showPassword 
-                            ? <EyeHidingIcon size={24} color={COLORS.maroon}/>  
-                            : <EyeShowingIcon size={24} color={COLORS.maroon}/> 
-                          }
+                  <TouchableOpacity
+                    onPress={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? (
+                      <EyeHidingIcon size={24} color={COLORS.maroon} />
+                    ) : (
+                      <EyeShowingIcon size={24} color={COLORS.maroon} />
+                    )}
                   </TouchableOpacity>
                 }
               />
             </View>
 
+            {!!serverError && (
+              <Text style={styles.serverError}>{serverError}</Text>
+            )}
 
-            {serverError && <Text style={styles.serverError}>{serverError}</Text>}
-
-            <AuthButton title="Sign in" onPress={handleSubmit} loading={loading} />
+            <AuthButton
+              title="Sign in"
+              onPress={handleSubmit}
+              loading={loading}
+            />
 
             <View style={styles.footer}>
               <Text style={styles.footerText}>Don't have an account? </Text>
-              <TouchableOpacity onPress={() => router.push({ pathname: "/register", params: { prev: "login" } })}>
+              <TouchableOpacity
+                onPress={() =>
+                  router.push({
+                    pathname: "/register",
+                    params: { prev: "login" },
+                  })
+                }
+              >
                 <Text style={styles.footerLink}>Sign up</Text>
               </TouchableOpacity>
             </View>
@@ -147,9 +162,9 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  page: { 
-    flex: 1, 
-    backgroundColor: COLORS.background
+  page: {
+    flex: 1,
+    backgroundColor: COLORS.background,
   },
   scrollContent: {
     flexGrow: 1,
@@ -163,32 +178,32 @@ const styles = StyleSheet.create({
     alignItems: "stretch",
     flex: 1,
     paddingHorizontal: 16,
-    marginTop: 30
+    marginTop: 30,
   },
-  logoNameContainer : {
+  logoNameContainer: {
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 30
+    marginBottom: 30,
   },
   logo: {
     width: LOGO_SIZE_LOGIN,
     height: LOGO_SIZE_LOGIN,
   },
-  title: { 
-    fontSize: 30, 
-    fontWeight: "700", 
+  title: {
+    fontSize: 30,
+    fontWeight: "700",
     textAlign: "center",
     marginTop: 8,
   },
-  subtitle: { 
-    textAlign: "center", 
+  subtitle: {
+    textAlign: "center",
     color: COLORS.textMuted,
-    marginBottom: 16, 
+    marginBottom: 16,
     marginTop: 6,
   },
-  heading: { 
-    fontSize: 18, 
-    fontWeight: "700", 
+  heading: {
+    fontSize: 18,
+    fontWeight: "700",
     marginVertical: 8,
   },
   passwordContainer: {
@@ -200,7 +215,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 4, 
+    marginBottom: 4,
   },
   inputLabel: {
     fontWeight: "600",
@@ -216,16 +231,16 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 14,
   },
-  serverError: { 
+  serverError: {
     color: COLORS.error,
     marginVertical: 8,
     textAlign: "center",
     fontWeight: "600",
   },
-  footer: { 
-    flexDirection: "row", 
-    justifyContent: "center", 
-    marginTop: 20, 
+  footer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginTop: 20,
     alignItems: "center",
   },
   footerText: {

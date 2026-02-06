@@ -1,7 +1,13 @@
 /*
 Button component that displays a loading spinner when authentication is in progress
 */
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { LoginIcon, LogoutIcon } from "../app/icons";
 import { colors } from "../app/styles/theme";
 
@@ -12,14 +18,14 @@ export default function AuthButton({
   loading,
   variant,
   loggedIn,
-}: {
+}: Readonly<{
   title?: string;
   onPress?: () => void;
   disabled?: boolean;
   loading?: boolean;
   variant?: "default" | "menu";
-  loggedIn?: boolean
-}) {
+  loggedIn?: boolean;
+}>) {
   // Determining the title (Sign In/ Log Out) and icon for menu signin/logout buttons
   const menuTitle = loggedIn ? "Log out" : "Login";
   const icon = loggedIn ? <LogoutIcon /> : <LoginIcon />;
@@ -30,18 +36,19 @@ export default function AuthButton({
       disabled={disabled || loading}
       style={[
         variant === "menu" ? styles.menuButton : styles.button,
-        disabled ? styles.buttonDisabled : null
+        disabled ? styles.buttonDisabled : null,
       ]}
     >
-      {loading ? (<ActivityIndicator color="#fff" />) : 
-                  variant === "menu" ? (
-                    <View style={{ flexDirection: "row", alignItems: "center" }}>
-                      <View style={{ marginRight: 8 }}>{icon}</View>
-                      <Text style={styles.menuText}>{menuTitle}</Text>
-                    </View>
-                  ) : (
-                    <Text style={styles.text}>{title}</Text>
-                  )}
+      {loading ? (
+        <ActivityIndicator color="#fff" />
+      ) : variant === "menu" ? (
+        <View style={{ flexDirection: "row", alignItems: "center" }}>
+          <View style={{ marginRight: 8 }}>{icon}</View>
+          <Text style={styles.menuText}>{menuTitle}</Text>
+        </View>
+      ) : (
+        <Text style={styles.text}>{title}</Text>
+      )}
     </TouchableOpacity>
   );
 }
@@ -72,6 +79,6 @@ const styles = StyleSheet.create({
   text: { color: "#fff", fontWeight: "700" },
   menuText: {
     color: colors.text,
-    fontWeight: "700"
-  }
+    fontWeight: "700",
+  },
 });
