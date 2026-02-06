@@ -48,7 +48,7 @@ export const LogoutIcon: React.FC<IconProps> = ({ size = DEFAULT_ICON_SIZE, colo
 // Login icon 
 export const LoginIcon: React.FC<IconProps> = ({ size = DEFAULT_ICON_SIZE, color = DEFAULT_ICON_COLOR }) => (
   <MaterialIcons name="login" size={size} color={color} />
-
+);
 
 // Wheelchair icon
 export const WheelchairIcon: React.FC<IconProps> = ({ size = DEFAULT_ICON_SIZE, color = DEFAULT_ICON_COLOR }) => (
