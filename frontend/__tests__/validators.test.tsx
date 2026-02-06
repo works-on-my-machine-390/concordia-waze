@@ -29,7 +29,7 @@ describe("validateRegistration", () => {
       password: "password",
       confirmPassword: "password",
     });
-    expect(errors.fullName).toBe("Name must be at least 2 characters.");
+    expect(errors.fullName).toBe("Please enter your full name.");
   });
 
   // Email Validation Tests
@@ -40,7 +40,7 @@ describe("validateRegistration", () => {
       password: "password",
       confirmPassword: "password",
     });
-    expect(errors.email).toBe("Please enter your email address.");
+    expect(errors.email).toBe("Email is required.");
   });
 
   it("should return error when email format is invalid", () => {
@@ -50,7 +50,9 @@ describe("validateRegistration", () => {
       password: "password",
       confirmPassword: "password",
     });
-    expect(errors.email).toBe("Please use a valid email address (@email.com).");
+    expect(errors.email).toBe(
+      "Please use an email in the format content@content.content",
+    );
   });
 
   it("should accept valid email with subdomain", () => {
@@ -70,7 +72,9 @@ describe("validateRegistration", () => {
       password: "password",
       confirmPassword: "password",
     });
-    expect(errors.email).toBe("Please use a valid email address (@email.com).");
+    expect(errors.email).toBe(
+      "Please use an email in the format content@content.content",
+    );
   });
 
   it("should reject email without domain", () => {
@@ -80,7 +84,9 @@ describe("validateRegistration", () => {
       password: "password",
       confirmPassword: "password",
     });
-    expect(errors.email).toBe("Please use a valid email address (@email.com).");
+    expect(errors.email).toBe(
+      "Please use an email in the format content@content.content",
+    );
   });
 
   // Password Validation Tests
@@ -154,7 +160,9 @@ describe("validateRegistration", () => {
       confirmPassword: "456",
     });
     expect(errors.fullName).toBe("Please enter your full name.");
-    expect(errors.email).toBe("Please use a valid email address (@email.com).");
+    expect(errors.email).toBe(
+      "Please use an email in the format content@content.content",
+    );
     expect(errors.password).toBe("Password must be at least 6 characters.");
     expect(errors.confirmPassword).toBe("Passwords do not match.");
   });
@@ -167,7 +175,7 @@ describe("validateRegistration", () => {
       confirmPassword: "",
     });
     expect(errors.fullName).toBe("Please enter your full name.");
-    expect(errors.email).toBe("Please enter your email address.");
+    expect(errors.email).toBe("Email is required.");
     expect(errors.password).toBe("Password is required.");
     expect(errors.confirmPassword).toBe("Please confirm your password.");
   });
