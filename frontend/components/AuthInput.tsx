@@ -29,6 +29,7 @@ export default function AuthInput({
   right,
   testID,  
 }: Props) {
+}: Readonly<Props>) {
   return (
     <View style={s.container}>
       {label ? <Text style={s.label}>{label}</Text> : null}

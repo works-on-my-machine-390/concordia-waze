@@ -7,7 +7,10 @@ import (
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
+
+	// This blank import is necessary for Swagger documentation generation
 	_ "github.com/works-on-my-machine-390/concordia-waze/docs"
+
 	"github.com/works-on-my-machine-390/concordia-waze/internal/application"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/persistence/repository"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/presentation/handler"
