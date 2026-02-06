@@ -15,10 +15,10 @@ import {
 import AuthButton from "../components/AuthButton";
 import AuthInput from "../components/AuthInput";
 import AuthLayout from "../components/AuthLayout";
+import PasswordToggle from "../components/PasswordToggle";
 import { TermsText } from "../components/SharedUI";
 import { useAuth } from "../hooks/useAuth";
 import { COLORS } from "./constants";
-import { EyeHidingIcon, EyeShowingIcon } from "./icons";
 import { validateLogin } from "./utils/validators";
 
 export default function LoginScreen() {
@@ -79,15 +79,7 @@ export default function LoginScreen() {
         }}
         secureTextEntry={!showPassword}
         error={errors.password}
-        right={
-          <TouchableOpacity onPress={() => setShowPassword((s) => !s)}>
-            {showPassword ? (
-              <EyeHidingIcon size={24} color={COLORS.maroon} />
-            ) : (
-              <EyeShowingIcon size={24} color={COLORS.maroon} />
-            )}
-          </TouchableOpacity>
-        }
+        right={<PasswordToggle show={showPassword} onPress={() => setShowPassword((s) => !s)} />}
       />
 
       {!!serverError && (

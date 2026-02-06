@@ -21,6 +21,7 @@ import { useAuth } from "../hooks/useAuth";
 import { COLORS } from "./constants";
 import { EyeHidingIcon, EyeShowingIcon } from "./icons";
 import { validateRegister } from "./utils/validators";
+import PasswordToggle from "../components/PasswordToggle";
 
 const MIN_PASSWORD_LENGTH = 6;
 
@@ -108,15 +109,7 @@ export default function RegisterScreen() {
         }}
         secureTextEntry={!showPassword}
         error={errors.password}
-        right={
-          <TouchableOpacity onPress={() => setShowPassword((s) => !s)}>
-            {showPassword ? (
-              <EyeHidingIcon size={24} color={COLORS.maroon} />
-            ) : (
-              <EyeShowingIcon size={24} color={COLORS.maroon} />
-            )}
-          </TouchableOpacity>
-        }
+        right={<PasswordToggle show={showPassword} onPress={() => setShowPassword((s) => !s)} />}
       />
 
       {showPasswordHelper && (
@@ -135,17 +128,7 @@ export default function RegisterScreen() {
         }}
         secureTextEntry={!showConfirmPassword}
         error={errors.confirmPassword}
-        right={
-          <TouchableOpacity
-            onPress={() => setShowConfirmPassword((s) => !s)}
-          >
-            {showConfirmPassword ? (
-              <EyeHidingIcon size={24} color={COLORS.maroon} />
-            ) : (
-              <EyeShowingIcon size={24} color={COLORS.maroon} />
-            )}
-          </TouchableOpacity>
-        }
+        right={<PasswordToggle show={showConfirmPassword} onPress={() => setShowConfirmPassword((s) => !s)} />}
       />
 
       {!!serverError && (
