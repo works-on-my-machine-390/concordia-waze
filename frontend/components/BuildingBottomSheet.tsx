@@ -1,6 +1,6 @@
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { COLORS } from '../app/constants';
 import {
@@ -52,12 +52,19 @@ type Props = {
 export default function BuildingBottomSheet({ building }: Props) {
   const bottomSheetRef = useRef<BottomSheet>(null);
   const [sheetIndex, setSheetIndex] = useState(0);
+  const [sheetOpen, setSheetOpen] = useState(true);
 
   const snapPoints = useMemo(() => ['20%', '70%'], []);
 
   const handleSheetChanges = useCallback((index: number) => {
     setSheetIndex(index);
+    if (index > -1) setSheetOpen(true);
   }, []);
+
+  const handleCloseSheet = useCallback(() => {
+    setSheetOpen(false);
+    bottomSheetRef.current?.close();
+  }, []); 
 
   const accessibilityIcons = useMemo(
     () =>
@@ -90,9 +97,11 @@ export default function BuildingBottomSheet({ building }: Props) {
       >
         {/* Header */}
         <View style={styles.headerContainer}>
-          <View style={styles.floatingIcon}>
-            <GetDirectionsIcon size={90} color={COLORS.maroon} />
-          </View>
+          {sheetOpen && (
+            <View style={styles.floatingIcon}>
+              <GetDirectionsIcon size={90} color={COLORS.maroon} />
+            </View>
+          )}
 
           <View style={styles.textContainer}>
             <Text style={styles.name}>
@@ -108,7 +117,9 @@ export default function BuildingBottomSheet({ building }: Props) {
 
             <View style={styles.acessibilityIconsContainer}>
               <FavoriteEmptyIcon color={COLORS.maroon} />
-              <CloseIcon size={28} />
+              <TouchableOpacity onPress={handleCloseSheet}>
+                <CloseIcon size={28} />
+              </TouchableOpacity>
             </View>
           </View>
         </View>
