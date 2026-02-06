@@ -5,7 +5,6 @@
 import AuthButton from "@/components/AuthButton";
 import { fireEvent, render } from "@testing-library/react-native";
 
-
 describe("AuthButton", () => {
   // Tests for default auth button
   test("Provided button title renders correctly", () => {
