@@ -15,14 +15,12 @@ export default function AuthButton({
   disabled,
   loading,
   testID, 
-}: {
 }: Readonly<{
   title: string;
   onPress?: () => void;
   disabled?: boolean;
   loading?: boolean;
   testID?: string; 
-}) {
 }>) {
   return (
     <TouchableOpacity
