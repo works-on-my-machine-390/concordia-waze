@@ -127,7 +127,7 @@ export default function LoginScreen() {
             </View>
 
 
-            {serverError && <Text style={styles.serverError}>{serverError}</Text>}
+            {!!serverError && <Text style={styles.serverError}>{serverError}</Text>}
 
             <AuthButton title="Sign in" onPress={handleSubmit} loading={loading} />
 

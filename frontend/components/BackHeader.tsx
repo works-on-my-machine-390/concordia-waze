@@ -9,42 +9,42 @@ import { COLORS } from "../app/constants";
 import { BackIcon } from "../app/icons";
 
 interface HeaderProps {
-    title?:String
+  title?: string;
 }
 
 const BackHeader = ({ title }: HeaderProps) => {
-    const router = useRouter();
-    const params = useLocalSearchParams<{ prev?: string }>();
+  const router = useRouter();
+  const params = useLocalSearchParams<{ prev?: string }>();
 
-    // Determine the previous page
-    let headerTitle = title;
+  // Determine the previous page
+  let headerTitle = title;
 
-    if (!headerTitle){
-        switch (params.prev) {
-            case "login":
-                headerTitle = "Log In";
-                break;
-            case "register":
-                headerTitle = "Sign Up";
-                break;
-            case "index":
-            default:
-                headerTitle = "Home Page"
-        }
+  if (!headerTitle) {
+    switch (params.prev) {
+      case "login":
+        headerTitle = "Log In";
+        break;
+      case "register":
+        headerTitle = "Sign Up";
+        break;
+      case "index":
+      default:
+        headerTitle = "Home Page";
     }
+  }
 
-    // Physical header
-    return (
-        <View style={styles.container}>
-            <TouchableOpacity 
-                style={styles.backButtonTitle} 
-                onPress={() => router.back()}
-            >
-                <BackIcon size={24}/>
-                <Text style={styles.title}>{headerTitle}</Text>
-            </TouchableOpacity>
-        </View>
-    );
+  // Physical header
+  return (
+    <View style={styles.container}>
+      <TouchableOpacity
+        style={styles.backButtonTitle}
+        onPress={() => router.back()}
+      >
+        <BackIcon size={24} />
+        <Text style={styles.title}>{headerTitle}</Text>
+      </TouchableOpacity>
+    </View>
+  );
 };
 
 const styles = StyleSheet.create({
@@ -59,10 +59,10 @@ const styles = StyleSheet.create({
     borderBottomColor: "#ddd",
   },
   backButtonTitle: {
-    flexDirection: "row", 
+    flexDirection: "row",
     alignItems: "center",
     flex: 1,
-    },
+  },
   title: {
     textAlign: "left",
     marginLeft: 10,
