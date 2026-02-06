@@ -4,8 +4,7 @@ Checking password minimum length (6 characters), confirming password match, and 
 Returning field-specific error messages.
 */
 
-export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/i;
-
+export const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
 export function validateRegister({
   fullName,
