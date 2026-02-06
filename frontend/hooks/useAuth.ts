@@ -5,14 +5,16 @@ After need to change all API calls with real backend
 import { useState, useEffect } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-type AuthResult = { success: true; data?: any } | { success: false; error: string };
+type AuthResult =
+  | { success: true; data?: any }
+  | { success: false; error: string };
 
 import { API_URL } from "./api";
 const API_BASE = process.env.REACT_APP_API_BASE || API_URL;
 
 export function useAuth() {
   const [loading, setLoading] = useState(false);
-  const [loggedIn, setLoggedIn] = useState(false); 
+  const [loggedIn, setLoggedIn] = useState(false);
 
   useEffect(() => {
     const checkToken = async () => {
@@ -27,7 +29,7 @@ export function useAuth() {
   async function authenticate(
     endpoint: string,
     payload: object,
-    defaultError: string
+    defaultError: string,
   ): Promise<AuthResult> {
     setLoading(true);
     try {
@@ -46,7 +48,10 @@ export function useAuth() {
         return { success: true, data: json };
       }
 
-      return { success: false, error: json?.error || json?.message || defaultError };
+      return {
+        success: false,
+        error: json?.error || json?.message || defaultError,
+      };
     } catch (err: any) {
       setLoading(false);
       return { success: false, error: err?.message || "Network error." };
@@ -54,11 +59,23 @@ export function useAuth() {
   }
 
   async function login(email: string, password: string): Promise<AuthResult> {
-    return authenticate("/auth/login", { email, password }, "Invalid credentials.");
+    return authenticate(
+      "/auth/login",
+      { email, password },
+      "Invalid credentials.",
+    );
   }
 
-  async function register(fullName: string, email: string, password: string): Promise<AuthResult> {
-    return authenticate("/auth/signup", { name: fullName, email, password }, "Registration failed.");
+  async function register(
+    fullName: string,
+    email: string,
+    password: string,
+  ): Promise<AuthResult> {
+    return authenticate(
+      "/auth/signup",
+      { name: fullName, email, password },
+      "Registration failed.",
+    );
   }
 
   async function logout() {
@@ -69,7 +86,7 @@ export function useAuth() {
         await fetch(`${API_BASE}/auth/logout`, {
           method: "POST",
           headers: {
-            Authorization: `Bearer ${token}`, 
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         });
