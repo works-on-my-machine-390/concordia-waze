@@ -74,6 +74,14 @@ jest.mock("react-native-maps", () => {
   };
 });
 
+// Mock the BuildingBottomSheet component to not render it during test
+// returns null because only want to test MainMap behavior (not the bottom sheet itself)
+jest.mock('@/components/BuildingBottomSheet', () => {
+  return function MockBuildingBottomSheet() {
+    return null; 
+  };
+});
+
 describe("MainMap screen", () => {
   beforeEach(() => {
     jest.clearAllMocks();
