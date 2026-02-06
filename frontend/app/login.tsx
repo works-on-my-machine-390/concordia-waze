@@ -94,6 +94,7 @@ export default function LoginScreen() {
               }}
               keyboardType="email-address"
               error={errors.email}
+              testID="email-input-login"
             />
 
             <View style={styles.passwordContainer}>
@@ -115,6 +116,7 @@ export default function LoginScreen() {
                 }}
                 secureTextEntry={!showPassword}
                 error={errors.password}
+                testID="password-input-login"
                 right={
                   <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                           {showPassword 
