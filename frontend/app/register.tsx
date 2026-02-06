@@ -20,6 +20,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import AuthButton from "../components/AuthButton";
 import AuthInput from "../components/AuthInput";
+import AuthLayout from "../components/AuthLayout";
 import BackHeader from "../components/BackHeader";
 import { TermsText } from "../components/SharedUI";
 import { useAuth } from "../hooks/useAuth";
@@ -28,7 +29,6 @@ import { EyeHidingIcon, EyeShowingIcon } from "./icons";
 import { validateRegister } from "./utils/validators";
 
 const MIN_PASSWORD_LENGTH = 6;
-const LOGO_SIZE_LOGIN = 125;
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -48,9 +48,6 @@ export default function RegisterScreen() {
       setErrors((prev) => ({ ...prev, [field]: "" }));
     }
   };
-
-  const showPasswordHelper =
-    password.length > 0 && password.length < MIN_PASSWORD_LENGTH;
 
   async function handleSubmit() {
     setServerError(null);
@@ -78,195 +75,104 @@ export default function RegisterScreen() {
     }
   }
 
+  const showPasswordHelper =
+    password.length > 0 && password.length < MIN_PASSWORD_LENGTH;
+
   return (
-    <SafeAreaView style={styles.page}>
-      <BackHeader />
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={styles.page}
-      >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.container}>
-            <View style={styles.logoNameContainer}>
-              <Image source={LOGO_IMAGE} style={styles.logo} />
-              <Text style={styles.title}>Create an account!</Text>
-            </View>
+    <AuthLayout title="Create an account!" logoSize={125}>
+      <AuthInput
+        label="Full name"
+        placeholder="John Doe"
+        value={fullName}
+        onChange={(v) => {
+          setFullName(v);
+          clearFieldError("fullName");
+        }}
+        error={errors.fullName}
+        autoCapitalize="words"
+      />
 
-            <AuthInput
-              label={
-                <Text>
-                  Full name
-                  <Text style={{ color: COLORS.maroon }}>*</Text>
-                </Text>
-              }
-              placeholder="John Doe"
-              value={fullName}
-              onChange={(v) => {
-                setFullName(v);
-                clearFieldError("fullName");
-              }}
-              error={errors.fullName}
-              autoCapitalize="words"
-            />
+      <AuthInput
+        label="Email"
+        placeholder="you@live.concordia.ca"
+        value={email}
+        onChange={(v) => {
+          setEmail(v);
+          clearFieldError("email");
+        }}
+        keyboardType="email-address"
+        error={errors.email}
+      />
 
-            <AuthInput
-              label={
-                <Text>
-                  Email
-                  <Text style={{ color: COLORS.maroon }}>*</Text>
-                </Text>
-              }
-              placeholder="you@live.concordia.ca"
-              value={email}
-              onChange={(v) => {
-                setEmail(v);
-                clearFieldError("email");
-              }}
-              keyboardType="email-address"
-              error={errors.email}
-            />
-
-            <AuthInput
-              label={
-                <Text>
-                  Password
-                  <Text style={{ color: COLORS.maroon }}>*</Text>
-                </Text>
-              }
-              placeholder="Password"
-              value={password}
-              onChange={(v) => {
-                setPassword(v);
-                clearFieldError("password");
-              }}
-              secureTextEntry={!showPassword}
-              error={errors.password}
-              right={
-                <TouchableOpacity
-                  onPress={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? (
-                    <EyeHidingIcon size={24} color={COLORS.maroon} />
-                  ) : (
-                    <EyeShowingIcon size={24} color={COLORS.maroon} />
-                  )}
-                </TouchableOpacity>
-              }
-            />
-            {showPasswordHelper && (
-              <Text style={styles.helperText}>
-                Must be at least {MIN_PASSWORD_LENGTH} characters
-              </Text>
+      <AuthInput
+        label="Password"
+        placeholder="Password"
+        value={password}
+        onChange={(v) => {
+          setPassword(v);
+          clearFieldError("password");
+        }}
+        secureTextEntry={!showPassword}
+        error={errors.password}
+        right={
+          <TouchableOpacity onPress={() => setShowPassword((s) => !s)}>
+            {showPassword ? (
+              <EyeHidingIcon size={24} color={COLORS.maroon} />
+            ) : (
+              <EyeShowingIcon size={24} color={COLORS.maroon} />
             )}
+          </TouchableOpacity>
+        }
+      />
 
-            <AuthInput
-              label={
-                <Text>
-                  Confirm Password
-                  <Text style={{ color: COLORS.maroon }}>*</Text>
-                </Text>
-              }
-              placeholder="Password"
-              value={confirmPassword}
-              onChange={(v) => {
-                setConfirmPassword(v);
-                clearFieldError("confirmPassword");
-              }}
-              secureTextEntry={!showConfirmPassword}
-              error={errors.confirmPassword}
-              right={
-                <TouchableOpacity
-                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                >
-                  {showConfirmPassword ? (
-                    <EyeHidingIcon size={24} color={COLORS.maroon} />
-                  ) : (
-                    <EyeShowingIcon size={24} color={COLORS.maroon} />
-                  )}
-                </TouchableOpacity>
-              }
-            />
+      {showPasswordHelper && (
+        <Text style={styles.helperText}>
+          Must be at least {MIN_PASSWORD_LENGTH} characters
+        </Text>
+      )}
 
-            {!!serverError && (
-              <Text style={styles.serverError}>{serverError}</Text>
+      <AuthInput
+        label="Confirm password"
+        placeholder="Password"
+        value={confirmPassword}
+        onChange={(v) => {
+          setConfirmPassword(v);
+          clearFieldError("confirmPassword");
+        }}
+        secureTextEntry={!showConfirmPassword}
+        error={errors.confirmPassword}
+        right={
+          <TouchableOpacity
+            onPress={() => setShowConfirmPassword((s) => !s)}
+          >
+            {showConfirmPassword ? (
+              <EyeHidingIcon size={24} color={COLORS.maroon} />
+            ) : (
+              <EyeShowingIcon size={24} color={COLORS.maroon} />
             )}
+          </TouchableOpacity>
+        }
+      />
 
-            <AuthButton
-              title="Sign up"
-              onPress={handleSubmit}
-              loading={loading}
-            />
+      {!!serverError && (
+        <Text style={styles.serverError}>{serverError}</Text>
+      )}
 
-            <View style={styles.footer}>
-              <Text style={styles.footerText}>Already have an account? </Text>
-              <TouchableOpacity
-                onPress={() =>
-                  router.push({
-                    pathname: "/login",
-                    params: { prev: "register" },
-                  })
-                }
-              >
-                <Text style={styles.footerLink}>Sign in</Text>
-              </TouchableOpacity>
-            </View>
+      <AuthButton title="Sign up" onPress={handleSubmit} loading={loading} />
 
-            <TermsText />
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+      <View style={styles.footer}>
+        <Text style={styles.footerText}>Already have an account? </Text>
+        <TouchableOpacity onPress={() => router.push("/login")}>
+          <Text style={styles.footerLink}>Sign in</Text>
+        </TouchableOpacity>
+      </View>
+
+      <TermsText />
+    </AuthLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  page: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    alignItems: "center",
-  },
-  container: {
-    width: "100%",
-    maxWidth: 620,
-    backgroundColor: COLORS.background,
-    alignItems: "stretch",
-    flex: 1,
-    paddingHorizontal: 16,
-    marginTop: 10,
-  },
-  logoNameContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 30,
-  },
-  logo: {
-    width: LOGO_SIZE_LOGIN,
-    height: LOGO_SIZE_LOGIN,
-  },
-  title: {
-    fontSize: 25,
-    fontWeight: "700",
-    textAlign: "center",
-    marginTop: 8,
-  },
-  subtitle: {
-    textAlign: "center",
-    color: COLORS.textMuted,
-    marginBottom: 16,
-    marginTop: 6,
-  },
-  heading: {
-    fontSize: 18,
-    fontWeight: "700",
-    marginBottom: 12,
-    marginTop: 8,
-  },
   helperText: {
     fontSize: 12,
     color: COLORS.textSecondary,
@@ -284,7 +190,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     marginTop: 12,
-    alignItems: "center",
   },
   footerText: {
     color: COLORS.textSecondary,
