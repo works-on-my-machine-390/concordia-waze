@@ -40,6 +40,7 @@ jobs:
         run: |
           cd backend
           go test -v -coverprofile=coverage.out ./internal/...
+          cd ..
 
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@a31c9398be7ace6bbfaf30c0bd5d415f843d45e9
