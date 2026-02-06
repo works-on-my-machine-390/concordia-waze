@@ -4,10 +4,15 @@ import { Alert, StyleSheet, View } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import LocationButton from "../components/LocationButton";
 import { MapHeader } from "../components/MapHeader";
+import CampusBuildingPolygons from "../components/CampusBuildingPolygons";
+import { isPointInPolygon } from "../app/utils/pointInPolygon";
+import { polygonToMapCoords } from "../app/utils/polygonMapper";
+import { CAMPUS_BUILDINGS } from "../app/utils/campusBuildings";
 
 export default function MainMap() {
   const [campus, setCampus] = useState<"SGW" | "Loyola">("SGW");
   const [searchText, setSearchText] = useState("");
+  const [currentBuildingCode, setCurrentBuildingCode] = useState<string | null>(null);
 
   const [location, setLocation] = useState<Location.LocationObject | null>(
     null,
@@ -37,6 +42,33 @@ export default function MainMap() {
 
     getCurrentLocation();
   }, []);
+
+  
+useEffect(() => {
+  if (!location?.coords) return;
+
+  const point = {
+    latitude: location.coords.latitude,
+    longitude: location.coords.longitude,
+  };
+
+  const buildings = CAMPUS_BUILDINGS.SGW;
+
+  let found: string | null = null;
+
+  for (const b of buildings) {
+    if (!b.shape || b.shape.type !== "Polygon") continue;
+
+    const poly = polygonToMapCoords(b.shape.coordinates);
+    if (isPointInPolygon(point, poly)) {
+      found = b.code;
+      break;
+    }
+  }
+
+  setCurrentBuildingCode(found);
+}, [location?.coords?.latitude, location?.coords?.longitude]);
+
 
   const goToMyLocation = async () => {
     try {
@@ -98,6 +130,14 @@ export default function MainMap() {
           longitudeDelta: 0.005,
         }}
       >
+
+        <CampusBuildingPolygons
+           campus={campus === "Loyola" ? "LOY" : "SGW"}
+           highlightedCode={currentBuildingCode}
+      />
+
+
+
         {location?.coords && (
           <Marker
             coordinate={{
