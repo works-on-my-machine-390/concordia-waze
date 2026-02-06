@@ -1,6 +1,9 @@
 /* 
 Navigation wrapper using Expo Router's Stack navigator that defines three routes (index, login, register) 
 */
+/* 
+Navigation wrapper using Expo Router's Stack navigator that defines three routes (index, login, register) 
+*/
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -22,7 +25,7 @@ export default function RootLayout() {
           <Stack.Screen name="index" />
           <Stack.Screen name="login" />
           <Stack.Screen name="register" />
-          <Stack.Screen name="example" />
+          <Stack.Screen name="example-bottom-sheet"/>
         </Stack>
       </QueryClientProvider>
     </GestureHandlerRootView>

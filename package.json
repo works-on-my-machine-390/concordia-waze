@@ -18,5 +18,13 @@
   "bugs": {
     "url": "https://github.com/works-on-my-machine-390/concordia-waze/issues"
   },
-  "homepage": "https://github.com/works-on-my-machine-390/concordia-waze#readme"
+  "homepage": "https://github.com/works-on-my-machine-390/concordia-waze#readme",
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
+    "prettier": "^3.8.1"
+  },
+  "lint-staged": {
+    "*.{js,css,md,ts,less,tsx,jsx,json}": "prettier --write"
+  }
 }

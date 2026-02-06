@@ -57,8 +57,7 @@ export default function HomeScreen() {
           No account button
           */}
           <TouchableOpacity
-            //onPress={() => console.log("Use without account")}
-            onPress={() => router.push({ pathname: "/example-bottom-sheet", params: { prev: "index" } })}
+            onPress={() => router.push("/map")}
             style={[styles.button, styles.secondaryButton]}
           >
             <View style={styles.buttonContent}>

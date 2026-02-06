@@ -2,8 +2,6 @@
 Design system exporting color palette, spacing scale, border radii, and typography sizes used throughout the app for consistent styling.
 */
 
-import { StyleSheet } from "react-native";
-
 export const colors = {
   background: "#f5f3f3",
   surface: "#ffffff",
@@ -15,6 +13,7 @@ export const colors = {
   subText: "#6d7074",
   muted: "#bfb8b8",
   shadow: "#000000",
+  pink: "#DEBDC4",
 };
 
 export const spacing = {
@@ -36,6 +35,14 @@ export const typography = {
   headingL: 22,
   body: 16,
   label: 14,
+};
+
+export const SHADOW = {
+  shadowColor: "#000",
+  shadowOpacity: 0.18,
+  shadowRadius: 12,
+  shadowOffset: { width: 0, height: 6 },
+  elevation: 6,
 };
 
 export default { colors, spacing, radii, typography };
