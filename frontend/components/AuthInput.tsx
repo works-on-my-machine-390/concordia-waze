@@ -13,7 +13,7 @@ interface Props {
   autoCapitalize?: "none" | "sentences" | "words" | "characters";
   accessibleLabel?: string;
   right?: React.ReactNode;
-  testID?: string; 
+  testID?: string;
 }
 
 export default function AuthInput({
@@ -27,21 +27,27 @@ export default function AuthInput({
   autoCapitalize = "none",
   accessibleLabel,
   right,
-  testID,  
+  testID,
 }: Readonly<Props>) {
   return (
     <View style={s.container}>
       {label ? <Text style={s.label}>{label}</Text> : null}
       <View style={s.row}>
         <TextInput
-          testID={testID} 
-          accessibilityLabel={accessibleLabel ?? (typeof label === "string" ? label : "")}
+          testID={testID}
+          accessibilityLabel={
+            accessibleLabel ?? (typeof label === "string" ? label : "")
+          }
           placeholder={placeholder}
           value={value}
           onChangeText={onChange}
           secureTextEntry={secureTextEntry}
           keyboardType={keyboardType}
-          style={[s.input, error ? s.inputError : null, right ? { paddingRight: 40 } : null]}
+          style={[
+            s.input,
+            error ? s.inputError : null,
+            right ? { paddingRight: 40 } : null,
+          ]}
           autoCapitalize={autoCapitalize}
           placeholderTextColor="#999"
         />
@@ -54,7 +60,12 @@ export default function AuthInput({
 
 const s = StyleSheet.create({
   container: { marginBottom: 12 },
-  label: { fontSize: 14, marginBottom: 6, color: colors.text, fontWeight: "600" },
+  label: {
+    fontSize: 14,
+    marginBottom: 6,
+    color: colors.text,
+    fontWeight: "600",
+  },
   row: { flexDirection: "row", alignItems: "center" },
   input: {
     flex: 1,
@@ -70,8 +81,8 @@ const s = StyleSheet.create({
   error: { color: colors.inputError, marginTop: 6 },
   right: {
     position: "absolute",
-    right: 12,     
-    top: "50%",   
+    right: 12,
+    top: "50%",
     transform: [{ translateY: -12 }],
   },
 });
