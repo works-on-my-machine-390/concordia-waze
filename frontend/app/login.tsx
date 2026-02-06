@@ -7,23 +7,17 @@ Login screen with email/password inputs, Concordia email validation, show/hide p
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import AuthButton from "../components/AuthButton";
 import AuthInput from "../components/AuthInput";
 import AuthLayout from "../components/AuthLayout";
-import BackHeader from "../components/BackHeader";
 import { TermsText } from "../components/SharedUI";
 import { useAuth } from "../hooks/useAuth";
-import { COLORS, LOGO_IMAGE } from "./constants";
+import { COLORS } from "./constants";
 import { EyeHidingIcon, EyeShowingIcon } from "./icons";
 import { validateLogin } from "./utils/validators";
 

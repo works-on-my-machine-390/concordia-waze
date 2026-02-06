@@ -1,16 +1,16 @@
 import React from "react";
 import {
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
+    Image,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import BackHeader from "./BackHeader";
 import { COLORS, LOGO_IMAGE } from "../app/constants";
+import BackHeader from "./BackHeader";
 
 type Props = {
   title: string;
