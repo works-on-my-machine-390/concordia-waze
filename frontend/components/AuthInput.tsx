@@ -28,7 +28,6 @@ export default function AuthInput({
   accessibleLabel,
   right,
   testID,  
-}: Props) {
 }: Readonly<Props>) {
   return (
     <View style={s.container}>
@@ -42,7 +41,7 @@ export default function AuthInput({
           onChangeText={onChange}
           secureTextEntry={secureTextEntry}
           keyboardType={keyboardType}
-          style={[s.input, error ? s.inputError : null, right ? { paddingRight: 40 } : null,]}
+          style={[s.input, error ? s.inputError : null, right ? { paddingRight: 40 } : null]}
           autoCapitalize={autoCapitalize}
           placeholderTextColor="#999"
         />
@@ -73,6 +72,6 @@ const s = StyleSheet.create({
     position: "absolute",
     right: 12,     
     top: "50%",   
-    transform: [{ translateY: -12 }], // adjust if height changes
+    transform: [{ translateY: -12 }],
   },
 });
