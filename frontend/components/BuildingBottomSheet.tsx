@@ -111,11 +111,11 @@ export default function BuildingBottomSheet({ building }: Props) {
           </View>
 
           <View style={styles.iconsContainer}>
-            <View style={styles.acessibilityIconsContainer}>
+            <View style={styles.accessibilityIconsContainer}>
               {accessibilityIcons}
             </View>
 
-            <View style={styles.acessibilityIconsContainer}>
+            <View style={styles.accessibilityIconsContainer}>
               <FavoriteEmptyIcon color={COLORS.maroon} />
               <TouchableOpacity onPress={handleCloseSheet}>
                 <CloseIcon size={28} />
@@ -198,10 +198,10 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
 
-  acessibilityIconsContainer: {
+  accessibilityIconsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    marginRight: 10,
   },
 
   scrollContent: {
