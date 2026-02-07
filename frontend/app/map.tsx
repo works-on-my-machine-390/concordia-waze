@@ -67,7 +67,7 @@ useEffect(() => {
     longitude: location.coords.longitude,
   };
 
-  const buildings = CAMPUS_BUILDINGS.SGW;
+  const buildings = campus === "Loyola" ? CAMPUS_BUILDINGS.LOY : CAMPUS_BUILDINGS.SGW;
 
   let found: string | null = null;
 

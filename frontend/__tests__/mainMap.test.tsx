@@ -5,7 +5,7 @@
 import { render, fireEvent, waitFor } from "@testing-library/react-native";
 import { Alert } from "react-native";
 
-import MainMap from "../app/map"; 
+import MainMap from "../app/map";
 import * as Location from "expo-location";
 
 /**
@@ -22,6 +22,63 @@ jest.mock("expo-location", () => ({
   requestForegroundPermissionsAsync: jest.fn(),
   getCurrentPositionAsync: jest.fn(),
 }));
+
+// Mock building data (keep deterministic + tiny)
+jest.mock("../app/utils/campusBuildings", () => ({
+  CAMPUS_BUILDINGS: {
+    SGW: [
+      {
+        code: "MB",
+        shape: { type: "Polygon", coordinates: [[[0, 0]]] }, // dummy coords
+      },
+    ],
+    LOY: [
+      {
+        code: "SP",
+        shape: { type: "Polygon", coordinates: [[[0, 0]]] }, // dummy coords
+      },
+    ],
+  },
+}));
+
+// Mock polygon mapper (we don't test real geometry here)
+jest.mock("../app/utils/polygonMapper", () => ({
+  polygonToMapCoords: jest.fn(() => [
+    { latitude: 0, longitude: 0 },
+    { latitude: 0, longitude: 1 },
+    { latitude: 1, longitude: 1 },
+  ]),
+}));
+
+// Mock point-in-polygon (we only need predictable true/false)
+jest.mock("../app/utils/pointInPolygon", () => ({
+  isPointInPolygon: jest.fn(() => true), // always inside for this suite
+}));
+
+/**
+ * CampusBuildingPolygons mock (TS-safe)
+ */
+type CampusBuildingPolygonsProps = {
+  highlightedCode?: string | null;
+  campus?: string;
+};
+
+const mockCampusBuildingPolygons = jest.fn(
+  (props: CampusBuildingPolygonsProps) => null,
+);
+
+// IMPORTANT:
+// This mock assumes MainMap imports CampusBuildingPolygons as DEFAULT:
+//   import CampusBuildingPolygons from "../components/CampusBuildingPolygons"
+jest.mock("../components/CampusBuildingPolygons", () => {
+  return {
+    __esModule: true,
+    default: (props: CampusBuildingPolygonsProps) => {
+      mockCampusBuildingPolygons(props);
+      return null;
+    },
+  };
+});
 
 // Mock MapHeader so we can trigger onCampusChange easily
 jest.mock("../components/MapHeader", () => ({
@@ -167,20 +224,19 @@ describe("MainMap screen", () => {
           latitudeDelta: 0.005,
           longitudeDelta: 0.005,
         },
-        500
+        500,
       );
     });
   });
 
   test("pressing LocationButton requests permission and gets location if location is missing", async () => {
-    // first: mount permission granted + fetch location (but we will override to return null by making it throw)
     (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
       status: "granted",
     });
 
     // For mount: make it fail so location remains null
     (Location.getCurrentPositionAsync as jest.Mock).mockRejectedValueOnce(
-      new Error("no location on mount")
+      new Error("no location on mount"),
     );
 
     // For button press: return valid location
@@ -205,7 +261,7 @@ describe("MainMap screen", () => {
           latitudeDelta: 0.005,
           longitudeDelta: 0.005,
         },
-        500
+        500,
       );
     });
   });
@@ -226,8 +282,36 @@ describe("MainMap screen", () => {
         latitudeDelta: 0.005,
         longitudeDelta: 0.005,
       },
-      500
+      500,
     );
+  });
+
+  test("passes highlightedCode to CampusBuildingPolygons when location updates", async () => {
+    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
+      status: "granted",
+    });
+
+    (Location.getCurrentPositionAsync as jest.Mock).mockResolvedValue({
+      coords: { latitude: 45.5, longitude: -73.6 },
+    });
+
+    render(<MainMap />);
+
+    // Wait for mount location effect
+    await waitFor(() => {
+      expect(Location.getCurrentPositionAsync).toHaveBeenCalled();
+    });
+
+    await waitFor(() => {
+      expect(mockCampusBuildingPolygons).toHaveBeenCalled();
+
+      const lastCallProps = mockCampusBuildingPolygons.mock.calls.at(-1)?.[0] as
+        | CampusBuildingPolygonsProps
+        | undefined;
+
+      expect(lastCallProps?.highlightedCode).toBe("MB");
+      expect(lastCallProps?.campus).toBe("SGW");
+    });
   });
 
   test("shows error if goToMyLocation throws", async () => {
@@ -242,17 +326,9 @@ describe("MainMap screen", () => {
 
     const { getByText } = render(<MainMap />);
 
-    // Make button press throw
-    (Location.getCurrentPositionAsync as jest.Mock).mockRejectedValueOnce(
-      new Error("boom")
-    );
-
-    // Force location to be missing by calling before mount finishes is messy,
-    // so we just press and let it run (it may not call getCurrentPositionAsync again if coords exist).
-    // The simplest: clear location path by failing mount instead in your code,
-    // but we can still validate the catch branch by rejecting permission call:
+    // Make permission request throw on button press (forces catch path)
     (Location.requestForegroundPermissionsAsync as jest.Mock).mockRejectedValueOnce(
-      new Error("permission request failed")
+      new Error("permission request failed"),
     );
 
     fireEvent.press(getByText("My Location"));

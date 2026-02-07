@@ -1,7 +1,5 @@
 import React from "react";
 import { Polygon } from "react-native-maps";
-
-// keep your current working import style
 import { CAMPUS_BUILDING_STYLE } from "../app/utils/campusBuildingStyle";
 import { CURRENT_BUILDING_STYLE } from "../app/utils/currentBuildingStyle";
 import { polygonToMapCoords } from "../app/utils/polygonMapper";
@@ -9,7 +7,7 @@ import { CAMPUS_BUILDINGS, type CampusBuilding } from "../app/utils/campusBuildi
 
 type Props = {
   campus?: "SGW" | "LOY";
-  highlightedCode?: string | null; // building user is inside
+  highlightedCode?: string | null; 
 };
 
 export default function CampusBuildingPolygons({
