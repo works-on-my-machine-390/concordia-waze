@@ -10,15 +10,21 @@ import { useRouter } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AuthButton from "./AuthButton";
+import { useGetProfile } from "@/hooks/queries/userQueries";
+import { Toast } from "toastify-react-native";
 
 export default function CustomDrawer(props: any) {
   const router = useRouter();
   const { top, bottom } = useSafeAreaInsets();
   const { loggedIn, logout } = useAuth();
+  const getProfileQuery = useGetProfile();
 
+  const userProfile = getProfileQuery.data;
   const handleAuthAction = () => {
     if (loggedIn) {
-      logout();
+      logout().then(() => {
+        Toast.success("Logged out successfully.");
+      });
       router.replace("/");
     } else {
       router.push("/login");
@@ -40,7 +46,7 @@ export default function CustomDrawer(props: any) {
           <View style={styles.avatar}>
             <AccountIcon size={40} color={COLORS.goldDark} />
           </View>
-          <Text style={styles.name}>User Name</Text>
+          <Text style={styles.name}>{userProfile?.name || "Guest"}</Text>
         </View>
       </LinearGradient>
       <DrawerContentScrollView

@@ -9,7 +9,6 @@ type AuthResult =
   | { success: true; data?: any }
   | { success: false; error: string };
 
-import { Toast } from "toastify-react-native";
 import { API_URL } from "./api";
 const API_BASE = process.env.REACT_APP_API_BASE || API_URL;
 
@@ -96,7 +95,6 @@ export function useAuth() {
       console.warn("Logout request failed:", err);
     } finally {
       await AsyncStorage.removeItem("accessToken");
-      Toast.success("Logged out successfully.");
       setLoggedIn(false);
     }
   }
