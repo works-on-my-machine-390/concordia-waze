@@ -19,7 +19,7 @@ export function isPointInPolygon(point: Point, polygon: Point[]): boolean {
     const yj = polygon[j].latitude;
 
     const intersect =
-      yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi + 0) + xi;
+      yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
 
     if (intersect) inside = !inside;
   }
