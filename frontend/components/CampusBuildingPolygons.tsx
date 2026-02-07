@@ -1,27 +1,22 @@
-import React from "react";
+import { CampusBuilding, Point } from "@/hooks/queries/buildingQueries";
 import { Polygon } from "react-native-maps";
-import { CAMPUS_BUILDING_STYLE } from "../app/utils/campusBuildingStyle";
-import { CURRENT_BUILDING_STYLE } from "../app/utils/currentBuildingStyle";
+import { CAMPUS_BUILDING_STYLE } from "../app/styles/buildingPolygons/campusBuildingStyle";
+import { CURRENT_BUILDING_STYLE } from "../app/styles/buildingPolygons/currentBuildingStyle";
 import { polygonToMapCoords } from "../app/utils/polygonMapper";
-import { CAMPUS_BUILDINGS, type CampusBuilding } from "../app/utils/campusBuildings";
 
 type Props = {
-  campus?: "SGW" | "LOY";
-  highlightedCode?: string | null; 
+  highlightedCode?: string | null;
+  buildings: CampusBuilding[];
 };
 
 export default function CampusBuildingPolygons({
-  campus = "SGW",
   highlightedCode = null,
+  buildings,
 }: Props) {
-  const list = CAMPUS_BUILDINGS[campus];
-
   return (
     <>
-      {list.map((b: CampusBuilding) => {
-        if (!b.shape || b.shape.type !== "Polygon") return null;
-
-        const coords = polygonToMapCoords(b.shape.coordinates);
+      {buildings.map((b: CampusBuilding) => {
+        const coords = polygonToMapCoords(b.polygon as Point[]);
         const isCurrent = b.code === highlightedCode;
 
         const style = isCurrent
