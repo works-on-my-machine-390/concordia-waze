@@ -25,7 +25,7 @@ func SetupRouter() *gin.Engine {
 	userRepo := repository.NewInMemoryUserRepository()
 
 	// Initialize services (application layer)
-	jwtManager := application.NewJWTManager(os.Getenv("JWT_SECRET"), 24*time.Hour)
+	jwtManager := application.NewJWTManager(os.Getenv("JWT_SECRET"), 24*7*time.Hour)
 	userService := application.NewUserService(userRepo, jwtManager)
 
 	// Initialize handlers (presentation layer)

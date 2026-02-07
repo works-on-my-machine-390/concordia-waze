@@ -22,10 +22,13 @@ export default function CustomDrawer(props: any) {
   const userProfile = getProfileQuery.data;
   const handleAuthAction = () => {
     if (loggedIn) {
-      logout().then(() => {
-        Toast.success("Logged out successfully.");
-      });
-      router.replace("/");
+      logout()
+        .then(() => {
+          Toast.success("Logged out successfully.");
+        })
+        .finally(() => {
+          router.replace("/");
+        });
     } else {
       router.push("/login");
     }

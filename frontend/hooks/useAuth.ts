@@ -16,13 +16,17 @@ export function useAuth() {
   const [loading, setLoading] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
 
+  const checkToken = async () => {
+    const token = await AsyncStorage.getItem("accessToken");
+    if (token) {
+      setLoggedIn(true);
+      return true;
+    }
+    setLoggedIn(false);
+    return false;
+  };
+
   useEffect(() => {
-    const checkToken = async () => {
-      const token = await AsyncStorage.getItem("accessToken");
-      if (token) {
-        setLoggedIn(true);
-      }
-    };
     checkToken();
   }, []);
 
@@ -105,5 +109,6 @@ export function useAuth() {
     logout,
     loading,
     loggedIn,
+    checkToken,
   };
 }
