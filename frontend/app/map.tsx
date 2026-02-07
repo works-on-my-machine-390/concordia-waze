@@ -25,23 +25,38 @@ export default function MainMap() {
   };
 
   useEffect(() => {
-    async function getCurrentLocation() {
-      try {
-        let { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== "granted") {
-          Alert.alert("Permission to access location was denied");
-          return;
-        }
+  let sub: Location.LocationSubscription | null = null;
 
-        let fetchedLocation = await Location.getCurrentPositionAsync({});
-        setLocation(fetchedLocation);
-      } catch (e) {
-        console.error("Failed to get location.", e);
+  const startWatching = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Permission to access location was denied");
+        return;
       }
-    }
 
-    getCurrentLocation();
-  }, []);
+      sub = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.High,
+          timeInterval: 1000,
+          distanceInterval: 1,
+        },
+        (loc) => {
+          setLocation(loc);
+          console.log("location update:", loc.coords.latitude, loc.coords.longitude);
+        },
+      );
+    } catch (e) {
+      console.error("Failed to watch location.", e);
+    }
+  };
+
+  startWatching();
+
+  return () => {
+    sub?.remove();
+  };
+}, []);
 
   
 useEffect(() => {

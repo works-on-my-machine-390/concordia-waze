@@ -1,6 +1,6 @@
 export const CURRENT_BUILDING_STYLE = {
-  fillColor: "rgba(255, 215, 0, 0.55)",   // gold highlight
-  strokeColor: "rgba(255, 215, 0, 1.0)",
-  strokeWidth: 3,
-  zIndex: 999,
-} as const;
+  fillColor: "rgba(180, 30, 45, 0.65)",  // dark red
+  strokeColor: "#8B1E2D",
+  strokeWidth: 2,
+  zIndex: 10,
+};
