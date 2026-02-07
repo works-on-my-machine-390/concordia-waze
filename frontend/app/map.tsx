@@ -1,20 +1,21 @@
-import React, { useState, useEffect, useRef } from "react";
-import { StyleSheet, View, Alert } from "react-native";
-import MapView, { Marker } from "react-native-maps";
 import * as Location from "expo-location";
+import { useEffect, useRef, useState } from "react";
+import { Alert, StyleSheet, View } from "react-native";
+import MapView, { Marker } from "react-native-maps";
 import LocationButton from "../components/LocationButton";
 import { MapHeader } from "../components/MapHeader";
-
 
 export default function MainMap() {
   const [campus, setCampus] = useState<"SGW" | "Loyola">("SGW");
   const [searchText, setSearchText] = useState("");
 
-  const [location, setLocation] = useState<Location.LocationObject | null>(null);
+  const [location, setLocation] = useState<Location.LocationObject | null>(
+    null,
+  );
   const mapRef = useRef<MapView>(null);
 
   const CAMPUS_COORDS = {
-    SGW: { latitude: 45.4972, longitude: -73.5791 },    // SGW campus
+    SGW: { latitude: 45.4972, longitude: -73.5791 }, // SGW campus
     Loyola: { latitude: 45.4589, longitude: -73.64 }, // Loyola campus
   };
 
@@ -26,25 +27,24 @@ export default function MainMap() {
           Alert.alert("Permission to access location was denied");
           return;
         }
-  
+
         let fetchedLocation = await Location.getCurrentPositionAsync({});
         setLocation(fetchedLocation);
       } catch (e) {
-        console.error("Failed to get location.",e);
+        console.error("Failed to get location.", e);
       }
     }
-  
+
     getCurrentLocation();
   }, []);
-  
 
   const goToMyLocation = async () => {
     try {
       let coords = location?.coords;
       if (!coords) {
         const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') {
-          Alert.alert('Permission to access location was denied');
+        if (status !== "granted") {
+          Alert.alert("Permission to access location was denied");
           return;
         }
         const current = await Location.getCurrentPositionAsync({});
@@ -60,14 +60,15 @@ export default function MainMap() {
             latitudeDelta: 0.005,
             longitudeDelta: 0.005,
           },
-          500
+          500,
         );
       }
     } catch (e) {
       console.error("Failed to get to your location.");
+      Alert.alert("Error", "Failed to get your location. Please try again.");
     }
   };
-  
+
   const handleCampusChange = (nextCampus: "SGW" | "Loyola") => {
     setCampus(nextCampus);
     const coords = CAMPUS_COORDS[nextCampus];
@@ -78,7 +79,7 @@ export default function MainMap() {
         latitudeDelta: 0.005,
         longitudeDelta: 0.005,
       },
-      500
+      500,
     );
   };
 
@@ -86,14 +87,14 @@ export default function MainMap() {
     <View style={styles.container}>
       <MapView
         ref={mapRef}
-        showsMyLocationButton={false} // remove default google location button 
+        showsMyLocationButton={false} // remove default google location button
         style={styles.map}
         showsUserLocation={true}
         initialRegion={{
-        // coordinates for SGW campus (default)
+          // coordinates for SGW campus (default)
           latitude: CAMPUS_COORDS.SGW.latitude,
           longitude: CAMPUS_COORDS.SGW.longitude,
-          latitudeDelta: 0.005,  
+          latitudeDelta: 0.005,
           longitudeDelta: 0.005,
         }}
       >
@@ -107,7 +108,6 @@ export default function MainMap() {
         )}
       </MapView>
 
-       
       <MapHeader
         campus={campus}
         onCampusChange={handleCampusChange}

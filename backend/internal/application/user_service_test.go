@@ -245,3 +245,29 @@ func TestUserService_Logout(t *testing.T) {
 		t.Errorf("Expected ErrInvalidToken after logout, got %v", err)
 	}
 }
+
+func TestUserService_SameEmailSignUp(t *testing.T) {
+	repo := repository.NewInMemoryUserRepository()
+	jwtManager := application.NewJWTManager("test-secret", time.Hour)
+	service := application.NewUserService(repo, jwtManager)
+
+	_, _, err := service.SignUp(
+		"john",
+		"john.doe@concordia.ca",
+		"password123",
+	)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	_, _, err = service.SignUp(
+		"john2",
+		"john.doe@concordia.ca",
+		"password123",
+	)
+
+	if err != domain.ErrUserAlreadyExists {
+		t.Errorf("Expected ErrUserAlreadyExists, got %v", err)
+	}
+
+}
