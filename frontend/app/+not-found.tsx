@@ -18,7 +18,9 @@ export default function NotFound() {
       <Text style={styles.description}>
         The page you're looking for doesn't exist.
       </Text>
-      <Text style={styles.caption}>you've entered the wrong classroom!</Text>
+      <Text style={styles.caption}>
+        how did you get lost with a campus guide?
+      </Text>
 
       <Pressable style={styles.button} onPress={() => router.push("/")}>
         <Text style={styles.buttonText}>Go Home</Text>
