@@ -115,6 +115,11 @@ func (s *UserService) SignUp(name, email, password string) (*domain.User, string
 	if password == "" {
 		return nil, "", domain.ErrEmptyPassword
 	}
+	// Check if user already exists
+
+	if user, _ := s.repo.FindByEmail(email); user != nil {
+		return nil, "", domain.ErrUserAlreadyExists
+	}
 
 	// Hash password
 	hashedPassword := hashPassword(password)

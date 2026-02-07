@@ -10,7 +10,8 @@ var (
 	ErrMissingToken       = errors.New("Missing authorization token")
 
 	// Validation errors
-	ErrEmptyName     = errors.New("Name cannot be empty")
-	ErrEmptyEmail    = errors.New("Email cannot be empty")
-	ErrEmptyPassword = errors.New("Password cannot be empty")
+	ErrEmptyName         = errors.New("Name cannot be empty")
+	ErrEmptyEmail        = errors.New("Email cannot be empty")
+	ErrEmptyPassword     = errors.New("Password cannot be empty")
+	ErrUserAlreadyExists = errors.New("User with this email already exists")
 )
