@@ -12,6 +12,7 @@ import (
 	_ "github.com/works-on-my-machine-390/concordia-waze/docs"
 
 	"github.com/works-on-my-machine-390/concordia-waze/internal/application"
+	"github.com/works-on-my-machine-390/concordia-waze/internal/constants"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/persistence/repository"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/presentation/handler"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/presentation/middleware"
@@ -22,9 +23,9 @@ func SetupRouter() *gin.Engine {
 
 	userRepo := repository.NewInMemoryUserRepository()
 
-	buildingDataRepo := repository.NewBuildingDataRepository("building_information.json")
+	buildingDataRepo := repository.NewBuildingDataRepository(constants.BuildingDataFile)
 
-	jwtManager := application.NewJWTManager(os.Getenv("JWT_SECRET"), 24*time.Hour)
+	jwtManager := application.NewJWTManager(os.Getenv("JWT_SECRET"), constants.DefaultJWTDuration*time.Hour)
 	userService := application.NewUserService(userRepo, jwtManager)
 
 	buildingService := application.NewBuildingService(buildingDataRepo)

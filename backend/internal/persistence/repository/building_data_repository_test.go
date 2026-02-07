@@ -5,13 +5,14 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/works-on-my-machine-390/concordia-waze/internal/constants"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
 )
 
 func writeTempJSON(t *testing.T, content string) string {
 	t.Helper()
 	dir := t.TempDir()
-	path := filepath.Join(dir, "building_information.json")
+	path := filepath.Join(dir, constants.BuildingDataFile)
 	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
 		t.Fatalf("failed to write temp json: %v", err)
 	}

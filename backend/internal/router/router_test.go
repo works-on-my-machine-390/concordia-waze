@@ -5,17 +5,13 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
-
-	"github.com/gin-gonic/gin"
 )
 
 func TestSetupRouter_RegistersRoutes(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-
 	os.Setenv("JWT_SECRET", "testsecret")
 	defer os.Unsetenv("JWT_SECRET")
 
-	r := SetupRouter()
+	r := SetupTestRouter()
 	if r == nil {
 		t.Fatalf("expected router, got nil")
 	}
