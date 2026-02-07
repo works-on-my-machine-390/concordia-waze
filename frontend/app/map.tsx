@@ -103,7 +103,7 @@ export default function MainMap() {
     let found: string | null = null;
 
     for (const b of Object.values(buildingsByCampus).flat()) {
-      const poly = polygonToMapCoords(b.polygon as Point[]);
+      const poly = polygonToMapCoords(b.polygon);
       if (isPointInPolygon(point, poly)) {
         found = b.code;
         break;
