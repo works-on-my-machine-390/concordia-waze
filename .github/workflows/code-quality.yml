@@ -3,9 +3,16 @@ on:
   push:
     branches:
       - dev
+    paths:
+      - "backend/**"
+      - "frontend/**"
+      - ".github/workflows/code-quality.yml"
   pull_request:
     branches: [main, dev]
     types: [opened, synchronize, reopened]
+    paths: 
+      - "backend/**"
+      - "frontend/**"
 jobs:
   sonarqube:
     name: SonarQube
