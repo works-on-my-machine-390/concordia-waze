@@ -1,10 +1,10 @@
-import type { LatLng } from "./polygonMapper";
+import { Point } from "@/hooks/queries/buildingQueries";
 
 /**
  * Ray-casting algorithm.
  * Returns true if `point` is inside `polygon` (polygon is an array of LatLng points).
  */
-export function isPointInPolygon(point: LatLng, polygon: LatLng[]): boolean {
+export function isPointInPolygon(point: Point, polygon: Point[]): boolean {
   if (!polygon || polygon.length < 3) return false;
 
   const x = point.longitude;
@@ -19,8 +19,7 @@ export function isPointInPolygon(point: LatLng, polygon: LatLng[]): boolean {
     const yj = polygon[j].latitude;
 
     const intersect =
-      yi > y !== yj > y &&
-      x < ((xj - xi) * (y - yi)) / (yj - yi + 0.0) + xi;
+      yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi + 0.0) + xi;
 
     if (intersect) inside = !inside;
   }
