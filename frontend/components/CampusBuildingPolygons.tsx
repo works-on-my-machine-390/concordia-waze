@@ -3,7 +3,7 @@ import { Polygon } from "react-native-maps";
 import { CAMPUS_BUILDING_STYLE } from "../app/styles/buildingPolygons/campusBuildingStyle";
 import { CURRENT_BUILDING_STYLE } from "../app/styles/buildingPolygons/currentBuildingStyle";
 
-type Props = {
+export type CampusBuildingPolygonsProps = {
   highlightedCode?: string | null;
   buildings: CampusBuilding[];
 };
@@ -11,7 +11,7 @@ type Props = {
 export default function CampusBuildingPolygons({
   highlightedCode = null,
   buildings,
-}: Readonly<Props>) {
+}: Readonly<CampusBuildingPolygonsProps>) {
   return (
     <>
       {buildings.map((b: CampusBuilding) => {
