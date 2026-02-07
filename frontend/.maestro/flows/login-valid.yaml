@@ -1,0 +1,55 @@
+appId: host.exp.Exponent
+---
+
+# Test A — valid registration + valid Login
+- launchApp
+- tapOn: "frontend"
+- tapOn:
+    id: "signin-signup-button"
+- tapOn: "Sign up"
+
+- tapOn:
+    id: "fullname-input"
+- inputText: "Test User"
+
+- tapOn:
+    id: "email-input"
+- inputText: "test.user@live.concordia.ca"
+
+- scroll
+
+- tapOn:
+    id: "password-input"
+- inputText: "ValidPass123"
+- scroll
+
+- tapOn:
+    id: "confirm-password-input"
+- inputText: "ValidPass123"
+
+- scroll
+
+- hideKeyboard
+- tapOn:
+    id: "signup-button"
+
+# If registration completes successfuly
+- assertVisible: "Registration successful! Please log in."
+
+- tapOn: "OK"
+
+- assertVisible: "Welcome back!"
+
+- tapOn:
+    id: "email-input-login"
+- inputText: "test.user@live.concordia.ca"
+
+- scroll
+
+- tapOn:
+    id: "password-input-login"
+- inputText: "ValidPass123"
+- scroll
+
+- tapOn: "Sign in"  # The sign in button
+
