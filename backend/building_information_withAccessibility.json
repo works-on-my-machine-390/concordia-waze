@@ -71,6 +71,12 @@
         "Office of the Provost and Vice-President, Academic",
         "Office of Student Life and Engagement",
         "Welcome Crew Office"
+      ],
+      "venues": [],
+      "accessibility": [
+        "Accessibility ramp",
+        "Accessible entrance",
+        "Accessible building elevator"
       ]
     },
     {
@@ -93,7 +99,9 @@
         "type": "Polygon"
       },
       "departments": [],
-      "services": ["CPE Les P'tits Profs Daycare"]
+      "services": ["CPE Les P'tits Profs Daycare"],
+      "venues": [],
+      "accessibility": []
     },
     {
       "code": "BH",
@@ -115,7 +123,9 @@
         "type": "Polygon"
       },
       "departments": [],
-      "services": ["CPE Les P'tits Profs Daycare"]
+      "services": ["CPE Les P'tits Profs Daycare"],
+      "venues": [],
+      "accessibility": []
     },
     {
       "code": "CC",
@@ -155,6 +165,12 @@
         "Concordia Student Union",
         "Loyola College for Diversity and Sustainability and Loyola",
         "Zen Den"
+      ],
+      "venues": [],
+      "accessibility": [
+        "Wheelchair lift",
+        "Accessible entrance",
+        "Accessible building elevator"
       ]
     },
     {
@@ -241,7 +257,9 @@
         "type": "Polygon"
       },
       "departments": [],
-      "services": ["Concordia Stingers"]
+      "services": ["Concordia Stingers"],
+      "venues": [],
+      "accessibility": []
     },
     {
       "code": "FC",
@@ -288,7 +306,9 @@
         "type": "Polygon"
       },
       "departments": [],
-      "services": ["Concordia Multi-Faith and Spirituality Centre"]
+      "services": ["Concordia Multi-Faith and Spirituality Centre"],
+      "venues": ["Loyola Chapel"],
+      "accessibility": ["Accessibility ramp", "Accessible entrance"]
     },
     {
       "code": "GE",
@@ -316,7 +336,9 @@
         "type": "Polygon"
       },
       "departments": [],
-      "services": ["Centre for Structural and Functional Genomics"]
+      "services": ["Centre for Structural and Functional Genomics"],
+      "venues": [],
+      "accessibility": ["Accessible entrance", "Accessible building elevator"]
     },
     {
       "code": "HA",
@@ -354,7 +376,9 @@
         "type": "Polygon"
       },
       "departments": [],
-      "services": ["Student Residence"]
+      "services": ["Student Residence"],
+      "venues": [],
+      "accessibility": ["Accessible entrance"]
     },
     {
       "code": "HB",
@@ -399,7 +423,9 @@
       "services": [
         "Concordia University Faculty Association (CUFA)",
         "Student Residence"
-      ]
+      ],
+      "venues": [],
+      "accessibility": ["Accessible entrance"]
     },
     {
       "code": "HC",
@@ -441,7 +467,9 @@
         "type": "Polygon"
       },
       "departments": [],
-      "services": ["Student Residence"]
+      "services": ["Student Residence"],
+      "venues": [],
+      "accessibility": ["Accessible entrance"]
     },
     {
       "code": "HU",
@@ -467,7 +495,9 @@
         "type": "Polygon"
       },
       "departments": [],
-      "services": []
+      "services": [],
+      "venues": [],
+      "accessibility": ["Accessible entrance", "Accessible building elevator"]
     },
     {
       "code": "JR",
@@ -501,7 +531,13 @@
         "type": "LineString"
       },
       "departments": [],
-      "services": ["Student Residence"]
+      "services": ["Student Residence"],
+      "venues": [],
+      "accessibility": [
+        "Accessibility ramp",
+        "Accessible entrance",
+        "Accessible building elevator"
+      ]
     },
     {
       "code": "PB",
@@ -552,6 +588,12 @@
         "Nutrition Centre",
         "PERFORM Gym",
         "School of Health"
+      ],
+      "venues": [],
+      "accessibility": [
+        "Accessibility ramp",
+        "Accessible entrance",
+        "Accessible building elevator"
       ]
     },
     {
@@ -582,7 +624,9 @@
         "type": "Polygon"
       },
       "departments": [],
-      "services": ["Environmental Health and Safety", "Facilities Management"]
+      "services": ["Environmental Health and Safety", "Facilities Management"],
+      "venues": [],
+      "accessibility": []
     },
     {
       "code": "PT",
@@ -607,7 +651,9 @@
         "type": "Polygon"
       },
       "departments": [],
-      "services": ["Concert Hall"]
+      "services": ["Concert Hall"],
+      "venues": [],
+      "accessibility": ["Accessible entrance"]
     },
     {
       "code": "PY",
@@ -638,7 +684,9 @@
         "Centre for Clinical Research in Health (CCRH)",
         "Psychology"
       ],
-      "services": []
+      "services": [],
+      "venues": [],
+      "accessibility": ["Accessible entrance", "Accessible building elevator"]
     },
     {
       "code": "RA",
@@ -672,7 +720,13 @@
         "type": "Polygon"
       },
       "departments": [],
-      "services": []
+      "services": [],
+      "venues": ["Concordia Stadium", "Ed Meagher Arena", "Gymnasium"],
+      "accessibility": [
+        "Wheelchair lift",
+        "Accessibility ramp",
+        "Accessible entrance"
+      ]
     },
     {
       "code": "RF",
@@ -713,7 +767,9 @@
       "services": [
         "Conference services",
         "Loyola Jesuit Hall and Conference Centre"
-      ]
+      ],
+      "venues": [],
+      "accessibility": ["Wheelchair lift", "Accessible entrance"]
     },
     {
       "code": "SC",
@@ -745,7 +801,9 @@
         "type": "Polygon"
       },
       "departments": [],
-      "services": ["Cafeteria", "Caf\u00e9", "Food Services"]
+      "services": ["Cafeteria", "Caf\u00e9", "Food Services"],
+      "venues": [],
+      "accessibility": ["Accessibility ramp", "Accessible entrance"]
     },
     {
       "code": "SH",
@@ -767,7 +825,9 @@
         "type": "Polygon"
       },
       "departments": [],
-      "services": []
+      "services": [],
+      "venues": [],
+      "accessibility": ["Accessible entrance"]
     },
     {
       "code": "SI",
@@ -817,7 +877,9 @@
         "type": "Polygon"
       },
       "departments": [],
-      "services": []
+      "services": [],
+      "venues": [],
+      "accessibility": []
     },
     {
       "code": "SP",
@@ -887,6 +949,12 @@
         "Campus Safety and Prevention Services",
         "First Stop",
         "Science College"
+      ],
+      "venues": [],
+      "accessibility": [
+        "Accessibility ramp",
+        "Accessible entrance",
+        "Accessible building elevator"
       ]
     },
     {
@@ -909,7 +977,9 @@
         "type": "Polygon"
       },
       "departments": ["Centre for the Arts in Human Development (CAHD)"],
-      "services": []
+      "services": [],
+      "venues": [],
+      "accessibility": []
     },
     {
       "code": "VL",
@@ -949,7 +1019,9 @@
         "type": "Polygon"
       },
       "departments": [],
-      "services": ["Georges P. Vanier Library"]
+      "services": ["Georges P. Vanier Library"],
+      "venues": [],
+      "accessibility": ["Accessible entrance", "Accessible building elevator"]
     }
   ],
   "SGW": [
@@ -974,7 +1046,9 @@
         "type": "Polygon"
       },
       "departments": [],
-      "services": ["Engineering and Computer Science Association"]
+      "services": ["Engineering and Computer Science Association"],
+      "venues": [],
+      "accessibility": []
     },
     {
       "code": "CI",
@@ -1002,7 +1076,9 @@
         "type": "Polygon"
       },
       "departments": [],
-      "services": []
+      "services": [],
+      "venues": [],
+      "accessibility": []
     },
     {
       "code": "CL",
@@ -1026,7 +1102,9 @@
         "type": "Polygon"
       },
       "departments": [],
-      "services": []
+      "services": [],
+      "venues": [],
+      "accessibility": ["Accessible entrance", "Accessible building elevator"]
     },
     {
       "code": "D",
@@ -1050,7 +1128,9 @@
         "type": "Polygon"
       },
       "departments": [],
-      "services": []
+      "services": [],
+      "venues": [],
+      "accessibility": []
     },
     {
       "code": "EN",
@@ -1076,7 +1156,9 @@
         "type": "Polygon"
       },
       "departments": ["Research Chair on Gambling"],
-      "services": []
+      "services": [],
+      "venues": [],
+      "accessibility": []
     },
     {
       "code": "ER",
@@ -1111,7 +1193,13 @@
         "Sustainability in the Digital Age",
         "Urban Studies"
       ],
-      "services": []
+      "services": [],
+      "venues": [],
+      "accessibility": [
+        "Accessibility ramp",
+        "Accessible entrance",
+        "Accessible building elevator"
+      ]
     },
     {
       "code": "ES",
@@ -1207,7 +1295,9 @@
         "Recreation and Athletics",
         "Studio Arts"
       ],
-      "services": ["Le Gym", "Zen Den"]
+      "services": ["Le Gym", "Zen Den"],
+      "venues": ["FOFA Gallery"],
+      "accessibility": ["Accessible entrance", "Accessible building elevator"]
     },
     {
       "code": "FA",
@@ -1218,7 +1308,9 @@
       "longitude": -73.577997,
       "shape": null,
       "departments": ["Religions and Cultures"],
-      "services": []
+      "services": [],
+      "venues": [],
+      "accessibility": []
     },
     {
       "code": "FB",
@@ -1271,6 +1363,12 @@
         "Records Management and Archives (RMA) Office",
         "Senior non-credit program",
         "Study Hub"
+      ],
+      "venues": ["District 3 Innovation Hub"],
+      "accessibility": [
+        "Wheelchair lift",
+        "Accessible entrance",
+        "Accessible building elevator"
       ]
     },
     {
@@ -1300,6 +1398,13 @@
       "departments": ["Education"],
       "services": [
         "Records Management and Archives (RMA) Research Room and Vault"
+      ],
+      "venues": [],
+      "accessibility": [
+        "Wheelchair lift",
+        "Accessibility ramp",
+        "Accessible entrance",
+        "Accessible building elevator"
       ]
     },
     {
@@ -1327,7 +1432,9 @@
         "type": "Polygon"
       },
       "departments": ["Education"],
-      "services": []
+      "services": [],
+      "venues": [],
+      "accessibility": ["Accessibility ramp", "Accessible entrance"]
     },
     {
       "code": "GM",
@@ -1367,7 +1474,9 @@
         "Ombuds Office",
         "University Communications Services",
         "Zen Den"
-      ]
+      ],
+      "venues": [],
+      "accessibility": ["Accessible entrance", "Accessible building elevator"]
     },
     {
       "code": "GN",
@@ -1522,6 +1631,12 @@
         "Grey Nuns Reading Room & Group Study Rooms (1190 Guy St.)",
         "Residences",
         "Summer accommodations"
+      ],
+      "venues": ["Grey Nuns Garden"],
+      "accessibility": [
+        "Accessibility ramp",
+        "Accessible entrance",
+        "Accessible building elevator"
       ]
     },
     {
@@ -1547,7 +1662,11 @@
         "type": "Polygon"
       },
       "departments": [],
-      "services": ["Concordia University Part-time Faculty Association (CUPFA)"]
+      "services": [
+        "Concordia University Part-time Faculty Association (CUPFA)"
+      ],
+      "venues": [],
+      "accessibility": []
     },
     {
       "code": "H",
@@ -1590,7 +1709,13 @@
         "Student Success Centre",
         "Welcome Crew Office",
         "Zen Den"
-      ]
+      ],
+      "venues": [
+        "Concordia Theatre",
+        "Reggies",
+        "Sir George Williams University Alumni Auditorium"
+      ],
+      "accessibility": ["Accessible entrance", "Accessible building elevator"]
     },
     {
       "code": "K",
@@ -1619,7 +1744,9 @@
         "type": "Polygon"
       },
       "departments": [],
-      "services": []
+      "services": [],
+      "venues": [],
+      "accessibility": []
     },
     {
       "code": "LB",
@@ -1670,7 +1797,14 @@
         "R. Howard Webster Library",
         "SHIFT Centre for Social Transformation",
         "Welcome Centre"
-      ]
+      ],
+      "venues": [
+        "4TH SPACE",
+        "J.A. De S\u00e8ve Cinema",
+        "Leonard and Bina Ellen Art Gallery",
+        "SHIFT Centre for Social Transformation"
+      ],
+      "accessibility": ["Accessible entrance", "Accessible building elevator"]
     },
     {
       "code": "LC",
@@ -1720,7 +1854,9 @@
         "type": "Polygon"
       },
       "departments": [],
-      "services": ["CSU Daycare & Nursery"]
+      "services": ["CSU Daycare & Nursery"],
+      "venues": [],
+      "accessibility": []
     },
     {
       "code": "M",
@@ -1746,7 +1882,9 @@
         "type": "Polygon"
       },
       "departments": [],
-      "services": []
+      "services": [],
+      "venues": [],
+      "accessibility": []
     },
     {
       "code": "MB",
@@ -1795,7 +1933,9 @@
         "John Molson Executive Centre",
         "Performing Arts Facilities",
         "Zen Den"
-      ]
+      ],
+      "venues": ["Concordia Conference Centre, 9th Floor", "Cloud Deck"],
+      "accessibility": ["Accessible entrance", "Accessible building elevator"]
     },
     {
       "code": "MI",
@@ -1825,7 +1965,9 @@
         "Concordia University Professional Employee Union (CUPEU)",
         "Concordia University Support Staff Union (CSN)",
         "The Concordia University Union of Support Staff \u2013 Technical Sector (CUUSS-TS)"
-      ]
+      ],
+      "venues": [],
+      "accessibility": []
     },
     {
       "code": "MK",
@@ -1937,7 +2079,9 @@
         "type": "Polygon"
       },
       "departments": [],
-      "services": []
+      "services": [],
+      "venues": [],
+      "accessibility": []
     },
     {
       "code": "P",
@@ -1960,7 +2104,9 @@
         "type": "Polygon"
       },
       "departments": [],
-      "services": []
+      "services": [],
+      "venues": [],
+      "accessibility": []
     },
     {
       "code": "PR",
@@ -1989,7 +2135,9 @@
         "type": "Polygon"
       },
       "departments": [],
-      "services": ["Concordia University Library Employees' Union (CULEU)"]
+      "services": ["Concordia University Library Employees' Union (CULEU)"],
+      "venues": [],
+      "accessibility": []
     },
     {
       "code": "Q",
@@ -2012,7 +2160,9 @@
         "type": "Polygon"
       },
       "departments": [],
-      "services": []
+      "services": [],
+      "venues": [],
+      "accessibility": []
     },
     {
       "code": "R",
@@ -2035,7 +2185,9 @@
         "type": "Polygon"
       },
       "departments": ["Religions and Cultures"],
-      "services": []
+      "services": [],
+      "venues": [],
+      "accessibility": []
     },
     {
       "code": "RR",
@@ -2058,7 +2210,9 @@
         "type": "Polygon"
       },
       "departments": ["Liberal Arts College"],
-      "services": []
+      "services": [],
+      "venues": [],
+      "accessibility": []
     },
     {
       "code": "S",
@@ -2088,7 +2242,9 @@
         "type": "Polygon"
       },
       "departments": ["Philosophy"],
-      "services": []
+      "services": [],
+      "venues": [],
+      "accessibility": []
     },
     {
       "code": "SB",
@@ -2127,7 +2283,13 @@
         "type": "Polygon"
       },
       "departments": [],
-      "services": ["Arts and Science Research Groups"]
+      "services": ["Arts and Science Research Groups"],
+      "venues": [],
+      "accessibility": [
+        "Accessibility ramp",
+        "Accessible entrance",
+        "Accessible building elevator"
+      ]
     },
     {
       "code": "T",
@@ -2150,7 +2312,9 @@
         "type": "Polygon"
       },
       "departments": [],
-      "services": ["Graduate Students Association"]
+      "services": ["Graduate Students Association"],
+      "venues": [],
+      "accessibility": []
     },
     {
       "code": "TD",
@@ -2176,7 +2340,9 @@
         "type": "Polygon"
       },
       "departments": [],
-      "services": []
+      "services": [],
+      "venues": [],
+      "accessibility": []
     },
     {
       "code": "TU",
@@ -2218,7 +2384,9 @@
         "type": "Polygon"
       },
       "departments": [],
-      "services": ["Centre for Gender Advocacy", "CUTV"]
+      "services": ["Centre for Gender Advocacy", "CUTV"],
+      "venues": [],
+      "accessibility": []
     },
     {
       "code": "VA",
@@ -2242,7 +2410,9 @@
         "type": "Polygon"
       },
       "departments": ["Art Education", "Art History", "Studio Arts"],
-      "services": ["VAV Gallery"]
+      "services": ["VAV Gallery"],
+      "venues": [],
+      "accessibility": ["Accessible entrance", "Accessible building elevator"]
     },
     {
       "code": "X",
@@ -2264,7 +2434,9 @@
         "type": "Polygon"
       },
       "departments": [],
-      "services": ["Concordia International"]
+      "services": ["Concordia International"],
+      "venues": [],
+      "accessibility": []
     },
     {
       "code": "Z",
@@ -2295,7 +2467,9 @@
       "services": [
         "Multi-Faith and Spirituality Centre",
         "Sustainable Concordia"
-      ]
+      ],
+      "venues": [],
+      "accessibility": []
     },
     {
       "code": "LS",
@@ -2320,7 +2494,9 @@
         "type": "Polygon"
       },
       "departments": [],
-      "services": []
+      "services": [],
+      "venues": [],
+      "accessibility": ["Accessibility ramp", "Accessible entrance"]
     }
   ]
 }
