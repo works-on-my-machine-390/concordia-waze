@@ -1,7 +1,6 @@
 import {
   CampusBuilding,
   CampusCode,
-  Point,
   useGetBuildings,
 } from "@/hooks/queries/buildingQueries";
 import * as Location from "expo-location";
@@ -9,7 +8,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, StyleSheet, View } from "react-native";
 import MapView, { Region } from "react-native-maps";
 import { isPointInPolygon } from "../app/utils/pointInPolygon";
-import { polygonToMapCoords } from "../app/utils/polygonMapper";
 import CampusBuildingPolygons from "../components/CampusBuildingPolygons";
 import LocationButton from "../components/LocationButton";
 import { MapHeader } from "../components/MapHeader";
@@ -103,8 +101,7 @@ export default function MainMap() {
     let found: string | null = null;
 
     for (const b of Object.values(buildingsByCampus).flat()) {
-      const poly = polygonToMapCoords(b.polygon);
-      if (isPointInPolygon(point, poly)) {
+      if (isPointInPolygon(point, b.polygon)) {
         found = b.code;
         break;
       }
