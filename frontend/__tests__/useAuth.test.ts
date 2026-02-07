@@ -56,8 +56,14 @@ describe("useAuth", () => {
       res = await loginFn("a@b.com", "pass");
     });
 
-    expect(res).toEqual({ success: true, data: { token: "abc", user: { email: "a@b.com" } } });
-    expect((globalThis as any).fetch).toHaveBeenCalledWith(expect.stringContaining("/auth/login"), expect.objectContaining({ method: "POST" }));
+    expect(res).toEqual({
+      success: true,
+      data: { token: "abc", user: { email: "a@b.com" } },
+    });
+    expect((globalThis as any).fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/auth/login"),
+      expect.objectContaining({ method: "POST" }),
+    );
   });
 
   test("login failure returns backend error", async () => {
@@ -109,7 +115,9 @@ describe("useAuth", () => {
   });
 
   test("login network error returns network error message", async () => {
-    (globalThis as any).fetch.mockRejectedValueOnce(new Error("Network timeout"));
+    (globalThis as any).fetch.mockRejectedValueOnce(
+      new Error("Network timeout"),
+    );
 
     render(React.createElement(HookProxy));
 
@@ -137,7 +145,12 @@ describe("useAuth", () => {
   test("register success returns user", async () => {
     (globalThis as any).fetch.mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ id: "1", name: "Test", email: "t@e.com", token: "tok" }),
+      json: async () => ({
+        id: "1",
+        name: "Test",
+        email: "t@e.com",
+        token: "tok",
+      }),
     });
 
     render(React.createElement(HookProxy));
@@ -147,8 +160,14 @@ describe("useAuth", () => {
       res = await registerFn("Test", "t@e.com", "pass");
     });
 
-    expect(res).toEqual({ success: true, data: { id: "1", name: "Test", email: "t@e.com", token: "tok" } });
-    expect((globalThis as any).fetch).toHaveBeenCalledWith(expect.stringContaining("/auth/signup"), expect.objectContaining({ method: "POST" }));
+    expect(res).toEqual({
+      success: true,
+      data: { id: "1", name: "Test", email: "t@e.com", token: "tok" },
+    });
+    expect((globalThis as any).fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/auth/signup"),
+      expect.objectContaining({ method: "POST" }),
+    );
   });
 
   test("register failure surfaces backend error", async () => {
@@ -164,7 +183,10 @@ describe("useAuth", () => {
       res = await registerFn("Test", "exists@e.com", "pass");
     });
 
-    expect(res).toEqual({ success: false, error: "This email is already registered." });
+    expect(res).toEqual({
+      success: false,
+      error: "This email is already registered.",
+    });
   });
 
   test("register failure with message field", async () => {
@@ -200,7 +222,9 @@ describe("useAuth", () => {
   });
 
   test("register network error returns network error message", async () => {
-    (globalThis as any).fetch.mockRejectedValueOnce(new Error("Connection refused"));
+    (globalThis as any).fetch.mockRejectedValueOnce(
+      new Error("Connection refused"),
+    );
 
     render(React.createElement(HookProxy));
 
@@ -242,8 +266,11 @@ describe("useAuth", () => {
       expect.objectContaining({
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: "test@example.com", password: "password123" }),
-      })
+        body: JSON.stringify({
+          email: "test@example.com",
+          password: "password123",
+        }),
+      }),
     );
   });
 
@@ -264,8 +291,12 @@ describe("useAuth", () => {
       expect.objectContaining({
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: "John Doe", email: "john@example.com", password: "password123" }),
-      })
+        body: JSON.stringify({
+          name: "John Doe",
+          email: "john@example.com",
+          password: "password123",
+        }),
+      }),
     );
   });
 
@@ -291,7 +322,7 @@ describe("useAuth", () => {
           Authorization: "Bearer mock-token",
           "Content-Type": "application/json",
         }),
-      })
+      }),
     );
 
     expect(AsyncStorage.removeItem).toHaveBeenCalledWith("accessToken");
@@ -309,7 +340,7 @@ describe("useAuth", () => {
     expect((globalThis as any).fetch).not.toHaveBeenCalled();
     expect(AsyncStorage.removeItem).toHaveBeenCalledWith("accessToken");
   });
-  
+
   test("logout clears storage even if backend request fails", async () => {
     (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce("mock-token");
     (globalThis as any).fetch.mockRejectedValueOnce(new Error("Server down"));

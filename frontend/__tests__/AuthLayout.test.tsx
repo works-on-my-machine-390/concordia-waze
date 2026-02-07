@@ -10,7 +10,7 @@ import AuthLayout from "@/components/AuthLayout";
 // Mock BackHeader
 jest.mock("@/components/BackHeader", () => {
   return function MockBackHeader() {
-    const { Text } = require("react-native"); 
+    const { Text } = require("react-native");
     return <Text testID="back-header">BackHeader</Text>;
   };
 });
@@ -37,7 +37,7 @@ describe("AuthLayout", () => {
     const { getByText } = render(
       <AuthLayout title={title}>
         <Text>Child content</Text>
-      </AuthLayout>
+      </AuthLayout>,
     );
 
     getByText(title);
@@ -47,7 +47,7 @@ describe("AuthLayout", () => {
     const { getByText } = render(
       <AuthLayout title="Test title">
         <Text>Form goes here</Text>
-      </AuthLayout>
+      </AuthLayout>,
     );
 
     getByText("Form goes here");
@@ -57,7 +57,7 @@ describe("AuthLayout", () => {
     const { getByTestId } = render(
       <AuthLayout title="Test title">
         <Text>Child</Text>
-      </AuthLayout>
+      </AuthLayout>,
     );
 
     expect(getByTestId("back-header")).toBeTruthy();
@@ -67,7 +67,7 @@ describe("AuthLayout", () => {
     const { UNSAFE_getByType } = render(
       <AuthLayout title="Test title">
         <Text>Child</Text>
-      </AuthLayout>
+      </AuthLayout>,
     );
 
     const image = UNSAFE_getByType(Image);
@@ -78,7 +78,7 @@ describe("AuthLayout", () => {
     const { UNSAFE_getByType } = render(
       <AuthLayout title="Test title">
         <Text>Child</Text>
-      </AuthLayout>
+      </AuthLayout>,
     );
 
     const image = UNSAFE_getByType(Image);
@@ -90,7 +90,7 @@ describe("AuthLayout", () => {
     const { UNSAFE_getByType } = render(
       <AuthLayout title="Test title" logoSize={200}>
         <Text>Child</Text>
-      </AuthLayout>
+      </AuthLayout>,
     );
 
     const image = UNSAFE_getByType(Image);
