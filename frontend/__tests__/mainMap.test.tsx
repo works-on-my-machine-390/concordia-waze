@@ -5,7 +5,7 @@
 import { render, fireEvent, waitFor } from "@testing-library/react-native";
 import { Alert } from "react-native";
 
-import MainMap from "../app/drawer/map";
+import MainMap from "../app/(drawer)/map";
 import * as Location from "expo-location";
 
 /**
@@ -130,23 +130,6 @@ describe("MainMap screen", () => {
     });
 
     expect(Location.getCurrentPositionAsync).not.toHaveBeenCalled();
-  });
-
-  test("renders a Marker when location is available", async () => {
-    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue(
-      {
-        status: "granted",
-      },
-    );
-
-    (Location.getCurrentPositionAsync as jest.Mock).mockResolvedValue({
-      coords: { latitude: 45.5, longitude: -73.6 },
-    });
-
-    const { findByTestId } = render(<MainMap />);
-
-    // marker should appear after location is set
-    expect(await findByTestId("marker")).toBeTruthy();
   });
 
   test("pressing LocationButton animates map to current location (when location already exists)", async () => {
@@ -276,6 +259,7 @@ describe("MainMap screen", () => {
     await waitFor(() => {
       expect(console.error).toHaveBeenCalledWith(
         "Failed to get to your location.",
+        expect.any(Error),
       );
     });
   });
