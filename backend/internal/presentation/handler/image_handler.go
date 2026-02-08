@@ -15,6 +15,15 @@ func NewImageHandler(service application.ImageService) *ImageHandler {
 	return &ImageHandler{service: service}
 }
 
+// @Summary     Get building images
+// @Description Get images for a specific building by its code from Google Places API
+// @Tags        buildings
+// @Accept      json
+// @Produce     json
+// @Param       code path string true "Building code"
+// @Success     200 {object} BuildingImagesResponse
+// @Failure     404 {object} map[string]string "building not found or no images available"
+// @Router      /buildings/{code}/images [get]
 func (h *ImageHandler) GetBuildingImages(c *gin.Context) {
 	code := c.Param("code")
 
@@ -30,4 +39,9 @@ func (h *ImageHandler) GetBuildingImages(c *gin.Context) {
 		"building_code": code,
 		"images":        images,
 	})
+}
+
+type BuildingImagesResponse struct {
+	BuildingCode string   `json:"building_code"`
+	Images       []string `json:"images"`
 }
