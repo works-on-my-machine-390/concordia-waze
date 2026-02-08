@@ -2,7 +2,7 @@ import type { Building } from "@/hooks/queries/buildingQueries";
 import { useGetBuildingDetails } from "@/hooks/queries/buildingQueries";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { useCallback, useMemo, useRef, useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View, Image } from "react-native";
 import { COLORS } from "../app/constants";
 import {
   CloseIcon,
@@ -40,6 +40,22 @@ type BottomSheetBuildingModel = {
     ramp: boolean;
   };
 } & Building;
+
+// Function to return the dizzy icon and message if no building info showsf
+function EmptyBuildingState() {
+  return (
+    <View style={styles.emptyStateContainer}>
+      <Image
+        source={require("../assets/images/icon-dizzy.png")}
+        style={styles.emptyStateImage}
+        resizeMode="contain"
+      />
+      <Text style={styles.emptyStateText}>
+        No information available for this building
+      </Text>
+    </View>
+  );
+}
 
 export default function BuildingBottomSheet(props: Readonly<Props>) {
   const bottomSheetRef = useRef<BottomSheet>(null);
@@ -93,6 +109,8 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
     ].filter(Boolean);
   }, [building?.accessibilityMapping]);
 
+  const hasBuildingData = !!building && getBuildingQuery.isSuccess;
+
   return (
     <BottomSheet
       ref={bottomSheetRef}
@@ -105,48 +123,51 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
       backgroundStyle={styles.bottomSheet}
       containerStyle={{ overflow: "visible" }}
     >
-      {!!building && getBuildingQuery.isSuccess && (
-        <View style={styles.headerContainer}>
-          {sheetOpen && (
-            <View style={styles.floatingIcon}>
-              <GetDirectionsIcon size={90} color={COLORS.maroon} />
+      {hasBuildingData ? (
+        <>
+          {/* Header */}
+          <View style={styles.headerContainer}>
+            {sheetOpen && (
+              <View style={styles.floatingIcon}>
+                <GetDirectionsIcon size={90} color={COLORS.maroon} />
+              </View>
+            )}
+
+            <View style={styles.textContainer}>
+              <Text style={styles.name}>
+                {building.long_name} ({building.code})
+              </Text>
+              <Text style={styles.address}>{building.address}</Text>
             </View>
+
+            <View style={styles.iconsContainer}>
+              <View style={styles.accessibilityIconsContainer}>
+                {accessibilityIcons}
+              </View>
+
+              <View style={styles.accessibilityIconsContainer}>
+                <FavoriteEmptyIcon color={COLORS.maroon} />
+                <TouchableOpacity onPress={handleCloseSheet}>
+                  <CloseIcon size={28} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+
+          {/* Scrollable Content */}
+          <BottomSheetScrollView contentContainerStyle={styles.scrollContent}>
+                <BuildingGallery buildingCode={building.code} />
+
+                <ListSection title="Services" items={building.services} />
+                <ListSection title="Departments" items={building.departments} />
+                <ListSection title="Venues" items={building.venues} />
+          </BottomSheetScrollView>
+        </>
+      ) : (
+            <BottomSheetScrollView contentContainerStyle={styles.scrollContent}>
+              <EmptyBuildingState />
+            </BottomSheetScrollView>
           )}
-
-          <View style={styles.textContainer}>
-            <Text style={styles.name}>
-              {building.long_name} ({building.code})
-            </Text>
-            <Text style={styles.address}>{building.address}</Text>
-          </View>
-
-          <View style={styles.iconsContainer}>
-            <View style={styles.accessibilityIconsContainer}>
-              {accessibilityIcons}
-            </View>
-
-            <View style={styles.accessibilityIconsContainer}>
-              <FavoriteEmptyIcon color={COLORS.maroon} />
-              <TouchableOpacity onPress={handleCloseSheet}>
-                <CloseIcon size={28} />
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      )}
-
-      {/* Scrollable Content */}
-      <BottomSheetScrollView contentContainerStyle={styles.scrollContent}>
-        {!!building && getBuildingQuery.isSuccess && (
-          <>
-            <BuildingGallery buildingCode={building.code} />
-
-            <ListSection title="Services" items={building.services} />
-            <ListSection title="Departments" items={building.departments} />
-            <ListSection title="Venues" items={building.venues} />
-          </>
-        )}
-      </BottomSheetScrollView>
     </BottomSheet>
   );
 }
@@ -236,5 +257,24 @@ const styles = StyleSheet.create({
   gallerySkeleton: {
     marginBottom: 16,
     borderRadius: 12,
+  },
+  
+  emptyStateContainer: {
+  flex: 1,
+  alignItems: "center",
+  justifyContent: "center",
+  paddingTop: 40,
+  },
+
+  emptyStateImage: {
+  width: 120,
+  height: 120,
+  marginBottom: 16,
+  },
+
+  emptyStateText: {
+  fontSize: 16,
+  color: COLORS.textSecondary,
+  textAlign: "center",
   },
 });
