@@ -11,7 +11,7 @@ import { isPointInPolygon } from "../app/utils/pointInPolygon";
 import CampusBuildingPolygons from "../components/CampusBuildingPolygons";
 import LocationButton from "../components/LocationButton";
 import { MapHeader } from "../components/MapHeader";
-import BuildingBottomSheet from '@/components/BuildingBottomSheet';
+import BuildingBottomSheet from "@/components/BuildingBottomSheet";
 import { getDistance } from "./utils/mapUtils";
 
 export default function MainMap() {
@@ -20,6 +20,9 @@ export default function MainMap() {
   const [currentBuildingCode, setCurrentBuildingCode] = useState<string | null>(
     null,
   );
+  const [selectedBuildingCode, setSelectedBuildingCode] = useState<
+    string | null
+  >(null);
 
   const [location, setLocation] = useState<Location.LocationObject | null>(
     null,
@@ -184,59 +187,6 @@ export default function MainMap() {
     }
   };
 
-  // Mock building for bottom sheet because no building selection yet
-  const mockBuilding = useMemo(
-    () => ({
-      name: 'John Molson Building',
-      acronym: 'MB',
-      address: '1450 Guy St, Montreal',
-      services: [
-        "Career Management Service",
-        "First Stop",
-        "John Molson Executive Centre",
-        "Performing Arts Faciliting",
-        "Zen Den",
-      ],
-      departments: [
-        "Accountacy",
-        "Contemporary Dance",
-        "Executive MBA Program",
-        "Finance",
-        "Goodman Institute of Investment Management",
-        "Mangement",
-        "Marketing",
-        "Music",
-        "Supply Chain & Business Technology Management",
-        "Theatre",
-        "Accolknuntacy",
-        "Contempivgorary Dance",
-        "Executivekjb MBA Program",
-        "Finankjbce",
-        "Goodkjbman Institute of Investment Management",
-        "Mangekjhbment",
-        "Markekjbting",
-        "Muskjbic",
-        "Sujbpply Chain & Business Technology Management",
-        "Theakjbtre",
-        "fbvfdb",
-        "vfbfdv",
-        "vbefgbr",
-        "vsvdfv",
-        "vefrvgerfv",
-        "fvefvefbv",
-        "bfbegfb",
-        "fvfbgbeD",
-        "fbefbb",
-      ],
-      accessibility: {
-        wheelchair: true,
-        elevator: true,
-        escalator: true,
-      },
-    }),
-    []
-  );
-
   return (
     <View style={styles.container}>
       <MapView
@@ -257,6 +207,7 @@ export default function MainMap() {
         <CampusBuildingPolygons
           buildings={buildingsToRender}
           highlightedCode={currentBuildingCode}
+          onBuildingPress={setSelectedBuildingCode}
         />
       </MapView>
 
@@ -268,9 +219,18 @@ export default function MainMap() {
         onMenuPress={() => {}}
         // onMenuPress={() => router.push("/menu")} // navigate to menu screen, to be created
       />
-      <LocationButton onPress={goToMyLocation} />
       <View style={styles.bottomSheetContainer}>
-        <BuildingBottomSheet building={mockBuilding} />
+        <LocationButton
+          onPress={goToMyLocation}
+          bottomPosition={selectedBuildingCode ? 220 : 80}
+        />
+
+        {selectedBuildingCode && (
+          <BuildingBottomSheet
+            buildingCode={selectedBuildingCode}
+            onClose={() => setSelectedBuildingCode(null)}
+          />
+        )}
       </View>
     </View>
   );
@@ -283,9 +243,9 @@ const styles = StyleSheet.create({
   map: {
     flex: 1,
   },
-    bottomSheetContainer: {
-    position: 'absolute',
-    top: 0, 
+  bottomSheetContainer: {
+    position: "absolute",
+    top: 0,
     left: 0,
     right: 0,
     bottom: 0,

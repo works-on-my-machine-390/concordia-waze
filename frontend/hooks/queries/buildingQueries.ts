@@ -39,3 +39,43 @@ export const useGetBuildings = (campus: string) => {
 
   return query;
 };
+
+export type BuildingDetails = {
+  address: string;
+  code: string;
+  departments: string[];
+  latitude: number;
+  long_name: string;
+  longitude: number;
+  name: string;
+  services: string[];
+};
+
+export const useGetBuildingDetails = (buildingCode: string) => {
+  return useQuery<BuildingDetails>({
+    queryKey: ["buildingDetails", buildingCode],
+    queryFn: async () => {
+      const apiClient = await api();
+      return apiClient
+        .get(`/buildings/${buildingCode}`)
+        .json<BuildingDetails>();
+    },
+    staleTime: Infinity,
+  });
+};
+
+export const useGetBuildingImages = (buildingCode: string) => {
+  return useQuery<string[]>({
+    queryKey: ["buildingImages", buildingCode],
+    queryFn: async () => {
+      const apiClient = await api();
+      return apiClient
+        .get(`/buildings/${buildingCode}/images`)
+        .json<string[]>((res) => {
+          return res.images;
+        })
+        .catch(() => [] as string[]);
+    },
+    staleTime: Infinity,
+  });
+};

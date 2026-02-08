@@ -6,12 +6,23 @@ import { CURRENT_BUILDING_STYLE } from "../app/styles/buildingPolygons/currentBu
 export type CampusBuildingPolygonsProps = {
   highlightedCode?: string | null;
   buildings: CampusBuilding[];
+  onBuildingPress?: (buildingCode: string) => void;
 };
 
 export default function CampusBuildingPolygons({
   highlightedCode = null,
   buildings,
+  onBuildingPress,
 }: Readonly<CampusBuildingPolygonsProps>) {
+
+
+  const handlePolygonPress = (buildingCode: string) => {
+    
+    console.log(onBuildingPress, buildingCode);
+    if (onBuildingPress) {
+      onBuildingPress(buildingCode);
+    }
+  };
   return (
     <>
       {buildings.map((b: CampusBuilding) => {
@@ -29,6 +40,8 @@ export default function CampusBuildingPolygons({
             strokeColor={style.strokeColor}
             strokeWidth={style.strokeWidth}
             zIndex={style.zIndex}
+            tappable
+            onPress={() => onBuildingPress?.(b.code)}
           />
         );
       })}
