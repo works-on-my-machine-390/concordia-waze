@@ -66,7 +66,11 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
   const getBuildingQuery = useGetBuildingDetails(props.buildingCode || "");
 
   const building: BottomSheetBuildingModel = useMemo(() => {
-    if (getBuildingQuery.data) {
+    if (
+      getBuildingQuery.data &&
+      getBuildingQuery.isSuccess &&
+      getBuildingQuery.data.accessibility
+    ) {
       return {
         accessibilityMapping: {
           wheelchair: getBuildingQuery.data.accessibility.includes(
@@ -156,18 +160,18 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
 
           {/* Scrollable Content */}
           <BottomSheetScrollView contentContainerStyle={styles.scrollContent}>
-                <BuildingGallery buildingCode={building.code} />
+            <BuildingGallery buildingCode={building.code} />
 
-                <ListSection title="Services" items={building.services} />
-                <ListSection title="Departments" items={building.departments} />
-                <ListSection title="Venues" items={building.venues} />
+            <ListSection title="Services" items={building.services} />
+            <ListSection title="Departments" items={building.departments} />
+            <ListSection title="Venues" items={building.venues} />
           </BottomSheetScrollView>
         </>
       ) : (
-            <BottomSheetScrollView contentContainerStyle={styles.scrollContent}>
-              <EmptyBuildingState />
-            </BottomSheetScrollView>
-          )}
+        <BottomSheetScrollView contentContainerStyle={styles.scrollContent}>
+          <EmptyBuildingState />
+        </BottomSheetScrollView>
+      )}
     </BottomSheet>
   );
 }
@@ -258,23 +262,23 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderRadius: 12,
   },
-  
+
   emptyStateContainer: {
-  flex: 1,
-  alignItems: "center",
-  justifyContent: "center",
-  paddingTop: 40,
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingTop: 40,
   },
 
   emptyStateImage: {
-  width: 120,
-  height: 120,
-  marginBottom: 16,
+    width: 120,
+    height: 120,
+    marginBottom: 16,
   },
 
   emptyStateText: {
-  fontSize: 16,
-  color: COLORS.textSecondary,
-  textAlign: "center",
+    fontSize: 16,
+    color: COLORS.textSecondary,
+    textAlign: "center",
   },
 });
