@@ -1,3 +1,4 @@
+import { CampusCode } from "@/hooks/queries/buildingQueries";
 import { Ionicons } from "@expo/vector-icons";
 import { DrawerActions } from "@react-navigation/native";
 import { useNavigation } from "expo-router";
@@ -5,8 +6,8 @@ import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { colors, SHADOW } from "../app/styles/theme";
 
 type Props = Readonly<{
-  campus: "SGW" | "Loyola";
-  onCampusChange: (campus: "SGW" | "Loyola") => void;
+  campus: CampusCode;
+  onCampusChange: (campus: CampusCode) => void;
   onMenuPress?: () => void;
   searchText: string;
   onSearchTextChange: (t: string) => void;
@@ -52,13 +53,13 @@ export function MapHeader({
       <View style={styles.chipsRow}>
         <CampusButton
           label="SGW"
-          active={campus === "SGW"}
-          onPress={() => onCampusChange("SGW")}
+          active={campus === CampusCode.SGW}
+          onPress={() => onCampusChange(CampusCode.SGW)}
         />
         <CampusButton
           label="Loyola"
-          active={campus === "Loyola"}
-          onPress={() => onCampusChange("Loyola")}
+          active={campus === CampusCode.LOY}
+          onPress={() => onCampusChange(CampusCode.LOY)}
         />
       </View>
     </View>

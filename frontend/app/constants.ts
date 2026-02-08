@@ -27,4 +27,5 @@ export const APP_INFO = {
 
 // Image Assets
 export const LOGO_IMAGE = require("../assets/images/icon.png");
+export const DIZZY_LOGO_IMAGE = require("../assets/images/dizzy_icon.png");
 export const LOGO_SIZE = { width: 86, height: 86 };

@@ -1,4 +1,27 @@
 definitions:
+  domain.Building:
+    properties:
+      address:
+        type: string
+      code:
+        type: string
+      departments:
+        items:
+          type: string
+        type: array
+      latitude:
+        type: number
+      long_name:
+        type: string
+      longitude:
+        type: number
+      name:
+        type: string
+      services:
+        items:
+          type: string
+        type: array
+    type: object
   handler.AuthResponse:
     properties:
       email:
@@ -9,6 +32,15 @@ definitions:
         type: string
       token:
         type: string
+    type: object
+  handler.BuildingImagesResponse:
+    properties:
+      building_code:
+        type: string
+      images:
+        items:
+          type: string
+        type: array
     type: object
   handler.LoginRequest:
     properties:
@@ -175,6 +207,67 @@ paths:
       summary: Register a new user
       tags:
       - auth
+  /buildings/{code}:
+    get:
+      consumes:
+      - application/json
+      description: Get detailed information about a specific building by its code
+      parameters:
+      - description: Building code
+        in: path
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Building'
+        "404":
+          description: building not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get building by code
+      tags:
+      - buildings
+  /buildings/{code}/images:
+    get:
+      consumes:
+      - application/json
+      description: Get images for a specific building by its code from Google Places
+        API
+      parameters:
+      - description: Building code
+        in: path
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.BuildingImagesResponse'
+        "404":
+          description: building not found or no images available
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get building images
+      tags:
+      - buildings
 securityDefinitions:
   BearerAuth:
     description: Type "Bearer" followed by a space and JWT token.
