@@ -50,10 +50,10 @@ func SetupRouter() *gin.Engine {
 		authGroup.POST("/logout", middleware.RequireAuth(), authHandler.Logout)
 	}
 
-	router.GET("/buildings/:code", middleware.RequireAuth(), buildingHandler.GetBuilding)
-	router.GET("/buildings/:code/images", middleware.RequireAuth(), imageHandler.GetBuildingImages)
+	router.GET("/buildings/:code", buildingHandler.GetBuilding)
+	router.GET("/buildings/:code/images", imageHandler.GetBuildingImages)
 
-	router.GET("/campuses/:campus/buildings", middleware.RequireAuth(), campusHandler.GetCampusBuildings)
+	router.GET("/campuses/:campus/buildings", campusHandler.GetCampusBuildings)
 
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 

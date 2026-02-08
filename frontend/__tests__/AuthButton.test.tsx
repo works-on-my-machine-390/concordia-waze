@@ -3,7 +3,7 @@
  */
 
 import AuthButton from "@/components/AuthButton";
-import { fireEvent, render } from "@testing-library/react-native";
+import { act, fireEvent, render } from "@testing-library/react-native";
 
 describe("AuthButton", () => {
   // Tests for default auth button
@@ -25,7 +25,9 @@ describe("AuthButton", () => {
       <AuthButton title="Sign In" onPress={mockOnPress} />,
     );
     const button = getByRole("button");
-    fireEvent.press(button);
+    act(() => {
+      fireEvent.press(button);
+    });
     expect(mockOnPress).toHaveBeenCalledTimes(1);
   });
 
@@ -61,7 +63,9 @@ describe("AuthButton", () => {
       <AuthButton variant="menu" loggedIn={false} onPress={onPress} />,
     );
 
-    fireEvent.press(getByRole("button"));
+    act(() => {
+      fireEvent.press(getByRole("button"));
+    });
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
