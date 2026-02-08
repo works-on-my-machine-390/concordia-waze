@@ -319,6 +319,12 @@ const docTemplate = `{
         "domain.Building": {
             "type": "object",
             "properties": {
+                "accessibility": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "address": {
                     "type": "string"
                 },
@@ -344,6 +350,12 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "services": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "venues": {
                     "type": "array",
                     "items": {
                         "type": "string"

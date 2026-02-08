@@ -1,6 +1,10 @@
 definitions:
   domain.Building:
     properties:
+      accessibility:
+        items:
+          type: string
+        type: array
       address:
         type: string
       code:
@@ -18,6 +22,10 @@ definitions:
       name:
         type: string
       services:
+        items:
+          type: string
+        type: array
+      venues:
         items:
           type: string
         type: array

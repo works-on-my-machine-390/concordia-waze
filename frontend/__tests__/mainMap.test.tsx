@@ -6,8 +6,8 @@ import { fireEvent, waitFor, act } from "@testing-library/react-native";
 import { Alert } from "react-native";
 import { renderWithProviders } from "../test_utils/renderUtils";
 
-import MainMap from "../app/map";
 import * as Location from "expo-location";
+import MainMap from "../app/map";
 
 /**
  * -----------------------------
@@ -96,6 +96,14 @@ jest.mock("react-native-maps", () => {
       return <View testID="map">{props.children}</View>;
     }),
     Marker: ({ children }) => <View testID="marker">{children}</View>,
+  };
+});
+
+// Mock the BuildingBottomSheet component to not render it during test
+// returns null because only want to test MainMap behavior (not the bottom sheet itself)
+jest.mock('@/components/BuildingBottomSheet', () => {
+  return function MockBuildingBottomSheet() {
+    return null; 
   };
 });
 
