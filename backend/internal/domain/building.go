@@ -8,6 +8,8 @@ type Building struct {
 	Latitude  float64 `json:"latitude"`
 	Longitude float64 `json:"longitude"`
 
-	Services    []string `json:"services"`
-	Departments []string `json:"departments"`
+	Services      []string `json:"services"`
+	Departments   []string `json:"departments"`
+	Venues 		  []string `json:"venues"`
+	Accessibility []string `json:"accessibility"`
 }
