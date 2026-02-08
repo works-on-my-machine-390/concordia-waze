@@ -49,7 +49,9 @@ export default function CustomDrawer(props: any) {
           <View style={styles.avatar}>
             <AccountIcon size={40} color={COLORS.goldDark} />
           </View>
-          <Text style={styles.name}>{userProfile?.name || "Guest"}</Text>
+          <Text style={styles.name} numberOfLines={1} ellipsizeMode="tail">
+            {userProfile?.name || "Guest"}
+          </Text>
         </View>
       </LinearGradient>
       <DrawerContentScrollView
@@ -94,7 +96,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: COLORS.gold,
   },
-  name: { fontSize: 24, color: COLORS.conuRedLight },
+  name: {
+    fontSize: 24,
+    color: COLORS.conuRedLight,
+    maxWidth: "80%",
+  },
   footer: {
     paddingVertical: 8,
     paddingHorizontal: 12,
