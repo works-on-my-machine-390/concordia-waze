@@ -1,7 +1,6 @@
 import BottomSheet, { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { COLORS } from '../app/constants';
 import {
   CloseIcon,
@@ -83,7 +82,6 @@ export default function BuildingBottomSheet({ building }: Props) {
   );
 
   return (
-    <GestureHandlerRootView style={styles.container}>
       <BottomSheet
         ref={bottomSheetRef}
         index={0}
@@ -140,15 +138,10 @@ export default function BuildingBottomSheet({ building }: Props) {
           )}
         </BottomSheetScrollView>
       </BottomSheet>
-    </GestureHandlerRootView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-
   bottomSheet: {
     backgroundColor: 'white',
     shadowColor: '#000',
