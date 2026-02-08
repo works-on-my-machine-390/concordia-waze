@@ -1,12 +1,11 @@
-import React from "react";
-import { View, Text, StyleSheet, Pressable, TextInput } from "react-native";
+import { CampusCode } from "@/hooks/queries/buildingQueries";
 import { Ionicons } from "@expo/vector-icons";
-import {colors, SHADOW } from "../app/styles/theme";
-
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { colors, SHADOW } from "../app/styles/theme";
 
 type Props = Readonly<{
-  campus: "SGW" | "Loyola";
-  onCampusChange: (campus: "SGW" | "Loyola") => void;
+  campus: CampusCode;
+  onCampusChange: (campus: CampusCode) => void;
   onMenuPress: () => void;
   searchText: string;
   onSearchTextChange: (t: string) => void;
@@ -44,13 +43,13 @@ export function MapHeader({
       <View style={styles.chipsRow}>
         <CampusButton
           label="SGW"
-          active={campus === "SGW"}
-          onPress={() => onCampusChange("SGW")}
+          active={campus === CampusCode.SGW}
+          onPress={() => onCampusChange(CampusCode.SGW)}
         />
         <CampusButton
           label="Loyola"
-          active={campus === "Loyola"}
-          onPress={() => onCampusChange("Loyola")}
+          active={campus === CampusCode.LOY}
+          onPress={() => onCampusChange(CampusCode.LOY)}
         />
       </View>
     </View>
@@ -75,7 +74,12 @@ function CampusButton({
         pressed && styles.chipPressed,
       ]}
     >
-      <Text style={[styles.chipText, active ? styles.chipTextActive : styles.chipTextInactive]}>
+      <Text
+        style={[
+          styles.chipText,
+          active ? styles.chipTextActive : styles.chipTextInactive,
+        ]}
+      >
         {label}
       </Text>
     </Pressable>
@@ -145,7 +149,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     justifyContent: "center",
     alignItems: "center",
-
   },
 
   chipPressed: {
@@ -154,7 +157,7 @@ const styles = StyleSheet.create({
   },
 
   chipActive: {
-    backgroundColor: colors.maroon, 
+    backgroundColor: colors.maroon,
   },
 
   chipInactive: {

@@ -13,7 +13,7 @@ describe("MapHeader", () => {
         onMenuPress={jest.fn()}
         searchText=""
         onSearchTextChange={jest.fn()}
-      />
+      />,
     );
 
     const sgwButton = getByText("SGW");
@@ -21,40 +21,39 @@ describe("MapHeader", () => {
 
     // SGW button should have active text color (soft pink)
     expect(sgwButton.props.style).toEqual(
-      expect.arrayContaining([expect.objectContaining({ color: "#DEBDC4" })])
+      expect.arrayContaining([expect.objectContaining({ color: "#DEBDC4" })]),
     );
 
     // Loyola button should not be active
     expect(loyolaButton.props.style).toEqual(
-      expect.arrayContaining([expect.objectContaining({ color: "#222" })])
+      expect.arrayContaining([expect.objectContaining({ color: "#222" })]),
     );
   });
 
   test("Loyola button is active when campus prop is 'Loyola'", () => {
-  const { getByText } = render(
-    <MapHeader
-      campus="Loyola"
-      onCampusChange={jest.fn()}
-      onMenuPress={jest.fn()}
-      searchText=""
-      onSearchTextChange={jest.fn()}
-    />
-  );
+    const { getByText } = render(
+      <MapHeader
+        campus="LOY"
+        onCampusChange={jest.fn()}
+        onMenuPress={jest.fn()}
+        searchText=""
+        onSearchTextChange={jest.fn()}
+      />,
+    );
 
-  const loyolaButton = getByText("Loyola");
-  const sgwButton = getByText("SGW");
+    const loyolaButton = getByText("Loyola");
+    const sgwButton = getByText("SGW");
 
-  // Loyola button should now be active (soft pink)
-  expect(loyolaButton.props.style).toEqual(
-    expect.arrayContaining([expect.objectContaining({ color: "#DEBDC4" })])
-  );
+    // Loyola button should now be active (soft pink)
+    expect(loyolaButton.props.style).toEqual(
+      expect.arrayContaining([expect.objectContaining({ color: "#DEBDC4" })]),
+    );
 
-  // SGW button should now be inactive (dark gray)
-  expect(sgwButton.props.style).toEqual(
-    expect.arrayContaining([expect.objectContaining({ color: "#222" })])
-  );
-});
-
+    // SGW button should now be inactive (dark gray)
+    expect(sgwButton.props.style).toEqual(
+      expect.arrayContaining([expect.objectContaining({ color: "#222" })]),
+    );
+  });
 
   test("Clicking SGW or Loyola button calls onCampusChange with correct value", () => {
     const mockOnCampusChange = jest.fn();
@@ -66,18 +65,18 @@ describe("MapHeader", () => {
         onMenuPress={jest.fn()}
         searchText=""
         onSearchTextChange={jest.fn()}
-      />
+      />,
     );
 
     const loyolaButton = getByText("Loyola");
     const sgwButton = getByText("SGW");
 
     fireEvent.press(loyolaButton);
-    expect(mockOnCampusChange).toHaveBeenCalledWith("Loyola");
+    expect(mockOnCampusChange).toHaveBeenCalledWith("LOY");
 
     fireEvent.press(sgwButton);
     expect(mockOnCampusChange).toHaveBeenCalledWith("SGW");
   });
 
- // TO DO: need more tests for menu button and search input 
+  // TO DO: need more tests for menu button and search input
 });
