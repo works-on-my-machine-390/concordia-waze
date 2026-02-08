@@ -12,6 +12,7 @@ import (
 	_ "github.com/works-on-my-machine-390/concordia-waze/docs"
 
 	"github.com/works-on-my-machine-390/concordia-waze/internal/application"
+	"github.com/works-on-my-machine-390/concordia-waze/internal/application/google"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/constants"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/persistence/repository"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/presentation/handler"
@@ -28,13 +29,17 @@ func SetupRouter() *gin.Engine {
 	jwtManager := application.NewJWTManager(os.Getenv("JWT_SECRET"), constants.DefaultJWTDuration*time.Hour)
 	userService := application.NewUserService(userRepo, jwtManager)
 
+	placesClient := google.NewGooglePlacesClient(os.Getenv("GOOGLE_PLACES_API_KEY"))
+
 	buildingService := application.NewBuildingService(buildingDataRepo)
 	campusService := application.NewCampusService(buildingDataRepo)
+	imageService := application.NewImageService(buildingService, placesClient)
 
 	authHandler := handler.NewAuthHandler(userService)
 
 	buildingHandler := handler.NewBuildingHandler(buildingService)
 	campusHandler := handler.NewCampusHandler(campusService)
+	imageHandler := handler.NewImageHandler(imageService)
 
 	router.Use(middleware.AuthMiddleware(jwtManager))
 
@@ -46,7 +51,11 @@ func SetupRouter() *gin.Engine {
 		authGroup.POST("/logout", middleware.RequireAuth(), authHandler.Logout)
 	}
 
-	router.GET("/buildings/:code", buildingHandler.GetBuilding)
+	buildingsGroup := router.Group("/buildings")
+	{
+		buildingsGroup.GET("/:code", buildingHandler.GetBuilding)
+		buildingsGroup.GET("/:code/images", imageHandler.GetBuildingImages)
+	}
 
 	router.GET("/campuses/:campus/buildings", campusHandler.GetCampusBuildings)
 
