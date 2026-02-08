@@ -5,14 +5,15 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
 )
 
 type fakeBuildingService struct {
-	building *Building
+	building *domain.Building
 	err      error
 }
 
-func (f *fakeBuildingService) GetBuilding(code string) (*Building, error) {
+func (f *fakeBuildingService) GetBuilding(code string) (*domain.Building, error) {
 	return f.building, f.err
 }
 
@@ -32,11 +33,11 @@ func (f *fakePlacesClient) GetPhotoURLs(string) ([]string, error) {
 
 func TestImageService_GetBuildingImages_Success(t *testing.T) {
 	buildingSvc := &fakeBuildingService{
-		building: &Building{
-			Code:     "LS",
-			LongName: "Learning Square",
-			Address:  "1535 DeMaisonneuve W",
-			Latitude: 45.49,
+		building: &domain.Building{
+			Code:      "LS",
+			LongName:  "Learning Square",
+			Address:   "1535 DeMaisonneuve W",
+			Latitude:  45.49,
 			Longitude: -73.57,
 		},
 	}
@@ -73,7 +74,7 @@ func TestImageService_GetBuildingImages_BuildingNotFound(t *testing.T) {
 
 func TestImageService_GetBuildingImages_PlacesError(t *testing.T) {
 	buildingSvc := &fakeBuildingService{
-		building: &Building{
+		building: &domain.Building{
 			LongName: "Learning Square",
 			Address:  "1535 DeMaisonneuve W",
 		},

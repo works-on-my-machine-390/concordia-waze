@@ -2,19 +2,25 @@ package application
 
 import (
 	"fmt"
+
+	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
 )
+
+type BuildingGetter interface {
+	GetBuilding(code string) (*domain.Building, error)
+}
 
 type ImageService interface {
 	GetBuildingImages(code string) ([]string, error)
 }
 
 type imageService struct {
-	buildingService *BuildingService
+	buildingService BuildingGetter
 	placesClient    PlacesClient
 }
 
 func NewImageService(
-	buildingService *BuildingService,
+	buildingService BuildingGetter,
 	placesClient PlacesClient,
 ) ImageService {
 	return &imageService{
