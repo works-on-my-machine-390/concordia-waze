@@ -44,11 +44,23 @@ func TestGetBuilding_Found_TrimsAndUppercasesCode(t *testing.T) {
 		"SGW": [
 			{
 				"code": "MB",
-				"name": "John Molson Building",
-				"long_name": "John Molson School of Business",
+				"name": "MB Building",
+				"long_name": "John Molson Building",
 				"address": "1450 Guy St, Montreal",
 				"latitude": 45.4970,
-				"longitude": -73.5792
+				"longitude": -73.5792,
+				"departments": [
+					"Accountancy"
+				],
+				"services": [
+					"Career Management Services"
+				],
+				"venues": [
+					"Concordia Conference Centre, 9th Floor"
+				],
+				"accessibility": [
+					"Accessible entrance"
+				]
 			}
 		]
 	}`
@@ -66,15 +78,23 @@ func TestGetBuilding_Found_TrimsAndUppercasesCode(t *testing.T) {
 	if b.Code != "MB" {
 		t.Fatalf("expected code MB, got %s", b.Code)
 	}
-	if b.Name != "John Molson Building" {
-		t.Fatalf("expected name John Molson Building, got %s", b.Name)
+	if b.Name != "MB Building" {
+		t.Fatalf("expected name MB Building, got %s", b.Name)
 	}
 	if b.Address != "1450 Guy St, Montreal" {
 		t.Fatalf("expected address 1450 Guy St, Montreal, got %s", b.Address)
 	}
-	// Ensure Services/Departments are present even if empty (API stability)
-	if b.Services == nil || b.Departments == nil {
-		t.Fatalf("expected non-nil services/departments slices")
+	if len(b.Departments) != 1 || b.Departments[0] != "Accountancy" {
+		t.Fatalf("unexpected departments: %#v", b.Departments)
+	}
+	if len(b.Services) != 1 || b.Services[0] != "Career Management Services" {
+		t.Fatalf("unexpected services: %#v", b.Services)
+	}
+	if len(b.Venues) != 1 || b.Venues[0] != "Concordia Conference Centre, 9th Floor" {
+		t.Fatalf("unexpected venues: %#v", b.Venues)
+	}
+	if len(b.Accessibility) != 1 || b.Accessibility[0] != "Accessible entrance" {
+		t.Fatalf("unexpected accessibility: %#v", b.Accessibility)
 	}
 }
 
