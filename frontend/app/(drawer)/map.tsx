@@ -1,3 +1,4 @@
+import BuildingBottomSheet from "@/components/BuildingBottomSheet";
 import {
   CampusBuilding,
   CampusCode,
@@ -20,6 +21,9 @@ export default function MainMap() {
   const [currentBuildingCode, setCurrentBuildingCode] = useState<string | null>(
     null,
   );
+  const [selectedBuildingCode, setSelectedBuildingCode] = useState<
+    string | null
+  >(null);
 
   const [location, setLocation] = useState<Location.LocationObject | null>(
     null,
@@ -204,6 +208,8 @@ export default function MainMap() {
         <CampusBuildingPolygons
           buildings={buildingsToRender}
           highlightedCode={currentBuildingCode}
+          selectedCode={selectedBuildingCode}
+          onBuildingPress={setSelectedBuildingCode}
         />
       </MapView>
 
@@ -215,7 +221,19 @@ export default function MainMap() {
         onMenuPress={() => {}}
         // onMenuPress={() => router.push("/menu")} // navigate to menu screen, to be created
       />
-      <LocationButton onPress={goToMyLocation} />
+      <View style={styles.bottomSheetContainer}>
+        <LocationButton
+          onPress={goToMyLocation}
+          bottomPosition={!!selectedBuildingCode ? 220 : 80}
+        />
+
+        {!!selectedBuildingCode && (
+          <BuildingBottomSheet
+            buildingCode={selectedBuildingCode}
+            onClose={() => setSelectedBuildingCode(null)}
+          />
+        )}
+      </View>
     </View>
   );
 }
@@ -226,5 +244,12 @@ const styles = StyleSheet.create({
   },
   map: {
     flex: 1,
+  },
+  bottomSheetContainer: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
 });
