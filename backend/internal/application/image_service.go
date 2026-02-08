@@ -3,6 +3,7 @@ package application
 import (
 	"fmt"
 
+	"github.com/works-on-my-machine-390/concordia-waze/internal/application/google"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
 )
 
@@ -16,12 +17,12 @@ type ImageService interface {
 
 type imageService struct {
 	buildingService BuildingGetter
-	placesClient    PlacesClient
+	placesClient    google.PlacesClient
 }
 
 func NewImageService(
 	buildingService BuildingGetter,
-	placesClient PlacesClient,
+	placesClient google.PlacesClient,
 ) ImageService {
 	return &imageService{
 		buildingService: buildingService,
