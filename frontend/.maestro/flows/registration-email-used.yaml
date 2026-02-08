@@ -1,0 +1,71 @@
+appId: host.exp.Exponent
+---
+
+# 1) Open app and navigation to sign up
+- launchApp
+- tapOn: "frontend"
+- tapOn:
+    id: "signin-signup-button"
+- tapOn: "Sign up"
+- assertVisible: "Create an account!"
+
+# Test C — valid registration 1 then registration 2 reuses that email
+- tapOn:
+    id: "fullname-input"
+- inputText: "Test User"
+
+- tapOn:
+    id: "email-input"
+- inputText: "test.user@live.concordia.ca"
+
+- scroll
+
+- tapOn:
+    id: "password-input"
+- inputText: "ValidPass123"
+- scroll
+
+- tapOn:
+    id: "confirm-password-input"
+- inputText: "ValidPass123"
+
+- scroll
+
+- hideKeyboard
+- tapOn:
+    id: "signup-button"
+    
+# If registration completes successfuly
+- assertVisible: "Registration successful! Please log in."
+
+- tapOn: "OK"
+
+# Registration #2 with reused email
+- tapOn: "Sign up"
+
+- tapOn:
+    id: "fullname-input"
+- inputText: "Second User"
+
+- tapOn:
+    id: "email-input"
+- inputText: "test.user@live.concordia.ca"
+
+- scroll
+
+- tapOn:
+    id: "password-input"
+- inputText: "ValidPass123"
+- scroll
+
+- tapOn:
+    id: "confirm-password-input"
+- inputText: "ValidPass123"
+
+- scroll
+
+- hideKeyboard
+- tapOn:
+    id: "signup-button"
+
+- assertVisible: "User with this email already exists"

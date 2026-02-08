@@ -22,20 +22,20 @@ describe("api", () => {
     expect(API_URL).toBe("http://localhost:8080");
   });
 
-  test("api() without token calls wretch with no auth header", () => {
+  test("api() without token calls wretch with no auth header", async () => {
     const wretch = require("wretch");
-    api();
+    await api();
     expect(wretch).toHaveBeenCalledWith("http://localhost:8080");
   });
 
-  test("api() with token includes Authorization header", () => {
+  test("api() with token includes Authorization header", async () => {
     const wretch = require("wretch");
     const mockHeadersFn = jest.fn();
     wretch.mockReturnValueOnce({
       headers: mockHeadersFn,
     });
 
-    api("test-token");
+    await api("test-token");
 
     expect(wretch).toHaveBeenCalledWith("http://localhost:8080");
     expect(mockHeadersFn).toHaveBeenCalledWith({
@@ -43,53 +43,54 @@ describe("api", () => {
     });
   });
 
-  test("api() with empty token string includes Authorization header", () => {
+  test("api() with empty token string includes Authorization header", async () => {
     const wretch = require("wretch");
     const mockHeadersFn = jest.fn();
     wretch.mockReturnValueOnce({
       headers: mockHeadersFn,
     });
 
-    api("");
+    await api("");
 
     expect(wretch).toHaveBeenCalledWith("http://localhost:8080");
     expect(mockHeadersFn).toHaveBeenCalledWith({});
   });
 
-  test("api() with null token calls without auth header", () => {
+  test("api() with null token calls without auth header", async () => {
     const wretch = require("wretch");
     const mockHeadersFn = jest.fn();
     wretch.mockReturnValueOnce({
       headers: mockHeadersFn,
     });
 
-    api(null as any);
+    await api(null as any);
 
     expect(mockHeadersFn).toHaveBeenCalledWith({});
   });
 
-  test("api() with undefined token calls without auth header", () => {
+  test("api() with undefined token calls without auth header", async () => {
     const wretch = require("wretch");
     const mockHeadersFn = jest.fn();
     wretch.mockReturnValueOnce({
       headers: mockHeadersFn,
     });
 
-    api(undefined);
+    await api(undefined);
 
     expect(mockHeadersFn).toHaveBeenCalledWith({});
   });
 
-  test("api() with long token string includes full Authorization header", () => {
+  test("api() with long token string includes full Authorization header", async () => {
     const wretch = require("wretch");
     const mockHeadersFn = jest.fn();
     wretch.mockReturnValueOnce({
       headers: mockHeadersFn,
     });
 
-    const longToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c";
+    const longToken =
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c";
 
-    api(longToken);
+    await api(longToken);
 
     expect(mockHeadersFn).toHaveBeenCalledWith({
       Authorization: `Bearer ${longToken}`,

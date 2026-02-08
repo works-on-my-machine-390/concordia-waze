@@ -1,12 +1,12 @@
 import React from "react";
 import {
-    Image,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    View,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { COLORS, LOGO_IMAGE } from "../app/constants";
@@ -18,11 +18,7 @@ type Props = {
   children: React.ReactNode;
 };
 
-export default function AuthLayout({
-  title,
-  logoSize = 140,
-  children,
-}: Props) {
+export default function AuthLayout({ title, logoSize = 140, children }: Props) {
   return (
     <SafeAreaView style={styles.page}>
       <BackHeader />

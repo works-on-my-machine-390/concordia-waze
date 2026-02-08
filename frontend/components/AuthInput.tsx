@@ -13,6 +13,7 @@ interface Props {
   autoCapitalize?: "none" | "sentences" | "words" | "characters";
   accessibleLabel?: string;
   right?: React.ReactNode;
+  testID?: string;
 }
 
 export default function AuthInput({
@@ -26,12 +27,14 @@ export default function AuthInput({
   autoCapitalize = "none",
   accessibleLabel,
   right,
+  testID,
 }: Readonly<Props>) {
   return (
     <View style={s.container}>
       {label ? <Text style={s.label}>{label}</Text> : null}
       <View style={s.row}>
         <TextInput
+          testID={testID}
           accessibilityLabel={
             accessibleLabel ?? (typeof label === "string" ? label : "")
           }
@@ -80,6 +83,6 @@ const s = StyleSheet.create({
     position: "absolute",
     right: 12,
     top: "50%",
-    transform: [{ translateY: -12 }], // adjust if height changes
+    transform: [{ translateY: -12 }],
   },
 });

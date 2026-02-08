@@ -6,12 +6,7 @@ Login screen with email/password inputs, Concordia email validation, show/hide p
 
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
-} from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import AuthButton from "../components/AuthButton";
 import AuthInput from "../components/AuthInput";
 import AuthLayout from "../components/AuthLayout";
@@ -67,6 +62,7 @@ export default function LoginScreen() {
         }}
         keyboardType="email-address"
         error={errors.email}
+              testID="email-input-login"
       />
 
       <AuthInput
@@ -79,18 +75,25 @@ export default function LoginScreen() {
         }}
         secureTextEntry={!showPassword}
         error={errors.password}
-        right={<PasswordToggle show={showPassword} onPress={() => setShowPassword((s) => !s)} />}
+                testID="password-input-login"
+        right={
+          <PasswordToggle
+            show={showPassword}
+            onPress={() => setShowPassword((s) => !s)}
+          />
+        }
       />
 
-      {!!serverError && (
-        <Text style={styles.serverError}>{serverError}</Text>
-      )}
+      {!!serverError && <Text style={styles.serverError}>{serverError}</Text>}
 
       <AuthButton title="Sign in" onPress={handleSubmit} loading={loading} />
 
       <View style={styles.footer}>
         <Text style={styles.footerText}>Don't have an account? </Text>
-        <TouchableOpacity onPress={() => router.push({ pathname: "/register", params: { prev: "login" } })}>
+        <TouchableOpacity
+          onPress={() => router.push({ pathname: "/register", params: { prev: "login" } })}
+          testID="signup-link"
+        >
           <Text style={styles.footerLink}>Sign up</Text>
         </TouchableOpacity>
       </View>

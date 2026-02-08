@@ -7,21 +7,16 @@ Registration form collecting full name, email, password, and password confirmati
 
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
-} from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import AuthButton from "../components/AuthButton";
 import AuthInput from "../components/AuthInput";
 import AuthLayout from "../components/AuthLayout";
+import PasswordToggle from "../components/PasswordToggle";
 import { TermsText } from "../components/SharedUI";
 import { useAuth } from "../hooks/useAuth";
 import { COLORS } from "./constants";
 import { EyeHidingIcon, EyeShowingIcon } from "./icons";
 import { validateRegister } from "./utils/validators";
-import PasswordToggle from "../components/PasswordToggle";
 
 const MIN_PASSWORD_LENGTH = 6;
 
@@ -85,6 +80,7 @@ export default function RegisterScreen() {
         }}
         error={errors.fullName}
         autoCapitalize="words"
+        testID="fullname-input"
       />
 
       <AuthInput
@@ -97,6 +93,7 @@ export default function RegisterScreen() {
         }}
         keyboardType="email-address"
         error={errors.email}
+        testID="email-input"
       />
 
       <AuthInput
@@ -109,7 +106,13 @@ export default function RegisterScreen() {
         }}
         secureTextEntry={!showPassword}
         error={errors.password}
-        right={<PasswordToggle show={showPassword} onPress={() => setShowPassword((s) => !s)} />}
+        testID="password-input"
+        right={
+          <PasswordToggle
+            show={showPassword}
+            onPress={() => setShowPassword((s) => !s)}
+          />
+        }
       />
 
       {showPasswordHelper && (
@@ -119,7 +122,12 @@ export default function RegisterScreen() {
       )}
 
       <AuthInput
-        label="Confirm password"
+        label={
+          <Text>
+            Confirm Password
+            <Text style={{ color: COLORS.maroon }}>*</Text>
+          </Text>
+        }
         placeholder="Password"
         value={confirmPassword}
         onChange={(v) => {
@@ -128,14 +136,27 @@ export default function RegisterScreen() {
         }}
         secureTextEntry={!showConfirmPassword}
         error={errors.confirmPassword}
-        right={<PasswordToggle show={showConfirmPassword} onPress={() => setShowConfirmPassword((s) => !s)} />}
+        right={
+          <TouchableOpacity
+            onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+          >
+            {showConfirmPassword ? (
+              <EyeHidingIcon size={24} color={COLORS.maroon} />
+            ) : (
+              <EyeShowingIcon size={24} color={COLORS.maroon} />
+            )}
+          </TouchableOpacity>
+        }
       />
 
-      {!!serverError && (
-        <Text style={styles.serverError}>{serverError}</Text>
-      )}
+      {!!serverError && <Text style={styles.serverError}>{serverError}</Text>}
 
-      <AuthButton title="Sign up" onPress={handleSubmit} loading={loading} />
+      <AuthButton
+        title="Sign up"
+        onPress={handleSubmit}
+        loading={loading}
+        testID="signup-button"
+      />
 
       <View style={styles.footer}>
         <Text style={styles.footerText}>Already have an account? </Text>

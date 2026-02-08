@@ -1,43 +1,119 @@
+import {
+  CampusBuilding,
+  CampusCode,
+  useGetBuildings,
+} from "@/hooks/queries/buildingQueries";
 import * as Location from "expo-location";
 import { useEffect, useRef, useState, useMemo } from "react";
 import { Alert, StyleSheet, View } from "react-native";
-import MapView, { Marker } from "react-native-maps";
+import MapView, { Region } from "react-native-maps";
+import { isPointInPolygon } from "../app/utils/pointInPolygon";
+import CampusBuildingPolygons from "../components/CampusBuildingPolygons";
 import LocationButton from "../components/LocationButton";
 import { MapHeader } from "../components/MapHeader";
 import BuildingBottomSheet from '@/components/BuildingBottomSheet';
+import { getDistance } from "./utils/mapUtils";
 
 export default function MainMap() {
-  const [campus, setCampus] = useState<"SGW" | "Loyola">("SGW");
+  const [campus, setCampus] = useState<CampusCode>(CampusCode.SGW);
   const [searchText, setSearchText] = useState("");
+  const [currentBuildingCode, setCurrentBuildingCode] = useState<string | null>(
+    null,
+  );
 
   const [location, setLocation] = useState<Location.LocationObject | null>(
     null,
   );
+
+  const [buildingsByCampus, setBuildingsByCampus] = useState<
+    Record<string, CampusBuilding[]>
+  >({});
+
+  const buildingListQuery = useGetBuildings(campus);
+
+  useEffect(() => {
+    if (buildingListQuery.data) {
+      setBuildingsByCampus((prev) => ({
+        ...prev,
+        [buildingListQuery.data.campus]: buildingListQuery.data.buildings || [],
+      }));
+    }
+  }, [buildingListQuery.data]);
+
+  const buildingsToRender = useMemo(() => {
+    return buildingsByCampus[campus] || [];
+  }, [campus, buildingsByCampus]);
+
+  const mapStyle = [
+    {
+      featureType: "poi",
+      elementType: "all",
+      stylers: [{ visibility: "off" }],
+    },
+  ];
   const mapRef = useRef<MapView>(null);
 
   const CAMPUS_COORDS = {
-    SGW: { latitude: 45.4972, longitude: -73.5791 }, // SGW campus
-    Loyola: { latitude: 45.4589, longitude: -73.64 }, // Loyola campus
+    [CampusCode.SGW]: { latitude: 45.4972, longitude: -73.5791 }, // SGW campus
+    [CampusCode.LOY]: { latitude: 45.4589, longitude: -73.64 }, // Loyola campus
   };
 
   useEffect(() => {
-    async function getCurrentLocation() {
+    let sub: Location.LocationSubscription | null = null;
+
+    const startWatching = async () => {
       try {
-        let { status } = await Location.requestForegroundPermissionsAsync();
+        const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== "granted") {
           Alert.alert("Permission to access location was denied");
           return;
         }
 
-        let fetchedLocation = await Location.getCurrentPositionAsync({});
-        setLocation(fetchedLocation);
+        sub = await Location.watchPositionAsync(
+          {
+            accuracy: Location.Accuracy.High,
+            timeInterval: 1000,
+            distanceInterval: 1,
+          },
+          (loc) => {
+            setLocation(loc);
+          },
+        );
       } catch (e) {
-        console.error("Failed to get location.", e);
+        console.error("Failed to watch location.", e);
+      }
+    };
+
+    startWatching();
+
+    return () => {
+      sub?.remove();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!location?.coords) return;
+
+    const point = {
+      latitude: location.coords.latitude,
+      longitude: location.coords.longitude,
+    };
+
+    let found: string | null = null;
+
+    for (const b of Object.values(buildingsByCampus).flat()) {
+      if (isPointInPolygon(point, b.polygon)) {
+        found = b.code;
+        break;
       }
     }
 
-    getCurrentLocation();
-  }, []);
+    setCurrentBuildingCode(found);
+  }, [
+    location?.coords?.latitude,
+    location?.coords?.longitude,
+    buildingsByCampus,
+  ]);
 
   const goToMyLocation = async () => {
     try {
@@ -65,12 +141,12 @@ export default function MainMap() {
         );
       }
     } catch (e) {
-      console.error("Failed to get to your location.");
+      console.error("Failed to get to your location.", e);
       Alert.alert("Error", "Failed to get your location. Please try again.");
     }
   };
 
-  const handleCampusChange = (nextCampus: "SGW" | "Loyola") => {
+  const handleCampusChange = (nextCampus: CampusCode) => {
     setCampus(nextCampus);
     const coords = CAMPUS_COORDS[nextCampus];
     mapRef.current?.animateToRegion(
@@ -82,6 +158,30 @@ export default function MainMap() {
       },
       500,
     );
+  };
+
+  // Handle map region changes to auto-switch campus
+  const handleRegionChangeComplete = (region: Region) => {
+    const { latitude, longitude } = region;
+
+    // Calculate distance to each campus
+    const distanceToSGW = getDistance(
+      { latitude, longitude },
+      CAMPUS_COORDS[CampusCode.SGW],
+    );
+    const distanceToLOY = getDistance(
+      { latitude, longitude },
+      CAMPUS_COORDS[CampusCode.LOY],
+    );
+
+    // Determine which campus is closer
+    const closestCampus =
+      distanceToSGW < distanceToLOY ? CampusCode.SGW : CampusCode.LOY;
+
+    // Update campus if different
+    if (closestCampus !== campus) {
+      setCampus(closestCampus);
+    }
   };
 
   // Mock building for bottom sheet because no building selection yet
@@ -140,26 +240,24 @@ export default function MainMap() {
   return (
     <View style={styles.container}>
       <MapView
+        customMapStyle={mapStyle}
         ref={mapRef}
         showsMyLocationButton={false} // remove default google location button
         style={styles.map}
         showsUserLocation={true}
         initialRegion={{
           // coordinates for SGW campus (default)
-          latitude: CAMPUS_COORDS.SGW.latitude,
-          longitude: CAMPUS_COORDS.SGW.longitude,
+          latitude: CAMPUS_COORDS[CampusCode.SGW].latitude,
+          longitude: CAMPUS_COORDS[CampusCode.SGW].longitude,
           latitudeDelta: 0.005,
           longitudeDelta: 0.005,
         }}
+        onRegionChangeComplete={handleRegionChangeComplete}
       >
-        {location?.coords && (
-          <Marker
-            coordinate={{
-              latitude: location.coords.latitude,
-              longitude: location.coords.longitude,
-            }}
-          />
-        )}
+        <CampusBuildingPolygons
+          buildings={buildingsToRender}
+          highlightedCode={currentBuildingCode}
+        />
       </MapView>
 
       <MapHeader
