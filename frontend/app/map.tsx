@@ -1,17 +1,17 @@
+import BuildingBottomSheet from "@/components/BuildingBottomSheet";
 import {
   CampusBuilding,
   CampusCode,
   useGetBuildings,
 } from "@/hooks/queries/buildingQueries";
 import * as Location from "expo-location";
-import { useEffect, useRef, useState, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, StyleSheet, View } from "react-native";
 import MapView, { Region } from "react-native-maps";
 import { isPointInPolygon } from "../app/utils/pointInPolygon";
 import CampusBuildingPolygons from "../components/CampusBuildingPolygons";
 import LocationButton from "../components/LocationButton";
 import { MapHeader } from "../components/MapHeader";
-import BuildingBottomSheet from "@/components/BuildingBottomSheet";
 import { getDistance } from "./utils/mapUtils";
 
 export default function MainMap() {
@@ -207,6 +207,7 @@ export default function MainMap() {
         <CampusBuildingPolygons
           buildings={buildingsToRender}
           highlightedCode={currentBuildingCode}
+          selectedCode={selectedBuildingCode}
           onBuildingPress={setSelectedBuildingCode}
         />
       </MapView>

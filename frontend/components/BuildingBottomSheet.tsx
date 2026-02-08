@@ -1,3 +1,4 @@
+import type { Building } from "@/hooks/queries/buildingQueries";
 import { useGetBuildingDetails } from "@/hooks/queries/buildingQueries";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { useCallback, useMemo, useRef, useState } from "react";
@@ -6,25 +7,12 @@ import { COLORS } from "../app/constants";
 import {
   CloseIcon,
   ElevatorIcon,
-  EscalatorIcon,
   FavoriteEmptyIcon,
   GetDirectionsIcon,
+  SlopeUpIcon,
   WheelchairIcon,
 } from "../app/icons";
 import BuildingGallery from "./BuildingGallery";
-
-type Building = {
-  name: string;
-  acronym: string;
-  address: string;
-  services: string[];
-  departments: string[];
-  accessibility: {
-    wheelchair: boolean;
-    elevator: boolean;
-    escalator: boolean;
-  };
-};
 
 // Reusable list section
 function ListSection({ title, items }: { title: string; items: string[] }) {
@@ -46,6 +34,14 @@ type Props = {
   onClose?: () => void;
 };
 
+type BottomSheetBuildingModel = {
+  accessibilityMapping: {
+    wheelchair: boolean;
+    elevator: boolean;
+    ramp: boolean;
+  };
+} & Building;
+
 export default function BuildingBottomSheet(props: Props) {
   const bottomSheetRef = useRef<BottomSheet>(null);
   const [sheetIndex, setSheetIndex] = useState(0);
@@ -55,24 +51,21 @@ export default function BuildingBottomSheet(props: Props) {
 
   const getBuildingQuery = useGetBuildingDetails(props.buildingCode || "");
 
-  console.log(getBuildingQuery.data);
-
-  const building: Building = useMemo(() => {
+  const building: BottomSheetBuildingModel = useMemo(() => {
     if (getBuildingQuery.data) {
       return {
-        name: getBuildingQuery.data.name,
-        acronym: getBuildingQuery.data.code,
-        address: getBuildingQuery.data.address,
-        services: getBuildingQuery.data.services,
-        departments: getBuildingQuery.data.departments,
-        accessibility: {
-          // wheelchair: getBuildingQuery.data?.accessibility?.wheelchair || false,
-          // elevator: getBuildingQuery.data?.accessibility?.elevator || false,
-          // escalator: getBuildingQuery.data?.accessibility?.escalator || false,
-          wheelchair: true,
-          elevator: true,
-          escalator: true,
+        accessibilityMapping: {
+          wheelchair: getBuildingQuery.data.accessibility.includes(
+            "Accessible entrance",
+          ),
+          elevator: getBuildingQuery.data.accessibility.includes(
+            "Accessible building elevator",
+          ),
+          ramp: getBuildingQuery.data.accessibility.includes(
+            "Accessibility ramp",
+          ),
         },
+        ...getBuildingQuery.data,
       };
     }
   }, [getBuildingQuery.data]);
@@ -89,19 +82,19 @@ export default function BuildingBottomSheet(props: Props) {
   }, []);
 
   const accessibilityIcons = useMemo(() => {
-    if (!building || !building.accessibility) return [];
+    if (!building || !building.accessibilityMapping) return [];
     return [
-      building.accessibility.wheelchair && (
+      building.accessibilityMapping.wheelchair && (
         <WheelchairIcon key="wheelchair" color="#0E4C92" size={24} />
       ),
-      building.accessibility.elevator && (
+      building.accessibilityMapping.elevator && (
         <ElevatorIcon key="elevator" color="#0E4C92" size={30} />
       ),
-      building.accessibility.escalator && (
-        <EscalatorIcon key="escalator" color="#0E4C92" size={30} />
+      building.accessibilityMapping.ramp && (
+        <SlopeUpIcon key="ramp" color="#0E4C92" size={30} />
       ),
     ].filter(Boolean);
-  }, [building?.accessibility]);
+  }, [building?.accessibilityMapping]);
 
   return (
     <BottomSheet
@@ -125,7 +118,7 @@ export default function BuildingBottomSheet(props: Props) {
 
           <View style={styles.textContainer}>
             <Text style={styles.name}>
-              {building.name} ({building.acronym})
+              {building.long_name} ({building.code})
             </Text>
             <Text style={styles.address}>{building.address}</Text>
           </View>
@@ -150,10 +143,11 @@ export default function BuildingBottomSheet(props: Props) {
         {/* {sheetIndex > 0 && ( */}
         {!!building && getBuildingQuery.isSuccess && (
           <>
-            <BuildingGallery buildingCode={building.acronym} />
+            <BuildingGallery buildingCode={building.code} />
 
             <ListSection title="Services" items={building.services} />
             <ListSection title="Departments" items={building.departments} />
+            <ListSection title="Venues" items={building.venues} />
           </>
         )}
       </BottomSheetScrollView>
@@ -163,7 +157,7 @@ export default function BuildingBottomSheet(props: Props) {
 
 const styles = StyleSheet.create({
   bottomSheet: {
-    backgroundColor: "white",
+    backgroundColor: COLORS.background,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.15,

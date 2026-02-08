@@ -92,3 +92,8 @@ export const CloseIcon: React.FC<IconProps> = ({ size = DEFAULT_ICON_SIZE, color
 export const GetDirectionsIcon: React.FC<IconProps> = ({ size = DEFAULT_ICON_SIZE, color = DEFAULT_ICON_COLOR }) => (
   <MaterialIcons name="directions" size={size} color={color} />
 );
+
+// Ramp icon
+export const SlopeUpIcon: React.FC<IconProps> = ({ size = DEFAULT_ICON_SIZE, color = DEFAULT_ICON_COLOR }) => (
+  <MaterialCommunityIcons name="slope-uphill" size={size} color={color} />
+);

@@ -40,25 +40,25 @@ export const useGetBuildings = (campus: string) => {
   return query;
 };
 
-export type BuildingDetails = {
-  address: string;
+export type Building = {
   code: string;
-  departments: string[];
-  latitude: number;
-  long_name: string;
-  longitude: number;
   name: string;
+  long_name: string;
+  address: string;
+  latitude: number;
+  longitude: number;
   services: string[];
+  departments: string[];
+  venues: string[];
+  accessibility: string[];
 };
 
 export const useGetBuildingDetails = (buildingCode: string) => {
-  return useQuery<BuildingDetails>({
+  return useQuery<Building>({
     queryKey: ["buildingDetails", buildingCode],
     queryFn: async () => {
       const apiClient = await api();
-      return apiClient
-        .get(`/buildings/${buildingCode}`)
-        .json<BuildingDetails>();
+      return apiClient.get(`/buildings/${buildingCode}`).json<Building>();
     },
     staleTime: Infinity,
   });
