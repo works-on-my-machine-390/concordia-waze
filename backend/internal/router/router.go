@@ -12,6 +12,7 @@ import (
 	_ "github.com/works-on-my-machine-390/concordia-waze/docs"
 
 	"github.com/works-on-my-machine-390/concordia-waze/internal/application"
+	"github.com/works-on-my-machine-390/concordia-waze/internal/application/google"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/constants"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/persistence/repository"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/presentation/handler"
@@ -28,7 +29,7 @@ func SetupRouter() *gin.Engine {
 	jwtManager := application.NewJWTManager(os.Getenv("JWT_SECRET"), constants.DefaultJWTDuration*time.Hour)
 	userService := application.NewUserService(userRepo, jwtManager)
 
-	placesClient := application.NewGooglePlacesClient(os.Getenv("GOOGLE_PLACES_API_KEY"))
+	placesClient := google.NewGooglePlacesClient(os.Getenv("GOOGLE_PLACES_API_KEY"))
 
 	buildingService := application.NewBuildingService(buildingDataRepo)
 	campusService := application.NewCampusService(buildingDataRepo)
