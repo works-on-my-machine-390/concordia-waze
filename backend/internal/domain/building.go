@@ -10,6 +10,6 @@ type Building struct {
 
 	Services      []string `json:"services"`
 	Departments   []string `json:"departments"`
-	Venues 		  []string `json:"venues"`
+	Venues        []string `json:"venues"`
 	Accessibility []string `json:"accessibility"`
 }

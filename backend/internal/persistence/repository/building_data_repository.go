@@ -34,7 +34,7 @@ type rawBuilding struct {
 	Shape         *rawShape `json:"shape"`
 	Services      []string  `json:"services"`
 	Departments   []string  `json:"departments"`
-	Venues 		  []string  `json:"venues"`
+	Venues        []string  `json:"venues"`
 	Accessibility []string  `json:"accessibility"`
 }
 
@@ -94,7 +94,7 @@ func (r *BuildingDataRepository) GetBuilding(code string) (*domain.Building, err
 		Longitude:     b.Longitude,
 		Services:      b.Services,
 		Departments:   b.Departments,
-		Venues: 	   b.Venues,
+		Venues:        b.Venues,
 		Accessibility: b.Accessibility,
 	}, nil
 }
