@@ -28,13 +28,17 @@ func SetupRouter() *gin.Engine {
 	jwtManager := application.NewJWTManager(os.Getenv("JWT_SECRET"), constants.DefaultJWTDuration*time.Hour)
 	userService := application.NewUserService(userRepo, jwtManager)
 
+	placesClient := application.NewGooglePlacesClient(os.Getenv("GOOGLE_PLACES_API_KEY"))
+
 	buildingService := application.NewBuildingService(buildingDataRepo)
 	campusService := application.NewCampusService(buildingDataRepo)
+	imageService := application.NewImageService(buildingService, placesClient)
 
 	authHandler := handler.NewAuthHandler(userService)
 
 	buildingHandler := handler.NewBuildingHandler(buildingService)
 	campusHandler := handler.NewCampusHandler(campusService)
+	imageHandler := handler.NewImageHandler(imageService)
 
 	router.Use(middleware.AuthMiddleware(jwtManager))
 
@@ -47,6 +51,7 @@ func SetupRouter() *gin.Engine {
 	}
 
 	router.GET("/buildings/:code", middleware.RequireAuth(), buildingHandler.GetBuilding)
+	router.GET("/buildings/:code/images", middleware.RequireAuth(), imageHandler.GetBuildingImages)
 
 	router.GET("/campuses/:campus/buildings", middleware.RequireAuth(), campusHandler.GetCampusBuildings)
 
