@@ -29,7 +29,6 @@ function ListSection({ title, items }: { title: string; items: string[] }) {
 }
 
 type Props = {
-  // building: Building;
   buildingCode: string | null;
   onClose?: () => void;
 };
@@ -42,9 +41,8 @@ type BottomSheetBuildingModel = {
   };
 } & Building;
 
-export default function BuildingBottomSheet(props: Props) {
+export default function BuildingBottomSheet(props: Readonly<Props>) {
   const bottomSheetRef = useRef<BottomSheet>(null);
-  const [sheetIndex, setSheetIndex] = useState(0);
   const [sheetOpen, setSheetOpen] = useState(true);
 
   const snapPoints = useMemo(() => ["20%", "70%"], []);
@@ -71,7 +69,6 @@ export default function BuildingBottomSheet(props: Props) {
   }, [getBuildingQuery.data]);
 
   const handleSheetChanges = useCallback((index: number) => {
-    setSheetIndex(index);
     if (index > -1) setSheetOpen(true);
   }, []);
 
@@ -140,7 +137,6 @@ export default function BuildingBottomSheet(props: Props) {
 
       {/* Scrollable Content */}
       <BottomSheetScrollView contentContainerStyle={styles.scrollContent}>
-        {/* {sheetIndex > 0 && ( */}
         {!!building && getBuildingQuery.isSuccess && (
           <>
             <BuildingGallery buildingCode={building.code} />
