@@ -2,12 +2,13 @@
  * Tests for Map screen
  */
 
-import { fireEvent, waitFor, act } from "@testing-library/react-native";
+import { fireEvent, waitFor, act, cleanup } from "@testing-library/react-native";
 import { Alert } from "react-native";
 import { renderWithProviders } from "../test_utils/renderUtils";
 
 import MainMap from "../app/(drawer)/map";
 import * as Location from "expo-location";
+import { getDistance } from "../app/utils/mapUtils";
 
 /**
  * -----------------------------
@@ -31,6 +32,11 @@ jest.mock("../app/utils/pointInPolygon", () => ({
   isPointInPolygon: jest.fn(() => true),
 }));
 
+// Mock distance utility so we can control campus switching
+jest.mock("../app/utils/mapUtils", () => ({
+  getDistance: jest.fn(),
+}));
+
 /**
  * CampusBuildingPolygons mock (TS-safe)
  */
@@ -42,6 +48,8 @@ type CampusBuildingPolygonsProps = {
 const mockCampusBuildingPolygons = jest.fn(
   (props: CampusBuildingPolygonsProps) => null,
 );
+
+let latestCampus: string | undefined;
 
 // IMPORTANT:
 // This mock assumes MainMap imports CampusBuildingPolygons as DEFAULT:
@@ -58,7 +66,8 @@ jest.mock("../components/CampusBuildingPolygons", () => {
 
 // Mock MapHeader so we can trigger onCampusChange easily
 jest.mock("../components/MapHeader", () => ({
-  MapHeader: ({ onCampusChange }: any) => {
+  MapHeader: ({ onCampusChange, campus }: any) => {
+    latestCampus = campus;
     const { View, Button } = require("react-native");
     return (
       <View>
@@ -82,6 +91,7 @@ jest.mock("../components/LocationButton", () => {
 
 // Mock react-native-maps so we can control mapRef + animateToRegion
 const mockAnimateToRegion = jest.fn();
+let latestMapProps: any;
 
 jest.mock("react-native-maps", () => {
   const React = require("react");
@@ -93,6 +103,7 @@ jest.mock("react-native-maps", () => {
       React.useImperativeHandle(ref, () => ({
         animateToRegion: mockAnimateToRegion,
       }));
+      latestMapProps = props;
       return <View testID="map">{props.children}</View>;
     }),
     Marker: ({ children }) => <View testID="marker">{children}</View>,
@@ -127,6 +138,12 @@ describe("MainMap screen", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.spyOn(console, "error").mockImplementation(() => {});
+    latestCampus = undefined;
+    latestMapProps = undefined;
+  });
+
+  afterEach(() => {
+    cleanup();
   });
 
   test("requests location permission on mount", async () => {
@@ -232,6 +249,33 @@ describe("MainMap screen", () => {
       },
       500,
     );
+  });
+
+  test("region change switches campus to the closest campus", async () => {
+    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue(
+      {
+        status: "denied",
+      },
+    );
+
+    (getDistance as jest.Mock)
+      .mockReturnValueOnce(100)
+      .mockReturnValueOnce(10);
+
+    renderWithProviders(<MainMap />);
+
+    await act(async () => {
+      latestMapProps.onRegionChangeComplete({
+        latitude: 45.46,
+        longitude: -73.64,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      });
+    });
+
+    await waitFor(() => {
+      expect(latestCampus).toBe("LOY");
+    });
   });
 
   test("logs error if watchPositionAsync throws", async () => {
