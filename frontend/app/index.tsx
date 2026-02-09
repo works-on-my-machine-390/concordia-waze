@@ -38,7 +38,11 @@ export default function HomeScreen() {
   if (isAuthenticated === null) {
     return (
       <SafeAreaView style={styles.page}>
-        <ActivityIndicator size="large" color={COLORS.maroon} />
+        <ActivityIndicator
+          size="large"
+          color={COLORS.maroon}
+          testID="activity-indicator"
+        />
       </SafeAreaView>
     );
   }
