@@ -40,52 +40,50 @@ export default function DrawerLayout() {
   });
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <Drawer
-        drawerContent={CustomDrawer}
-        screenOptions={{
-          headerShown: false,
+    <Drawer
+      drawerContent={CustomDrawer}
+      screenOptions={{
+        headerShown: false,
 
-          drawerActiveTintColor: COLORS.textPrimary, // Text/Icon color when selected
-          drawerActiveBackgroundColor: COLORS.conuRedLight, // Background color when selected
+        drawerActiveTintColor: COLORS.textPrimary, // Text/Icon color when selected
+        drawerActiveBackgroundColor: COLORS.conuRedLight, // Background color when selected
 
-          drawerInactiveTintColor: "#333",
-          drawerInactiveBackgroundColor: "transparent",
-          drawerItemStyle: { marginVertical: 4, borderRadius: 16 },
-          drawerLabelStyle: {
-            fontSize: 16,
-          },
+        drawerInactiveTintColor: "#333",
+        drawerInactiveBackgroundColor: "transparent",
+        drawerItemStyle: { marginVertical: 4, borderRadius: 16 },
+        drawerLabelStyle: {
+          fontSize: 16,
+        },
+      }}
+    >
+      <Drawer.Screen
+        name="map"
+        options={{
+          ...getDrawerScreenOptions("Campus Map"),
+          drawerIcon: MapDrawerIcon,
         }}
-      >
-        <Drawer.Screen
-          name="map"
-          options={{
-            ...getDrawerScreenOptions("Campus Map"),
-            drawerIcon: MapDrawerIcon,
-          }}
-        />
-        <Drawer.Screen
-          name="directory"
-          options={{
-            ...getDrawerScreenOptions("Directory"),
-            drawerIcon: DirectoryDrawerIcon,
-          }}
-        />
-        <Drawer.Screen
-          name="favorites"
-          options={{
-            ...getDrawerScreenOptions("Favorite Locations"),
-            drawerIcon: FavoritesDrawerIcon,
-          }}
-        />
-        <Drawer.Screen
-          name="schedule"
-          options={{
-            ...getDrawerScreenOptions("Schedule"),
-            drawerIcon: ScheduleDrawerIcon,
-          }}
-        />
-      </Drawer>
-    </GestureHandlerRootView>
+      />
+      <Drawer.Screen
+        name="directory"
+        options={{
+          ...getDrawerScreenOptions("Directory"),
+          drawerIcon: DirectoryDrawerIcon,
+        }}
+      />
+      <Drawer.Screen
+        name="favorites"
+        options={{
+          ...getDrawerScreenOptions("Favorite Locations"),
+          drawerIcon: FavoritesDrawerIcon,
+        }}
+      />
+      <Drawer.Screen
+        name="schedule"
+        options={{
+          ...getDrawerScreenOptions("Schedule"),
+          drawerIcon: ScheduleDrawerIcon,
+        }}
+      />
+    </Drawer>
   );
 }

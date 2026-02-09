@@ -172,7 +172,6 @@ const styles = StyleSheet.create({
 
   chipInactive: {
     backgroundColor: "white",
-    borderWidth: 1,
     borderColor: "#E5E5E5",
   },
 
