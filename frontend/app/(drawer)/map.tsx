@@ -8,11 +8,12 @@ import * as Location from "expo-location";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, StyleSheet, View } from "react-native";
 import MapView, { Region } from "react-native-maps";
-import { isPointInPolygon } from "../app/utils/pointInPolygon";
-import CampusBuildingPolygons from "../components/CampusBuildingPolygons";
-import LocationButton from "../components/LocationButton";
-import { MapHeader } from "../components/MapHeader";
-import { getDistance } from "./utils/mapUtils";
+import { isPointInPolygon } from "~/app/utils/pointInPolygon";
+import CampusBuildingPolygons from "~/components/CampusBuildingPolygons";
+import LocationButton from "~/components/LocationButton";
+import { MapHeader } from "~/components/MapHeader";
+import { getDistance } from "../utils/mapUtils";
+import { Toast } from "toastify-react-native";
 
 export default function MainMap() {
   const [campus, setCampus] = useState<CampusCode>(CampusCode.SGW);
@@ -145,7 +146,7 @@ export default function MainMap() {
       }
     } catch (e) {
       console.error("Failed to get to your location.", e);
-      Alert.alert("Error", "Failed to get your location. Please try again.");
+      Toast.error("Failed to get your location. Please try again.");
     }
   };
 
@@ -223,7 +224,7 @@ export default function MainMap() {
       <View style={styles.bottomSheetContainer}>
         <LocationButton
           onPress={goToMyLocation}
-          bottomPosition={!!selectedBuildingCode ? 220 : 80}
+          bottomPosition={selectedBuildingCode ? 220 : 80}
         />
 
         {!!selectedBuildingCode && (

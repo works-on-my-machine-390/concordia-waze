@@ -7,6 +7,7 @@ Login screen with email/password inputs, Concordia email validation, show/hide p
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Toast } from "toastify-react-native";
 import AuthButton from "../components/AuthButton";
 import AuthInput from "../components/AuthInput";
 import AuthLayout from "../components/AuthLayout";
@@ -43,7 +44,7 @@ export default function LoginScreen() {
 
     if (result.success) {
       router.replace("/map"); // Navigate to main app
-      alert("Login successful!");
+      Toast.success("Login successful!");
     } else {
       setPassword("");
       setServerError((result as { success: false; error: string }).error);
@@ -62,7 +63,7 @@ export default function LoginScreen() {
         }}
         keyboardType="email-address"
         error={errors.email}
-              testID="email-input-login"
+        testID="email-input-login"
       />
 
       <AuthInput
@@ -75,7 +76,7 @@ export default function LoginScreen() {
         }}
         secureTextEntry={!showPassword}
         error={errors.password}
-                testID="password-input-login"
+        testID="password-input-login"
         right={
           <PasswordToggle
             show={showPassword}

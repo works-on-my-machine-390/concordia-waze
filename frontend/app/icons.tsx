@@ -51,6 +51,36 @@ export const LogoutIcon: React.FC<IconProps> = ({
   color = DEFAULT_ICON_COLOR,
 }) => <MaterialIcons name="logout" size={size} color={color} />;
 
+// Map icon
+export const MapIcon: React.FC<IconProps> = ({
+  size = DEFAULT_ICON_SIZE,
+  color = DEFAULT_ICON_COLOR,
+}) => <MaterialIcons name="map" size={size} color={color} />;
+
+// Directory icon
+export const DirectoryIcon: React.FC<IconProps> = ({
+  size = DEFAULT_ICON_SIZE,
+  color = DEFAULT_ICON_COLOR,
+}) => (
+  <MaterialCommunityIcons
+    name="book-open-page-variant"
+    size={size}
+    color={color}
+  />
+);
+
+// Favorites icon
+export const FavoritesIcon: React.FC<IconProps> = ({
+  size = DEFAULT_ICON_SIZE,
+  color = DEFAULT_ICON_COLOR,
+}) => <MaterialIcons name="favorite" size={size} color={color} />;
+
+// Calendar icon
+export const CalendarIcon: React.FC<IconProps> = ({
+  size = DEFAULT_ICON_SIZE,
+  color = DEFAULT_ICON_COLOR,
+}) => <MaterialIcons name="calendar-month" size={size} color={color} />;
+
 // Login icon
 export const LoginIcon: React.FC<IconProps> = ({
   size = DEFAULT_ICON_SIZE,

@@ -1,12 +1,14 @@
 import { CampusCode } from "@/hooks/queries/buildingQueries";
 import { Ionicons } from "@expo/vector-icons";
+import { DrawerActions } from "@react-navigation/native";
+import { useNavigation } from "expo-router";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { colors, SHADOW } from "../app/styles/theme";
 
 type Props = Readonly<{
   campus: CampusCode;
   onCampusChange: (campus: CampusCode) => void;
-  onMenuPress: () => void;
+  onMenuPress?: () => void;
   searchText: string;
   onSearchTextChange: (t: string) => void;
 }>;
@@ -18,17 +20,25 @@ export function MapHeader({
   searchText,
   onSearchTextChange,
 }: Props) {
+  const navigation = useNavigation();
+
+  const handleMenuButtonPress = () => {
+    navigation.dispatch(DrawerActions.openDrawer());
+
+    onMenuPress?.();
+  };
+
   return (
     <View style={styles.wrapper} pointerEvents="box-none">
       <View style={styles.headerRow}>
         {/* menu section */}
-        <Pressable style={styles.iconButton} onPress={onMenuPress}>
+        <Pressable style={styles.iconButton} onPress={handleMenuButtonPress}>
           <Ionicons name="menu" size={26} color={colors.maroon} />
         </Pressable>
 
         {/* search section */}
         <View style={styles.searchPill}>
-          <Ionicons name="search" size={18} color={colors.maroon} />
+          <Ionicons name="search" size={26} color={colors.maroon} />
           <TextInput
             value={searchText}
             onChangeText={onSearchTextChange}
@@ -129,7 +139,7 @@ const styles = StyleSheet.create({
 
   searchInput: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 16,
     color: "#111",
     paddingVertical: 0,
   },
@@ -162,11 +172,10 @@ const styles = StyleSheet.create({
 
   chipInactive: {
     backgroundColor: "white",
-    borderWidth: 1,
     borderColor: "#E5E5E5",
   },
 
-  chipText: { fontSize: 14, fontWeight: "700" },
+  chipText: { fontSize: 16, fontWeight: "700" },
   chipTextActive: { color: colors.pink },
   chipTextInactive: { color: "#222" },
 });

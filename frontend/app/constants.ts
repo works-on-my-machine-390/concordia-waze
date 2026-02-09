@@ -5,7 +5,10 @@ Central repository for app-wide constants including brand colors
 // Brand Colors
 export const COLORS = {
   maroon: "#7f2730",
-  gold: "#c1a97b",
+  conuRed: "#912338",
+  conuRedLight: "#F0C1CA",
+  gold: "#B8AB85",
+  goldDark: "#897334",
   error: "#b00020",
   textPrimary: "#222",
   textSecondary: "#666",
