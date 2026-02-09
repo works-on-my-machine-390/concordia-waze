@@ -224,7 +224,7 @@ export default function MainMap() {
       <View style={styles.bottomSheetContainer}>
         <LocationButton
           onPress={goToMyLocation}
-          bottomPosition={!!selectedBuildingCode ? 220 : 80}
+          bottomPosition={selectedBuildingCode ? 220 : 80}
         />
 
         {!!selectedBuildingCode && (

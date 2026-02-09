@@ -25,7 +25,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
-  const { loggedIn, checkToken } = useAuth();
+  const { checkToken } = useAuth();
 
   useEffect(() => {
     async function loadAuth() {
