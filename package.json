@@ -1,0 +1,30 @@
+{
+  "name": "concordia-waze",
+  "version": "1.0.0",
+  "description": "Concordia Waze is a mobile application developed by the Works on My Machine team to help students, staff, and visitors navigate Concordia University campuses.",
+  "scripts": {
+    "test": "cd backend && go test ./... && cd ../frontend && bun run test",
+    "test-ui": "cd frontend && bun run test",
+    "test-api": "cd backend && go test ./...",
+    "dev": "powershell -Command \"Start-Process cmd -ArgumentList '/k', 'cd backend && air' -WindowStyle Normal\" && cd frontend && bun run start",
+    "postinstall": "cd frontend && bun install"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/works-on-my-machine-390/concordia-waze.git"
+  },
+  "author": "works on my machine",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/works-on-my-machine-390/concordia-waze/issues"
+  },
+  "homepage": "https://github.com/works-on-my-machine-390/concordia-waze#readme",
+  "devDependencies": {
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
+    "prettier": "^3.8.1"
+  },
+  "lint-staged": {
+    "*.{js,css,md,ts,less,tsx,jsx,json}": "prettier --write"
+  }
+}

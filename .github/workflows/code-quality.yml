@@ -1,0 +1,48 @@
+name: Code Quality
+on:
+  push:
+    branches:
+      - dev
+    paths:
+      - "backend/**"
+      - "frontend/**"
+      - ".github/workflows/code-quality.yml"
+  pull_request:
+    branches: [main, dev]
+    types: [opened, synchronize, reopened]
+    paths: 
+      - "backend/**"
+      - "frontend/**"
+jobs:
+  sonarqube:
+    name: SonarQube
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v1
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.25.5"
+
+      - name: Generate frontend coverage
+        run: |
+          cd frontend
+          bun install
+          npm test -- --coverage
+
+      - name: Generate backend coverage
+        run: |
+          cd backend
+          go test -v -coverprofile=coverage.out ./internal/...
+          sed -i 's|github.com/works-on-my-machine-390/concordia-waze/|backend/|g' coverage.out
+
+      - name: SonarQube Scan
+        uses: SonarSource/sonarqube-scan-action@a31c9398be7ace6bbfaf30c0bd5d415f843d45e9
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
