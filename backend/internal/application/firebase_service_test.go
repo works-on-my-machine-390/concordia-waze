@@ -469,3 +469,339 @@ func TestSubcollectionsInitialized(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotNil(t, addresses)
 }
+
+func TestGetUserProfileByEmailNotFound(t *testing.T) {
+	service := setupTestService(t)
+	ctx := context.Background()
+
+	// Try to get non-existent user
+	_, err := service.GetUserProfileByEmail(ctx, "nonexistent-"+time.Now().Format("20060102150405")+"@example.com")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "user not found")
+}
+
+func TestGetSearchHistoryWithZeroLimit(t *testing.T) {
+	service := setupTestService(t)
+	ctx := context.Background()
+	userID := "test-user-limit-" + time.Now().Format("20060102150405")
+
+	// Create user
+	profile := application.User{
+		Email:     "limituser@example.com",
+		FirstName: "Limit",
+		LastName:  "User",
+		Password:  "password",
+	}
+	err := service.CreateUserProfile(ctx, userID, profile)
+	require.NoError(t, err)
+
+	// Add multiple items
+	for i := 0; i < 5; i++ {
+		item := application.SearchHistoryItem{
+			Query:     "Test Query",
+			Locations: "Location",
+		}
+		_, err := service.AddSearchHistory(ctx, userID, item)
+		require.NoError(t, err)
+	}
+
+	// Get with limit 0 (should default to 50)
+	history, err := service.GetSearchHistory(ctx, userID, 0)
+	require.NoError(t, err)
+	assert.GreaterOrEqual(t, len(history), 5)
+}
+
+func TestGetSearchHistoryWithNegativeLimit(t *testing.T) {
+	service := setupTestService(t)
+	ctx := context.Background()
+	userID := "test-user-neg-" + time.Now().Format("20060102150405")
+
+	// Create user
+	profile := application.User{
+		Email:     "neguser@example.com",
+		FirstName: "Negative",
+		LastName:  "User",
+		Password:  "password",
+	}
+	err := service.CreateUserProfile(ctx, userID, profile)
+	require.NoError(t, err)
+
+	// Add items
+	for i := 0; i < 3; i++ {
+		item := application.SearchHistoryItem{
+			Query:     "Query",
+			Locations: "Loc",
+		}
+		_, err := service.AddSearchHistory(ctx, userID, item)
+		require.NoError(t, err)
+	}
+
+	// Get with negative limit (should default to 50)
+	history, err := service.GetSearchHistory(ctx, userID, -10)
+	require.NoError(t, err)
+	assert.GreaterOrEqual(t, len(history), 3)
+}
+
+func TestGetSearchHistoryWithSmallLimit(t *testing.T) {
+	service := setupTestService(t)
+	ctx := context.Background()
+	userID := "test-user-small-" + time.Now().Format("20060102150405")
+
+	// Create user
+	profile := application.User{
+		Email:     "smalluser@example.com",
+		FirstName: "Small",
+		LastName:  "User",
+		Password:  "password",
+	}
+	err := service.CreateUserProfile(ctx, userID, profile)
+	require.NoError(t, err)
+
+	// Add multiple items
+	for i := 0; i < 10; i++ {
+		item := application.SearchHistoryItem{
+			Query:     "Query",
+			Locations: "Location",
+		}
+		_, err := service.AddSearchHistory(ctx, userID, item)
+		require.NoError(t, err)
+	}
+
+	// Get with limit 3
+	history, err := service.GetSearchHistory(ctx, userID, 3)
+	require.NoError(t, err)
+	assert.LessOrEqual(t, len(history), 3)
+}
+
+func TestClearSearchHistoryEmptyHistory(t *testing.T) {
+	service := setupTestService(t)
+	ctx := context.Background()
+	userID := "test-user-empty-clear-" + time.Now().Format("20060102150405")
+
+	// Create user
+	profile := application.User{
+		Email:     "emptyclear@example.com",
+		FirstName: "Empty",
+		LastName:  "Clear",
+		Password:  "password",
+	}
+	err := service.CreateUserProfile(ctx, userID, profile)
+	require.NoError(t, err)
+
+	// Clear history (should not fail on empty collection)
+	err = service.ClearSearchHistory(ctx, userID)
+	require.NoError(t, err)
+}
+
+func TestGetUserScheduleEmptySchedule(t *testing.T) {
+	service := setupTestService(t)
+	ctx := context.Background()
+	userID := "test-user-empty-schedule-" + time.Now().Format("20060102150405")
+
+	// Create user
+	profile := application.User{
+		Email:     "emptyschedule@example.com",
+		FirstName: "Empty",
+		LastName:  "Schedule",
+		Password:  "password",
+	}
+	err := service.CreateUserProfile(ctx, userID, profile)
+	require.NoError(t, err)
+
+	// Get empty schedule
+	schedule, err := service.GetUserSchedule(ctx, userID)
+	require.NoError(t, err)
+	assert.NotNil(t, schedule)
+	assert.Equal(t, 0, len(schedule))
+}
+
+func TestGetSavedAddressesEmptyAddresses(t *testing.T) {
+	service := setupTestService(t)
+	ctx := context.Background()
+	userID := "test-user-empty-addr-" + time.Now().Format("20060102150405")
+
+	// Create user
+	profile := application.User{
+		Email:     "emptyaddr@example.com",
+		FirstName: "Empty",
+		LastName:  "Address",
+		Password:  "password",
+	}
+	err := service.CreateUserProfile(ctx, userID, profile)
+	require.NoError(t, err)
+
+	// Get empty addresses
+	addresses, err := service.GetSavedAddresses(ctx, userID)
+	require.NoError(t, err)
+	assert.NotNil(t, addresses)
+	assert.Equal(t, 0, len(addresses))
+}
+
+func TestAddScheduleItemWithOptionalFields(t *testing.T) {
+	service := setupTestService(t)
+	ctx := context.Background()
+	userID := "test-user-opt-" + time.Now().Format("20060102150405")
+
+	// Create user
+	profile := application.User{
+		Email:     "optfields@example.com",
+		FirstName: "Optional",
+		LastName:  "Fields",
+		Password:  "password",
+	}
+	err := service.CreateUserProfile(ctx, userID, profile)
+	require.NoError(t, err)
+
+	// Add schedule item without optional fields
+	item := application.ScheduleItem{
+		Name:       "Meeting",
+		StartTime:  "10:00",
+		EndTime:    "11:00",
+		DaysOfWeek: []string{"Monday"},
+		Type:       "work",
+	}
+	scheduleID, err := service.AddScheduleItem(ctx, userID, item)
+	require.NoError(t, err)
+	assert.NotEmpty(t, scheduleID)
+
+	// Verify it was added
+	schedule, err := service.GetUserSchedule(ctx, userID)
+	require.NoError(t, err)
+	assert.GreaterOrEqual(t, len(schedule), 1)
+
+	found := false
+	for _, s := range schedule {
+		if s.ScheduleID == scheduleID {
+			found = true
+			assert.Equal(t, "Meeting", s.Name)
+			assert.Empty(t, s.Building)
+			assert.Empty(t, s.Room)
+			break
+		}
+	}
+	assert.True(t, found)
+}
+
+func TestUpdateScheduleItemMultipleFields(t *testing.T) {
+	service := setupTestService(t)
+	ctx := context.Background()
+	userID := "test-user-multi-" + time.Now().Format("20060102150405")
+
+	// Create user
+	profile := application.User{
+		Email:     "multiupdate@example.com",
+		FirstName: "Multi",
+		LastName:  "Update",
+		Password:  "password",
+	}
+	err := service.CreateUserProfile(ctx, userID, profile)
+	require.NoError(t, err)
+
+	// Add schedule item
+	item := application.ScheduleItem{
+		Name:       "Class",
+		StartTime:  "10:00",
+		EndTime:    "11:00",
+		DaysOfWeek: []string{"Monday"},
+		Type:       "class",
+	}
+	scheduleID, err := service.AddScheduleItem(ctx, userID, item)
+	require.NoError(t, err)
+
+	// Update multiple fields
+	updates := map[string]interface{}{
+		"name":       "Updated Class",
+		"building":   "EV Building",
+		"room":       "EV-001",
+		"daysOfWeek": []string{"Monday", "Wednesday", "Friday"},
+	}
+	err = service.UpdateScheduleItem(ctx, userID, scheduleID, updates)
+	require.NoError(t, err)
+
+	// Verify all updates
+	schedule, err := service.GetUserSchedule(ctx, userID)
+	require.NoError(t, err)
+
+	found := false
+	for _, s := range schedule {
+		if s.ScheduleID == scheduleID {
+			found = true
+			assert.Equal(t, "Updated Class", s.Name)
+			assert.Equal(t, "EV Building", s.Building)
+			assert.Equal(t, "EV-001", s.Room)
+			assert.Equal(t, []string{"Monday", "Wednesday", "Friday"}, s.DaysOfWeek)
+			break
+		}
+	}
+	assert.True(t, found)
+}
+
+func TestAddMultipleSearchHistoryItems(t *testing.T) {
+	service := setupTestService(t)
+	ctx := context.Background()
+	userID := "test-user-multiple-" + time.Now().Format("20060102150405")
+
+	// Create user
+	profile := application.User{
+		Email:     "multiple@example.com",
+		FirstName: "Multiple",
+		LastName:  "Items",
+		Password:  "password",
+	}
+	err := service.CreateUserProfile(ctx, userID, profile)
+	require.NoError(t, err)
+
+	// Add multiple search history items
+	queries := []string{"Hall Building", "JMSB", "Library", "EV Building", "Gym"}
+	for _, q := range queries {
+		item := application.SearchHistoryItem{
+			Query:     q,
+			Locations: "Location for " + q,
+		}
+		_, err := service.AddSearchHistory(ctx, userID, item)
+		require.NoError(t, err)
+		time.Sleep(10 * time.Millisecond) // Ensure different timestamps
+	}
+
+	// Get all search history
+	history, err := service.GetSearchHistory(ctx, userID, 10)
+	require.NoError(t, err)
+	assert.GreaterOrEqual(t, len(history), 5)
+
+	// Verify items are ordered by timestamp (latest first)
+	if len(history) >= 2 {
+		assert.True(t, !history[0].Timestamp.Before(history[1].Timestamp),
+			"Search history should be ordered by timestamp desc")
+	}
+}
+
+func TestAddMultipleSavedAddresses(t *testing.T) {
+	service := setupTestService(t)
+	ctx := context.Background()
+	userID := "test-user-multi-addr-" + time.Now().Format("20060102150405")
+
+	// Create user
+	profile := application.User{
+		Email:     "multiaddr@example.com",
+		FirstName: "Multi",
+		LastName:  "Address",
+		Password:  "password",
+	}
+	err := service.CreateUserProfile(ctx, userID, profile)
+	require.NoError(t, err)
+
+	// Add multiple addresses
+	addresses := []string{"Home", "Work", "Gym", "Library"}
+	for _, addr := range addresses {
+		address := application.SavedAddress{
+			Address: addr,
+		}
+		_, err := service.AddSavedAddress(ctx, userID, address)
+		require.NoError(t, err)
+	}
+
+	// Get all addresses
+	savedAddresses, err := service.GetSavedAddresses(ctx, userID)
+	require.NoError(t, err)
+	assert.GreaterOrEqual(t, len(savedAddresses), 4)
+}

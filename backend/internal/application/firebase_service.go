@@ -164,6 +164,10 @@ func (fs *FirebaseService) GetSearchHistory(ctx context.Context, userID string, 
 
 	history := make([]SearchHistoryItem, 0, len(docs))
 	for _, doc := range docs {
+		// Skip initialization placeholder
+		if doc.Ref.ID == "_init" {
+			continue
+		}
 		var item SearchHistoryItem
 		if err := doc.DataTo(&item); err != nil {
 			continue
@@ -220,6 +224,10 @@ func (fs *FirebaseService) GetUserSchedule(ctx context.Context, userID string) (
 
 	schedule := make([]ScheduleItem, 0, len(docs))
 	for _, doc := range docs {
+		// Skip initialization placeholder
+		if doc.Ref.ID == "_init" {
+			continue
+		}
 		var item ScheduleItem
 		if err := doc.DataTo(&item); err != nil {
 			continue
@@ -268,6 +276,10 @@ func (fs *FirebaseService) GetSavedAddresses(ctx context.Context, userID string)
 
 	addresses := make([]SavedAddress, 0, len(docs))
 	for _, doc := range docs {
+		// Skip initialization placeholder
+		if doc.Ref.ID == "_init" {
+			continue
+		}
 		var address SavedAddress
 		if err := doc.DataTo(&address); err != nil {
 			continue
