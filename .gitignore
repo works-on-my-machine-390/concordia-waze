@@ -5,3 +5,5 @@ coverage/
 coverage.out
 .idea
 package-lock.json
+backend/serviceAccountKey.json
+**/serviceAccountKey.json

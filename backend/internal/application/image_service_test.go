@@ -31,7 +31,7 @@ func (f *fakePlacesClient) GetPhotoURLs(string) ([]string, error) {
 	return f.images, f.err
 }
 
-func TestImageService_GetBuildingImages_Success(t *testing.T) {
+func TestImageServiceGetBuildingImagesSuccess(t *testing.T) {
 	buildingSvc := &fakeBuildingService{
 		building: &domain.Building{
 			Code:      "LS",
@@ -59,7 +59,7 @@ func TestImageService_GetBuildingImages_Success(t *testing.T) {
 	assert.Equal(t, "https://img1", images[0])
 }
 
-func TestImageService_GetBuildingImages_BuildingNotFound(t *testing.T) {
+func TestImageServiceGetBuildingImagesBuildingNotFound(t *testing.T) {
 	buildingSvc := &fakeBuildingService{
 		err: errors.New("not found"),
 	}
@@ -72,7 +72,7 @@ func TestImageService_GetBuildingImages_BuildingNotFound(t *testing.T) {
 	assert.Nil(t, images)
 }
 
-func TestImageService_GetBuildingImages_PlacesError(t *testing.T) {
+func TestImageServiceGetBuildingImagesPlacesError(t *testing.T) {
 	buildingSvc := &fakeBuildingService{
 		building: &domain.Building{
 			LongName: "Learning Square",

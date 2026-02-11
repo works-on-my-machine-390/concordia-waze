@@ -103,6 +103,11 @@ func NewUserService(repo repository.UserRepository, jwtManager *JWTManager) *Use
 	}
 }
 
+// GenerateTokenForUser generates a JWT token for a given user
+func (s *UserService) GenerateTokenForUser(user *domain.User) (string, error) {
+	return s.jwtManager.GenerateToken(user)
+}
+
 // SignUp registers a new user
 func (s *UserService) SignUp(name, email, password string) (*domain.User, string, error) {
 	// Validation
