@@ -52,7 +52,7 @@ func (f *fakeProfileService) GetUserProfileByEmail(ctx context.Context, email st
 			return &profile, nil
 		}
 	}
-	return nil, nil
+	return nil, nil // Not found returns nil profile, nil error (updated handler checks for nil profile)
 }
 
 func setupAuthTest(t *testing.T) (*handler.AuthHandler, *application.JWTManager) {

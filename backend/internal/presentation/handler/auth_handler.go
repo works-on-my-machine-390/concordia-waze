@@ -122,7 +122,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 	// Check Firestore for user authentication if Firebase service is available
 	if h.firebaseService != nil {
 		profile, err := h.firebaseService.GetUserProfileByEmail(c.Request.Context(), req.Email)
-		if err != nil {
+		if err != nil || profile == nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 			return
 		}
