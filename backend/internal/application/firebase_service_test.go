@@ -30,6 +30,10 @@ func setupTestService(t *testing.T) *application.FirebaseService {
 		// Check if we should use the emulator
 		if emulatorHost := os.Getenv("FIRESTORE_EMULATOR_HOST"); emulatorHost != "" {
 			t.Logf("Using Firestore emulator at %s", emulatorHost)
+			// Set project ID for emulator
+			if os.Getenv("GCLOUD_PROJECT") == "" {
+				os.Setenv("GCLOUD_PROJECT", "demo-test-project")
+			}
 		} else {
 			t.Log("Using real Firebase (make sure serviceAccountKey.json exists)")
 		}
@@ -49,7 +53,9 @@ func setupTestService(t *testing.T) *application.FirebaseService {
 
 func TestCreateAndGetUserProfile(t *testing.T) {
 	service := setupTestService(t)
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
 	userID := "test-user-" + time.Now().Format("20060102150405")
 
 	profile := application.User{
