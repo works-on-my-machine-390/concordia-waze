@@ -9,7 +9,7 @@ import (
 	"github.com/works-on-my-machine-390/concordia-waze/internal/persistence/repository"
 )
 
-func TestSignUp_Success(t *testing.T) {
+func TestSignUpSuccess(t *testing.T) {
 	repo := repository.NewInMemoryUserRepository()
 	jwtManager := application.NewJWTManager("test-secret", time.Hour)
 	service := application.NewUserService(repo, jwtManager)
@@ -37,7 +37,7 @@ func TestSignUp_Success(t *testing.T) {
 	}
 }
 
-func TestSignUp_EmptyName(t *testing.T) {
+func TestSignUpEmptyName(t *testing.T) {
 	repo := repository.NewInMemoryUserRepository()
 	jwtManager := application.NewJWTManager("test-secret", time.Hour)
 	service := application.NewUserService(repo, jwtManager)
@@ -53,7 +53,7 @@ func TestSignUp_EmptyName(t *testing.T) {
 	}
 }
 
-func TestSignUp_EmptyPassword(t *testing.T) {
+func TestSignUpEmptyPassword(t *testing.T) {
 	repo := repository.NewInMemoryUserRepository()
 	jwtManager := application.NewJWTManager("test-secret", time.Hour)
 	service := application.NewUserService(repo, jwtManager)
@@ -69,7 +69,7 @@ func TestSignUp_EmptyPassword(t *testing.T) {
 	}
 }
 
-func TestLogin_Success(t *testing.T) {
+func TestLoginSuccess(t *testing.T) {
 	repo := repository.NewInMemoryUserRepository()
 	jwtManager := application.NewJWTManager("test-secret", time.Hour)
 	service := application.NewUserService(repo, jwtManager)
@@ -98,7 +98,7 @@ func TestLogin_Success(t *testing.T) {
 	}
 }
 
-func TestLogin_WrongPassword(t *testing.T) {
+func TestLoginWrongPassword(t *testing.T) {
 	repo := repository.NewInMemoryUserRepository()
 	jwtManager := application.NewJWTManager("test-secret", time.Hour)
 	service := application.NewUserService(repo, jwtManager)
@@ -121,7 +121,7 @@ func TestLogin_WrongPassword(t *testing.T) {
 	}
 }
 
-func TestLogin_UserNotFound(t *testing.T) {
+func TestLoginUserNotFound(t *testing.T) {
 	repo := repository.NewInMemoryUserRepository()
 	jwtManager := application.NewJWTManager("test-secret", time.Hour)
 	service := application.NewUserService(repo, jwtManager)
@@ -133,7 +133,7 @@ func TestLogin_UserNotFound(t *testing.T) {
 	}
 }
 
-func TestJWTManager_GenerateAndValidateToken(t *testing.T) {
+func TestJWTManagerGenerateAndValidateToken(t *testing.T) {
 	jwtManager := application.NewJWTManager("test-secret", time.Hour)
 	user := &domain.User{
 		ID:    "user-123",
@@ -161,7 +161,7 @@ func TestJWTManager_GenerateAndValidateToken(t *testing.T) {
 	}
 }
 
-func TestJWTManager_InvalidToken(t *testing.T) {
+func TestJWTManagerInvalidToken(t *testing.T) {
 	jwtManager := application.NewJWTManager("test-secret", time.Hour)
 
 	_, err := jwtManager.ValidateToken("invalid.token.here")
@@ -171,7 +171,7 @@ func TestJWTManager_InvalidToken(t *testing.T) {
 	}
 }
 
-func TestJWTManager_WrongSecret(t *testing.T) {
+func TestJWTManagerWrongSecret(t *testing.T) {
 	jwtManager1 := application.NewJWTManager("secret-1", time.Hour)
 	jwtManager2 := application.NewJWTManager("secret-2", time.Hour)
 
@@ -191,7 +191,7 @@ func TestJWTManager_WrongSecret(t *testing.T) {
 	}
 }
 
-func TestJWTManager_RevokeToken(t *testing.T) {
+func TestJWTManagerRevokeToken(t *testing.T) {
 	jwtManager := application.NewJWTManager("test-secret", time.Hour)
 	user := &domain.User{
 		ID:    "user-123",
@@ -217,7 +217,7 @@ func TestJWTManager_RevokeToken(t *testing.T) {
 	}
 }
 
-func TestUserService_Logout(t *testing.T) {
+func TestUserServiceLogout(t *testing.T) {
 	repo := repository.NewInMemoryUserRepository()
 	jwtManager := application.NewJWTManager("test-secret", time.Hour)
 	service := application.NewUserService(repo, jwtManager)
@@ -246,7 +246,7 @@ func TestUserService_Logout(t *testing.T) {
 	}
 }
 
-func TestUserService_SameEmailSignUp(t *testing.T) {
+func TestUserServiceSameEmailSignUp(t *testing.T) {
 	repo := repository.NewInMemoryUserRepository()
 	jwtManager := application.NewJWTManager("test-secret", time.Hour)
 	service := application.NewUserService(repo, jwtManager)
@@ -270,4 +270,185 @@ func TestUserService_SameEmailSignUp(t *testing.T) {
 		t.Errorf("Expected ErrUserAlreadyExists, got %v", err)
 	}
 
+}
+
+func TestGenerateTokenForUserSuccess(t *testing.T) {
+	repo := repository.NewInMemoryUserRepository()
+	jwtManager := application.NewJWTManager("test-secret", time.Hour)
+	service := application.NewUserService(repo, jwtManager)
+
+	user := &domain.User{
+		ID:    "user-123",
+		Name:  "John Doe",
+		Email: "john@example.com",
+	}
+
+	token, err := service.GenerateTokenForUser(user)
+	if err != nil {
+		t.Fatalf("GenerateTokenForUser failed: %v", err)
+	}
+
+	if token == "" {
+		t.Fatal("Expected non-empty token")
+	}
+
+	// Verify token is valid
+	claims, err := jwtManager.ValidateToken(token)
+	if err != nil {
+		t.Fatalf("ValidateToken failed: %v", err)
+	}
+
+	if claims.ID != "user-123" {
+		t.Errorf("Expected ID 'user-123', got %s", claims.ID)
+	}
+
+	if claims.Email != "john@example.com" {
+		t.Errorf("Expected email 'john@example.com', got %s", claims.Email)
+	}
+}
+
+func TestGetUserByIDSuccess(t *testing.T) {
+	repo := repository.NewInMemoryUserRepository()
+	user := &domain.User{ID: "user-123", Name: "John", Email: "john@example.com", Password: "hash"}
+	repo.Create(user)
+
+	jwtManager := application.NewJWTManager("test-secret", time.Hour)
+	service := application.NewUserService(repo, jwtManager)
+
+	retrieved, err := service.GetUserByID("user-123")
+	if err != nil {
+		t.Fatalf("GetUserByID failed: %v", err)
+	}
+
+	if retrieved.ID != "user-123" || retrieved.Name != "John" {
+		t.Fatal("Retrieved user doesn't match original")
+	}
+}
+
+func TestGetUserByIDNotFound(t *testing.T) {
+	repo := repository.NewInMemoryUserRepository()
+	jwtManager := application.NewJWTManager("test-secret", time.Hour)
+	service := application.NewUserService(repo, jwtManager)
+
+	_, err := service.GetUserByID("nonexistent")
+	if err == nil {
+		t.Fatal("Expected error for non-existent user")
+	}
+}
+
+func TestGetUserByEmailSuccess(t *testing.T) {
+	repo := repository.NewInMemoryUserRepository()
+	user := &domain.User{ID: "user-123", Name: "John", Email: "john@example.com", Password: "hash"}
+	repo.Create(user)
+
+	jwtManager := application.NewJWTManager("test-secret", time.Hour)
+	service := application.NewUserService(repo, jwtManager)
+
+	retrieved, err := service.GetUserByEmail("john@example.com")
+	if err != nil {
+		t.Fatalf("GetUserByEmail failed: %v", err)
+	}
+
+	if retrieved.Email != "john@example.com" {
+		t.Fatal("Retrieved user doesn't match original")
+	}
+}
+
+func TestGetUserByEmailNotFound(t *testing.T) {
+	repo := repository.NewInMemoryUserRepository()
+	jwtManager := application.NewJWTManager("test-secret", time.Hour)
+	service := application.NewUserService(repo, jwtManager)
+
+	_, err := service.GetUserByEmail("nonexistent@example.com")
+	if err == nil {
+		t.Fatal("Expected error for non-existent email")
+	}
+}
+
+func TestLogoutSuccess(t *testing.T) {
+	repo := repository.NewInMemoryUserRepository()
+	jwtManager := application.NewJWTManager("test-secret", time.Hour)
+	service := application.NewUserService(repo, jwtManager)
+
+	user := &domain.User{ID: "user-123", Name: "John", Email: "john@example.com"}
+	token, _ := jwtManager.GenerateToken(user)
+
+	// Token should be valid before logout
+	_, err := jwtManager.ValidateToken(token)
+	if err != nil {
+		t.Fatal("Token should be valid before logout")
+	}
+
+	// Logout
+	expiration := time.Now().Add(1 * time.Hour)
+	err = service.Logout(token, expiration)
+	if err != nil {
+		t.Fatalf("Logout failed: %v", err)
+	}
+
+	// Token should be invalid after logout
+	_, err = jwtManager.ValidateToken(token)
+	if err == nil {
+		t.Fatal("Token should be invalid after logout")
+	}
+}
+
+func TestLoginPasswordVerification(t *testing.T) {
+	repo := repository.NewInMemoryUserRepository()
+	jwtManager := application.NewJWTManager("test-secret", time.Hour)
+	service := application.NewUserService(repo, jwtManager)
+
+	// Sign up and login with correct password
+	service.SignUp("John Doe", "john@example.com", "password123")
+
+	user, token, err := service.Login("john@example.com", "password123")
+	if err != nil {
+		t.Fatalf("Login with correct password failed: %v", err)
+	}
+
+	if user == nil || token == "" {
+		t.Fatal("Login should return user and token")
+	}
+
+	// Verify password hash doesn't match plaintext
+	if user.Password == "password123" {
+		t.Fatal("Password should be hashed, not plaintext")
+	}
+}
+
+func TestLoginInvalidCredentials(t *testing.T) {
+	repo := repository.NewInMemoryUserRepository()
+	jwtManager := application.NewJWTManager("test-secret", time.Hour)
+	service := application.NewUserService(repo, jwtManager)
+
+	// Sign up
+	service.SignUp("John Doe", "john@example.com", "password123")
+
+	// Login with wrong password
+	_, _, err := service.Login("john@example.com", "wrongpassword")
+	if err != domain.ErrInvalidCredentials {
+		t.Errorf("Expected ErrInvalidCredentials, got %v", err)
+	}
+}
+
+func TestLoginEmptyEmail(t *testing.T) {
+	repo := repository.NewInMemoryUserRepository()
+	jwtManager := application.NewJWTManager("test-secret", time.Hour)
+	service := application.NewUserService(repo, jwtManager)
+
+	_, _, err := service.Login("", "password123")
+	if err != domain.ErrEmptyEmail {
+		t.Errorf("Expected ErrEmptyEmail, got %v", err)
+	}
+}
+
+func TestLoginEmptyPassword(t *testing.T) {
+	repo := repository.NewInMemoryUserRepository()
+	jwtManager := application.NewJWTManager("test-secret", time.Hour)
+	service := application.NewUserService(repo, jwtManager)
+
+	_, _, err := service.Login("john@example.com", "")
+	if err != domain.ErrEmptyPassword {
+		t.Errorf("Expected ErrEmptyPassword, got %v", err)
+	}
 }
