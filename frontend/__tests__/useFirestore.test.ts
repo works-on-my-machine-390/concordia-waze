@@ -1,21 +1,4 @@
-import * as firebaseModule from 'firebase/firestore';
-import {
-  addSearchHistory,
-  getSearchHistory,
-  clearSearchHistory,
-  addScheduleItem,
-  getUserSchedule,
-  updateScheduleItem,
-  deleteScheduleItem,
-  addSavedAddress,
-  getSavedAddresses,
-  updateSavedAddress,
-  deleteSavedAddress,
-  createUserProfile,
-  getUserProfile
-} from '../hooks/firebase/useFirestore';
-
-// Mock Firebase Firestore
+// Mock Firebase Firestore - MUST be at top before imports
 jest.mock('firebase/firestore', () => ({
   addDoc: jest.fn(),
   collection: jest.fn(),
@@ -34,6 +17,23 @@ jest.mock('firebase/firestore', () => ({
 jest.mock('../config/firebase', () => ({
   db: {}
 }));
+
+import * as firebaseModule from 'firebase/firestore';
+import {
+  addSearchHistory,
+  getSearchHistory,
+  clearSearchHistory,
+  addScheduleItem,
+  getUserSchedule,
+  updateScheduleItem,
+  deleteScheduleItem,
+  addSavedAddress,
+  getSavedAddresses,
+  updateSavedAddress,
+  deleteSavedAddress,
+  createUserProfile,
+  getUserProfile
+} from '../hooks/firebase/useFirestore';
 
 describe('useFirestore', () => {
   const userId = 'test-user-123';
