@@ -138,7 +138,6 @@ func (fs *FirebaseService) initializeSubcollections(ctx context.Context, userID 
 	return nil
 }
 
-
 // ===== Search History =====
 
 func (fs *FirebaseService) AddSearchHistory(ctx context.Context, userID string, item SearchHistoryItem) (string, error) {
