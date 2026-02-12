@@ -45,9 +45,13 @@ func NewFirebaseHandler(service FirebaseService) *FirebaseHandler {
 // @Tags users
 // @Accept json
 // @Produce json
+// @Security BearerAuth
+// @Param Authorization header string true "Bearer token"
 // @Param userId path string true "User ID"
 // @Param profile body domain.User true "User profile"
 // @Success 201 {object} map[string]string
+// @Failure 401 {object} map[string]string "Not authenticated"
+// @Failure 403 {object} map[string]string "Forbidden"
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /users/{userId}/profile [post]
@@ -73,8 +77,12 @@ func (fh *FirebaseHandler) CreateUserProfile(c *gin.Context) {
 // @Description Get a user profile by ID
 // @Tags users
 // @Produce json
+// @Security BearerAuth
+// @Param Authorization header string true "Bearer token"
 // @Param userId path string true "User ID"
 // @Success 200 {object} domain.User
+// @Failure 401 {object} map[string]string "Not authenticated"
+// @Failure 403 {object} map[string]string "Forbidden"
 // @Failure 404 {object} map[string]string
 // @Router /users/{userId}/profile [get]
 func (fh *FirebaseHandler) GetUserProfile(c *gin.Context) {
@@ -96,9 +104,13 @@ func (fh *FirebaseHandler) GetUserProfile(c *gin.Context) {
 // @Tags search
 // @Accept json
 // @Produce json
+// @Security BearerAuth
+// @Param Authorization header string true "Bearer token"
 // @Param userId path string true "User ID"
 // @Param item body application.SearchHistoryItem true "Search item"
 // @Success 201 {object} map[string]string
+// @Failure 401 {object} map[string]string "Not authenticated"
+// @Failure 403 {object} map[string]string "Forbidden"
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /users/{userId}/search-history [post]
@@ -125,9 +137,13 @@ func (fh *FirebaseHandler) AddSearchHistory(c *gin.Context) {
 // @Description Get a user's search history
 // @Tags search
 // @Produce json
+// @Security BearerAuth
+// @Param Authorization header string true "Bearer token"
 // @Param userId path string true "User ID"
 // @Param limit query int false "Limit results" default(50)
 // @Success 200 {array} application.SearchHistoryItem
+// @Failure 401 {object} map[string]string "Not authenticated"
+// @Failure 403 {object} map[string]string "Forbidden"
 // @Failure 500 {object} map[string]string
 // @Router /users/{userId}/search-history [get]
 func (fh *FirebaseHandler) GetSearchHistory(c *gin.Context) {
@@ -153,8 +169,12 @@ func (fh *FirebaseHandler) GetSearchHistory(c *gin.Context) {
 // @Description Delete all search history items for a user
 // @Tags search
 // @Produce json
+// @Security BearerAuth
+// @Param Authorization header string true "Bearer token"
 // @Param userId path string true "User ID"
 // @Success 200 {object} map[string]string
+// @Failure 401 {object} map[string]string "Not authenticated"
+// @Failure 403 {object} map[string]string "Forbidden"
 // @Failure 500 {object} map[string]string
 // @Router /users/{userId}/search-history [delete]
 func (fh *FirebaseHandler) ClearSearchHistory(c *gin.Context) {
@@ -176,9 +196,13 @@ func (fh *FirebaseHandler) ClearSearchHistory(c *gin.Context) {
 // @Tags schedule
 // @Accept json
 // @Produce json
+// @Security BearerAuth
+// @Param Authorization header string true "Bearer token"
 // @Param userId path string true "User ID"
 // @Param item body application.ScheduleItem true "Schedule item"
 // @Success 201 {object} map[string]string
+// @Failure 401 {object} map[string]string "Not authenticated"
+// @Failure 403 {object} map[string]string "Forbidden"
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /users/{userId}/schedule [post]
@@ -205,8 +229,12 @@ func (fh *FirebaseHandler) AddScheduleItem(c *gin.Context) {
 // @Description Get schedule items for a user
 // @Tags schedule
 // @Produce json
+// @Security BearerAuth
+// @Param Authorization header string true "Bearer token"
 // @Param userId path string true "User ID"
 // @Success 200 {array} application.ScheduleItem
+// @Failure 401 {object} map[string]string "Not authenticated"
+// @Failure 403 {object} map[string]string "Forbidden"
 // @Failure 500 {object} map[string]string
 // @Router /users/{userId}/schedule [get]
 func (fh *FirebaseHandler) GetUserSchedule(c *gin.Context) {
@@ -227,10 +255,14 @@ func (fh *FirebaseHandler) GetUserSchedule(c *gin.Context) {
 // @Tags schedule
 // @Accept json
 // @Produce json
+// @Security BearerAuth
+// @Param Authorization header string true "Bearer token"
 // @Param userId path string true "User ID"
 // @Param scheduleId path string true "Schedule ID"
 // @Param updates body map[string]interface{} true "Schedule updates"
 // @Success 200 {object} map[string]string
+// @Failure 401 {object} map[string]string "Not authenticated"
+// @Failure 403 {object} map[string]string "Forbidden"
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /users/{userId}/schedule/{scheduleId} [put]
@@ -257,9 +289,13 @@ func (fh *FirebaseHandler) UpdateScheduleItem(c *gin.Context) {
 // @Description Delete a schedule item for a user
 // @Tags schedule
 // @Produce json
+// @Security BearerAuth
+// @Param Authorization header string true "Bearer token"
 // @Param userId path string true "User ID"
 // @Param scheduleId path string true "Schedule ID"
 // @Success 200 {object} map[string]string
+// @Failure 401 {object} map[string]string "Not authenticated"
+// @Failure 403 {object} map[string]string "Forbidden"
 // @Failure 500 {object} map[string]string
 // @Router /users/{userId}/schedule/{scheduleId} [delete]
 func (fh *FirebaseHandler) DeleteScheduleItem(c *gin.Context) {
@@ -282,9 +318,13 @@ func (fh *FirebaseHandler) DeleteScheduleItem(c *gin.Context) {
 // @Tags addresses
 // @Accept json
 // @Produce json
+// @Security BearerAuth
+// @Param Authorization header string true "Bearer token"
 // @Param userId path string true "User ID"
 // @Param address body application.SavedAddress true "Saved address"
 // @Success 201 {object} map[string]string
+// @Failure 401 {object} map[string]string "Not authenticated"
+// @Failure 403 {object} map[string]string "Forbidden"
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /users/{userId}/savedAddresses [post]
@@ -311,8 +351,12 @@ func (fh *FirebaseHandler) AddSavedAddress(c *gin.Context) {
 // @Description Get favorite addresses for a user
 // @Tags addresses
 // @Produce json
+// @Security BearerAuth
+// @Param Authorization header string true "Bearer token"
 // @Param userId path string true "User ID"
 // @Success 200 {array} application.SavedAddress
+// @Failure 401 {object} map[string]string "Not authenticated"
+// @Failure 403 {object} map[string]string "Forbidden"
 // @Failure 500 {object} map[string]string
 // @Router /users/{userId}/savedAddresses [get]
 func (fh *FirebaseHandler) GetSavedAddresses(c *gin.Context) {
@@ -333,10 +377,14 @@ func (fh *FirebaseHandler) GetSavedAddresses(c *gin.Context) {
 // @Tags addresses
 // @Accept json
 // @Produce json
+// @Security BearerAuth
+// @Param Authorization header string true "Bearer token"
 // @Param userId path string true "User ID"
 // @Param addressId path string true "Address ID"
 // @Param updates body map[string]interface{} true "Address updates"
 // @Success 200 {object} map[string]string
+// @Failure 401 {object} map[string]string "Not authenticated"
+// @Failure 403 {object} map[string]string "Forbidden"
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /users/{userId}/savedAddresses/{addressId} [put]
@@ -363,9 +411,13 @@ func (fh *FirebaseHandler) UpdateSavedAddress(c *gin.Context) {
 // @Description Delete a saved address for a user
 // @Tags addresses
 // @Produce json
+// @Security BearerAuth
+// @Param Authorization header string true "Bearer token"
 // @Param userId path string true "User ID"
 // @Param addressId path string true "Address ID"
 // @Success 200 {object} map[string]string
+// @Failure 401 {object} map[string]string "Not authenticated"
+// @Failure 403 {object} map[string]string "Forbidden"
 // @Failure 500 {object} map[string]string
 // @Router /users/{userId}/savedAddresses/{addressId} [delete]
 func (fh *FirebaseHandler) DeleteSavedAddress(c *gin.Context) {

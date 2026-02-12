@@ -328,6 +328,11 @@ paths:
     get:
       description: Get a user profile by ID
       parameters:
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: User ID
         in: path
         name: userId
@@ -340,12 +345,26 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/domain.User'
+        "401":
+          description: Not authenticated
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "404":
           description: Not Found
           schema:
             additionalProperties:
               type: string
             type: object
+      security:
+      - BearerAuth: []
       summary: Get user profile
       tags:
       - users
@@ -354,6 +373,11 @@ paths:
       - application/json
       description: Create or overwrite a user profile
       parameters:
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: User ID
         in: path
         name: userId
@@ -380,12 +404,26 @@ paths:
             additionalProperties:
               type: string
             type: object
+        "401":
+          description: Not authenticated
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "500":
           description: Internal Server Error
           schema:
             additionalProperties:
               type: string
             type: object
+      security:
+      - BearerAuth: []
       summary: Create user profile
       tags:
       - users
@@ -393,6 +431,11 @@ paths:
     get:
       description: Get favorite addresses for a user
       parameters:
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: User ID
         in: path
         name: userId
@@ -407,12 +450,26 @@ paths:
             items:
               $ref: '#/definitions/application.SavedAddress'
             type: array
+        "401":
+          description: Not authenticated
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "500":
           description: Internal Server Error
           schema:
             additionalProperties:
               type: string
             type: object
+      security:
+      - BearerAuth: []
       summary: Get saved addresses
       tags:
       - addresses
@@ -421,6 +478,11 @@ paths:
       - application/json
       description: Add a favorite address for a user
       parameters:
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: User ID
         in: path
         name: userId
@@ -447,12 +509,26 @@ paths:
             additionalProperties:
               type: string
             type: object
+        "401":
+          description: Not authenticated
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "500":
           description: Internal Server Error
           schema:
             additionalProperties:
               type: string
             type: object
+      security:
+      - BearerAuth: []
       summary: Add favorite
       tags:
       - addresses
@@ -460,6 +536,11 @@ paths:
     delete:
       description: Delete a saved address for a user
       parameters:
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: User ID
         in: path
         name: userId
@@ -479,12 +560,26 @@ paths:
             additionalProperties:
               type: string
             type: object
+        "401":
+          description: Not authenticated
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "500":
           description: Internal Server Error
           schema:
             additionalProperties:
               type: string
             type: object
+      security:
+      - BearerAuth: []
       summary: Delete saved address
       tags:
       - addresses
@@ -493,6 +588,11 @@ paths:
       - application/json
       description: Update a saved address for a user
       parameters:
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: User ID
         in: path
         name: userId
@@ -525,12 +625,26 @@ paths:
             additionalProperties:
               type: string
             type: object
+        "401":
+          description: Not authenticated
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "500":
           description: Internal Server Error
           schema:
             additionalProperties:
               type: string
             type: object
+      security:
+      - BearerAuth: []
       summary: Update saved address
       tags:
       - addresses
@@ -538,6 +652,11 @@ paths:
     get:
       description: Get schedule items for a user
       parameters:
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: User ID
         in: path
         name: userId
@@ -552,12 +671,26 @@ paths:
             items:
               $ref: '#/definitions/application.ScheduleItem'
             type: array
+        "401":
+          description: Not authenticated
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "500":
           description: Internal Server Error
           schema:
             additionalProperties:
               type: string
             type: object
+      security:
+      - BearerAuth: []
       summary: Get user schedule
       tags:
       - schedule
@@ -566,6 +699,11 @@ paths:
       - application/json
       description: Add a schedule item for a user
       parameters:
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: User ID
         in: path
         name: userId
@@ -592,12 +730,26 @@ paths:
             additionalProperties:
               type: string
             type: object
+        "401":
+          description: Not authenticated
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "500":
           description: Internal Server Error
           schema:
             additionalProperties:
               type: string
             type: object
+      security:
+      - BearerAuth: []
       summary: Add schedule item
       tags:
       - schedule
@@ -605,6 +757,11 @@ paths:
     delete:
       description: Delete a schedule item for a user
       parameters:
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: User ID
         in: path
         name: userId
@@ -624,12 +781,26 @@ paths:
             additionalProperties:
               type: string
             type: object
+        "401":
+          description: Not authenticated
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "500":
           description: Internal Server Error
           schema:
             additionalProperties:
               type: string
             type: object
+      security:
+      - BearerAuth: []
       summary: Delete schedule item
       tags:
       - schedule
@@ -638,6 +809,11 @@ paths:
       - application/json
       description: Update a schedule item for a user
       parameters:
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: User ID
         in: path
         name: userId
@@ -670,12 +846,26 @@ paths:
             additionalProperties:
               type: string
             type: object
+        "401":
+          description: Not authenticated
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "500":
           description: Internal Server Error
           schema:
             additionalProperties:
               type: string
             type: object
+      security:
+      - BearerAuth: []
       summary: Update schedule item
       tags:
       - schedule
@@ -683,6 +873,11 @@ paths:
     delete:
       description: Delete all search history items for a user
       parameters:
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: User ID
         in: path
         name: userId
@@ -697,18 +892,37 @@ paths:
             additionalProperties:
               type: string
             type: object
+        "401":
+          description: Not authenticated
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "500":
           description: Internal Server Error
           schema:
             additionalProperties:
               type: string
             type: object
+      security:
+      - BearerAuth: []
       summary: Clear search history
       tags:
       - search
     get:
       description: Get a user's search history
       parameters:
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: User ID
         in: path
         name: userId
@@ -728,12 +942,26 @@ paths:
             items:
               $ref: '#/definitions/application.SearchHistoryItem'
             type: array
+        "401":
+          description: Not authenticated
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "500":
           description: Internal Server Error
           schema:
             additionalProperties:
               type: string
             type: object
+      security:
+      - BearerAuth: []
       summary: Get search history
       tags:
       - search
@@ -742,6 +970,11 @@ paths:
       - application/json
       description: Add a search query to a user's history
       parameters:
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: User ID
         in: path
         name: userId
@@ -768,12 +1001,26 @@ paths:
             additionalProperties:
               type: string
             type: object
+        "401":
+          description: Not authenticated
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "500":
           description: Internal Server Error
           schema:
             additionalProperties:
               type: string
             type: object
+      security:
+      - BearerAuth: []
       summary: Add search history
       tags:
       - search

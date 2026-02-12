@@ -316,6 +316,11 @@ const docTemplate = `{
         },
         "/users/{userId}/profile": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Get a user profile by ID",
                 "produces": [
                     "application/json"
@@ -325,6 +330,13 @@ const docTemplate = `{
                 ],
                 "summary": "Get user profile",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "type": "string",
                         "description": "User ID",
@@ -340,6 +352,24 @@ const docTemplate = `{
                             "$ref": "#/definitions/domain.User"
                         }
                     },
+                    "401": {
+                        "description": "Not authenticated",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -352,6 +382,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Create or overwrite a user profile",
                 "consumes": [
                     "application/json"
@@ -364,6 +399,13 @@ const docTemplate = `{
                 ],
                 "summary": "Create user profile",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "type": "string",
                         "description": "User ID",
@@ -400,6 +442,24 @@ const docTemplate = `{
                             }
                         }
                     },
+                    "401": {
+                        "description": "Not authenticated",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -414,6 +474,11 @@ const docTemplate = `{
         },
         "/users/{userId}/savedAddresses": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Get favorite addresses for a user",
                 "produces": [
                     "application/json"
@@ -423,6 +488,13 @@ const docTemplate = `{
                 ],
                 "summary": "Get saved addresses",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "type": "string",
                         "description": "User ID",
@@ -441,6 +513,24 @@ const docTemplate = `{
                             }
                         }
                     },
+                    "401": {
+                        "description": "Not authenticated",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -453,6 +543,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Add a favorite address for a user",
                 "consumes": [
                     "application/json"
@@ -465,6 +560,13 @@ const docTemplate = `{
                 ],
                 "summary": "Add favorite",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "type": "string",
                         "description": "User ID",
@@ -501,6 +603,24 @@ const docTemplate = `{
                             }
                         }
                     },
+                    "401": {
+                        "description": "Not authenticated",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -515,6 +635,11 @@ const docTemplate = `{
         },
         "/users/{userId}/savedAddresses/{addressId}": {
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Update a saved address for a user",
                 "consumes": [
                     "application/json"
@@ -527,6 +652,13 @@ const docTemplate = `{
                 ],
                 "summary": "Update saved address",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "type": "string",
                         "description": "User ID",
@@ -571,6 +703,24 @@ const docTemplate = `{
                             }
                         }
                     },
+                    "401": {
+                        "description": "Not authenticated",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -583,6 +733,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Delete a saved address for a user",
                 "produces": [
                     "application/json"
@@ -592,6 +747,13 @@ const docTemplate = `{
                 ],
                 "summary": "Delete saved address",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "type": "string",
                         "description": "User ID",
@@ -617,6 +779,24 @@ const docTemplate = `{
                             }
                         }
                     },
+                    "401": {
+                        "description": "Not authenticated",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -631,6 +811,11 @@ const docTemplate = `{
         },
         "/users/{userId}/schedule": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Get schedule items for a user",
                 "produces": [
                     "application/json"
@@ -640,6 +825,13 @@ const docTemplate = `{
                 ],
                 "summary": "Get user schedule",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "type": "string",
                         "description": "User ID",
@@ -658,6 +850,24 @@ const docTemplate = `{
                             }
                         }
                     },
+                    "401": {
+                        "description": "Not authenticated",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -670,6 +880,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Add a schedule item for a user",
                 "consumes": [
                     "application/json"
@@ -682,6 +897,13 @@ const docTemplate = `{
                 ],
                 "summary": "Add schedule item",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "type": "string",
                         "description": "User ID",
@@ -718,6 +940,24 @@ const docTemplate = `{
                             }
                         }
                     },
+                    "401": {
+                        "description": "Not authenticated",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -732,6 +972,11 @@ const docTemplate = `{
         },
         "/users/{userId}/schedule/{scheduleId}": {
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Update a schedule item for a user",
                 "consumes": [
                     "application/json"
@@ -744,6 +989,13 @@ const docTemplate = `{
                 ],
                 "summary": "Update schedule item",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "type": "string",
                         "description": "User ID",
@@ -788,6 +1040,24 @@ const docTemplate = `{
                             }
                         }
                     },
+                    "401": {
+                        "description": "Not authenticated",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -800,6 +1070,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Delete a schedule item for a user",
                 "produces": [
                     "application/json"
@@ -809,6 +1084,13 @@ const docTemplate = `{
                 ],
                 "summary": "Delete schedule item",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "type": "string",
                         "description": "User ID",
@@ -834,6 +1116,24 @@ const docTemplate = `{
                             }
                         }
                     },
+                    "401": {
+                        "description": "Not authenticated",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -848,6 +1148,11 @@ const docTemplate = `{
         },
         "/users/{userId}/search-history": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Get a user's search history",
                 "produces": [
                     "application/json"
@@ -857,6 +1162,13 @@ const docTemplate = `{
                 ],
                 "summary": "Get search history",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "type": "string",
                         "description": "User ID",
@@ -882,6 +1194,24 @@ const docTemplate = `{
                             }
                         }
                     },
+                    "401": {
+                        "description": "Not authenticated",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -894,6 +1224,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Add a search query to a user's history",
                 "consumes": [
                     "application/json"
@@ -906,6 +1241,13 @@ const docTemplate = `{
                 ],
                 "summary": "Add search history",
                 "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
                     {
                         "type": "string",
                         "description": "User ID",
@@ -942,6 +1284,24 @@ const docTemplate = `{
                             }
                         }
                     },
+                    "401": {
+                        "description": "Not authenticated",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -954,6 +1314,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Delete all search history items for a user",
                 "produces": [
                     "application/json"
@@ -965,6 +1330,13 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
                         "description": "User ID",
                         "name": "userId",
                         "in": "path",
@@ -974,6 +1346,24 @@ const docTemplate = `{
                 "responses": {
                     "200": {
                         "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
