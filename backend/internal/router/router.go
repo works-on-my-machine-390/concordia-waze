@@ -19,6 +19,10 @@ import (
 	"github.com/works-on-my-machine-390/concordia-waze/internal/presentation/middleware"
 )
 
+const (
+	userSearchHistoryPath = "/:userId/search-history"
+)
+
 func SetupRouter() *gin.Engine {
 	router := gin.Default()
 
@@ -34,12 +38,14 @@ func SetupRouter() *gin.Engine {
 	buildingService := application.NewBuildingService(buildingDataRepo)
 	campusService := application.NewCampusService(buildingDataRepo)
 	imageService := application.NewImageService(buildingService, placesClient)
+	firebaseService := application.NewFirebaseService()
 
-	authHandler := handler.NewAuthHandler(userService)
+	authHandler := handler.NewAuthHandler(userService, firebaseService)
 
 	buildingHandler := handler.NewBuildingHandler(buildingService)
 	campusHandler := handler.NewCampusHandler(campusService)
 	imageHandler := handler.NewImageHandler(imageService)
+	firebaseHandler := handler.NewFirebaseHandler(firebaseService)
 
 	router.Use(middleware.AuthMiddleware(jwtManager))
 
@@ -55,6 +61,27 @@ func SetupRouter() *gin.Engine {
 	{
 		buildingsGroup.GET("/:code", buildingHandler.GetBuilding)
 		buildingsGroup.GET("/:code/images", imageHandler.GetBuildingImages)
+	}
+
+	usersGroup := router.Group("/users")
+	usersGroup.Use(middleware.RequireAuth(), middleware.ValidateUserOwnership())
+	{
+		usersGroup.POST("/:userId/profile", firebaseHandler.CreateUserProfile)
+		usersGroup.GET("/:userId/profile", firebaseHandler.GetUserProfile)
+
+		usersGroup.POST(userSearchHistoryPath, firebaseHandler.AddSearchHistory)
+		usersGroup.GET(userSearchHistoryPath, firebaseHandler.GetSearchHistory)
+		usersGroup.DELETE(userSearchHistoryPath, firebaseHandler.ClearSearchHistory)
+
+		usersGroup.POST("/:userId/schedule", firebaseHandler.AddScheduleItem)
+		usersGroup.GET("/:userId/schedule", firebaseHandler.GetUserSchedule)
+		usersGroup.PUT("/:userId/schedule/:scheduleId", firebaseHandler.UpdateScheduleItem)
+		usersGroup.DELETE("/:userId/schedule/:scheduleId", firebaseHandler.DeleteScheduleItem)
+
+		usersGroup.POST("/:userId/savedAddresses", firebaseHandler.AddSavedAddress)
+		usersGroup.GET("/:userId/savedAddresses", firebaseHandler.GetSavedAddresses)
+		usersGroup.PUT("/:userId/savedAddresses/:addressId", firebaseHandler.UpdateSavedAddress)
+		usersGroup.DELETE("/:userId/savedAddresses/:addressId", firebaseHandler.DeleteSavedAddress)
 	}
 
 	router.GET("/campuses/:campus/buildings", campusHandler.GetCampusBuildings)

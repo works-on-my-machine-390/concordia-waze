@@ -1,23 +1,34 @@
 package handler
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/application"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/presentation/middleware"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // AuthHandler handles authentication requests
 type AuthHandler struct {
-	userService *application.UserService
+	userService     *application.UserService
+	firebaseService FirebaseProfileService
+}
+
+// FirebaseProfileService defines user profile operations stored in Firestore.
+type FirebaseProfileService interface {
+	CreateUserProfile(ctx context.Context, userID string, profile domain.User) error
+	GetUserProfile(ctx context.Context, userID string) (*domain.User, error)
+	GetUserProfileByEmail(ctx context.Context, email string) (*domain.User, error)
 }
 
 // NewAuthHandler creates a new auth handler
-func NewAuthHandler(userService *application.UserService) *AuthHandler {
+func NewAuthHandler(userService *application.UserService, firebaseService FirebaseProfileService) *AuthHandler {
 	return &AuthHandler{
-		userService: userService,
+		userService:     userService,
+		firebaseService: firebaseService,
 	}
 }
 
@@ -66,11 +77,33 @@ func (h *AuthHandler) SignUp(c *gin.Context) {
 		return
 	}
 
+	name := user.Name
+
 	response := AuthResponse{
 		ID:    user.ID,
-		Name:  user.Name,
+		Name:  name,
 		Email: user.Email,
 		Token: token,
+	}
+
+	if h.firebaseService != nil {
+		// Hash password with bcrypt
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
+			return
+		}
+
+		profile := domain.User{
+			ID:       user.ID,
+			Email:    user.Email,
+			Name:     user.Name,
+			Password: string(hashedPassword),
+		}
+		if err := h.firebaseService.CreateUserProfile(c.Request.Context(), user.ID, profile); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
 	}
 
 	c.JSON(http.StatusCreated, response)
@@ -94,6 +127,40 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
+	// Check Firestore for user authentication if Firebase service is available
+	if h.firebaseService != nil {
+		profile, err := h.firebaseService.GetUserProfileByEmail(c.Request.Context(), req.Email)
+		if err != nil || profile == nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+			return
+		}
+
+		// Verify password with bcrypt
+		if err := bcrypt.CompareHashAndPassword([]byte(profile.Password), []byte(req.Password)); err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+			return
+		}
+
+		token, err := h.userService.GenerateTokenForUser(profile)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
+			return
+		}
+
+		name := profile.Name
+
+		response := AuthResponse{
+			ID:    profile.ID,
+			Name:  name,
+			Email: profile.Email,
+			Token: token,
+		}
+
+		c.JSON(http.StatusOK, response)
+		return
+	}
+
+	// Fallback to in-memory user service
 	user, token, err := h.userService.Login(req.Email, req.Password)
 	if err != nil {
 		if err == domain.ErrInvalidCredentials {
@@ -104,9 +171,11 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
+	name := user.Name
+
 	response := AuthResponse{
 		ID:    user.ID,
-		Name:  user.Name,
+		Name:  name,
 		Email: user.Email,
 		Token: token,
 	}
@@ -133,16 +202,31 @@ func (h *AuthHandler) GetProfile(c *gin.Context) {
 		return
 	}
 
-	user, err := h.userService.GetUserByID(claims.ID)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
-		return
+	var profile *domain.User
+	if h.firebaseService != nil {
+		user, err := h.firebaseService.GetUserProfile(c.Request.Context(), claims.ID)
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		profile = user
 	}
 
+	if profile == nil {
+		user, err := h.userService.GetUserByID(claims.ID)
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		profile = user
+	}
+
+	Name := profile.Name
+
 	response := AuthResponse{
-		ID:    user.ID,
-		Name:  user.Name,
-		Email: user.Email,
+		ID:    profile.ID,
+		Name:  Name,
+		Email: profile.Email,
 	}
 
 	c.JSON(http.StatusOK, response)

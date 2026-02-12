@@ -10,7 +10,7 @@ on:
   pull_request:
     branches: [main, dev]
     types: [opened, synchronize, reopened]
-    paths: 
+    paths:
       - "backend/**"
       - "frontend/**"
 jobs:
@@ -30,13 +30,50 @@ jobs:
         with:
           go-version: "1.25.5"
 
+      - name: Set up Java (for Firebase Emulator)
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "21"
+
       - name: Generate frontend coverage
         run: |
           cd frontend
           bun install
           npm test -- --coverage
 
+      - name: Set up Firebase Emulator
+        run: |
+          npm install -g firebase-tools
+          cat > firebase.json <<EOF
+          {
+            "emulators": {
+              "firestore": {
+                "port": 8080
+              }
+            }
+          }
+          EOF
+          firebase emulators:start --only firestore --project demo-test > emulator.log 2>&1 &
+          EMULATOR_PID=$!
+          echo "Waiting for emulator to start (PID: $EMULATOR_PID)..."
+          for i in {1..45}; do
+            if curl -s http://127.0.0.1:8080 > /dev/null 2>&1; then
+              echo "Emulator started successfully"
+              break
+            fi
+            if [ $i -eq 45 ]; then
+              echo "Emulator failed to start. Log:"
+              cat emulator.log
+              exit 1
+            fi
+            sleep 2
+          done
+
       - name: Generate backend coverage
+        env:
+          FIRESTORE_EMULATOR_HOST: "127.0.0.1:8080"
+          GCLOUD_PROJECT: "demo-test-project"
         run: |
           cd backend
           go test -v -coverprofile=coverage.out ./internal/...

@@ -2,28 +2,69 @@ package handler_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/application"
+	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/persistence/repository"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/presentation/handler"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/presentation/middleware"
 )
 
+type fakeProfileService struct {
+	mu       sync.Mutex
+	profiles map[string]domain.User
+}
+
+func newFakeProfileService() *fakeProfileService {
+	return &fakeProfileService{profiles: make(map[string]domain.User)}
+}
+
+func (f *fakeProfileService) CreateUserProfile(ctx context.Context, userID string, profile domain.User) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	profile.ID = userID
+	f.profiles[userID] = profile
+	return nil
+}
+
+func (f *fakeProfileService) GetUserProfile(ctx context.Context, userID string) (*domain.User, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	profile, ok := f.profiles[userID]
+	if !ok {
+		return &domain.User{ID: userID, Email: "", Name: ""}, nil
+	}
+	return &profile, nil
+}
+
+func (f *fakeProfileService) GetUserProfileByEmail(ctx context.Context, email string) (*domain.User, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	for _, profile := range f.profiles {
+		if profile.Email == email {
+			return &profile, nil
+		}
+	}
+	return nil, nil // Not found returns nil profile, nil error (updated handler checks for nil profile)
+}
+
 func setupAuthTest(t *testing.T) (*handler.AuthHandler, *application.JWTManager) {
 	repo := repository.NewInMemoryUserRepository()
 	jwtManager := application.NewJWTManager("test-secret-key", 24*time.Hour)
 	userService := application.NewUserService(repo, jwtManager)
-	authHandler := handler.NewAuthHandler(userService)
+	authHandler := handler.NewAuthHandler(userService, newFakeProfileService())
 	return authHandler, jwtManager
 }
 
-func TestSignUp_Success(t *testing.T) {
+func TestSignUpSuccess(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	authHandler, _ := setupAuthTest(t)
 
@@ -61,7 +102,7 @@ func TestSignUp_Success(t *testing.T) {
 	}
 }
 
-func TestSignUp_MissingFields(t *testing.T) {
+func TestSignUpMissingFields(t *testing.T) {
 	tests := []struct {
 		name     string
 		req      handler.SignUpRequest
@@ -118,7 +159,7 @@ func TestSignUp_MissingFields(t *testing.T) {
 	}
 }
 
-func TestLogin_Success(t *testing.T) {
+func TestLoginSuccess(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	authHandler, _ := setupAuthTest(t)
 
@@ -163,7 +204,7 @@ func TestLogin_Success(t *testing.T) {
 	}
 }
 
-func TestLogin_WrongPassword(t *testing.T) {
+func TestLoginWrongPassword(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	authHandler, _ := setupAuthTest(t)
 
@@ -201,7 +242,7 @@ func TestLogin_WrongPassword(t *testing.T) {
 	}
 }
 
-func TestLogin_UserNotFound(t *testing.T) {
+func TestLoginUserNotFound(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	authHandler, _ := setupAuthTest(t)
 
@@ -225,7 +266,7 @@ func TestLogin_UserNotFound(t *testing.T) {
 	}
 }
 
-func TestGetProfile_Success(t *testing.T) {
+func TestGetProfileSuccess(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	authHandler, jwtManager := setupAuthTest(t)
 
@@ -269,7 +310,7 @@ func TestGetProfile_Success(t *testing.T) {
 	}
 }
 
-func TestGetProfile_NoToken(t *testing.T) {
+func TestGetProfileNoToken(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	authHandler, jwtManager := setupAuthTest(t)
 
@@ -286,7 +327,7 @@ func TestGetProfile_NoToken(t *testing.T) {
 	}
 }
 
-func TestGetProfile_InvalidToken(t *testing.T) {
+func TestGetProfileInvalidToken(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	authHandler, jwtManager := setupAuthTest(t)
 
@@ -304,7 +345,7 @@ func TestGetProfile_InvalidToken(t *testing.T) {
 	}
 }
 
-func TestLogout_Success(t *testing.T) {
+func TestLogoutSuccess(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	authHandler, jwtManager := setupAuthTest(t)
 
@@ -340,7 +381,7 @@ func TestLogout_Success(t *testing.T) {
 	}
 }
 
-func TestLogout_NoToken(t *testing.T) {
+func TestLogoutNoToken(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	authHandler, jwtManager := setupAuthTest(t)
 
@@ -357,7 +398,7 @@ func TestLogout_NoToken(t *testing.T) {
 	}
 }
 
-func TestLogout_InvalidToken(t *testing.T) {
+func TestLogoutInvalidToken(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	authHandler, jwtManager := setupAuthTest(t)
 
@@ -375,13 +416,13 @@ func TestLogout_InvalidToken(t *testing.T) {
 	}
 }
 
-func TestLogout_TokenRevoked(t *testing.T) {
+func TestLogoutTokenRevoked(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	authHandler, jwtManager := setupAuthTest(t)
 
 	repo := repository.NewInMemoryUserRepository()
 	userService := application.NewUserService(repo, jwtManager)
-	authHandler = handler.NewAuthHandler(userService)
+	authHandler = handler.NewAuthHandler(userService, newFakeProfileService())
 
 	router := gin.New()
 	router.Use(middleware.AuthMiddleware(jwtManager))

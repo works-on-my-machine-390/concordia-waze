@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"log"
 
 	"github.com/joho/godotenv"
 	_ "github.com/works-on-my-machine-390/concordia-waze/docs"
+	"github.com/works-on-my-machine-390/concordia-waze/internal/application/firebase"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/router"
 )
 
@@ -23,7 +25,18 @@ func main() {
 	if err != nil {
 		log.Println("No .env file found")
 	}
-	router := router.SetupRouter()
-	router.Run(":8080")
+
+	ctx := context.Background()
+	if err := firebase.Initialize(ctx); err != nil {
+		log.Fatalf("Failed to initialize Firebase: %v", err)
+	}
+	defer func() {
+		if err := firebase.Close(ctx); err != nil {
+			log.Printf("Failed to close Firebase: %v", err)
+		}
+	}()
+
+	r := router.SetupRouter()
+	r.Run(":8080")
 
 }
