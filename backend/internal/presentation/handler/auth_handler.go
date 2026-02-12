@@ -9,6 +9,7 @@ import (
 	"github.com/works-on-my-machine-390/concordia-waze/internal/application"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/presentation/middleware"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // AuthHandler handles authentication requests
@@ -85,12 +86,19 @@ func (h *AuthHandler) SignUp(c *gin.Context) {
 	}
 
 	if h.firebaseService != nil {
+		// Hash password with bcrypt
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
+			return
+		}
+
 		profile := application.User{
 			UserID:    user.ID,
 			Email:     user.Email,
 			FirstName: user.Name,
 			LastName:  "",
-			Password:  req.Password, // Store password (should use bcrypt in production)
+			Password:  string(hashedPassword),
 		}
 		if err := h.firebaseService.CreateUserProfile(c.Request.Context(), user.ID, profile); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -127,8 +135,8 @@ func (h *AuthHandler) Login(c *gin.Context) {
 			return
 		}
 
-		// Verify password (you should use bcrypt in production)
-		if profile.Password != req.Password {
+		// Verify password with bcrypt
+		if err := bcrypt.CompareHashAndPassword([]byte(profile.Password), []byte(req.Password)); err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 			return
 		}

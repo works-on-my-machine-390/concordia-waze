@@ -64,6 +64,7 @@ func SetupRouter() *gin.Engine {
 	}
 
 	usersGroup := router.Group("/users")
+	usersGroup.Use(middleware.RequireAuth(), middleware.ValidateUserOwnership())
 	{
 		usersGroup.POST("/:userId/profile", firebaseHandler.CreateUserProfile)
 		usersGroup.GET("/:userId/profile", firebaseHandler.GetUserProfile)
