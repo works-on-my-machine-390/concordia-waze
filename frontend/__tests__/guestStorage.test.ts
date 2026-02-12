@@ -34,8 +34,7 @@ describe('guestStorage', () => {
       const profile: UserProfile = {
         userId: 'guest',
         email: 'guest@example.com',
-        first_name: 'Guest',
-        last_name: 'User'
+        full_name: 'Guest User',
       };
 
       (AsyncStorage.getItem as jest.Mock).mockResolvedValue(JSON.stringify(profile));
@@ -58,8 +57,7 @@ describe('guestStorage', () => {
       const profile: UserProfile = {
         userId: 'guest',
         email: 'guest@example.com',
-        first_name: 'Guest',
-        last_name: 'User'
+        full_name: 'Guest User'
       };
 
       (AsyncStorage.setItem as jest.Mock).mockResolvedValue(undefined);

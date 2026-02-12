@@ -1,24 +1,20 @@
-// Mock Firebase Firestore - MUST be at top before imports
-jest.mock('firebase/firestore', () => ({
-  addDoc: jest.fn(),
-  collection: jest.fn(),
-  deleteDoc: jest.fn(),
-  doc: jest.fn(),
-  getDoc: jest.fn(),
-  getDocs: jest.fn(),
-  limit: jest.fn(),
-  orderBy: jest.fn(),
-  query: jest.fn(),
-  setDoc: jest.fn(),
-  updateDoc: jest.fn(),
-  where: jest.fn()
+// Mock API - MUST be at top before imports
+const mockGet = jest.fn();
+const mockPost = jest.fn();
+const mockPut = jest.fn();
+const mockDelete = jest.fn();
+const mockJson = jest.fn();
+const mockRes = jest.fn();
+
+jest.mock('../hooks/api', () => ({
+  api: jest.fn(async () => ({
+    get: mockGet,
+    post: mockPost,
+    put: mockPut,
+    delete: mockDelete
+  }))
 }));
 
-jest.mock('../config/firebase', () => ({
-  db: {}
-}));
-
-import * as firebaseModule from 'firebase/firestore';
 import {
   addSearchHistory,
   getSearchHistory,
@@ -40,80 +36,111 @@ describe('useFirestore', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockGet.mockReturnValue({ json: mockJson, res: mockRes });
+    mockPost.mockReturnValue({ json: mockJson, res: mockRes });
+    mockPut.mockReturnValue({ json: mockJson, res: mockRes });
+    mockDelete.mockReturnValue({ json: mockJson, res: mockRes });
+  });
+
+  describe('User Profile', () => {
+    it('should create user profile', async () => {
+      mockJson.mockResolvedValue({ message: 'Profile created' });
+
+      const profile = {
+        email: 'test@example.com',
+        full_name: 'John Doe'
+      };
+
+      const result = await createUserProfile(userId, profile);
+
+      expect(result).toBe(userId);
+      expect(mockPost).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId,
+          email: 'test@example.com',
+          full_name: 'John Doe'
+        }),
+        `/users/${userId}/profile`
+      );
+    });
+
+    it('should get user profile', async () => {
+      const mockProfile = {
+        userId,
+        email: 'test@example.com',
+        full_name: 'John Doe'
+      };
+
+      mockJson.mockResolvedValue(mockProfile);
+
+      const result = await getUserProfile(userId);
+
+      expect(result).toEqual(mockProfile);
+      expect(mockGet).toHaveBeenCalledWith(`/users/${userId}/profile`);
+    });
+
+    it('should return null when profile not found', async () => {
+      mockJson.mockRejectedValue({ status: 404 });
+
+      const result = await getUserProfile(userId);
+
+      expect(result).toBeNull();
+    });
   });
 
   describe('Search History', () => {
     it('should add search history item', async () => {
-      const mockDocRef = { id: 'search-123' };
-      (firebaseModule.addDoc as jest.Mock).mockResolvedValue(mockDocRef);
+      mockJson.mockResolvedValue({ id: 'search-123' });
 
       const result = await addSearchHistory(userId, 'Hall Building', '1455 De Maisonneuve Blvd. W');
 
       expect(result).toBe('search-123');
-      expect(firebaseModule.addDoc).toHaveBeenCalled();
+      expect(mockPost).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: 'Hall Building',
+          locations: '1455 De Maisonneuve Blvd. W'
+        }),
+        `/users/${userId}/search-history`
+      );
     });
 
-    it('should get search history with correct ordering', async () => {
-      const mockDocs = [
+    it('should get search history with correct limit', async () => {
+      const mockHistory = [
         {
-          id: 'search-1',
-          data: () => ({
-            query: 'Hall Building',
-            locations: '1455 De Maisonneuve Blvd. W',
-            timestamp: new Date()
-          })
+          searchId: 'search-1',
+          query: 'Hall Building',
+          locations: '1455 De Maisonneuve Blvd. W',
+          timestamp: new Date().toISOString()
         },
         {
-          id: 'search-2',
-          data: () => ({
-            query: 'JMSB',
-            locations: '1500 René Levesque Blvd. W',
-            timestamp: new Date()
-          })
+          searchId: 'search-2',
+          query: 'JMSB',
+          locations: '1500 René Levesque Blvd. W',
+          timestamp: new Date().toISOString()
         }
       ];
 
-      const mockSnapshot = {
-        docs: mockDocs
-      };
-
-      (firebaseModule.getDocs as jest.Mock).mockResolvedValue(mockSnapshot as any);
-      (firebaseModule.query as jest.Mock).mockReturnValue({} as any);
-      (firebaseModule.collection as jest.Mock).mockReturnValue({} as any);
-      (firebaseModule.orderBy as jest.Mock).mockReturnValue({} as any);
-      (firebaseModule.limit as jest.Mock).mockReturnValue({} as any);
+      mockJson.mockResolvedValue(mockHistory);
 
       const result = await getSearchHistory(userId, 10);
 
       expect(result).toHaveLength(2);
       expect(result[0].searchId).toBe('search-1');
-      expect(result[0].query).toBe('Hall Building');
-      expect(firebaseModule.getDocs).toHaveBeenCalled();
+      expect(mockGet).toHaveBeenCalledWith(`/users/${userId}/search-history?limit=10`);
     });
 
     it('should clear all search history', async () => {
-      const mockDocs = [
-        { ref: { id: 'search-1' }, id: 'search-1' },
-        { ref: { id: 'search-2' }, id: 'search-2' }
-      ];
-
-      const mockSnapshot = {
-        docs: mockDocs
-      };
-
-      (firebaseModule.getDocs as jest.Mock).mockResolvedValue(mockSnapshot as any);
-      (firebaseModule.deleteDoc as jest.Mock).mockResolvedValue(undefined);
+      mockRes.mockResolvedValue({});
 
       await clearSearchHistory(userId);
 
-      expect(firebaseModule.deleteDoc).toHaveBeenCalledTimes(2);
+      expect(mockDelete).toHaveBeenCalledWith(`/users/${userId}/search-history`);
     });
   });
 
   describe('Schedule', () => {
     it('should add schedule item', async () => {
-      const mockDocRef = { id: 'schedule-123' };
-      (firebaseModule.addDoc as jest.Mock).mockResolvedValue(mockDocRef as any);
+      mockJson.mockResolvedValue({ id: 'schedule-123' });
 
       const item = {
         name: 'SOEN 390 Lecture',
@@ -128,49 +155,31 @@ describe('useFirestore', () => {
       const result = await addScheduleItem(userId, item);
 
       expect(result).toBe('schedule-123');
-      expect(firebaseModule.addDoc).toHaveBeenCalled();
+      expect(mockPost).toHaveBeenCalledWith(item, `/users/${userId}/schedule`);
     });
 
-    it('should get user schedule ordered by start time', async () => {
-      const mockDocs = [
+    it('should get user schedule', async () => {
+      const mockSchedule = [
         {
-          id: 'schedule-1',
-          data: () => ({
-            name: 'Morning Class',
-            startTime: '09:00',
-            endTime: '10:30',
-            daysOfWeek: ['Monday']
-          })
-        },
-        {
-          id: 'schedule-2',
-          data: () => ({
-            name: 'Afternoon Class',
-            startTime: '14:00',
-            endTime: '15:30',
-            daysOfWeek: ['Monday']
-          })
+          scheduleId: 'schedule-1',
+          name: 'Morning Class',
+          startTime: '09:00',
+          endTime: '10:30',
+          daysOfWeek: ['Monday'],
+          type: 'class'
         }
       ];
 
-      const mockSnapshot = {
-        docs: mockDocs
-      };
-
-      (firebaseModule.getDocs as jest.Mock).mockResolvedValue(mockSnapshot as any);
-      (firebaseModule.query as jest.Mock).mockReturnValue({} as any);
-      (firebaseModule.collection as jest.Mock).mockReturnValue({} as any);
-      (firebaseModule.orderBy as jest.Mock).mockReturnValue({} as any);
+      mockJson.mockResolvedValue(mockSchedule);
 
       const result = await getUserSchedule(userId);
 
-      expect(result).toHaveLength(2);
-      expect(result[0].scheduleId).toBe('schedule-1');
-      expect(result[0].name).toBe('Morning Class');
+      expect(result).toEqual(mockSchedule);
+      expect(mockGet).toHaveBeenCalledWith(`/users/${userId}/schedule`);
     });
 
     it('should update schedule item', async () => {
-      (firebaseModule.updateDoc as jest.Mock).mockResolvedValue(undefined);
+      mockRes.mockResolvedValue({});
 
       const updates = {
         name: 'Updated Class',
@@ -179,59 +188,52 @@ describe('useFirestore', () => {
 
       await updateScheduleItem(userId, 'schedule-123', updates);
 
-      expect(firebaseModule.updateDoc).toHaveBeenCalled();
+      expect(mockPut).toHaveBeenCalledWith(updates, `/users/${userId}/schedule/schedule-123`);
     });
 
     it('should delete schedule item', async () => {
-      (firebaseModule.deleteDoc as jest.Mock).mockResolvedValue(undefined);
+      mockRes.mockResolvedValue({});
 
       await deleteScheduleItem(userId, 'schedule-123');
 
-      expect(firebaseModule.deleteDoc).toHaveBeenCalled();
+      expect(mockDelete).toHaveBeenCalledWith(`/users/${userId}/schedule/schedule-123`);
     });
   });
 
   describe('Saved Addresses', () => {
     it('should add saved address', async () => {
-      const mockDocRef = { id: 'address-123' };
-      (firebaseModule.addDoc as jest.Mock).mockResolvedValue(mockDocRef as any);
+      mockJson.mockResolvedValue({ id: 'address-123' });
 
       const result = await addSavedAddress(userId, {
         address: '1455 De Maisonneuve Blvd. W, Montreal'
       });
 
       expect(result).toBe('address-123');
-      expect(firebaseModule.addDoc).toHaveBeenCalled();
+      expect(mockPost).toHaveBeenCalledWith(
+        { address: '1455 De Maisonneuve Blvd. W, Montreal' },
+        `/users/${userId}/savedAddresses`
+      );
     });
 
     it('should get saved addresses', async () => {
-      const mockDocs = [
+      const mockAddresses = [
         {
-          id: 'address-1',
-          data: () => ({
-            address: '1455 De Maisonneuve Blvd. W'
-          })
+          addressId: 'address-1',
+          address: '1455 De Maisonneuve Blvd. W'
         }
       ];
 
-      const mockSnapshot = {
-        docs: mockDocs
-      };
-
-      (firebaseModule.getDocs as jest.Mock).mockResolvedValue(mockSnapshot as any);
-      (firebaseModule.query as jest.Mock).mockReturnValue({} as any);
-      (firebaseModule.collection as jest.Mock).mockReturnValue({} as any);
-      (firebaseModule.orderBy as jest.Mock).mockReturnValue({} as any);
+      mockJson.mockResolvedValue(mockAddresses);
 
       const result = await getSavedAddresses(userId);
 
       expect(result).toHaveLength(1);
       expect(result[0].addressId).toBe('address-1');
-      expect(result[0].address).toBe('1455 De Maisonneuve Blvd. W');
+      expect(mockGet).toHaveBeenCalledWith(`/users/${userId}/savedAddresses`);
     });
 
     it('should update saved address', async () => {
-      (firebaseModule.updateDoc as jest.Mock).mockResolvedValue(undefined);
+      mockRes.mockResolvedValue({});
 
       const updates = {
         address: 'Updated Address'
@@ -239,63 +241,15 @@ describe('useFirestore', () => {
 
       await updateSavedAddress(userId, 'address-123', updates);
 
-      expect(firebaseModule.updateDoc).toHaveBeenCalled();
+      expect(mockPut).toHaveBeenCalledWith(updates, `/users/${userId}/savedAddresses/address-123`);
     });
 
     it('should delete saved address', async () => {
-      (firebaseModule.deleteDoc as jest.Mock).mockResolvedValue(undefined);
+      mockRes.mockResolvedValue({});
 
       await deleteSavedAddress(userId, 'address-123');
 
-      expect(firebaseModule.deleteDoc).toHaveBeenCalled();
-    });
-  });
-
-  describe('User Profile', () => {
-    it('should create user profile', async () => {
-      (firebaseModule.setDoc as jest.Mock).mockResolvedValue(undefined);
-
-      const result = await createUserProfile(userId, {
-        email: 'test@example.com',
-        first_name: 'John',
-        last_name: 'Doe'
-      });
-
-      expect(result).toBe(userId);
-      expect(firebaseModule.setDoc).toHaveBeenCalled();
-    });
-
-    it('should get user profile', async () => {
-      const mockData = {
-        userId,
-        email: 'test@example.com',
-        first_name: 'John',
-        last_name: 'Doe'
-      };
-
-      const mockSnapshot = {
-        exists: () => true,
-        data: () => mockData
-      };
-
-      (firebaseModule.getDoc as jest.Mock).mockResolvedValue(mockSnapshot as any);
-
-      const result = await getUserProfile(userId);
-
-      expect(result).toEqual(mockData);
-      expect(firebaseModule.getDoc).toHaveBeenCalled();
-    });
-
-    it('should return null if profile does not exist', async () => {
-      const mockSnapshot = {
-        exists: () => false
-      };
-
-      (firebaseModule.getDoc as jest.Mock).mockResolvedValue(mockSnapshot as any);
-
-      const result = await getUserProfile(userId);
-
-      expect(result).toBeNull();
+      expect(mockDelete).toHaveBeenCalledWith(`/users/${userId}/savedAddresses/address-123`);
     });
   });
 });

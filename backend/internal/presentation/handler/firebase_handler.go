@@ -7,12 +7,13 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/application"
+	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
 )
 
 // FirebaseService defines the Firestore operations used by the handler.
 type FirebaseService interface {
-	CreateUserProfile(ctx context.Context, userID string, profile application.User) error
-	GetUserProfile(ctx context.Context, userID string) (*application.User, error)
+	CreateUserProfile(ctx context.Context, userID string, profile domain.User) error
+	GetUserProfile(ctx context.Context, userID string) (*domain.User, error)
 	AddSearchHistory(ctx context.Context, userID string, item application.SearchHistoryItem) (string, error)
 	GetSearchHistory(ctx context.Context, userID string, limit int) ([]application.SearchHistoryItem, error)
 	ClearSearchHistory(ctx context.Context, userID string) error
@@ -45,14 +46,14 @@ func NewFirebaseHandler(service FirebaseService) *FirebaseHandler {
 // @Accept json
 // @Produce json
 // @Param userId path string true "User ID"
-// @Param profile body application.User true "User profile"
+// @Param profile body domain.User true "User profile"
 // @Success 201 {object} map[string]string
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /users/{userId}/profile [post]
 func (fh *FirebaseHandler) CreateUserProfile(c *gin.Context) {
 	userID := c.Param("userId")
-	var profile application.User
+	var profile domain.User
 
 	if err := c.ShouldBindJSON(&profile); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body for Create User Profile"})
@@ -73,7 +74,7 @@ func (fh *FirebaseHandler) CreateUserProfile(c *gin.Context) {
 // @Tags users
 // @Produce json
 // @Param userId path string true "User ID"
-// @Success 200 {object} application.User
+// @Success 200 {object} domain.User
 // @Failure 404 {object} map[string]string
 // @Router /users/{userId}/profile [get]
 func (fh *FirebaseHandler) GetUserProfile(c *gin.Context) {

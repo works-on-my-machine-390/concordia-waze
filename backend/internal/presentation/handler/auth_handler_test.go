@@ -12,6 +12,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/application"
+	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/persistence/repository"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/presentation/handler"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/presentation/middleware"
@@ -19,32 +20,32 @@ import (
 
 type fakeProfileService struct {
 	mu       sync.Mutex
-	profiles map[string]application.User
+	profiles map[string]domain.User
 }
 
 func newFakeProfileService() *fakeProfileService {
-	return &fakeProfileService{profiles: make(map[string]application.User)}
+	return &fakeProfileService{profiles: make(map[string]domain.User)}
 }
 
-func (f *fakeProfileService) CreateUserProfile(ctx context.Context, userID string, profile application.User) error {
+func (f *fakeProfileService) CreateUserProfile(ctx context.Context, userID string, profile domain.User) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	profile.UserID = userID
+	profile.ID = userID
 	f.profiles[userID] = profile
 	return nil
 }
 
-func (f *fakeProfileService) GetUserProfile(ctx context.Context, userID string) (*application.User, error) {
+func (f *fakeProfileService) GetUserProfile(ctx context.Context, userID string) (*domain.User, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	profile, ok := f.profiles[userID]
 	if !ok {
-		return &application.User{UserID: userID, Email: "", FirstName: "", LastName: ""}, nil
+		return &domain.User{ID: userID, Email: "", Name: ""}, nil
 	}
 	return &profile, nil
 }
 
-func (f *fakeProfileService) GetUserProfileByEmail(ctx context.Context, email string) (*application.User, error) {
+func (f *fakeProfileService) GetUserProfileByEmail(ctx context.Context, email string) (*domain.User, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	for _, profile := range f.profiles {

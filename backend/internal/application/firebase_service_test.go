@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/application"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/application/firebase"
+	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
 )
 
 // These are integration tests that require a Firestore emulator or real Firebase instance.
@@ -58,11 +59,10 @@ func TestCreateAndGetUserProfile(t *testing.T) {
 
 	userID := "test-user-" + time.Now().Format("20060102150405")
 
-	profile := application.User{
-		Email:     "test@example.com",
-		FirstName: "John",
-		LastName:  "Doe",
-		Password:  "hashedpassword123",
+	profile := domain.User{
+		Email:    "test@example.com",
+		Name:     "John Doe",
+		Password: "hashedpassword123",
 	}
 
 	// Create profile
@@ -72,10 +72,9 @@ func TestCreateAndGetUserProfile(t *testing.T) {
 	// Get profile
 	retrieved, err := service.GetUserProfile(ctx, userID)
 	require.NoError(t, err)
-	assert.Equal(t, userID, retrieved.UserID)
+	assert.Equal(t, userID, retrieved.ID)
 	assert.Equal(t, "test@example.com", retrieved.Email)
-	assert.Equal(t, "John", retrieved.FirstName)
-	assert.Equal(t, "Doe", retrieved.LastName)
+	assert.Equal(t, "John Doe", retrieved.Name)
 }
 
 func TestGetUserProfileByEmail(t *testing.T) {
@@ -84,11 +83,10 @@ func TestGetUserProfileByEmail(t *testing.T) {
 	userID := "test-user-email-" + time.Now().Format("20060102150405")
 	email := "unique-" + time.Now().Format("20060102150405") + "@example.com"
 
-	profile := application.User{
-		Email:     email,
-		FirstName: "Jane",
-		LastName:  "Smith",
-		Password:  "hashedpassword456",
+	profile := domain.User{
+		Email:    email,
+		Name:     "Jane Smith",
+		Password: "hashedpassword456",
 	}
 
 	// Create profile
@@ -99,7 +97,7 @@ func TestGetUserProfileByEmail(t *testing.T) {
 	retrieved, err := service.GetUserProfileByEmail(ctx, email)
 	require.NoError(t, err)
 	assert.Equal(t, email, retrieved.Email)
-	assert.Equal(t, "Jane", retrieved.FirstName)
+	assert.Equal(t, "Jane Smith", retrieved.Name)
 }
 
 func TestAddAndGetSearchHistory(t *testing.T) {
@@ -108,11 +106,10 @@ func TestAddAndGetSearchHistory(t *testing.T) {
 	userID := "test-user-search-" + time.Now().Format("20060102150405")
 
 	// Create user first
-	profile := application.User{
-		Email:     "search@example.com",
-		FirstName: "Search",
-		LastName:  "User",
-		Password:  "password",
+	profile := domain.User{
+		Email:    "search@example.com",
+		Name:     "Search User",
+		Password: "password",
 	}
 	err := service.CreateUserProfile(ctx, userID, profile)
 	require.NoError(t, err)
@@ -149,11 +146,10 @@ func TestClearSearchHistory(t *testing.T) {
 	userID := "test-user-clear-" + time.Now().Format("20060102150405")
 
 	// Create user
-	profile := application.User{
-		Email:     "clear@example.com",
-		FirstName: "Clear",
-		LastName:  "User",
-		Password:  "password",
+	profile := domain.User{
+		Email:    "clear@example.com",
+		Name:     "Clear User",
+		Password: "password",
 	}
 	err := service.CreateUserProfile(ctx, userID, profile)
 	require.NoError(t, err)
@@ -184,11 +180,10 @@ func TestAddAndGetSchedule(t *testing.T) {
 	userID := "test-user-schedule-" + time.Now().Format("20060102150405")
 
 	// Create user
-	profile := application.User{
-		Email:     "schedule@example.com",
-		FirstName: "Schedule",
-		LastName:  "User",
-		Password:  "password",
+	profile := domain.User{
+		Email:    "schedule@example.com",
+		Name:     "Schedule User",
+		Password: "password",
 	}
 	err := service.CreateUserProfile(ctx, userID, profile)
 	require.NoError(t, err)
@@ -235,11 +230,10 @@ func TestUpdateScheduleItem(t *testing.T) {
 	userID := "test-user-schedule-update-" + time.Now().Format("20060102150405")
 
 	// Create user
-	profile := application.User{
-		Email:     "scheduleupdate@example.com",
-		FirstName: "Schedule",
-		LastName:  "Update",
-		Password:  "password",
+	profile := domain.User{
+		Email:    "scheduleupdate@example.com",
+		Name:     "Schedule Update",
+		Password: "password",
 	}
 	err := service.CreateUserProfile(ctx, userID, profile)
 	require.NoError(t, err)
@@ -287,11 +281,10 @@ func TestDeleteScheduleItem(t *testing.T) {
 	userID := "test-user-schedule-delete-" + time.Now().Format("20060102150405")
 
 	// Create user
-	profile := application.User{
-		Email:     "scheduledelete@example.com",
-		FirstName: "Schedule",
-		LastName:  "Delete",
-		Password:  "password",
+	profile := domain.User{
+		Email:    "scheduledelete@example.com",
+		Name:     "Schedule Delete",
+		Password: "password",
 	}
 	err := service.CreateUserProfile(ctx, userID, profile)
 	require.NoError(t, err)
@@ -326,11 +319,10 @@ func TestAddAndGetSavedAddresses(t *testing.T) {
 	userID := "test-user-address-" + time.Now().Format("20060102150405")
 
 	// Create user
-	profile := application.User{
-		Email:     "address@example.com",
-		FirstName: "Address",
-		LastName:  "User",
-		Password:  "password",
+	profile := domain.User{
+		Email:    "address@example.com",
+		Name:     "Address User",
+		Password: "password",
 	}
 	err := service.CreateUserProfile(ctx, userID, profile)
 	require.NoError(t, err)
@@ -365,11 +357,10 @@ func TestUpdateSavedAddress(t *testing.T) {
 	userID := "test-user-address-update-" + time.Now().Format("20060102150405")
 
 	// Create user
-	profile := application.User{
-		Email:     "addressupdate@example.com",
-		FirstName: "Address",
-		LastName:  "Update",
-		Password:  "password",
+	profile := domain.User{
+		Email:    "addressupdate@example.com",
+		Name:     "Address Update",
+		Password: "password",
 	}
 	err := service.CreateUserProfile(ctx, userID, profile)
 	require.NoError(t, err)
@@ -409,11 +400,10 @@ func TestDeleteSavedAddress(t *testing.T) {
 	userID := "test-user-address-delete-" + time.Now().Format("20060102150405")
 
 	// Create user
-	profile := application.User{
-		Email:     "addressdelete@example.com",
-		FirstName: "Address",
-		LastName:  "Delete",
-		Password:  "password",
+	profile := domain.User{
+		Email:    "addressdelete@example.com",
+		Name:     "Address Saved",
+		Password: "password",
 	}
 	err := service.CreateUserProfile(ctx, userID, profile)
 	require.NoError(t, err)
@@ -444,11 +434,10 @@ func TestSubcollectionsInitialized(t *testing.T) {
 	userID := "test-user-subcoll-" + time.Now().Format("20060102150405")
 
 	// Create user (should initialize subcollections)
-	profile := application.User{
-		Email:     "subcoll@example.com",
-		FirstName: "Subcollection",
-		LastName:  "Test",
-		Password:  "password",
+	profile := domain.User{
+		Email:    "subcoll@example.com",
+		Name:     "Subcollection Init",
+		Password: "password",
 	}
 	err := service.CreateUserProfile(ctx, userID, profile)
 	require.NoError(t, err)
@@ -486,11 +475,10 @@ func TestGetSearchHistoryWithZeroLimit(t *testing.T) {
 	userID := "test-user-limit-" + time.Now().Format("20060102150405")
 
 	// Create user
-	profile := application.User{
-		Email:     "limituser@example.com",
-		FirstName: "Limit",
-		LastName:  "User",
-		Password:  "password",
+	profile := domain.User{
+		Email:    "limituser@example.com",
+		Name:     "Limit Zero",
+		Password: "password",
 	}
 	err := service.CreateUserProfile(ctx, userID, profile)
 	require.NoError(t, err)
@@ -517,11 +505,10 @@ func TestGetSearchHistoryWithNegativeLimit(t *testing.T) {
 	userID := "test-user-neg-" + time.Now().Format("20060102150405")
 
 	// Create user
-	profile := application.User{
-		Email:     "neguser@example.com",
-		FirstName: "Negative",
-		LastName:  "User",
-		Password:  "password",
+	profile := domain.User{
+		Email:    "neguser@example.com",
+		Name:     "Negative Limit",
+		Password: "password",
 	}
 	err := service.CreateUserProfile(ctx, userID, profile)
 	require.NoError(t, err)
@@ -548,11 +535,10 @@ func TestGetSearchHistoryWithSmallLimit(t *testing.T) {
 	userID := "test-user-small-" + time.Now().Format("20060102150405")
 
 	// Create user
-	profile := application.User{
-		Email:     "smalluser@example.com",
-		FirstName: "Small",
-		LastName:  "User",
-		Password:  "password",
+	profile := domain.User{
+		Email:    "smalluser@example.com",
+		Name:     "Small User",
+		Password: "password",
 	}
 	err := service.CreateUserProfile(ctx, userID, profile)
 	require.NoError(t, err)
@@ -579,11 +565,10 @@ func TestClearSearchHistoryEmptyHistory(t *testing.T) {
 	userID := "test-user-empty-clear-" + time.Now().Format("20060102150405")
 
 	// Create user
-	profile := application.User{
-		Email:     "emptyclear@example.com",
-		FirstName: "Empty",
-		LastName:  "Clear",
-		Password:  "password",
+	profile := domain.User{
+		Email:    "emptyclear@example.com",
+		Name:     "Empty Clear",
+		Password: "password",
 	}
 	err := service.CreateUserProfile(ctx, userID, profile)
 	require.NoError(t, err)
@@ -599,11 +584,10 @@ func TestGetUserScheduleEmptySchedule(t *testing.T) {
 	userID := "test-user-empty-schedule-" + time.Now().Format("20060102150405")
 
 	// Create user
-	profile := application.User{
-		Email:     "emptyschedule@example.com",
-		FirstName: "Empty",
-		LastName:  "Schedule",
-		Password:  "password",
+	profile := domain.User{
+		Email:    "emptyschedule@example.com",
+		Name:     "Empty Schedule",
+		Password: "password",
 	}
 	err := service.CreateUserProfile(ctx, userID, profile)
 	require.NoError(t, err)
@@ -621,11 +605,10 @@ func TestGetSavedAddressesEmptyAddresses(t *testing.T) {
 	userID := "test-user-empty-addr-" + time.Now().Format("20060102150405")
 
 	// Create user
-	profile := application.User{
-		Email:     "emptyaddr@example.com",
-		FirstName: "Empty",
-		LastName:  "Address",
-		Password:  "password",
+	profile := domain.User{
+		Email:    "emptyaddr@example.com",
+		Name:     "Empty Address",
+		Password: "password",
 	}
 	err := service.CreateUserProfile(ctx, userID, profile)
 	require.NoError(t, err)
@@ -643,11 +626,10 @@ func TestAddScheduleItemWithOptionalFields(t *testing.T) {
 	userID := "test-user-opt-" + time.Now().Format("20060102150405")
 
 	// Create user
-	profile := application.User{
-		Email:     "optfields@example.com",
-		FirstName: "Optional",
-		LastName:  "Fields",
-		Password:  "password",
+	profile := domain.User{
+		Email:    "optfields@example.com",
+		Name:     "Optional Fields",
+		Password: "password",
 	}
 	err := service.CreateUserProfile(ctx, userID, profile)
 	require.NoError(t, err)
@@ -688,11 +670,10 @@ func TestUpdateScheduleItemMultipleFields(t *testing.T) {
 	userID := "test-user-multi-" + time.Now().Format("20060102150405")
 
 	// Create user
-	profile := application.User{
-		Email:     "multiupdate@example.com",
-		FirstName: "Multi",
-		LastName:  "Update",
-		Password:  "password",
+	profile := domain.User{
+		Email:    "multiupdate@example.com",
+		Name:     "Multi Update",
+		Password: "password",
 	}
 	err := service.CreateUserProfile(ctx, userID, profile)
 	require.NoError(t, err)
@@ -742,11 +723,10 @@ func TestAddMultipleSearchHistoryItems(t *testing.T) {
 	userID := "test-user-multiple-" + time.Now().Format("20060102150405")
 
 	// Create user
-	profile := application.User{
-		Email:     "multiple@example.com",
-		FirstName: "Multiple",
-		LastName:  "Items",
-		Password:  "password",
+	profile := domain.User{
+		Email:    "multiple@example.com",
+		Name:     "Multiple Items",
+		Password: "password",
 	}
 	err := service.CreateUserProfile(ctx, userID, profile)
 	require.NoError(t, err)
@@ -781,11 +761,10 @@ func TestAddMultipleSavedAddresses(t *testing.T) {
 	userID := "test-user-multi-addr-" + time.Now().Format("20060102150405")
 
 	// Create user
-	profile := application.User{
-		Email:     "multiaddr@example.com",
-		FirstName: "Multi",
-		LastName:  "Address",
-		Password:  "password",
+	profile := domain.User{
+		Email:    "multiaddr@example.com",
+		Name:     "Multi Address",
+		Password: "password",
 	}
 	err := service.CreateUserProfile(ctx, userID, profile)
 	require.NoError(t, err)

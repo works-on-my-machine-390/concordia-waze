@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/application"
@@ -20,9 +19,9 @@ type AuthHandler struct {
 
 // FirebaseProfileService defines user profile operations stored in Firestore.
 type FirebaseProfileService interface {
-	CreateUserProfile(ctx context.Context, userID string, profile application.User) error
-	GetUserProfile(ctx context.Context, userID string) (*application.User, error)
-	GetUserProfileByEmail(ctx context.Context, email string) (*application.User, error)
+	CreateUserProfile(ctx context.Context, userID string, profile domain.User) error
+	GetUserProfile(ctx context.Context, userID string) (*domain.User, error)
+	GetUserProfileByEmail(ctx context.Context, email string) (*domain.User, error)
 }
 
 // NewAuthHandler creates a new auth handler
@@ -78,9 +77,11 @@ func (h *AuthHandler) SignUp(c *gin.Context) {
 		return
 	}
 
+	name := user.Name
+
 	response := AuthResponse{
 		ID:    user.ID,
-		Name:  user.Name,
+		Name:  name,
 		Email: user.Email,
 		Token: token,
 	}
@@ -93,12 +94,11 @@ func (h *AuthHandler) SignUp(c *gin.Context) {
 			return
 		}
 
-		profile := application.User{
-			UserID:    user.ID,
-			Email:     user.Email,
-			FirstName: user.Name,
-			LastName:  "",
-			Password:  string(hashedPassword),
+		profile := domain.User{
+			ID:       user.ID,
+			Email:    user.Email,
+			Name:     user.Name,
+			Password: string(hashedPassword),
 		}
 		if err := h.firebaseService.CreateUserProfile(c.Request.Context(), user.ID, profile); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -141,22 +141,17 @@ func (h *AuthHandler) Login(c *gin.Context) {
 			return
 		}
 
-		// Create a domain.User to generate token
-		user := &domain.User{
-			ID:    profile.UserID,
-			Email: profile.Email,
-			Name:  profile.FirstName + " " + profile.LastName,
-		}
-
-		token, err := h.userService.GenerateTokenForUser(user)
+		token, err := h.userService.GenerateTokenForUser(profile)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
 			return
 		}
 
+		name := profile.Name
+
 		response := AuthResponse{
-			ID:    profile.UserID,
-			Name:  profile.FirstName + " " + profile.LastName,
+			ID:    profile.ID,
+			Name:  name,
 			Email: profile.Email,
 			Token: token,
 		}
@@ -176,9 +171,11 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
+	name := user.Name
+
 	response := AuthResponse{
 		ID:    user.ID,
-		Name:  user.Name,
+		Name:  name,
 		Email: user.Email,
 		Token: token,
 	}
@@ -205,7 +202,7 @@ func (h *AuthHandler) GetProfile(c *gin.Context) {
 		return
 	}
 
-	var profile *application.User
+	var profile *domain.User
 	if h.firebaseService != nil {
 		user, err := h.firebaseService.GetUserProfile(c.Request.Context(), claims.ID)
 		if err != nil {
@@ -221,18 +218,14 @@ func (h *AuthHandler) GetProfile(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
-		profile = &application.User{
-			UserID:    user.ID,
-			Email:     user.Email,
-			FirstName: user.Name,
-			LastName:  "",
-		}
+		profile = user
 	}
-	fullName := strings.TrimSpace(strings.Join([]string{profile.FirstName, profile.LastName}, " "))
+
+	Name := profile.Name
 
 	response := AuthResponse{
-		ID:    profile.UserID,
-		Name:  fullName,
+		ID:    profile.ID,
+		Name:  Name,
 		Email: profile.Email,
 	}
 

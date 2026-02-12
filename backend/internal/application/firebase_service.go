@@ -7,6 +7,7 @@ import (
 
 	"cloud.google.com/go/firestore"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/application/firebase"
+	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
 	"google.golang.org/api/iterator"
 )
 
@@ -20,15 +21,6 @@ func NewFirebaseService() *FirebaseService {
 	return &FirebaseService{
 		client: firebase.GetClient(),
 	}
-}
-
-// User stores basic user information.
-type User struct {
-	UserID    string `firestore:"userId" json:"userId"`
-	Email     string `firestore:"Email" json:"email"`
-	FirstName string `firestore:"FirstName" json:"firstName"`
-	LastName  string `firestore:"LastName" json:"lastName"`
-	Password  string `firestore:"Password" json:"password"`
 }
 
 // SearchHistoryItem stores a single search entry.
@@ -59,8 +51,8 @@ type SavedAddress struct {
 
 // ===== User Profile =====
 
-func (fs *FirebaseService) CreateUserProfile(ctx context.Context, userID string, profile User) error {
-	profile.UserID = userID
+func (fs *FirebaseService) CreateUserProfile(ctx context.Context, userID string, profile domain.User) error {
+	profile.ID = userID
 
 	_, err := fs.client.Collection("users").Doc(userID).Set(ctx, profile)
 	if err != nil {
@@ -75,20 +67,20 @@ func (fs *FirebaseService) CreateUserProfile(ctx context.Context, userID string,
 	return nil
 }
 
-func (fs *FirebaseService) GetUserProfile(ctx context.Context, userID string) (*User, error) {
+func (fs *FirebaseService) GetUserProfile(ctx context.Context, userID string) (*domain.User, error) {
 	doc, err := fs.client.Collection("users").Doc(userID).Get(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("get user profile: %w", err)
 	}
 
-	var profile User
+	var profile domain.User
 	if err := doc.DataTo(&profile); err != nil {
 		return nil, fmt.Errorf("parse user profile: %w", err)
 	}
 	return &profile, nil
 }
 
-func (fs *FirebaseService) GetUserProfileByEmail(ctx context.Context, email string) (*User, error) {
+func (fs *FirebaseService) GetUserProfileByEmail(ctx context.Context, email string) (*domain.User, error) {
 	iter := fs.client.Collection("users").Where("Email", "==", email).Limit(1).Documents(ctx)
 	defer iter.Stop()
 
@@ -100,7 +92,7 @@ func (fs *FirebaseService) GetUserProfileByEmail(ctx context.Context, email stri
 		return nil, fmt.Errorf("query user by email: %w", err)
 	}
 
-	var profile User
+	var profile domain.User
 	if err := doc.DataTo(&profile); err != nil {
 		return nil, fmt.Errorf("parse user profile: %w", err)
 	}

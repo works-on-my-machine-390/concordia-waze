@@ -38,19 +38,6 @@ definitions:
       timestamp:
         type: string
     type: object
-  application.User:
-    properties:
-      email:
-        type: string
-      firstName:
-        type: string
-      lastName:
-        type: string
-      password:
-        type: string
-      userId:
-        type: string
-    type: object
   domain.Building:
     properties:
       accessibility:
@@ -81,6 +68,15 @@ definitions:
         items:
           type: string
         type: array
+    type: object
+  domain.User:
+    properties:
+      email:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
     type: object
   handler.AuthResponse:
     properties:
@@ -343,7 +339,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/application.User'
+            $ref: '#/definitions/domain.User'
         "404":
           description: Not Found
           schema:
@@ -368,7 +364,7 @@ paths:
         name: profile
         required: true
         schema:
-          $ref: '#/definitions/application.User'
+          $ref: '#/definitions/domain.User'
       produces:
       - application/json
       responses:

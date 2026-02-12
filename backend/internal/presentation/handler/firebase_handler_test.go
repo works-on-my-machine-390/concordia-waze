@@ -11,11 +11,12 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/require"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/application"
+	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
 )
 
 type fakeFirebaseService struct {
-	createUserProfileFn  func(ctx context.Context, userID string, profile application.User) error
-	getUserProfileFn     func(ctx context.Context, userID string) (*application.User, error)
+	createUserProfileFn  func(ctx context.Context, userID string, profile domain.User) error
+	getUserProfileFn     func(ctx context.Context, userID string) (*domain.User, error)
 	addSearchHistoryFn   func(ctx context.Context, userID string, item application.SearchHistoryItem) (string, error)
 	getSearchHistoryFn   func(ctx context.Context, userID string, limit int) ([]application.SearchHistoryItem, error)
 	clearSearchHistoryFn func(ctx context.Context, userID string) error
@@ -29,18 +30,18 @@ type fakeFirebaseService struct {
 	deleteSavedAddressFn func(ctx context.Context, userID, addressID string) error
 }
 
-func (f *fakeFirebaseService) CreateUserProfile(ctx context.Context, userID string, profile application.User) error {
+func (f *fakeFirebaseService) CreateUserProfile(ctx context.Context, userID string, profile domain.User) error {
 	if f.createUserProfileFn != nil {
 		return f.createUserProfileFn(ctx, userID, profile)
 	}
 	return nil
 }
 
-func (f *fakeFirebaseService) GetUserProfile(ctx context.Context, userID string) (*application.User, error) {
+func (f *fakeFirebaseService) GetUserProfile(ctx context.Context, userID string) (*domain.User, error) {
 	if f.getUserProfileFn != nil {
 		return f.getUserProfileFn(ctx, userID)
 	}
-	return &application.User{UserID: userID}, nil
+	return &domain.User{ID: userID}, nil
 }
 
 func (f *fakeFirebaseService) AddSearchHistory(ctx context.Context, userID string, item application.SearchHistoryItem) (string, error) {
@@ -140,7 +141,7 @@ func TestCreateUserProfileSuccess(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	called := false
 	service := &fakeFirebaseService{
-		createUserProfileFn: func(ctx context.Context, userID string, profile application.User) error {
+		createUserProfileFn: func(ctx context.Context, userID string, profile domain.User) error {
 			called = true
 			require.Equal(t, "user_1", userID)
 			return nil
@@ -151,7 +152,7 @@ func TestCreateUserProfileSuccess(t *testing.T) {
 	r := gin.New()
 	r.POST("/users/:userId/profile", h.CreateUserProfile)
 
-	payload := application.User{Email: "a@b.com", FirstName: "A", LastName: "B"}
+	payload := domain.User{Email: "a@b.com", Name: "A B"}
 	body, err := json.Marshal(payload)
 	require.NoError(t, err)
 
@@ -206,9 +207,9 @@ func TestGetSavedAddressessavedAddressesParam(t *testing.T) {
 func TestGetUserProfileSuccess(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	service := &fakeFirebaseService{
-		getUserProfileFn: func(ctx context.Context, userID string) (*application.User, error) {
+		getUserProfileFn: func(ctx context.Context, userID string) (*domain.User, error) {
 			require.Equal(t, "user_1", userID)
-			return &application.User{UserID: "user_1", Email: "test@example.com"}, nil
+			return &domain.User{ID: "user_1", Email: "test@example.com"}, nil
 		},
 	}
 	h := NewFirebaseHandler(service)
@@ -226,7 +227,7 @@ func TestGetUserProfileSuccess(t *testing.T) {
 func TestGetUserProfileNotFound(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	service := &fakeFirebaseService{
-		getUserProfileFn: func(ctx context.Context, userID string) (*application.User, error) {
+		getUserProfileFn: func(ctx context.Context, userID string) (*domain.User, error) {
 			return nil, context.Canceled
 		},
 	}

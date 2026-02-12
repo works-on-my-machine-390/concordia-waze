@@ -330,7 +330,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/application.User"
+                            "$ref": "#/definitions/domain.User"
                         }
                     },
                     "404": {
@@ -370,7 +370,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/application.User"
+                            "$ref": "#/definitions/domain.User"
                         }
                     }
                 ],
@@ -1048,26 +1048,6 @@
                 }
             }
         },
-        "application.User": {
-            "type": "object",
-            "properties": {
-                "email": {
-                    "type": "string"
-                },
-                "firstName": {
-                    "type": "string"
-                },
-                "lastName": {
-                    "type": "string"
-                },
-                "password": {
-                    "type": "string"
-                },
-                "userId": {
-                    "type": "string"
-                }
-            }
-        },
         "domain.Building": {
             "type": "object",
             "properties": {
@@ -1112,6 +1092,20 @@
                     "items": {
                         "type": "string"
                     }
+                }
+            }
+        },
+        "domain.User": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
                 }
             }
         },

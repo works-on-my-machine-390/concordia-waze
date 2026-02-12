@@ -1,24 +1,9 @@
-import {
-  addDoc,
-  collection,
-  deleteDoc,
-  doc,
-  getDoc,
-  getDocs,
-  limit,
-  orderBy,
-  query,
-  setDoc,
-  updateDoc,
-  where
-} from "firebase/firestore";
-import { db } from "../../config/firebase";
+import { api } from "../api";
 
 export interface UserProfile {
   userId: string;
   email: string;
-  first_name: string;
-  last_name: string;
+  full_name: string;
 }
 
 export interface SearchHistoryItem {
@@ -50,113 +35,89 @@ export const createUserProfile = async (userId: string, profile: Partial<UserPro
   const userProfile: UserProfile = {
     userId,
     email: profile.email || "",
-    first_name: profile.first_name || "",
-    last_name: profile.last_name || ""
+    full_name: profile.full_name || "",
   };
 
-  await setDoc(doc(db, "users", userId), userProfile, { merge: true });
+  const response = await (await api()).post(userProfile, `/users/${userId}/profile`).json();
   return userId;
 };
 
 export const getUserProfile = async (userId: string) => {
-  const snapshot = await getDoc(doc(db, "users", userId));
-  if (!snapshot.exists()) {
-    return null;
+  try {
+    const profile = await (await api()).get(`/users/${userId}/profile`).json<UserProfile>();
+    return profile;
+  } catch (error: any) {
+    if (error.status === 404) {
+      return null;
+    }
+    throw error;
   }
-
-  return snapshot.data() as UserProfile;
 };
-
 
 // ===== Search History =====
 
-export const addSearchHistory = async (userId: string, queryText: string, locations:string) => {
-  const item: SearchHistoryItem = {
+export const addSearchHistory = async (userId: string, queryText: string, locations: string) => {
+  const item = {
     query: queryText,
     locations,
-    timestamp: new Date()
+    timestamp: new Date().toISOString()
   };
 
-  const docRef = await addDoc(collection(db, "users", userId, "searchHistory"), item);
-  return docRef.id;
+  const response = await (await api()).post(item, `/users/${userId}/search-history`).json<{ id: string }>();
+  return response.id;
 };
 
 export const getSearchHistory = async (userId: string, maxResults: number = 50) => {
-  const q = query(
-    collection(db, "users", userId, "searchHistory"),
-    orderBy("timestamp", "desc"),
-    limit(maxResults)
-  );
-
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map((docSnap) => ({
-    searchId: docSnap.id,
-    ...docSnap.data()
-  })) as SearchHistoryItem[];
+  const history = await (await api())
+    .get(`/users/${userId}/search-history?limit=${maxResults}`)
+    .json<SearchHistoryItem[]>();
+  
+  return history.map(item => ({
+    ...item,
+    timestamp: new Date(item.timestamp)
+  }));
 };
 
 export const clearSearchHistory = async (userId: string) => {
-  const snapshot = await getDocs(collection(db, "users", userId, "searchHistory"));
-  await Promise.all(snapshot.docs.map((docSnap) => deleteDoc(docSnap.ref)));
+  await (await api()).delete(`/users/${userId}/search-history`).res();
 };
 
 // ===== Schedule =====
 
 export const addScheduleItem = async (userId: string, item: Omit<ScheduleItem, "scheduleId">) => {
-  const docRef = await addDoc(collection(db, "users", userId, "schedule"), item);
-  return docRef.id;
+  const response = await (await api()).post(item, `/users/${userId}/schedule`).json<{ id: string }>();
+  return response.id;
 };
 
 export const getUserSchedule = async (userId: string) => {
-  const q = query(
-    collection(db, "users", userId, "schedule"),
-    orderBy("startTime", "asc")
-  );
-
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map((docSnap) => ({
-    scheduleId: docSnap.id,
-    ...docSnap.data()
-  })) as ScheduleItem[];
+  const schedule = await (await api()).get(`/users/${userId}/schedule`).json<ScheduleItem[]>();
+  return schedule;
 };
 
 export const updateScheduleItem = async (userId: string, scheduleId: string, updates: Partial<ScheduleItem>) => {
-  await updateDoc(doc(db, "users", userId, "schedule", scheduleId), updates);
+  await (await api()).put(updates, `/users/${userId}/schedule/${scheduleId}`).res();
 };
 
 export const deleteScheduleItem = async (userId: string, scheduleId: string) => {
-  await deleteDoc(doc(db, "users", userId, "schedule", scheduleId));
+  await (await api()).delete(`/users/${userId}/schedule/${scheduleId}`).res();
 };
 
 // ===== Saved Addresses =====
 
-export const addSavedAddress = async (userId: string, address: Omit<SavedAddress, "addressId" | "createdAt">) => {
-  const savedAddress: Omit<SavedAddress, "addressId"> = {
-    ...address
-  };
-
-  const docRef = await addDoc(collection(db, "users", userId, "savedAddresses"), savedAddress);
-  return docRef.id;
+export const addSavedAddress = async (userId: string, address: Omit<SavedAddress, "addressId">) => {
+  const response = await (await api()).post(address, `/users/${userId}/savedAddresses`).json<{ id: string }>();
+  return response.id;
 };
 
-export const getSavedAddresses = async (userId: string, favoritesOnly: boolean = false) => {
-  const baseCollection = collection(db, "users", userId, "savedAddresses");
-
-  const q = favoritesOnly
-    ? query(baseCollection, where("isFavorite", "==", true), orderBy("createdAt", "desc"))
-    : query(baseCollection, orderBy("createdAt", "desc"));
-
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map((docSnap) => ({
-    addressId: docSnap.id,
-    ...docSnap.data()
-  })) as SavedAddress[];
+export const getSavedAddresses = async (userId: string) => {
+  const addresses = await (await api()).get(`/users/${userId}/savedAddresses`).json<SavedAddress[]>();
+  return addresses;
 };
 
 export const updateSavedAddress = async (userId: string, addressId: string, updates: Partial<SavedAddress>) => {
-  await updateDoc(doc(db, "users", userId, "savedAddresses", addressId), updates);
+  await (await api()).put(updates, `/users/${userId}/savedAddresses/${addressId}`).res();
 };
 
 export const deleteSavedAddress = async (userId: string, addressId: string) => {
-  await deleteDoc(doc(db, "users", userId, "savedAddresses", addressId));
+  await (await api()).delete(`/users/${userId}/savedAddresses/${addressId}`).res();
 };
