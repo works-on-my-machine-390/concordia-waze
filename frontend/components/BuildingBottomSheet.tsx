@@ -31,6 +31,7 @@ function ListSection({ title, items }: { title: string; items: string[] }) {
 type Props = {
   buildingCode: string | null;
   onClose?: () => void;
+  onStartNavigation?: (buildingCode: string) => void;
 };
 
 type BottomSheetBuildingModel = {
@@ -132,9 +133,11 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
           {/* Header */}
           <View style={styles.headerContainer}>
             {sheetOpen && (
-              <View style={styles.floatingIcon}>
-                <GetDirectionsIcon size={90} color={COLORS.maroon} />
-              </View>
+              <TouchableOpacity onPress={() => props.onStartNavigation?.(building.code)}>
+                <View style={styles.floatingIcon}>
+                  <GetDirectionsIcon size={90} color={COLORS.maroon} />
+                </View>
+              </TouchableOpacity>
             )}
 
             <View style={styles.textContainer}>

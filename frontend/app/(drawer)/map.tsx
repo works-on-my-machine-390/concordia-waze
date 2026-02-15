@@ -33,6 +33,11 @@ export default function MainMap() {
     Record<string, CampusBuilding[]>
   >({});
 
+  const [isNavigationMode, setIsNavigationMode] = useState(false);
+  const [navigationDestination, setNavigationDestination] = useState<string | null>(
+    null
+  );
+
   const buildingListQuery = useGetBuildings(campus);
 
   useEffect(() => {
@@ -188,6 +193,14 @@ export default function MainMap() {
     }
   };
 
+  // callback to enter navigation mode
+  const handleStartNavigation = (buildingCode: string) => {
+  setIsNavigationMode(true);
+  setNavigationDestination(buildingCode);
+  // Optionally close the bottom sheet here
+  setSelectedBuildingCode(null);
+  };
+
   return (
     <View style={styles.container}>
       <MapView
@@ -231,6 +244,7 @@ export default function MainMap() {
           <BuildingBottomSheet
             buildingCode={selectedBuildingCode}
             onClose={() => setSelectedBuildingCode(null)}
+            onStartNavigation={handleStartNavigation}
           />
         )}
       </View>
