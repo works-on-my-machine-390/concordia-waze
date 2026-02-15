@@ -8,6 +8,7 @@ import * as Location from "expo-location";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, StyleSheet, View } from "react-native";
 import MapView, { Region } from "react-native-maps";
+import { useLocalSearchParams } from "expo-router";
 import { isPointInPolygon } from "~/app/utils/pointInPolygon";
 import CampusBuildingPolygons from "~/components/CampusBuildingPolygons";
 import LocationButton from "~/components/LocationButton";
@@ -16,6 +17,7 @@ import { getDistance } from "../utils/mapUtils";
 import { Toast } from "toastify-react-native";
 
 export default function MainMap() {
+  const { selected } = useLocalSearchParams<{ selected?: string }>();
   const [campus, setCampus] = useState<CampusCode>(CampusCode.SGW);
   const [searchText, setSearchText] = useState("");
   const [currentBuildingCode, setCurrentBuildingCode] = useState<string | null>(
@@ -43,6 +45,13 @@ export default function MainMap() {
       }));
     }
   }, [buildingListQuery.data]);
+
+  // Initialize building selection from search page
+  useEffect(() => {
+    if (typeof selected === "string" && selected.length > 0) {
+      setSelectedBuildingCode(selected);
+    }
+  }, [selected]);
 
   const buildingsToRender = useMemo(() => {
     return buildingsByCampus[campus] || [];
