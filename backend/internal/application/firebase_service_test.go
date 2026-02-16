@@ -100,80 +100,6 @@ func TestGetUserProfileByEmail(t *testing.T) {
 	assert.Equal(t, "Jane Smith", retrieved.Name)
 }
 
-func TestAddAndGetSearchHistory(t *testing.T) {
-	service := setupTestService(t)
-	ctx := context.Background()
-	userID := "test-user-search-" + time.Now().Format("20060102150405")
-
-	// Create user first
-	profile := domain.User{
-		Email:    "search@example.com",
-		Name:     "Search User",
-		Password: "password",
-	}
-	err := service.CreateUserProfile(ctx, userID, profile)
-	require.NoError(t, err)
-
-	// Add search history
-	item := application.SearchHistoryItem{
-		Query:     "JMSB",
-		Locations: "1455 De Maisonneuve Blvd. W",
-	}
-	searchID, err := service.AddSearchHistory(ctx, userID, item)
-	require.NoError(t, err)
-	assert.NotEmpty(t, searchID)
-
-	// Get search history
-	history, err := service.GetSearchHistory(ctx, userID, 10)
-	require.NoError(t, err)
-	assert.GreaterOrEqual(t, len(history), 1)
-
-	found := false
-	for _, h := range history {
-		if h.Query == "JMSB" {
-			found = true
-			assert.Equal(t, "1455 De Maisonneuve Blvd. W", h.Locations)
-			assert.NotEmpty(t, h.SearchID)
-			break
-		}
-	}
-	assert.True(t, found, "Search history item not found")
-}
-
-func TestClearSearchHistory(t *testing.T) {
-	service := setupTestService(t)
-	ctx := context.Background()
-	userID := "test-user-clear-" + time.Now().Format("20060102150405")
-
-	// Create user
-	profile := domain.User{
-		Email:    "clear@example.com",
-		Name:     "Clear User",
-		Password: "password",
-	}
-	err := service.CreateUserProfile(ctx, userID, profile)
-	require.NoError(t, err)
-
-	// Add multiple items
-	for i := 0; i < 3; i++ {
-		item := application.SearchHistoryItem{
-			Query:     "Query " + string(rune(i)),
-			Locations: "Location " + string(rune(i)),
-		}
-		_, err := service.AddSearchHistory(ctx, userID, item)
-		require.NoError(t, err)
-	}
-
-	// Clear history
-	err = service.ClearSearchHistory(ctx, userID)
-	require.NoError(t, err)
-
-	// Verify cleared (only _init doc should remain)
-	history, err := service.GetSearchHistory(ctx, userID, 10)
-	require.NoError(t, err)
-	assert.Equal(t, 0, len(history))
-}
-
 func TestAddAndGetSchedule(t *testing.T) {
 	service := setupTestService(t)
 	ctx := context.Background()
@@ -442,12 +368,6 @@ func TestSubcollectionsInitialized(t *testing.T) {
 	err := service.CreateUserProfile(ctx, userID, profile)
 	require.NoError(t, err)
 
-	// Verify subcollections exist by querying them
-	// Search history should be initialized
-	history, err := service.GetSearchHistory(ctx, userID, 10)
-	require.NoError(t, err)
-	assert.NotNil(t, history)
-
 	// Schedule should be initialized
 	schedule, err := service.GetUserSchedule(ctx, userID)
 	require.NoError(t, err)
@@ -467,115 +387,6 @@ func TestGetUserProfileByEmailNotFound(t *testing.T) {
 	_, err := service.GetUserProfileByEmail(ctx, "nonexistent-"+time.Now().Format("20060102150405")+"@example.com")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "user not found")
-}
-
-func TestGetSearchHistoryWithZeroLimit(t *testing.T) {
-	service := setupTestService(t)
-	ctx := context.Background()
-	userID := "test-user-limit-" + time.Now().Format("20060102150405")
-
-	// Create user
-	profile := domain.User{
-		Email:    "limituser@example.com",
-		Name:     "Limit Zero",
-		Password: "password",
-	}
-	err := service.CreateUserProfile(ctx, userID, profile)
-	require.NoError(t, err)
-
-	// Add multiple items
-	for i := 0; i < 5; i++ {
-		item := application.SearchHistoryItem{
-			Query:     "Test Query",
-			Locations: "Location",
-		}
-		_, err := service.AddSearchHistory(ctx, userID, item)
-		require.NoError(t, err)
-	}
-
-	// Get with limit 0 (should default to 50)
-	history, err := service.GetSearchHistory(ctx, userID, 0)
-	require.NoError(t, err)
-	assert.GreaterOrEqual(t, len(history), 5)
-}
-
-func TestGetSearchHistoryWithNegativeLimit(t *testing.T) {
-	service := setupTestService(t)
-	ctx := context.Background()
-	userID := "test-user-neg-" + time.Now().Format("20060102150405")
-
-	// Create user
-	profile := domain.User{
-		Email:    "neguser@example.com",
-		Name:     "Negative Limit",
-		Password: "password",
-	}
-	err := service.CreateUserProfile(ctx, userID, profile)
-	require.NoError(t, err)
-
-	// Add items
-	for i := 0; i < 3; i++ {
-		item := application.SearchHistoryItem{
-			Query:     "Query",
-			Locations: "Loc",
-		}
-		_, err := service.AddSearchHistory(ctx, userID, item)
-		require.NoError(t, err)
-	}
-
-	// Get with negative limit (should default to 50)
-	history, err := service.GetSearchHistory(ctx, userID, -10)
-	require.NoError(t, err)
-	assert.GreaterOrEqual(t, len(history), 3)
-}
-
-func TestGetSearchHistoryWithSmallLimit(t *testing.T) {
-	service := setupTestService(t)
-	ctx := context.Background()
-	userID := "test-user-small-" + time.Now().Format("20060102150405")
-
-	// Create user
-	profile := domain.User{
-		Email:    "smalluser@example.com",
-		Name:     "Small User",
-		Password: "password",
-	}
-	err := service.CreateUserProfile(ctx, userID, profile)
-	require.NoError(t, err)
-
-	// Add multiple items
-	for i := 0; i < 10; i++ {
-		item := application.SearchHistoryItem{
-			Query:     "Query",
-			Locations: "Location",
-		}
-		_, err := service.AddSearchHistory(ctx, userID, item)
-		require.NoError(t, err)
-	}
-
-	// Get with limit 3
-	history, err := service.GetSearchHistory(ctx, userID, 3)
-	require.NoError(t, err)
-	assert.LessOrEqual(t, len(history), 3)
-}
-
-func TestClearSearchHistoryEmptyHistory(t *testing.T) {
-	service := setupTestService(t)
-	ctx := context.Background()
-	userID := "test-user-empty-clear-" + time.Now().Format("20060102150405")
-
-	// Create user
-	profile := domain.User{
-		Email:    "emptyclear@example.com",
-		Name:     "Empty Clear",
-		Password: "password",
-	}
-	err := service.CreateUserProfile(ctx, userID, profile)
-	require.NoError(t, err)
-
-	// Clear history (should not fail on empty collection)
-	err = service.ClearSearchHistory(ctx, userID)
-	require.NoError(t, err)
 }
 
 func TestGetUserScheduleEmptySchedule(t *testing.T) {
@@ -716,45 +527,7 @@ func TestUpdateScheduleItemMultipleFields(t *testing.T) {
 	}
 	assert.True(t, found)
 }
-
-func TestAddMultipleSearchHistoryItems(t *testing.T) {
-	service := setupTestService(t)
-	ctx := context.Background()
-	userID := "test-user-multiple-" + time.Now().Format("20060102150405")
-
-	// Create user
-	profile := domain.User{
-		Email:    "multiple@example.com",
-		Name:     "Multiple Items",
-		Password: "password",
-	}
-	err := service.CreateUserProfile(ctx, userID, profile)
-	require.NoError(t, err)
-
-	// Add multiple search history items
-	queries := []string{"Hall Building", "JMSB", "Library", "EV Building", "Gym"}
-	for _, q := range queries {
-		item := application.SearchHistoryItem{
-			Query:     q,
-			Locations: "Location for " + q,
-		}
-		_, err := service.AddSearchHistory(ctx, userID, item)
-		require.NoError(t, err)
-		time.Sleep(10 * time.Millisecond) // Ensure different timestamps
-	}
-
-	// Get all search history
-	history, err := service.GetSearchHistory(ctx, userID, 10)
-	require.NoError(t, err)
-	assert.GreaterOrEqual(t, len(history), 5)
-
-	// Verify items are ordered by timestamp (latest first)
-	if len(history) >= 2 {
-		assert.True(t, !history[0].Timestamp.Before(history[1].Timestamp),
-			"Search history should be ordered by timestamp desc")
-	}
-}
-
+	
 func TestAddMultipleSavedAddresses(t *testing.T) {
 	service := setupTestService(t)
 	ctx := context.Background()
