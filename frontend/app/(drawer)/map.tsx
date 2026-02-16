@@ -17,7 +17,7 @@ import { getDistance } from "../utils/mapUtils";
 import { Toast } from "toastify-react-native";
 
 export default function MainMap() {
-  const { selected } = useLocalSearchParams<{ selected?: string }>();
+  const { selected, campus: campusParam } = useLocalSearchParams<{ selected?: string; campus?: string }>();
   const [campus, setCampus] = useState<CampusCode>(CampusCode.SGW);
   const [searchText, setSearchText] = useState("");
   const [currentBuildingCode, setCurrentBuildingCode] = useState<string | null>(
@@ -46,12 +46,32 @@ export default function MainMap() {
     }
   }, [buildingListQuery.data]);
 
-  // Initialize building selection from search page
+  // Initialize building selection from search params, if present
   useEffect(() => {
     if (typeof selected === "string" && selected.length > 0) {
       setSelectedBuildingCode(selected);
     }
   }, [selected]);
+
+  // Initialize campus from navigation params, if present
+  useEffect(() => {
+    if (typeof campusParam === "string") {
+      const normalized = campusParam.toUpperCase();
+      if (normalized === CampusCode.SGW || normalized === CampusCode.LOY) {
+        setCampus(normalized as CampusCode);
+        const coords = CAMPUS_COORDS[normalized as CampusCode];
+        mapRef.current?.animateToRegion(
+          {
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+            latitudeDelta: 0.005,
+            longitudeDelta: 0.005,
+          },
+          500,
+        );
+      }
+    }
+  }, [campusParam]);
 
   const buildingsToRender = useMemo(() => {
     return buildingsByCampus[campus] || [];
@@ -228,7 +248,6 @@ export default function MainMap() {
         searchText={searchText}
         onSearchTextChange={setSearchText}
         onMenuPress={() => {}}
-        // onMenuPress={() => router.push("/menu")} // navigate to menu screen, to be created
       />
       <View style={styles.bottomSheetContainer}>
         <LocationButton

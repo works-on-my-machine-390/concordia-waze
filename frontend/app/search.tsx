@@ -1,10 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { colors, SHADOW } from "./styles/theme";
 import { CampusCode, useGetBuildings } from "@/hooks/queries/buildingQueries";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useQueryClient } from "@tanstack/react-query";
+import { api } from "@/hooks/api";
+import type { Building } from "@/hooks/queries/buildingQueries";
 
 
 export default function SearchPage() {
@@ -13,21 +16,66 @@ export default function SearchPage() {
   const campus = (params.campus as string) || CampusCode.SGW;
 
   const [query, setQuery] = useState("");
-  const buildingsQuery = useGetBuildings(campus);
+  // Fetch building lists for both campuses to support cross-campus search
+  const sgwBuildingsQuery = useGetBuildings(CampusCode.SGW);
+  const loyBuildingsQuery = useGetBuildings(CampusCode.LOY);
+  const queryClient = useQueryClient();
+  const [detailsPrefetched, setDetailsPrefetched] = useState(false);
+
+  // Prefetch building details for both campuses so we can search by name/code/address
+  useEffect(() => {
+    const list = [
+      ...(sgwBuildingsQuery.data?.buildings ?? []).map((b) => ({ ...b, campus: CampusCode.SGW })),
+      ...(loyBuildingsQuery.data?.buildings ?? []).map((b) => ({ ...b, campus: CampusCode.LOY })),
+    ];
+    if (!detailsPrefetched && list.length > 0) {
+      (async () => {
+        const client = await api();
+        await Promise.all(
+          list.map((b) =>
+            queryClient.prefetchQuery({
+              queryKey: ["buildingDetails", b.code],
+              queryFn: async () => client.get(`/buildings/${b.code}`).json<Building>(),
+              staleTime: Infinity,
+            }),
+          ),
+        ).catch(() => void 0);
+        setDetailsPrefetched(true);
+      })();
+    }
+  }, [detailsPrefetched, sgwBuildingsQuery.data?.buildings, loyBuildingsQuery.data?.buildings, queryClient]);
 
   const results = useMemo(() => {
-    // Get the building list for the campus, and filter by code based on search query
-    const list = buildingsQuery.data?.buildings ?? [];
-    if (!query.trim()) return [];
-    const q = query.trim().toLowerCase();
-    return list
-      .filter((b) => b.code.toLowerCase().includes(q))
-      .map((b) => ({ code: b.code }));
-  }, [buildingsQuery.data?.buildings, query]);
+    // Combine buildings from both campuses, then filter by code/name/address
+    const list = [
+      ...(sgwBuildingsQuery.data?.buildings ?? []).map((b) => ({ ...b, campus: CampusCode.SGW })),
+      ...(loyBuildingsQuery.data?.buildings ?? []).map((b) => ({ ...b, campus: CampusCode.LOY })),
+    ];
+    const qRaw = query.trim();
+    if (!qRaw) return [];
+    const q = qRaw.toLowerCase();
 
-  const handleSelect = (code: string) => {
-    // Navigate back to map when user taps on a result, to selected building
-    router.replace({ pathname: "/map", params: { selected: code } });
+    return list
+      .map((b) => {
+        const details = queryClient.getQueryData<Building>(["buildingDetails", b.code]);
+        const name = details?.name ?? undefined;
+        const longName = details?.long_name ?? undefined;
+        const address = details?.address ?? undefined;
+        const codeMatch = b.code.toLowerCase().includes(q);
+        const nameMatch = name ? name.toLowerCase().includes(q) : false;
+        const longMatch = longName ? longName.toLowerCase().includes(q) : false;
+        const addressMatch = address ? address.toLowerCase().includes(q) : false;
+        // Simple scoring: code matches are most relevant, then name, then address
+        const score = (codeMatch ? 3 : 0) + (nameMatch || longMatch ? 2 : 0) + (addressMatch ? 1 : 0);
+        return { code: b.code, campus: (b as any).campus as CampusCode, name, longName, address, score, codeMatch, nameMatch, longMatch, addressMatch };
+      })
+      .filter((item) => item.codeMatch || item.nameMatch || item.longMatch || item.addressMatch)
+      .sort((a, b) => b.score - a.score);
+  }, [sgwBuildingsQuery.data?.buildings, loyBuildingsQuery.data?.buildings, query, queryClient]);
+
+  const handleSelect = (code: string, targetCampus: CampusCode) => {
+    // Navigate back to map (to selected building) when user taps on a result
+    router.replace({ pathname: "/map", params: { selected: code, campus: targetCampus } });
   };
 
   return (
@@ -56,8 +104,15 @@ export default function SearchPage() {
         keyExtractor={(item) => item.code}
         contentContainerStyle={styles.listContainer}
         renderItem={({ item }) => (
-          <Pressable style={styles.resultItem} onPress={() => handleSelect(item.code)}>
-            <Text style={styles.resultText}>{item.code}</Text>
+          <Pressable style={styles.resultItem} onPress={() => handleSelect(item.code, item.campus)}>
+            <Text style={styles.resultTitle}>
+              {item.longName || item.name
+                ? `${item.code} - ${item.longName ?? item.name}`
+                : item.code}
+            </Text>
+            {item.address ? (
+              <Text style={styles.resultSubtitle}>{item.address}</Text>
+            ) : null}
           </Pressable>
         )}
         ListEmptyComponent={
@@ -132,6 +187,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.text,
     fontWeight: "600",
+  },
+  resultTitle: {
+    fontSize: 16,
+    color: colors.text,
+    fontWeight: "600",
+  },
+  resultSubtitle: {
+    fontSize: 13,
+    color: colors.subText,
+    marginTop: 2,
   },
   empty: {
     padding: 24,
