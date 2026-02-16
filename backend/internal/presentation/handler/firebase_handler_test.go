@@ -17,9 +17,7 @@ import (
 type fakeFirebaseService struct {
 	createUserProfileFn  func(ctx context.Context, userID string, profile domain.User) error
 	getUserProfileFn     func(ctx context.Context, userID string) (*domain.User, error)
-	addSearchHistoryFn   func(ctx context.Context, userID string, item application.SearchHistoryItem) (string, error)
-	getSearchHistoryFn   func(ctx context.Context, userID string, limit int) ([]application.SearchHistoryItem, error)
-	clearSearchHistoryFn func(ctx context.Context, userID string) error
+
 	addScheduleItemFn    func(ctx context.Context, userID string, item application.ScheduleItem) (string, error)
 	getUserScheduleFn    func(ctx context.Context, userID string) ([]application.ScheduleItem, error)
 	updateScheduleFn     func(ctx context.Context, userID, scheduleID string, updates map[string]interface{}) error
@@ -68,27 +66,6 @@ func (f *fakeFirebaseService) GetUserProfile(ctx context.Context, userID string)
 		return f.getUserProfileFn(ctx, userID)
 	}
 	return &domain.User{ID: userID}, nil
-}
-
-func (f *fakeFirebaseService) AddSearchHistory(ctx context.Context, userID string, item application.SearchHistoryItem) (string, error) {
-	if f.addSearchHistoryFn != nil {
-		return f.addSearchHistoryFn(ctx, userID, item)
-	}
-	return "search_1", nil
-}
-
-func (f *fakeFirebaseService) GetSearchHistory(ctx context.Context, userID string, limit int) ([]application.SearchHistoryItem, error) {
-	if f.getSearchHistoryFn != nil {
-		return f.getSearchHistoryFn(ctx, userID, limit)
-	}
-	return []application.SearchHistoryItem{}, nil
-}
-
-func (f *fakeFirebaseService) ClearSearchHistory(ctx context.Context, userID string) error {
-	if f.clearSearchHistoryFn != nil {
-		return f.clearSearchHistoryFn(ctx, userID)
-	}
-	return nil
 }
 
 func (f *fakeFirebaseService) AddScheduleItem(ctx context.Context, userID string, item application.ScheduleItem) (string, error) {
