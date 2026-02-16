@@ -340,4 +340,67 @@ describe("MainMap screen", () => {
       );
     });
   });
+
+  test("calls reverse geocoding and formats address when user has location but not in building", async () => {
+    // Mock reverse geocoding to return an address
+    (Location.reverseGeocodeAsync as jest.Mock).mockResolvedValue([
+      {
+        streetNumber: "1455",
+        street: "De Maisonneuve Blvd W",
+        city: "Montreal",
+        region: "Quebec",
+        postalCode: "H3G 1M8"
+      }
+    ]);
+
+    // Mock point in polygon to return false (user NOT in a building)
+    const { isPointInPolygon } = require("../app/utils/pointInPolygon");
+    isPointInPolygon.mockReturnValue(false);
+
+    mockGrantedWatchLocation(45.497, -73.579);
+
+    renderWithProviders(<MainMap />);
+
+    // Wait for reverse geocoding to be called
+    await waitFor(() => {
+      expect(Location.reverseGeocodeAsync).toHaveBeenCalledWith({
+        latitude: 45.497,
+        longitude: -73.579
+      });
+    });
+
+    // Verify the mock was called
+    expect(Location.reverseGeocodeAsync).toHaveBeenCalledTimes(1);
+  });
+
+  test("handles reverse geocoding error gracefully", async () => {
+    // Mock reverse geocoding to throw an error
+    (Location.reverseGeocodeAsync as jest.Mock).mockRejectedValue(
+      new Error("Network error")
+    );
+
+    // Mock point in polygon to return false (user NOT in a building)
+    const { isPointInPolygon } = require("../app/utils/pointInPolygon");
+    isPointInPolygon.mockReturnValue(false);
+
+    mockGrantedWatchLocation(45.497, -73.579);
+
+    renderWithProviders(<MainMap />);
+
+    // Wait for reverse geocoding to be called and fail
+    await waitFor(() => {
+      expect(Location.reverseGeocodeAsync).toHaveBeenCalledWith({
+        latitude: 45.497,
+        longitude: -73.579
+      });
+    });
+
+    // Verify error was logged
+    await waitFor(() => {
+      expect(console.error).toHaveBeenCalledWith(
+        "Failed to get address",
+        expect.any(Error)
+      );
+    });
+  });
 });
