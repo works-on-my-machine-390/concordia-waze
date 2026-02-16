@@ -5,6 +5,8 @@ import {
   useGetBuildingDetails,
   useGetBuildings,
 } from "@/hooks/queries/buildingQueries";
+import { useSaveToHistory } from "@/hooks/queries/userHistoryQueries";
+import { useGetProfile } from "@/hooks/queries/userQueries";
 import * as Location from "expo-location";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, StyleSheet, View } from "react-native";
@@ -36,6 +38,9 @@ export default function MainMap() {
   >({});
 
   const [isNavigationMode, setIsNavigationMode] = useState(false);
+
+  const { data: userProfile } = useGetProfile();
+  const saveToHistory = useSaveToHistory(userProfile?.id || "");
 
   const selectedBuildingDetails = useGetBuildingDetails(selectedBuildingCode || "");
   const currentBuildingDetails = useGetBuildingDetails(currentBuildingCode || "");
@@ -257,13 +262,25 @@ export default function MainMap() {
     }
   };
 
-const handleStartNavigation = () => {
-  if (!location) {
-    Toast.warn("Location access was denied. Please select a start building.", "top");
-  }
-  
-  setIsNavigationMode(true);
-};
+  const handleStartNavigation = () => {
+    if (!location) {
+      Toast.warn("Location access was denied. Please select a start building.", "top");
+    }
+    
+    setIsNavigationMode(true);
+
+    // Save the destination building to history
+    if (userProfile?.id && selectedBuildingDetails.data) { 
+      saveToHistory.mutate({
+        name: selectedBuildingDetails.data.long_name,
+        address: selectedBuildingDetails.data.address,
+        lat: selectedBuildingDetails.data.latitude,
+        lng: selectedBuildingDetails.data.longitude,
+        building_code: selectedBuildingDetails.data.code,
+        destinationType: "building"
+      });
+    }
+  };
 
   return (
     <View style={styles.container}>
