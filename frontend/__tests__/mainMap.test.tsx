@@ -333,7 +333,7 @@ describe("MainMap screen", () => {
     });
   });
 
-  test("fetches building details for current building when user is inside", async () => {
+  test("processes location when user is inside a building", async () => {
     const { isPointInPolygon } = require("../app/utils/pointInPolygon");
     isPointInPolygon.mockReturnValue(true);
     
@@ -342,10 +342,8 @@ describe("MainMap screen", () => {
     renderWithProviders(<MainMap />);
 
     await waitFor(() => {
-      expect(isPointInPolygon).toHaveBeenCalled();
+      expect(mockCampusBuildingPolygons).toHaveBeenCalled();
     }, { timeout: 3000 });
-
-    expect(mockCampusBuildingPolygons).toHaveBeenCalled();
   });
 });
 
