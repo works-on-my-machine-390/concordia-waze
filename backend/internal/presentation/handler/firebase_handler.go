@@ -27,7 +27,6 @@ type FirebaseService interface {
 	AddDestinationHistory(ctx context.Context, userID string, item application.DestinationHistoryItem) (string, error)
 	GetDestinationHistory(ctx context.Context, userID string, limit int) ([]application.DestinationHistoryItem, error)
 	ClearDestinationHistory(ctx context.Context, userID string) error
-
 }
 
 // FirebaseHandler handles Firestore-backed user endpoints.

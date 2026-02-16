@@ -25,15 +25,15 @@ func NewFirebaseService() *FirebaseService {
 
 // DestinationHistoryItem stores a past destination entry.
 type DestinationHistoryItem struct {
-	HistoryID string    `firestore:"historyId" json:"historyId,omitempty"`
-	Name      string    `firestore:"name" json:"name"`
-	Address   string    `firestore:"address" json:"address"`
-	PlaceID   string    `firestore:"placeId,omitempty" json:"placeId,omitempty"`
-	Lat       float64   `firestore:"lat,omitempty" json:"lat,omitempty"`
-	Lng       float64   `firestore:"lng,omitempty" json:"lng,omitempty"`
-	BuildingCode     string    `firestore:"buildingCode,omitempty" json:"buildingCode,omitempty"`
-	DestinationType string `firestore:"destinationType,omitempty" json:"destinationType,omitempty"` // "building" or "poi"
-	Timestamp time.Time `firestore:"timestamp" json:"timestamp,omitempty"`
+	HistoryID       string    `firestore:"historyId" json:"historyId,omitempty"`
+	Name            string    `firestore:"name" json:"name"`
+	Address         string    `firestore:"address" json:"address"`
+	PlaceID         string    `firestore:"placeId,omitempty" json:"placeId,omitempty"`
+	Lat             float64   `firestore:"lat,omitempty" json:"lat,omitempty"`
+	Lng             float64   `firestore:"lng,omitempty" json:"lng,omitempty"`
+	BuildingCode    string    `firestore:"buildingCode,omitempty" json:"buildingCode,omitempty"`
+	DestinationType string    `firestore:"destinationType,omitempty" json:"destinationType,omitempty"` // "building" or "poi"
+	Timestamp       time.Time `firestore:"timestamp" json:"timestamp,omitempty"`
 }
 
 // ScheduleItem stores a schedule entry.

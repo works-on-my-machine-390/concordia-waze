@@ -15,8 +15,8 @@ import (
 )
 
 type fakeFirebaseService struct {
-	createUserProfileFn  func(ctx context.Context, userID string, profile domain.User) error
-	getUserProfileFn     func(ctx context.Context, userID string) (*domain.User, error)
+	createUserProfileFn func(ctx context.Context, userID string, profile domain.User) error
+	getUserProfileFn    func(ctx context.Context, userID string) (*domain.User, error)
 
 	addScheduleItemFn    func(ctx context.Context, userID string, item application.ScheduleItem) (string, error)
 	getUserScheduleFn    func(ctx context.Context, userID string) ([]application.ScheduleItem, error)
@@ -27,10 +27,9 @@ type fakeFirebaseService struct {
 	updateSavedAddressFn func(ctx context.Context, userID, addressID string, updates map[string]interface{}) error
 	deleteSavedAddressFn func(ctx context.Context, userID, addressID string) error
 
-	addDestinationHistoryFn func(ctx context.Context, userID string, item application.DestinationHistoryItem) (string, error)
-	getDestinationHistoryFn func(ctx context.Context, userID string, limit int) ([]application.DestinationHistoryItem, error)
+	addDestinationHistoryFn   func(ctx context.Context, userID string, item application.DestinationHistoryItem) (string, error)
+	getDestinationHistoryFn   func(ctx context.Context, userID string, limit int) ([]application.DestinationHistoryItem, error)
 	clearDestinationHistoryFn func(ctx context.Context, userID string) error
-
 }
 
 func (f *fakeFirebaseService) AddDestinationHistory(ctx context.Context, userID string, item application.DestinationHistoryItem) (string, error) {
@@ -532,11 +531,11 @@ func TestGetDestinationHistory_ParsesLimitQueryParam(t *testing.T) {
 
 			return []application.DestinationHistoryItem{
 				{
-					HistoryID:        "h1",
-					Name:             "Hall Building",
-					Address:          "1455 De Maisonneuve Blvd W",
-					BuildingCode:     "H",
-					DestinationType:  "building",
+					HistoryID:       "h1",
+					Name:            "Hall Building",
+					Address:         "1455 De Maisonneuve Blvd W",
+					BuildingCode:    "H",
+					DestinationType: "building",
 				},
 			}, nil
 		},

@@ -527,7 +527,7 @@ func TestUpdateScheduleItemMultipleFields(t *testing.T) {
 	}
 	assert.True(t, found)
 }
-	
+
 func TestAddMultipleSavedAddresses(t *testing.T) {
 	service := setupTestService(t)
 	ctx := context.Background()
