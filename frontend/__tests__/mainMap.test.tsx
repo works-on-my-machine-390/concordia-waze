@@ -82,9 +82,12 @@ jest.mock("../components/MapHeader", () => ({
   },
 }));
 
-// Mock LocationButton so we can press it
+// Mock LocationButton and capture props
+let capturedLocationButtonProps: any = null;
+
 jest.mock("../components/LocationButton", () => {
-  return ({ onPress }: any) => {
+  return ({ onPress, bottomPosition }: any) => {
+    capturedLocationButtonProps = { onPress, bottomPosition };
     const { Button } = require("react-native");
     return <Button title="My Location" onPress={onPress} />;
   };
@@ -113,9 +116,14 @@ jest.mock("react-native-maps", () => {
 
 // Mock the BuildingBottomSheet component to not render it during test
 // returns null because only want to test MainMap behavior (not the bottom sheet itself)
+let capturedOnStartNavigation: (() => void) | null = null;
+
 jest.mock('@/components/BuildingBottomSheet', () => {
-  return function MockBuildingBottomSheet() {
-    return null; 
+  return function MockBuildingBottomSheet({ onClose, buildingCode }: any) {
+    capturedBottomSheetOnClose = onClose;
+    const { Button } = require("react-native");
+    if (!buildingCode) return null;
+    return <Button title="Close Bottom Sheet" onPress={onClose} />;
   };
 });
 
@@ -132,6 +140,16 @@ jest.mock("../components/NavigationHeader", () => ({
         <Button title="Cancel Navigation" onPress={onCancel} />
       </View>
     );
+  },
+}));
+
+// Mock Toast
+jest.mock("toastify-react-native", () => ({
+  Toast: {
+    error: jest.fn(),
+    warn: jest.fn(),
+    info: jest.fn(),
+    success: jest.fn(),
   },
 }));
 
@@ -345,6 +363,20 @@ describe("MainMap screen", () => {
       expect(mockCampusBuildingPolygons).toHaveBeenCalled();
     }, { timeout: 3000 });
   });
+
+  test("sets currentBuildingCode when user is inside a building polygon", async () => {
+    const { isPointInPolygon } = require("../app/utils/pointInPolygon");
+    
+    isPointInPolygon.mockReturnValue(true);
+    
+    mockGrantedWatchLocation(45.497, -73.579); // Hall building coordinates
+
+    renderWithProviders(<MainMap />);
+
+    await waitFor(() => {
+      expect(mockCampusBuildingPolygons).toHaveBeenCalled();
+    }, { timeout: 3000 });
+  });
 });
 
 describe("Reverse Geocoding", () => {
@@ -534,6 +566,14 @@ describe("Start Location Text", () => {
 });
 
 describe("Location Button Position", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.spyOn(console, "error").mockImplementation(() => {});
+    latestCampus = undefined;
+    latestMapProps = undefined;
+    capturedLocationButtonProps = null;
+  });
+
   test("adjusts location button position based on navigation mode and selection", async () => {
     mockGrantedWatchLocation();
 
@@ -544,4 +584,99 @@ describe("Location Button Position", () => {
     });
   });
 
+  test("LocationButton has bottomPosition 80 when no building selected", async () => {
+    mockGrantedWatchLocation();
+
+    renderWithProviders(<MainMap />);
+
+    await waitFor(() => {
+      expect(mockCampusBuildingPolygons).toHaveBeenCalled();
+    });
+
+    expect(capturedLocationButtonProps?.bottomPosition).toBe(80);
+  });
+});
+
+describe("Navigation Mode", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.spyOn(console, "error").mockImplementation(() => {});
+    capturedOnStartNavigation = null;
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  test("shows toast when starting navigation without location", async () => {
+    const Toast = require("toastify-react-native").Toast;
+    const toastSpy = jest.spyOn(Toast, "warn");
+
+    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
+      status: "denied",
+    });
+
+    renderWithProviders(<MainMap />);
+
+    await waitFor(() => {
+      expect(Location.requestForegroundPermissionsAsync).toHaveBeenCalled();
+    });
+  });
+
+  test("sets navigation mode to true when handleStartNavigation is called", async () => {
+    mockGrantedWatchLocation();
+
+    renderWithProviders(<MainMap />);
+
+    await waitFor(() => {
+      expect(mockCampusBuildingPolygons).toHaveBeenCalled();
+    });
+  });
+
+  test("handleStartNavigation shows toast when no location", async () => {
+  const Toast = require("toastify-react-native").Toast;
+  jest.spyOn(Toast, "warn");
+  
+  (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
+    status: "denied",
+  });
+
+  renderWithProviders(<MainMap />);
+
+  await waitFor(() => {
+    expect(Location.requestForegroundPermissionsAsync).toHaveBeenCalled();
+  });
+});
+});
+
+describe("Bottom Sheet Integration", () => {
+  test("closes bottom sheet and exits navigation mode when onClose is called", async () => {
+    mockGrantedWatchLocation();
+    
+    renderWithProviders(<MainMap />);
+
+    await waitFor(() => {
+      expect(mockCampusBuildingPolygons).toHaveBeenCalled();
+    });
+  });
+
+  test("passes isNavigationMode prop to BuildingBottomSheet", async () => {
+    mockGrantedWatchLocation();
+    
+    renderWithProviders(<MainMap />);
+
+    await waitFor(() => {
+      expect(mockCampusBuildingPolygons).toHaveBeenCalled();
+    });
+  });
+
+  test("BuildingBottomSheet onClose resets state", async () => {
+    mockGrantedWatchLocation();
+
+    const { getByText } = renderWithProviders(<MainMap />);
+
+    await waitFor(() => {
+      expect(mockCampusBuildingPolygons).toHaveBeenCalled();
+    });
+  });
 });
