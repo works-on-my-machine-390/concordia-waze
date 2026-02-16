@@ -37,6 +37,9 @@ export default function MainMap() {
 
   const [isNavigationMode, setIsNavigationMode] = useState(false);
 
+  const selectedBuildingDetails = useGetBuildingDetails(selectedBuildingCode || "");
+  const currentBuildingDetails = useGetBuildingDetails(currentBuildingCode || "");
+
   const buildingListQuery = useGetBuildings(campus);
 
   useEffect(() => {
@@ -58,6 +61,61 @@ export default function MainMap() {
       .flat()
       .find((b) => b.code === selectedBuildingCode);
   }, [selectedBuildingCode, buildingsByCampus]);
+
+  const [startAddress, setStartAddress] = useState<string | null>(null);
+
+  // reverse geocoding to get address given coordinates
+  useEffect(() => {
+    const getAddress = async () => {
+      if (location?.coords && !currentBuildingCode) {
+        try {
+          const addresses = await Location.reverseGeocodeAsync({
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+          });
+                    
+          if (addresses && addresses.length > 0) {
+            const addr = addresses[0];
+            
+            // street adress
+            const street = [addr.streetNumber, addr.street].filter(Boolean).join(' ');
+            
+            // adding city, region and postal code to it 
+            const formattedAddress = [
+              street,
+              addr.city,
+              addr.region,
+              addr.postalCode
+            ].filter(Boolean).join(', ');
+            
+            setStartAddress(formattedAddress || "Current Location");
+          }
+        } catch (e) {
+          console.error("Failed to get address", e);
+          setStartAddress(null);
+        }
+      } else {
+        setStartAddress(null);
+      }
+    };
+    
+    getAddress();
+  }, [location?.coords?.latitude, location?.coords?.longitude, currentBuildingCode]);
+
+  const startLocationText = useMemo(() => { 
+    // if user has location and is in a building
+    if (currentBuildingCode && currentBuildingDetails.data) {
+      return `${currentBuildingDetails.data.code} - ${currentBuildingDetails.data.long_name}`;
+    }
+    
+    // if user has location but not in a building
+    if (location?.coords) {
+      return startAddress || `${location.coords.latitude.toFixed(5)}, ${location.coords.longitude.toFixed(5)}`;
+    }
+    
+    // if no location available
+    return "Please select a building";
+  }, [currentBuildingCode, currentBuildingDetails.data, location?.coords]);
 
   const mapStyle = [
     {
@@ -203,8 +261,6 @@ export default function MainMap() {
   setIsNavigationMode(true);
   };
 
-  const selectedBuildingDetails = useGetBuildingDetails(selectedBuildingCode || "");
-
   return (
     <View style={styles.container}>
       <MapView
@@ -232,7 +288,7 @@ export default function MainMap() {
 
       {isNavigationMode ? (
         <NavigationHeader
-          startLocation="Current Location"
+          startLocation={startLocationText}
           endLocation={
             selectedBuildingDetails.data 
               ? `${selectedBuildingDetails.data.code} - ${selectedBuildingDetails.data.long_name}`
