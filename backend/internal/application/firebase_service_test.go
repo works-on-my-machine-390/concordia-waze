@@ -3,6 +3,7 @@ package application_test
 import (
 	"context"
 	"os"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -556,4 +557,102 @@ func TestAddMultipleSavedAddresses(t *testing.T) {
 	savedAddresses, err := service.GetSavedAddresses(ctx, userID)
 	require.NoError(t, err)
 	assert.GreaterOrEqual(t, len(savedAddresses), 4)
+}
+
+func TestAddAndGetDestinationHistory(t *testing.T) {
+	service := setupTestService(t)
+	ctx := context.Background()
+	userID := "test-user-history-" + time.Now().Format("20060102150405")
+
+	// Create user first (so subcollections exist)
+	profile := domain.User{
+		Email:    "history@example.com",
+		Name:     "History User",
+		Password: "password",
+	}
+	require.NoError(t, service.CreateUserProfile(ctx, userID, profile))
+
+	item := application.DestinationHistoryItem{
+		Name:            "Hall Building",
+		Address:         "1455 De Maisonneuve Blvd W",
+		BuildingCode:    "H",
+		DestinationType: "building",
+	}
+
+	historyID, err := service.AddDestinationHistory(ctx, userID, item)
+	require.NoError(t, err)
+	require.NotEmpty(t, historyID)
+
+	history, err := service.GetDestinationHistory(ctx, userID, 50)
+	require.NoError(t, err)
+
+	found := false
+	for _, h := range history {
+		if h.Name == "Hall Building" {
+			found = true
+			assert.Equal(t, "H", h.BuildingCode)
+			assert.Equal(t, "building", h.DestinationType)
+			assert.NotEmpty(t, h.HistoryID)
+			break
+		}
+	}
+	assert.True(t, found, "Destination history item not found")
+}
+
+func TestGetDestinationHistory_Limit(t *testing.T) {
+	service := setupTestService(t)
+	ctx := context.Background()
+	userID := "test-user-history-limit-" + time.Now().Format("20060102150405")
+
+	profile := domain.User{
+		Email:    "historylimit@example.com",
+		Name:     "History Limit",
+		Password: "password",
+	}
+	require.NoError(t, service.CreateUserProfile(ctx, userID, profile))
+
+	// Add 3 items
+	for i := 1; i <= 3; i++ {
+		_, err := service.AddDestinationHistory(ctx, userID, application.DestinationHistoryItem{
+			Name:            "Place " + strconv.Itoa(i),
+			Address:         "Addr " + strconv.Itoa(i),
+			DestinationType: "custom",
+		})
+		require.NoError(t, err)
+	}
+
+	history, err := service.GetDestinationHistory(ctx, userID, 2)
+	require.NoError(t, err)
+	assert.LessOrEqual(t, len(history), 2)
+}
+
+func TestClearDestinationHistory(t *testing.T) {
+	service := setupTestService(t)
+	ctx := context.Background()
+	userID := "test-user-history-clear-" + time.Now().Format("20060102150405")
+
+	profile := domain.User{
+		Email:    "historyclear@example.com",
+		Name:     "History Clear",
+		Password: "password",
+	}
+	require.NoError(t, service.CreateUserProfile(ctx, userID, profile))
+
+	_, err := service.AddDestinationHistory(ctx, userID, application.DestinationHistoryItem{
+		Name:            "SGW",
+		Address:         "Downtown",
+		DestinationType: "campus",
+	})
+	require.NoError(t, err)
+
+	require.NoError(t, service.ClearDestinationHistory(ctx, userID))
+
+	history, err := service.GetDestinationHistory(ctx, userID, 50)
+	require.NoError(t, err)
+
+	// Depending on your implementation, you might keep a placeholder doc like "_init".
+	// So we just assert there is no real data item with Name "SGW".
+	for _, h := range history {
+		assert.NotEqual(t, "SGW", h.Name)
+	}
 }
