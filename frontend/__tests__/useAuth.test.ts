@@ -44,7 +44,10 @@ describe("useAuth", () => {
     });
 
     expect(res).toEqual({ success: true, data: { token: "abc", user: { email: "a@b.com" } } });
-    expect((globalThis as any).fetch).toHaveBeenCalledWith(expect.stringContaining("/auth/login"), expect.objectContaining({ method: "POST" }));
+    expect((globalThis as any).fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/auth/login"),
+      expect.objectContaining({ method: "POST" })
+    );
   });
 
   test("login failure returns backend error", async () => {
@@ -135,7 +138,10 @@ describe("useAuth", () => {
     });
 
     expect(res).toEqual({ success: true, data: { id: "1", name: "Test", email: "t@e.com", token: "tok" } });
-    expect((globalThis as any).fetch).toHaveBeenCalledWith(expect.stringContaining("/auth/signup"), expect.objectContaining({ method: "POST" }));
+    expect((globalThis as any).fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/auth/signup"),
+      expect.objectContaining({ method: "POST" })
+    );
   });
 
   test("register failure surfaces backend error", async () => {
@@ -230,6 +236,7 @@ describe("useAuth", () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: "test@example.com", password: "password123" }),
+        signal: expect.any(Object),
       })
     );
   });
@@ -252,6 +259,7 @@ describe("useAuth", () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: "John Doe", email: "john@example.com", password: "password123" }),
+        signal: expect.any(Object),
       })
     );
   });
