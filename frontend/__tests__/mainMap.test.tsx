@@ -120,11 +120,17 @@ jest.mock("react-native-maps", () => {
 let capturedOnStartNavigation: (() => void) | null = null;
 
 jest.mock('@/components/BuildingBottomSheet', () => {
-  return function MockBuildingBottomSheet({ onClose, buildingCode }: any) {
+  return function MockBuildingBottomSheet({ onClose, buildingCode, onStartNavigation }: any) {
     capturedBottomSheetOnClose = onClose;
-    const { Button } = require("react-native");
+    capturedOnStartNavigation = onStartNavigation;
+    const { Button, View } = require("react-native");
     if (!buildingCode) return null;
-    return <Button title="Close Bottom Sheet" onPress={onClose} />;
+    return (
+      <View>
+        <Button title="Close Bottom Sheet" onPress={onClose} />
+        <Button title="Start Navigation" onPress={onStartNavigation} />
+      </View>
+    );
   };
 });
 
@@ -648,6 +654,24 @@ describe("Navigation Mode", () => {
     expect(Location.requestForegroundPermissionsAsync).toHaveBeenCalled();
   });
 });
+test("executes handleStartNavigation when Start Navigation is pressed", async () => {
+  const Toast = require("toastify-react-native").Toast;
+  jest.spyOn(Toast, "warn");
+
+  (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
+    status: "denied",
+  });
+
+  // Need to select a building first
+  const { isPointInPolygon } = require("../app/utils/pointInPolygon");
+  isPointInPolygon.mockReturnValue(false);
+
+  const { getByText, queryByText } = renderWithProviders(<MainMap />);
+
+  await waitFor(() => {
+    expect(Location.requestForegroundPermissionsAsync).toHaveBeenCalled();
+  });
+});
 });
 
 describe("Bottom Sheet Integration", () => {
@@ -678,6 +702,83 @@ describe("Bottom Sheet Integration", () => {
 
     await waitFor(() => {
       expect(mockCampusBuildingPolygons).toHaveBeenCalled();
+    });
+  });
+});
+describe("Error Handling", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  test("handles getCurrentPositionAsync error and shows toast", async () => {
+    const Toast = require("toastify-react-native").Toast;
+    jest.spyOn(Toast, "error");
+
+    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
+      status: "granted",
+    });
+
+    (Location.getCurrentPositionAsync as jest.Mock).mockRejectedValue(
+      new Error("GPS error")
+    );
+
+    const { getByText } = renderWithProviders(<MainMap />);
+
+    await act(async () => {
+      fireEvent.press(getByText("My Location"));
+    });
+
+    await waitFor(() => {
+      expect(console.error).toHaveBeenCalledWith(
+        "Failed to get to your location.",
+        expect.any(Error)
+      );
+      expect(Toast.error).toHaveBeenCalledWith("Failed to get your location. Please try again.");
+    });
+  });
+
+  test("gets current position and sets location when coords don't exist", async () => {
+    const mockCoords = {
+      latitude: 45.5,
+      longitude: -73.6,
+      altitude: 0,
+      accuracy: 10,
+      altitudeAccuracy: 10,
+      heading: 0,
+      speed: 0,
+    };
+
+    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
+      status: "granted",
+    });
+
+    (Location.getCurrentPositionAsync as jest.Mock).mockResolvedValue({
+      coords: mockCoords,
+      timestamp: Date.now(),
+    });
+
+    const { getByText } = renderWithProviders(<MainMap />);
+
+    await act(async () => {
+      fireEvent.press(getByText("My Location"));
+    });
+
+    await waitFor(() => {
+      expect(Location.getCurrentPositionAsync).toHaveBeenCalled();
+      expect(mockAnimateToRegion).toHaveBeenCalledWith(
+        {
+          latitude: 45.5,
+          longitude: -73.6,
+          latitudeDelta: 0.005,
+          longitudeDelta: 0.005,
+        },
+        500,
+      );
     });
   });
 });
