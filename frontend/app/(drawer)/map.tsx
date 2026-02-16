@@ -257,9 +257,13 @@ export default function MainMap() {
     }
   };
 
-  const handleStartNavigation = () => {
+const handleStartNavigation = () => {
+  if (!location) {
+    Toast.warn("Location access was denied. Please select a start building.", "top");
+  }
+  
   setIsNavigationMode(true);
-  };
+};
 
   return (
     <View style={styles.container}>
