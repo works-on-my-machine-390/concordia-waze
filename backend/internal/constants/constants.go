@@ -10,6 +10,6 @@ const (
 	DefaultJWTDuration = 24 * 7 // 7 days
 
 	// Campus labels
-	LoyolaCampusCode = "LOY"
+	LoyolaCampusCode            = "LOY"
 	SirGeorgeWilliamsCampusCode = "SGW"
 )
