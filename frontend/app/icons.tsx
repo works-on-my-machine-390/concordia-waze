@@ -3,6 +3,8 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import AntDesign from '@expo/vector-icons/AntDesign';
+import Entypo from '@expo/vector-icons/Entypo';
+import Octicons from '@expo/vector-icons/Octicons';
 import React from "react";
 import { COLORS } from "./constants";
 
@@ -87,7 +89,6 @@ export const LoginIcon: React.FC<IconProps> = ({
   color = DEFAULT_ICON_COLOR,
 }) => <MaterialIcons name="login" size={size} color={color} />;
 
-
 // Wheelchair icon
 export const WheelchairIcon: React.FC<IconProps> = ({ size = DEFAULT_ICON_SIZE, color = DEFAULT_ICON_COLOR }) => (
   <FontAwesome5 name="wheelchair" size={size} color={color} />
@@ -126,4 +127,14 @@ export const GetDirectionsIcon: React.FC<IconProps> = ({ size = DEFAULT_ICON_SIZ
 // Ramp icon
 export const SlopeUpIcon: React.FC<IconProps> = ({ size = DEFAULT_ICON_SIZE, color = DEFAULT_ICON_COLOR }) => (
   <MaterialCommunityIcons name="slope-uphill" size={size} color={color} />
+);
+
+// Circle icon
+export const CircleIcon: React.FC<IconProps> = ({ size = DEFAULT_ICON_SIZE, color = DEFAULT_ICON_COLOR }) => (
+  <Entypo name="circle" size={size} color={color} />
+);
+
+// Location icon
+export const LocationIcon: React.FC<IconProps> = ({ size = DEFAULT_ICON_SIZE, color = DEFAULT_ICON_COLOR }) => (
+  <Octicons name="location" size={size} color={color} />
 );

@@ -2,18 +2,20 @@ import BuildingBottomSheet from "@/components/BuildingBottomSheet";
 import {
   CampusBuilding,
   CampusCode,
+  useGetBuildingDetails,
   useGetBuildings,
 } from "@/hooks/queries/buildingQueries";
 import * as Location from "expo-location";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, StyleSheet, View } from "react-native";
 import MapView, { Region } from "react-native-maps";
+import { Toast } from "toastify-react-native";
 import { isPointInPolygon } from "~/app/utils/pointInPolygon";
 import CampusBuildingPolygons from "~/components/CampusBuildingPolygons";
 import LocationButton from "~/components/LocationButton";
 import { MapHeader } from "~/components/MapHeader";
+import { NavigationHeader } from "~/components/NavigationHeader";
 import { getDistance } from "../utils/mapUtils";
-import { Toast } from "toastify-react-native";
 
 export default function MainMap() {
   const [campus, setCampus] = useState<CampusCode>(CampusCode.SGW);
@@ -34,9 +36,6 @@ export default function MainMap() {
   >({});
 
   const [isNavigationMode, setIsNavigationMode] = useState(false);
-  const [navigationDestination, setNavigationDestination] = useState<string | null>(
-    null
-  );
 
   const buildingListQuery = useGetBuildings(campus);
 
@@ -52,6 +51,13 @@ export default function MainMap() {
   const buildingsToRender = useMemo(() => {
     return buildingsByCampus[campus] || [];
   }, [campus, buildingsByCampus]);
+
+  const destinationBuilding = useMemo(() => {
+    if (!selectedBuildingCode) return null;
+    return Object.values(buildingsByCampus)
+      .flat()
+      .find((b) => b.code === selectedBuildingCode);
+  }, [selectedBuildingCode, buildingsByCampus]);
 
   const mapStyle = [
     {
@@ -193,13 +199,11 @@ export default function MainMap() {
     }
   };
 
-  // callback to enter navigation mode
-  const handleStartNavigation = (buildingCode: string) => {
+  const handleStartNavigation = () => {
   setIsNavigationMode(true);
-  setNavigationDestination(buildingCode);
-  // Optionally close the bottom sheet here
-  setSelectedBuildingCode(null);
   };
+
+  const selectedBuildingDetails = useGetBuildingDetails(selectedBuildingCode || "");
 
   return (
     <View style={styles.container}>
@@ -226,25 +230,48 @@ export default function MainMap() {
         />
       </MapView>
 
-      <MapHeader
-        campus={campus}
-        onCampusChange={handleCampusChange}
-        searchText={searchText}
-        onSearchTextChange={setSearchText}
-        onMenuPress={() => {}}
-        // onMenuPress={() => router.push("/menu")} // navigate to menu screen, to be created
-      />
+      {isNavigationMode ? (
+        <NavigationHeader
+          startLocation="Current Location"
+          endLocation={
+            selectedBuildingDetails.data 
+              ? `${selectedBuildingDetails.data.code} - ${selectedBuildingDetails.data.long_name}`
+              : selectedBuildingCode || "Unknown Building"
+          }
+          onCancel={() => {
+            setIsNavigationMode(false);
+            setSelectedBuildingCode(null);
+          }}
+        />
+      ) : (
+        <MapHeader
+          campus={campus}
+          onCampusChange={handleCampusChange}
+          searchText={searchText}
+          onSearchTextChange={setSearchText}
+          onMenuPress={() => {}}
+          // onMenuPress={() => router.push("/menu")} // navigate to menu screen, to be created
+        />
+      )}
       <View style={styles.bottomSheetContainer}>
         <LocationButton
           onPress={goToMyLocation}
-          bottomPosition={selectedBuildingCode ? 220 : 80}
+          bottomPosition={
+            selectedBuildingCode 
+              ? (isNavigationMode ? 150 : 220)
+              : 80
+          }
         />
 
         {!!selectedBuildingCode && (
           <BuildingBottomSheet
             buildingCode={selectedBuildingCode}
-            onClose={() => setSelectedBuildingCode(null)}
+            onClose={() => {
+              setSelectedBuildingCode(null);
+              setIsNavigationMode(false); 
+            }}
             onStartNavigation={handleStartNavigation}
+            isNavigationMode={isNavigationMode}
           />
         )}
       </View>
