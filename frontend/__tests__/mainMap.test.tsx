@@ -51,6 +51,7 @@ const mockCampusBuildingPolygons = jest.fn(
 );
 
 let latestCampus: string | undefined;
+let capturedBottomSheetOnClose: (() => void) | null = null;
 
 // IMPORTANT:
 // This mock assumes MainMap imports CampusBuildingPolygons as DEFAULT:
