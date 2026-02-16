@@ -25,6 +25,11 @@ type FirebaseService interface {
 	GetSavedAddresses(ctx context.Context, userID string) ([]application.SavedAddress, error)
 	UpdateSavedAddress(ctx context.Context, userID, addressID string, updates map[string]interface{}) error
 	DeleteSavedAddress(ctx context.Context, userID, addressID string) error
+
+	AddDestinationHistory(ctx context.Context, userID string, item application.DestinationHistoryItem) (string, error)
+	GetDestinationHistory(ctx context.Context, userID string, limit int) ([]application.DestinationHistoryItem, error)
+	ClearDestinationHistory(ctx context.Context, userID string) error
+
 }
 
 // FirebaseHandler handles Firestore-backed user endpoints.
@@ -95,6 +100,93 @@ func (fh *FirebaseHandler) GetUserProfile(c *gin.Context) {
 
 	c.JSON(http.StatusOK, profile)
 }
+
+// ===== Destination History =====
+
+// AddDestinationHistory godoc
+// @Summary Add destination history
+// @Description Add a destination to a user's past destinations history
+// @Tags history
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param Authorization header string true "Bearer token"
+// @Param userId path string true "User ID"
+// @Param item body application.DestinationHistoryItem true "Destination history item"
+// @Success 201 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /users/{userId}/history [post]
+func (fh *FirebaseHandler) AddDestinationHistory(c *gin.Context) {
+	userID := c.Param("userId")
+	var item application.DestinationHistoryItem
+
+	if err := c.ShouldBindJSON(&item); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body for Add Destination History", "details": err.Error()})
+		return
+	}
+
+	historyID, err := fh.service.AddDestinationHistory(c.Request.Context(), userID, item)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"message": "destination history added", "historyId": historyID})
+}
+
+// GetDestinationHistory godoc
+// @Summary Get destination history
+// @Description Get a user's past destinations history (latest first)
+// @Tags history
+// @Produce json
+// @Security BearerAuth
+// @Param Authorization header string true "Bearer token"
+// @Param userId path string true "User ID"
+// @Param limit query int false "Limit results" default(50)
+// @Success 200 {array} application.DestinationHistoryItem
+// @Failure 500 {object} map[string]string
+// @Router /users/{userId}/history [get]
+func (fh *FirebaseHandler) GetDestinationHistory(c *gin.Context) {
+	userID := c.Param("userId")
+	limit := 50
+	if limitParam := c.Query("limit"); limitParam != "" {
+		if parsed, err := strconv.Atoi(limitParam); err == nil {
+			limit = parsed
+		}
+	}
+
+	history, err := fh.service.GetDestinationHistory(c.Request.Context(), userID, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, history)
+}
+
+// ClearDestinationHistory godoc
+// @Summary Clear destination history
+// @Description Delete all destination history items for a user (keeps _init placeholder)
+// @Tags history
+// @Produce json
+// @Security BearerAuth
+// @Param Authorization header string true "Bearer token"
+// @Param userId path string true "User ID"
+// @Success 200 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /users/{userId}/history [delete]
+func (fh *FirebaseHandler) ClearDestinationHistory(c *gin.Context) {
+	userID := c.Param("userId")
+
+	if err := fh.service.ClearDestinationHistory(c.Request.Context(), userID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "destination history cleared"})
+}
+
 
 // ===== Search History =====
 

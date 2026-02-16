@@ -23,6 +23,18 @@ func NewFirebaseService() *FirebaseService {
 	}
 }
 
+// DestinationHistoryItem stores a past destination entry.
+type DestinationHistoryItem struct {
+	HistoryID string    `firestore:"historyId" json:"historyId,omitempty"`
+	Name      string    `firestore:"name" json:"name"`
+	Address   string    `firestore:"address" json:"address"`
+	PlaceID   string    `firestore:"placeId,omitempty" json:"placeId,omitempty"`
+	Lat       float64   `firestore:"lat,omitempty" json:"lat,omitempty"`
+	Lng       float64   `firestore:"lng,omitempty" json:"lng,omitempty"`
+	Timestamp time.Time `firestore:"timestamp" json:"timestamp,omitempty"`
+}
+
+
 // SearchHistoryItem stores a single search entry.
 type SearchHistoryItem struct {
 	SearchID  string    `firestore:"searchId" json:"searchId,omitempty"`
@@ -127,8 +139,89 @@ func (fs *FirebaseService) initializeSubcollections(ctx context.Context, userID 
 		return fmt.Errorf("init savedAddresses: %w", err)
 	}
 
+	// Initialize history subcollection
+	_, err = fs.client.Collection("users").Doc(userID).
+		Collection("history").Doc("_init").
+		Set(ctx, map[string]interface{}{
+			"initialized": true,
+			"createdAt":   time.Now(),
+		})
+	if err != nil {
+		return fmt.Errorf("init history: %w", err)
+	}
+
 	return nil
 }
+
+// ===== Destination History =====
+
+func (fs *FirebaseService) AddDestinationHistory(ctx context.Context, userID string, item DestinationHistoryItem) (string, error) {
+	item.Timestamp = time.Now()
+	ref, _, err := fs.client.Collection("users").Doc(userID).Collection("history").Add(ctx, item)
+	if err != nil {
+		return "", fmt.Errorf("add destination history: %w", err)
+	}
+	return ref.ID, nil
+}
+
+func (fs *FirebaseService) GetDestinationHistory(ctx context.Context, userID string, limit int) ([]DestinationHistoryItem, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+
+	docs, err := fs.client.Collection("users").Doc(userID).Collection("history").
+		OrderBy("timestamp", firestore.Desc).
+		Limit(limit).
+		Documents(ctx).GetAll()
+	if err != nil {
+		return nil, fmt.Errorf("get destination history: %w", err)
+	}
+
+	history := make([]DestinationHistoryItem, 0, len(docs))
+	for _, doc := range docs {
+		if doc.Ref.ID == "_init" {
+			continue
+		}
+		var item DestinationHistoryItem
+		if err := doc.DataTo(&item); err != nil {
+			continue
+		}
+		item.HistoryID = doc.Ref.ID
+		history = append(history, item)
+	}
+	return history, nil
+}
+
+func (fs *FirebaseService) ClearDestinationHistory(ctx context.Context, userID string) error {
+	iter := fs.client.Collection("users").Doc(userID).Collection("history").Documents(ctx)
+	batch := fs.client.Batch()
+	count := 0
+
+	for {
+		doc, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			return fmt.Errorf("iterate destination history: %w", err)
+		}
+		// Keep placeholder doc
+		if doc.Ref.ID == "_init" {
+			continue
+		}
+		batch.Delete(doc.Ref)
+		count++
+	}
+
+	if count > 0 {
+		if _, err := batch.Commit(ctx); err != nil {
+			return fmt.Errorf("clear destination history: %w", err)
+		}
+	}
+
+	return nil
+}
+
 
 // ===== Search History =====
 

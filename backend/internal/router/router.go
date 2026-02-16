@@ -82,6 +82,10 @@ func SetupRouter() *gin.Engine {
 		usersGroup.GET("/:userId/savedAddresses", firebaseHandler.GetSavedAddresses)
 		usersGroup.PUT("/:userId/savedAddresses/:addressId", firebaseHandler.UpdateSavedAddress)
 		usersGroup.DELETE("/:userId/savedAddresses/:addressId", firebaseHandler.DeleteSavedAddress)
+
+		usersGroup.POST("/:userId/history", firebaseHandler.AddDestinationHistory)
+		usersGroup.GET("/:userId/history", firebaseHandler.GetDestinationHistory)
+		usersGroup.DELETE("/:userId/history", firebaseHandler.ClearDestinationHistory)
 	}
 
 	router.GET("/campuses/:campus/buildings", campusHandler.GetCampusBuildings)
