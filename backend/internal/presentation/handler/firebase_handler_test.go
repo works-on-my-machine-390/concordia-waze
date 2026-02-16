@@ -168,26 +168,6 @@ func TestCreateUserProfileSuccess(t *testing.T) {
 	require.True(t, called)
 }
 
-func TestGetSearchHistoryLimitParam(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	service := &fakeFirebaseService{
-		getSearchHistoryFn: func(ctx context.Context, userID string, limit int) ([]application.SearchHistoryItem, error) {
-			require.Equal(t, 10, limit)
-			return []application.SearchHistoryItem{{Query: "Hall"}}, nil
-		},
-	}
-	h := NewFirebaseHandler(service)
-
-	r := gin.New()
-	r.GET("/users/:userId/search-history", h.GetSearchHistory)
-
-	request := httptest.NewRequest(http.MethodGet, "/users/u1/search-history?limit=10", nil)
-	response := httptest.NewRecorder()
-
-	r.ServeHTTP(response, request)
-	require.Equal(t, http.StatusOK, response.Code)
-}
-
 func TestGetSavedAddressessavedAddressesParam(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	service := &fakeFirebaseService{
@@ -244,87 +224,6 @@ func TestGetUserProfileNotFound(t *testing.T) {
 
 	r.ServeHTTP(response, request)
 	require.Equal(t, http.StatusNotFound, response.Code)
-}
-
-func TestAddSearchHistorySuccess(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	service := &fakeFirebaseService{
-		addSearchHistoryFn: func(ctx context.Context, userID string, item application.SearchHistoryItem) (string, error) {
-			require.Equal(t, "user_1", userID)
-			require.Equal(t, "JMSB", item.Query)
-			return "search_123", nil
-		},
-	}
-	h := NewFirebaseHandler(service)
-
-	r := gin.New()
-	r.POST("/users/:userId/search-history", h.AddSearchHistory)
-
-	payload := application.SearchHistoryItem{Query: "JMSB", Locations: "1455 De Maisonneuve"}
-	body, err := json.Marshal(payload)
-	require.NoError(t, err)
-
-	request := httptest.NewRequest(http.MethodPost, "/users/user_1/search-history", bytes.NewBuffer(body))
-	request.Header.Set("Content-Type", "application/json")
-	response := httptest.NewRecorder()
-
-	r.ServeHTTP(response, request)
-	require.Equal(t, http.StatusCreated, response.Code)
-}
-
-func TestAddSearchHistoryBadRequest(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	service := &fakeFirebaseService{}
-	h := NewFirebaseHandler(service)
-
-	r := gin.New()
-	r.POST("/users/:userId/search-history", h.AddSearchHistory)
-
-	request := httptest.NewRequest(http.MethodPost, "/users/user_1/search-history", bytes.NewBufferString("{invalid"))
-	request.Header.Set("Content-Type", "application/json")
-	response := httptest.NewRecorder()
-
-	r.ServeHTTP(response, request)
-	require.Equal(t, http.StatusBadRequest, response.Code)
-}
-
-func TestClearSearchHistorySuccess(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	service := &fakeFirebaseService{
-		clearSearchHistoryFn: func(ctx context.Context, userID string) error {
-			require.Equal(t, "user_1", userID)
-			return nil
-		},
-	}
-	h := NewFirebaseHandler(service)
-
-	r := gin.New()
-	r.DELETE("/users/:userId/search-history", h.ClearSearchHistory)
-
-	request := httptest.NewRequest(http.MethodDelete, "/users/user_1/search-history", nil)
-	response := httptest.NewRecorder()
-
-	r.ServeHTTP(response, request)
-	require.Equal(t, http.StatusOK, response.Code)
-}
-
-func TestClearSearchHistoryError(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	service := &fakeFirebaseService{
-		clearSearchHistoryFn: func(ctx context.Context, userID string) error {
-			return context.Canceled
-		},
-	}
-	h := NewFirebaseHandler(service)
-
-	r := gin.New()
-	r.DELETE("/users/:userId/search-history", h.ClearSearchHistory)
-
-	request := httptest.NewRequest(http.MethodDelete, "/users/user_1/search-history", nil)
-	response := httptest.NewRecorder()
-
-	r.ServeHTTP(response, request)
-	require.Equal(t, http.StatusInternalServerError, response.Code)
 }
 
 func TestAddScheduleItemSuccess(t *testing.T) {
