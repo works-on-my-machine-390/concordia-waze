@@ -128,7 +128,7 @@ func (fh *FirebaseHandler) AddDestinationHistory(c *gin.Context) {
 
 	historyID, err := fh.service.AddDestinationHistory(c.Request.Context(), userID, item)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
