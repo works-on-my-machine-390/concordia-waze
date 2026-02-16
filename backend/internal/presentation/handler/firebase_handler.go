@@ -14,9 +14,7 @@ import (
 type FirebaseService interface {
 	CreateUserProfile(ctx context.Context, userID string, profile domain.User) error
 	GetUserProfile(ctx context.Context, userID string) (*domain.User, error)
-	AddSearchHistory(ctx context.Context, userID string, item application.SearchHistoryItem) (string, error)
-	GetSearchHistory(ctx context.Context, userID string, limit int) ([]application.SearchHistoryItem, error)
-	ClearSearchHistory(ctx context.Context, userID string) error
+
 	AddScheduleItem(ctx context.Context, userID string, item application.ScheduleItem) (string, error)
 	GetUserSchedule(ctx context.Context, userID string) ([]application.ScheduleItem, error)
 	UpdateScheduleItem(ctx context.Context, userID, scheduleID string, updates map[string]interface{}) error
@@ -185,99 +183,6 @@ func (fh *FirebaseHandler) ClearDestinationHistory(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "destination history cleared"})
-}
-
-
-// ===== Search History =====
-
-// AddSearchHistory godoc
-// @Summary Add search history
-// @Description Add a search query to a user's history
-// @Tags search
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param Authorization header string true "Bearer token"
-// @Param userId path string true "User ID"
-// @Param item body application.SearchHistoryItem true "Search item"
-// @Success 201 {object} map[string]string
-// @Failure 401 {object} map[string]string "Not authenticated"
-// @Failure 403 {object} map[string]string "Forbidden"
-// @Failure 400 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /users/{userId}/search-history [post]
-func (fh *FirebaseHandler) AddSearchHistory(c *gin.Context) {
-	userID := c.Param("userId")
-	var item application.SearchHistoryItem
-
-	if err := c.ShouldBindJSON(&item); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body for Add Search History", "details": err.Error()})
-		return
-	}
-
-	searchID, err := fh.service.AddSearchHistory(c.Request.Context(), userID, item)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusCreated, gin.H{"message": "search history added", "searchId": searchID})
-}
-
-// GetSearchHistory godoc
-// @Summary Get search history
-// @Description Get a user's search history
-// @Tags search
-// @Produce json
-// @Security BearerAuth
-// @Param Authorization header string true "Bearer token"
-// @Param userId path string true "User ID"
-// @Param limit query int false "Limit results" default(50)
-// @Success 200 {array} application.SearchHistoryItem
-// @Failure 401 {object} map[string]string "Not authenticated"
-// @Failure 403 {object} map[string]string "Forbidden"
-// @Failure 500 {object} map[string]string
-// @Router /users/{userId}/search-history [get]
-func (fh *FirebaseHandler) GetSearchHistory(c *gin.Context) {
-	userID := c.Param("userId")
-	limit := 50
-	if limitParam := c.Query("limit"); limitParam != "" {
-		if parsed, err := strconv.Atoi(limitParam); err == nil {
-			limit = parsed
-		}
-	}
-
-	history, err := fh.service.GetSearchHistory(c.Request.Context(), userID, limit)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, history)
-}
-
-// ClearSearchHistory godoc
-// @Summary Clear search history
-// @Description Delete all search history items for a user
-// @Tags search
-// @Produce json
-// @Security BearerAuth
-// @Param Authorization header string true "Bearer token"
-// @Param userId path string true "User ID"
-// @Success 200 {object} map[string]string
-// @Failure 401 {object} map[string]string "Not authenticated"
-// @Failure 403 {object} map[string]string "Forbidden"
-// @Failure 500 {object} map[string]string
-// @Router /users/{userId}/search-history [delete]
-func (fh *FirebaseHandler) ClearSearchHistory(c *gin.Context) {
-	userID := c.Param("userId")
-
-	if err := fh.service.ClearSearchHistory(c.Request.Context(), userID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "search history cleared"})
 }
 
 // ===== Schedule =====
