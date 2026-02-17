@@ -72,10 +72,6 @@ func SetupRouter() *gin.Engine {
 		usersGroup.POST("/:userId/profile", firebaseHandler.CreateUserProfile)
 		usersGroup.GET("/:userId/profile", firebaseHandler.GetUserProfile)
 
-		usersGroup.POST(userSearchHistoryPath, firebaseHandler.AddSearchHistory)
-		usersGroup.GET(userSearchHistoryPath, firebaseHandler.GetSearchHistory)
-		usersGroup.DELETE(userSearchHistoryPath, firebaseHandler.ClearSearchHistory)
-
 		usersGroup.POST("/:userId/schedule", firebaseHandler.AddScheduleItem)
 		usersGroup.GET("/:userId/schedule", firebaseHandler.GetUserSchedule)
 		usersGroup.PUT("/:userId/schedule/:scheduleId", firebaseHandler.UpdateScheduleItem)
@@ -85,6 +81,10 @@ func SetupRouter() *gin.Engine {
 		usersGroup.GET("/:userId/savedAddresses", firebaseHandler.GetSavedAddresses)
 		usersGroup.PUT("/:userId/savedAddresses/:addressId", firebaseHandler.UpdateSavedAddress)
 		usersGroup.DELETE("/:userId/savedAddresses/:addressId", firebaseHandler.DeleteSavedAddress)
+
+		usersGroup.POST("/:userId/history", firebaseHandler.AddDestinationHistory)
+		usersGroup.GET("/:userId/history", firebaseHandler.GetDestinationHistory)
+		usersGroup.DELETE("/:userId/history", firebaseHandler.ClearDestinationHistory)
 	}
 
 	shuttleGroup := router.Group("/shuttle")
