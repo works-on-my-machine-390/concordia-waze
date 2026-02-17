@@ -17,11 +17,12 @@ type fakeBuildingRepo struct {
 	err      error
 }
 
-func (f *fakeBuildingRepo) GetBuilding(code string) (*domain.Building, error) {
-	if f.err != nil {
-		return nil, f.err
+// This is the ONLY method required by BuildingReader interface
+func (r *fakeBuildingRepo) GetBuilding(code string) (*domain.Building, error) {
+	if r.err != nil {
+		return nil, r.err
 	}
-	return f.building, nil
+	return r.building, nil
 }
 
 func TestBuildingHandler_GetBuilding_Success200(t *testing.T) {
@@ -67,7 +68,9 @@ func TestBuildingHandler_GetBuilding_Success200(t *testing.T) {
 func TestBuildingHandler_GetBuilding_NotFound404(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	repo := &fakeBuildingRepo{err: domain.ErrNotFound}
+	repo := &fakeBuildingRepo{
+		err: domain.ErrNotFound,
+	}
 
 	svc := application.NewBuildingService(repo)
 	h := NewBuildingHandler(svc)
@@ -91,7 +94,9 @@ func TestBuildingHandler_GetBuilding_NotFound404(t *testing.T) {
 func TestBuildingHandler_GetBuilding_InternalError500(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	repo := &fakeBuildingRepo{err: errors.New("boom")}
+	repo := &fakeBuildingRepo{
+		err: errors.New("boom"),
+	}
 
 	svc := application.NewBuildingService(repo)
 	h := NewBuildingHandler(svc)
