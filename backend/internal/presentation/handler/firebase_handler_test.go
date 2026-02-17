@@ -604,3 +604,38 @@ func TestClearDestinationHistoryError(t *testing.T) {
 
 	require.Equal(t, http.StatusInternalServerError, res.Code)
 }
+
+func TestAddDestinationHistoryBadRequest_InvalidDestinationType(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	called := false
+	service := &fakeFirebaseService{
+		addDestinationHistoryFn: func(ctx context.Context, userID string, item application.DestinationHistoryItem) (string, error) {
+			called = true
+			return "should_not_happen", nil
+		},
+	}
+
+	h := NewFirebaseHandler(service)
+
+	r := gin.New()
+	r.POST("/users/:userId/history", h.AddDestinationHistory)
+
+	payload := application.DestinationHistoryItem{
+		Name:            "Some Place",
+		Address:         "123 Street",
+		DestinationType: "ASBHDJAS", // invalid
+	}
+
+	body, err := json.Marshal(payload)
+	require.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodPost, "/users/user_1/history", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	res := httptest.NewRecorder()
+
+	r.ServeHTTP(res, req)
+
+	require.Equal(t, http.StatusBadRequest, res.Code)
+	require.False(t, called, "service should not be called when destinationType is invalid")
+}
