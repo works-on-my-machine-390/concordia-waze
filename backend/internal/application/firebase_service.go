@@ -161,7 +161,7 @@ func (fs *FirebaseService) GetSearchHistory(ctx context.Context, userID string, 
 			continue
 		}
 		var item SearchHistoryItem
-		if err := doc.DataTo(&item); err != nil {
+		if doc.DataTo(&item) != nil {
 			continue
 		}
 		item.SearchID = doc.Ref.ID
@@ -221,7 +221,7 @@ func (fs *FirebaseService) GetUserSchedule(ctx context.Context, userID string) (
 			continue
 		}
 		var item ScheduleItem
-		if err := doc.DataTo(&item); err != nil {
+		if doc.DataTo(&item) != nil {
 			continue
 		}
 		item.ScheduleID = doc.Ref.ID
@@ -273,7 +273,7 @@ func (fs *FirebaseService) GetSavedAddresses(ctx context.Context, userID string)
 			continue
 		}
 		var address SavedAddress
-		if err := doc.DataTo(&address); err != nil {
+		if doc.DataTo(&address) != nil {
 			continue
 		}
 		address.AddressID = doc.Ref.ID
