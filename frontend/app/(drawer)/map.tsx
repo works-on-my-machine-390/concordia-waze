@@ -275,6 +275,13 @@ export default function MainMap() {
     }
   };
 
+  const locationButtonPosition = useMemo(() => {
+    if (!selectedBuildingCode) {
+      return 80;
+    }
+    return isNavigationMode ? 150 : 220;
+  }, [selectedBuildingCode, isNavigationMode]);
+
   return (
     <View style={styles.container}>
       <MapView
@@ -326,11 +333,7 @@ export default function MainMap() {
       <View style={styles.bottomSheetContainer}>
         <LocationButton
           onPress={goToMyLocation}
-          bottomPosition={
-            selectedBuildingCode 
-              ? (isNavigationMode ? 150 : 220)
-              : 80
-          }
+          bottomPosition={locationButtonPosition}
         />
 
         {!!selectedBuildingCode && (
