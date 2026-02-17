@@ -2,18 +2,22 @@ import BuildingBottomSheet from "@/components/BuildingBottomSheet";
 import {
   CampusBuilding,
   CampusCode,
+  useGetBuildingDetails,
   useGetBuildings,
 } from "@/hooks/queries/buildingQueries";
+import { useSaveToHistory } from "@/hooks/queries/userHistoryQueries";
+import { useGetProfile } from "@/hooks/queries/userQueries";
 import * as Location from "expo-location";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, StyleSheet, View } from "react-native";
 import MapView, { Region } from "react-native-maps";
+import { Toast } from "toastify-react-native";
 import { isPointInPolygon } from "~/app/utils/pointInPolygon";
 import CampusBuildingPolygons from "~/components/CampusBuildingPolygons";
 import LocationButton from "~/components/LocationButton";
 import { MapHeader } from "~/components/MapHeader";
+import { NavigationHeader } from "~/components/NavigationHeader";
 import { getDistance } from "../utils/mapUtils";
-import { Toast } from "toastify-react-native";
 
 export default function MainMap() {
   const [campus, setCampus] = useState<CampusCode>(CampusCode.SGW);
@@ -33,6 +37,14 @@ export default function MainMap() {
     Record<string, CampusBuilding[]>
   >({});
 
+  const [isNavigationMode, setIsNavigationMode] = useState(false);
+
+  const { data: userProfile } = useGetProfile();
+  const saveToHistory = useSaveToHistory(userProfile?.id || "");
+
+  const selectedBuildingDetails = useGetBuildingDetails(selectedBuildingCode || "");
+  const currentBuildingDetails = useGetBuildingDetails(currentBuildingCode || "");
+
   const buildingListQuery = useGetBuildings(campus);
 
   useEffect(() => {
@@ -47,6 +59,61 @@ export default function MainMap() {
   const buildingsToRender = useMemo(() => {
     return buildingsByCampus[campus] || [];
   }, [campus, buildingsByCampus]);
+
+  const [startAddress, setStartAddress] = useState<string | null>(null);
+
+  // reverse geocoding to get address given coordinates
+  useEffect(() => {
+    const getAddress = async () => {
+      if (location?.coords && !currentBuildingCode) {
+        try {
+          const addresses = await Location.reverseGeocodeAsync({
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+          });
+                    
+          if (addresses && addresses.length > 0) {
+            const addr = addresses[0];
+            
+            // street adress
+            const street = [addr.streetNumber, addr.street].filter(Boolean).join(' ');
+            
+            // adding city, region and postal code to it 
+            const formattedAddress = [
+              street,
+              addr.city,
+              addr.region,
+              addr.postalCode
+            ].filter(Boolean).join(', ');
+            
+            setStartAddress(formattedAddress || "Current Location");
+          }
+        } catch (e) {
+          console.error("Failed to get address", e);
+          setStartAddress(null);
+        }
+      } else {
+        setStartAddress(null);
+      }
+    };
+    
+    getAddress();
+  }, [location?.coords?.latitude, location?.coords?.longitude, currentBuildingCode]);
+
+  const startLocationText = useMemo(() => { 
+    // if user has location and is in a building
+    if (currentBuildingCode && currentBuildingDetails.data) {
+      return `${currentBuildingDetails.data.code} - ${currentBuildingDetails.data.long_name}`;
+    }
+    
+    // if user has location but not in a building
+    if (location?.coords) {
+      return startAddress || `${location.coords.latitude.toFixed(5)}, ${location.coords.longitude.toFixed(5)}`;
+    }
+    
+    // if no location available
+    return "Please select a building";
+  }, [currentBuildingCode, currentBuildingDetails.data, location?.coords]);
 
   const mapStyle = [
     {
@@ -188,10 +255,38 @@ export default function MainMap() {
     }
   };
 
+  const handleStartNavigation = () => {
+    if (!location) {
+      Toast.warn("Location access was denied. Please select a start building.", "top");
+    }
+    
+    setIsNavigationMode(true);
+
+    // Save the destination building to history
+    if (userProfile?.id && selectedBuildingDetails.data) { 
+      saveToHistory.mutate({
+        name: selectedBuildingDetails.data.long_name,
+        address: selectedBuildingDetails.data.address,
+        lat: selectedBuildingDetails.data.latitude,
+        lng: selectedBuildingDetails.data.longitude,
+        building_code: selectedBuildingDetails.data.code,
+        destinationType: "building"
+      });
+    }
+  };
+
+  const locationButtonPosition = useMemo(() => {
+    if (!selectedBuildingCode) {
+      return 80;
+    }
+    return isNavigationMode ? 150 : 220;
+  }, [selectedBuildingCode, isNavigationMode]);
+
   return (
     <View style={styles.container}>
       <MapView
         customMapStyle={mapStyle}
+        showsPointsOfInterest={false}
         ref={mapRef}
         showsMyLocationButton={false} // remove default google location button
         style={styles.map}
@@ -213,24 +308,43 @@ export default function MainMap() {
         />
       </MapView>
 
-      <MapHeader
-        campus={campus}
-        onCampusChange={handleCampusChange}
-        searchText={searchText}
-        onSearchTextChange={setSearchText}
-        onMenuPress={() => {}}
-        // onMenuPress={() => router.push("/menu")} // navigate to menu screen, to be created
-      />
+      {isNavigationMode ? (
+        <NavigationHeader
+          startLocation={startLocationText}
+          endLocation={
+            selectedBuildingDetails.data 
+              ? `${selectedBuildingDetails.data.code} - ${selectedBuildingDetails.data.long_name}`
+              : selectedBuildingCode || "Unknown Building"
+          }
+          onCancel={() => {
+            setIsNavigationMode(false);
+            setSelectedBuildingCode(null);
+          }}
+        />
+      ) : (
+        <MapHeader
+          campus={campus}
+          onCampusChange={handleCampusChange}
+          searchText={searchText}
+          onSearchTextChange={setSearchText}
+          onMenuPress={() => {}}
+        />
+      )}
       <View style={styles.bottomSheetContainer}>
         <LocationButton
           onPress={goToMyLocation}
-          bottomPosition={selectedBuildingCode ? 220 : 80}
+          bottomPosition={locationButtonPosition}
         />
 
         {!!selectedBuildingCode && (
           <BuildingBottomSheet
             buildingCode={selectedBuildingCode}
-            onClose={() => setSelectedBuildingCode(null)}
+            onClose={() => {
+              setSelectedBuildingCode(null);
+              setIsNavigationMode(false); 
+            }}
+            onStartNavigation={handleStartNavigation}
+            isNavigationMode={isNavigationMode}
           />
         )}
       </View>
