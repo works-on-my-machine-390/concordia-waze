@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/application"
@@ -119,7 +120,18 @@ func (fh *FirebaseHandler) AddDestinationHistory(c *gin.Context) {
 	var item application.DestinationHistoryItem
 
 	if err := c.ShouldBindJSON(&item); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body for Add Destination History", "details": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "invalid request body for Add Destination History",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	item.DestinationType = strings.ToLower(strings.TrimSpace(item.DestinationType))
+	if item.DestinationType != "building" && item.DestinationType != "poi" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": `invalid destinationType: expected "building" or "poi"`,
+		})
 		return
 	}
 
@@ -129,7 +141,10 @@ func (fh *FirebaseHandler) AddDestinationHistory(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": "destination history added", "historyId": historyID})
+	c.JSON(http.StatusCreated, gin.H{
+		"message":   "destination history added",
+		"historyId": historyID,
+	})
 }
 
 // GetDestinationHistory godoc
