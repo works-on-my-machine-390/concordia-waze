@@ -1,7 +1,7 @@
 import type { Building } from "@/hooks/queries/buildingQueries";
 import { useGetBuildingDetails } from "@/hooks/queries/buildingQueries";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState, useEffect } from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { COLORS } from "../app/constants";
 import {
@@ -65,6 +65,12 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
 
   const snapPoints = useMemo(() => {
     return props.isNavigationMode ? ["10%"] : ["20%", "70%"];
+  }, [props.isNavigationMode]);
+
+  useEffect(() => {
+    if (props.isNavigationMode) {
+      bottomSheetRef.current?.snapToIndex(0);
+    }
   }, [props.isNavigationMode]);
 
   const getBuildingQuery = useGetBuildingDetails(props.buildingCode || "");
