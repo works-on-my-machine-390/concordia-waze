@@ -174,8 +174,8 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
 
               <View style={styles.accessibilityIconsContainer}>
                 {!props.isNavigationMode && <FavoriteEmptyIcon color={COLORS.maroon} />}
-                <TouchableOpacity onPress={handleCloseSheet}>
-                  <CloseIcon size={28} />
+                <TouchableOpacity onPress={handleCloseSheet} style={styles.closeIcon}>
+                  <CloseIcon size={28}/>
                 </TouchableOpacity>
               </View>
             </View>
@@ -255,6 +255,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginRight: 10,
+  },
+
+  closeIcon: {
+    marginLeft: 7,
   },
 
   iconsContainerNavMode: {
