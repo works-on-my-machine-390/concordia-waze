@@ -60,13 +60,6 @@ export default function MainMap() {
     return buildingsByCampus[campus] || [];
   }, [campus, buildingsByCampus]);
 
-  const destinationBuilding = useMemo(() => {
-    if (!selectedBuildingCode) return null;
-    return Object.values(buildingsByCampus)
-      .flat()
-      .find((b) => b.code === selectedBuildingCode);
-  }, [selectedBuildingCode, buildingsByCampus]);
-
   const [startAddress, setStartAddress] = useState<string | null>(null);
 
   // reverse geocoding to get address given coordinates
