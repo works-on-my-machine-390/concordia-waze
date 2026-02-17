@@ -14,4 +14,7 @@ var (
 	ErrEmptyEmail        = errors.New("Email cannot be empty")
 	ErrEmptyPassword     = errors.New("Password cannot be empty")
 	ErrUserAlreadyExists = errors.New("User with this email already exists")
+
+	// Other errors
+	ErrNotFound = errors.New("not found")
 )

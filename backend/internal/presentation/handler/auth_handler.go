@@ -136,7 +136,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		}
 
 		// Verify password with bcrypt
-		if err := bcrypt.CompareHashAndPassword([]byte(profile.Password), []byte(req.Password)); err != nil {
+		if bcrypt.CompareHashAndPassword([]byte(profile.Password), []byte(req.Password)) != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 			return
 		}

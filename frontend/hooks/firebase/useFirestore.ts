@@ -38,7 +38,7 @@ export const createUserProfile = async (userId: string, profile: Partial<UserPro
     full_name: profile.full_name || "",
   };
 
-  const response = await (await api()).post(userProfile, `/users/${userId}/profile`).json();
+  await (await api()).post(userProfile, `/users/${userId}/profile`).json();
   return userId;
 };
 

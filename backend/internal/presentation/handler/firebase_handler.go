@@ -62,7 +62,7 @@ func (fh *FirebaseHandler) CreateUserProfile(c *gin.Context) {
 	userID := c.Param("userId")
 	var profile domain.User
 
-	if err := c.ShouldBindJSON(&profile); err != nil {
+	if c.ShouldBindJSON(&profile) != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body for Create User Profile"})
 		return
 	}
@@ -282,7 +282,7 @@ func (fh *FirebaseHandler) UpdateScheduleItem(c *gin.Context) {
 	scheduleID := c.Param("scheduleId")
 	var updates map[string]interface{}
 
-	if err := c.ShouldBindJSON(&updates); err != nil {
+	if c.ShouldBindJSON(&updates) != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body for Update Schedule Item"})
 		return
 	}
@@ -404,7 +404,7 @@ func (fh *FirebaseHandler) UpdateSavedAddress(c *gin.Context) {
 	addressID := c.Param("addressId")
 	var updates map[string]interface{}
 
-	if err := c.ShouldBindJSON(&updates); err != nil {
+	if c.ShouldBindJSON(&updates) != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
 		return
 	}

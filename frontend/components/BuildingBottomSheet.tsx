@@ -1,8 +1,8 @@
 import type { Building } from "@/hooks/queries/buildingQueries";
 import { useGetBuildingDetails } from "@/hooks/queries/buildingQueries";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
-import { useCallback, useMemo, useRef, useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View, Image } from "react-native";
+import { useCallback, useMemo, useRef, useState, useEffect } from "react";
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { COLORS } from "../app/constants";
 import {
   CloseIcon,
@@ -31,6 +31,8 @@ function ListSection({ title, items }: { title: string; items: string[] }) {
 type Props = {
   buildingCode: string | null;
   onClose?: () => void;
+  onStartNavigation?: (buildingCode: string) => void;
+  isNavigationMode?: boolean;
 };
 
 type BottomSheetBuildingModel = {
@@ -61,7 +63,15 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
   const bottomSheetRef = useRef<BottomSheet>(null);
   const [sheetOpen, setSheetOpen] = useState(true);
 
-  const snapPoints = useMemo(() => ["20%", "70%"], []);
+  const snapPoints = useMemo(() => {
+    return props.isNavigationMode ? ["10%"] : ["20%", "70%"];
+  }, [props.isNavigationMode]);
+
+  useEffect(() => {
+    if (props.isNavigationMode) {
+      bottomSheetRef.current?.snapToIndex(0);
+    }
+  }, [props.isNavigationMode]);
 
   const getBuildingQuery = useGetBuildingDetails(props.buildingCode || "");
 
@@ -117,6 +127,7 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
 
   return (
     <BottomSheet
+      handleComponent={null} 
       ref={bottomSheetRef}
       index={0}
       snapPoints={snapPoints}
@@ -129,43 +140,54 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
     >
       {hasBuildingData ? (
         <>
+          <View style={styles.fakeHandleContainer}>
+            <View style={styles.fakeHandleBar} />
+          </View>
           {/* Header */}
           <View style={styles.headerContainer}>
-            {sheetOpen && (
-              <View style={styles.floatingIcon}>
-                <GetDirectionsIcon size={90} color={COLORS.maroon} />
+            {!props.isNavigationMode && sheetOpen && (
+              <TouchableOpacity onPress={() => props.onStartNavigation?.(building.code)}>
+                <View style={styles.floatingIcon}>
+                  <GetDirectionsIcon size={90} color={COLORS.maroon} />
+                </View>
+              </TouchableOpacity>
+            )}
+
+            { !props.isNavigationMode && (
+              <View style={styles.textContainer}>
+                <Text style={styles.name}>
+                  {building.long_name} ({building.code})
+                </Text>
+                <Text style={styles.address}>{building.address}</Text>
               </View>
             )}
 
-            <View style={styles.textContainer}>
-              <Text style={styles.name}>
-                {building.long_name} ({building.code})
-              </Text>
-              <Text style={styles.address}>{building.address}</Text>
-            </View>
-
-            <View style={styles.iconsContainer}>
-              <View style={styles.accessibilityIconsContainer}>
-                {accessibilityIcons}
-              </View>
+            <View style={[styles.iconsContainer, props.isNavigationMode && styles.iconsContainerNavMode]}>
+              {!props.isNavigationMode && (
+                <View style={styles.accessibilityIconsContainer}>
+                  {accessibilityIcons}
+                </View>
+              )}
 
               <View style={styles.accessibilityIconsContainer}>
-                <FavoriteEmptyIcon color={COLORS.maroon} />
-                <TouchableOpacity onPress={handleCloseSheet}>
-                  <CloseIcon size={28} />
+                {!props.isNavigationMode && <FavoriteEmptyIcon color={COLORS.maroon} />}
+                <TouchableOpacity onPress={handleCloseSheet} style={styles.closeIcon}>
+                  <CloseIcon size={28}/>
                 </TouchableOpacity>
               </View>
             </View>
           </View>
 
           {/* Scrollable Content */}
-          <BottomSheetScrollView contentContainerStyle={styles.scrollContent}>
-            <BuildingGallery buildingCode={building.code} />
+          {!props.isNavigationMode && (
+            <BottomSheetScrollView contentContainerStyle={styles.scrollContent}>
+              <BuildingGallery buildingCode={building.code} />
 
-            <ListSection title="Services" items={building.services} />
-            <ListSection title="Departments" items={building.departments} />
-            <ListSection title="Venues" items={building.venues} />
-          </BottomSheetScrollView>
+              <ListSection title="Services" items={building.services} />
+              <ListSection title="Departments" items={building.departments} />
+              <ListSection title="Venues" items={building.venues} />
+            </BottomSheetScrollView>
+          )}
         </>
       ) : (
         <BottomSheetScrollView contentContainerStyle={styles.scrollContent}>
@@ -186,6 +208,19 @@ const styles = StyleSheet.create({
     elevation: 12,
   },
 
+  fakeHandleContainer: {
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingTop: 8,
+  },
+
+  fakeHandleBar: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#D1D1D6',
+    borderRadius: 2,
+  },
+
   headerContainer: {
     paddingHorizontal: 16,
     paddingVertical: 16,
@@ -193,8 +228,8 @@ const styles = StyleSheet.create({
 
   floatingIcon: {
     position: "absolute",
-    top: -60,
-    right: 10,
+    top: -88,
+    right: -20,
     zIndex: 10,
     borderRadius: 20,
     padding: 6,
@@ -230,6 +265,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginRight: 10,
+  },
+
+  closeIcon: {
+    marginLeft: 7,
+  },
+
+  iconsContainerNavMode: {
+    marginTop: -12, 
+    justifyContent: 'flex-end',
   },
 
   scrollContent: {
