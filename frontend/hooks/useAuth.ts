@@ -2,7 +2,7 @@
 React hook managing authentication state and API interactions: providing login and register functions 
 After need to change all API calls with real backend
 */
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
 
 type AuthResult =
@@ -18,7 +18,7 @@ export function useAuth() {
   const [loggedIn, setLoggedIn] = useState(false);
 
   const checkToken = async () => {
-    const token = await AsyncStorage.getItem("accessToken");
+    const token = await SecureStore.getItemAsync("accessToken");
     if (token) {
       setLoggedIn(true);
       return true;
@@ -50,7 +50,7 @@ export function useAuth() {
       const json = await res.json();
 
       if (res.ok && json?.token) {
-        await AsyncStorage.setItem("accessToken", json.token);
+        await SecureStore.setItemAsync("accessToken", json.token);
         setLoggedIn(true);
         return { success: true, data: json };
       }
@@ -61,7 +61,10 @@ export function useAuth() {
       };
     } catch (err: any) {
       const isTimeout = err?.name === "AbortError";
-      return { success: false, error: isTimeout ? "Network error." : (err?.message || "Network error.") };
+      return {
+        success: false,
+        error: isTimeout ? "Network error." : err?.message || "Network error.",
+      };
     } finally {
       clearTimeout(timeoutId);
       setLoading(false);
@@ -90,7 +93,7 @@ export function useAuth() {
 
   async function logout() {
     try {
-      const token = await AsyncStorage.getItem("accessToken");
+      const token = await SecureStore.getItemAsync("accessToken");
 
       if (token) {
         await fetch(`${API_BASE}/auth/logout`, {
@@ -104,7 +107,7 @@ export function useAuth() {
     } catch (err) {
       console.warn("Logout request failed:", err);
     } finally {
-      await AsyncStorage.removeItem("accessToken");
+      await SecureStore.deleteItemAsync("accessToken");
       setLoggedIn(false);
     }
   }
