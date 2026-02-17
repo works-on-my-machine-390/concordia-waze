@@ -42,6 +42,12 @@ func SetupRouter() *gin.Engine {
 	firebaseService := application.NewFirebaseService()
 	shuttleService := application.NewShuttleService(shuttleDataRepo)
 
+	// ---- Directions wiring (NEW) ----
+	directionsClient := google.NewGoogleDirectionsClient(os.Getenv("GOOGLE_DIRECTIONS_API_KEY"))
+	directionsService := application.NewDirectionsService(directionsClient)
+	directionsHandler := handler.NewDirectionsHandler(directionsService, buildingService)
+	// --------------------------------
+
 	authHandler := handler.NewAuthHandler(userService, firebaseService)
 
 	buildingHandler := handler.NewBuildingHandler(buildingService)
@@ -50,12 +56,16 @@ func SetupRouter() *gin.Engine {
 	firebaseHandler := handler.NewFirebaseHandler(firebaseService)
 	shuttleHandler := handler.NewShuttleHandler(shuttleService)
 
-	router.Use(middleware.AuthMiddleware(jwtManager))
+	// =========================
+	// PUBLIC ROUTES (no auth)
+	// =========================
 
 	authGroup := router.Group("/auth")
 	{
 		authGroup.POST("/signup", authHandler.SignUp)
 		authGroup.POST("/login", authHandler.Login)
+
+		// These two require auth explicitly
 		authGroup.GET("/profile", middleware.RequireAuth(), authHandler.GetProfile)
 		authGroup.POST("/logout", middleware.RequireAuth(), authHandler.Logout)
 	}
@@ -66,8 +76,35 @@ func SetupRouter() *gin.Engine {
 		buildingsGroup.GET("/:code/images", imageHandler.GetBuildingImages)
 	}
 
+	// Directions endpoints (PUBLIC)
+	// 1) Lat/Lng version:
+	// GET /directions?start_lat=...&start_lng=...&end_lat=...&end_lng=...&mode=walking|transit|driving
+	router.GET("/directions", directionsHandler.GetDirections)
+
+	// 2) Building codes version:
+	// GET /directions/buildings?start_code=EV&end_code=H&mode=walking|transit|driving
+	router.GET("/directions/buildings", directionsHandler.GetDirectionsByBuildings)
+
+	shuttleGroup := router.Group("/shuttle")
+	{
+		shuttleGroup.GET("", shuttleHandler.GetDepartureData)
+		shuttleGroup.GET("/:day/:campus_code", shuttleHandler.GetCampusDaySchedule)
+	}
+
+	router.GET("/campuses/:campus/buildings", campusHandler.GetCampusBuildings)
+
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	// =========================
+	// PROTECTED ROUTES (auth)
+	// =========================
+
 	usersGroup := router.Group("/users")
-	usersGroup.Use(middleware.RequireAuth(), middleware.ValidateUserOwnership())
+	usersGroup.Use(
+		middleware.AuthMiddleware(jwtManager),
+		middleware.RequireAuth(),
+		middleware.ValidateUserOwnership(),
+	)
 	{
 		usersGroup.POST("/:userId/profile", firebaseHandler.CreateUserProfile)
 		usersGroup.GET("/:userId/profile", firebaseHandler.GetUserProfile)
@@ -86,16 +123,6 @@ func SetupRouter() *gin.Engine {
 		usersGroup.GET("/:userId/history", firebaseHandler.GetDestinationHistory)
 		usersGroup.DELETE("/:userId/history", firebaseHandler.ClearDestinationHistory)
 	}
-
-	shuttleGroup := router.Group("/shuttle")
-	{
-		shuttleGroup.GET("", shuttleHandler.GetDepartureData)
-		shuttleGroup.GET("/:day/:campus_code", shuttleHandler.GetCampusDaySchedule)
-	}
-
-	router.GET("/campuses/:campus/buildings", campusHandler.GetCampusBuildings)
-
-	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	return router
 }
