@@ -228,8 +228,8 @@ const styles = StyleSheet.create({
 
   floatingIcon: {
     position: "absolute",
-    top: -80,
-    right: 10,
+    top: -88,
+    right: -20,
     zIndex: 10,
     borderRadius: 20,
     padding: 6,
