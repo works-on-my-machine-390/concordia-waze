@@ -25,17 +25,18 @@ type rawShape struct {
 }
 
 type rawBuilding struct {
-	Code          string    `json:"code"`
-	Name          string    `json:"name"`
-	LongName      string    `json:"long_name"`
-	Address       string    `json:"address"`
-	Latitude      float64   `json:"latitude"`
-	Longitude     float64   `json:"longitude"`
-	Shape         *rawShape `json:"shape"`
-	Services      []string  `json:"services"`
-	Departments   []string  `json:"departments"`
-	Venues        []string  `json:"venues"`
-	Accessibility []string  `json:"accessibility"`
+	Code            string    `json:"code"`
+	Name            string    `json:"name"`
+	LongName        string    `json:"long_name"`
+	Address         string    `json:"address"`
+	Latitude        float64   `json:"latitude"`
+	Longitude       float64   `json:"longitude"`
+	MetroAccessible bool      `json:"metro_accessible"`
+	Shape           *rawShape `json:"shape"`
+	Services        []string  `json:"services"`
+	Departments     []string  `json:"departments"`
+	Venues          []string  `json:"venues"`
+	Accessibility   []string  `json:"accessibility"`
 }
 
 func NewBuildingDataRepository(path string) *BuildingDataRepository {
@@ -86,16 +87,17 @@ func (r *BuildingDataRepository) GetBuilding(code string) (*domain.Building, err
 	}
 
 	return &domain.Building{
-		Code:          b.Code,
-		Name:          b.Name,
-		LongName:      b.LongName,
-		Address:       b.Address,
-		Latitude:      b.Latitude,
-		Longitude:     b.Longitude,
-		Services:      b.Services,
-		Departments:   b.Departments,
-		Venues:        b.Venues,
-		Accessibility: b.Accessibility,
+		Code:            b.Code,
+		Name:            b.Name,
+		LongName:        b.LongName,
+		Address:         b.Address,
+		Latitude:        b.Latitude,
+		Longitude:       b.Longitude,
+		MetroAccessible: b.MetroAccessible,
+		Services:        b.Services,
+		Departments:     b.Departments,
+		Venues:          b.Venues,
+		Accessibility:   b.Accessibility,
 	}, nil
 }
 

@@ -49,6 +49,7 @@ func TestGetBuilding_Found_TrimsAndUppercasesCode(t *testing.T) {
 				"address": "1450 Guy St, Montreal",
 				"latitude": 45.4970,
 				"longitude": -73.5792,
+				"metro_accessible": true,
 				"departments": [
 					"Accountancy"
 				],
@@ -83,6 +84,9 @@ func TestGetBuilding_Found_TrimsAndUppercasesCode(t *testing.T) {
 	}
 	if b.Address != "1450 Guy St, Montreal" {
 		t.Fatalf("expected address 1450 Guy St, Montreal, got %s", b.Address)
+	}
+	if b.MetroAccessible != true {
+		t.Fatalf("expected MetroAccesible to be true, got false")
 	}
 	if len(b.Departments) != 1 || b.Departments[0] != "Accountancy" {
 		t.Fatalf("unexpected departments: %#v", b.Departments)

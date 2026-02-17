@@ -11,6 +11,7 @@ type AuthResult =
 
 import { API_URL } from "./api";
 const API_BASE = process.env.REACT_APP_API_BASE || API_URL;
+const REQUEST_TIMEOUT_MS = 6000;
 
 export function useAuth() {
   const [loading, setLoading] = useState(false);
@@ -36,15 +37,17 @@ export function useAuth() {
     defaultError: string,
   ): Promise<AuthResult> {
     setLoading(true);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
     try {
       const res = await fetch(`${API_BASE}${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
+        signal: controller.signal,
       });
 
       const json = await res.json();
-      setLoading(false);
 
       if (res.ok && json?.token) {
         await AsyncStorage.setItem("accessToken", json.token);
@@ -57,8 +60,11 @@ export function useAuth() {
         error: json?.error || json?.message || defaultError,
       };
     } catch (err: any) {
+      const isTimeout = err?.name === "AbortError";
+      return { success: false, error: isTimeout ? "Network error." : (err?.message || "Network error.") };
+    } finally {
+      clearTimeout(timeoutId);
       setLoading(false);
-      return { success: false, error: err?.message || "Network error." };
     }
   }
 

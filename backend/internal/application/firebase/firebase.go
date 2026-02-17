@@ -15,7 +15,7 @@ var firestoreClient *firestore.Client
 // Initialize sets up the Firebase Admin SDK for backend access.
 func Initialize(ctx context.Context) error {
 	// Check if using emulator
-	if emulatorHost := os.Getenv("FIRESTORE_EMULATOR_HOST"); emulatorHost != "" {
+	if os.Getenv("FIRESTORE_EMULATOR_HOST") != "" {
 		// For emulator, we don't need credentials but do need a project ID
 		projectID := os.Getenv("GCLOUD_PROJECT")
 		if projectID == "" {
