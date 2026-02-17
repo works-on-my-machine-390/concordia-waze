@@ -119,8 +119,21 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
 
   const hasBuildingData = !!building && getBuildingQuery.isSuccess;
 
+  const CustomHandle = () => (
+  <View style={{ 
+    alignSelf: 'center',
+    marginTop: 8,
+    marginBottom: 4,
+    width: 40,
+    height: 4,
+    backgroundColor: '#D1D1D6',
+    borderRadius: 2,
+  }} />
+);
+
   return (
     <BottomSheet
+      handleComponent={CustomHandle}
       ref={bottomSheetRef}
       index={0}
       snapPoints={snapPoints}
@@ -205,7 +218,7 @@ const styles = StyleSheet.create({
 
   floatingIcon: {
     position: "absolute",
-    top: -90,
+    top: -80,
     right: 10,
     zIndex: 10,
     borderRadius: 20,
