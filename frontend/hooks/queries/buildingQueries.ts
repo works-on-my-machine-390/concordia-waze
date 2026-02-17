@@ -51,7 +51,16 @@ export type Building = {
   departments: string[];
   venues: string[];
   accessibility: string[];
+  metro_accessible: boolean;
+  opening_hours: OpeningHours;
 };
+
+export type OpeningHours = {
+  [day: string]: {
+    open: string;
+    close: string;
+  };
+}
 
 export const useGetBuildingDetails = (buildingCode: string) => {
   return useQuery<Building>({

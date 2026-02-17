@@ -13,6 +13,7 @@ import {
   WheelchairIcon,
 } from "../app/icons";
 import BuildingGallery from "./BuildingGallery";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
 // Reusable list section
 function ListSection({ title, items }: { title: string; items: string[] }) {
@@ -120,6 +121,37 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
       building.accessibilityMapping.ramp && (
         <SlopeUpIcon key="ramp" color="#0E4C92" size={30} />
       ),
+      building.metro_accessible && (
+        <View
+          key="metro"
+          style={{
+            alignItems: "center",
+            gap: 1,
+            display: "flex",
+            flexDirection: "row",
+            backgroundColor: "rgba(184, 219, 255, 0.65)",
+            paddingHorizontal: 8,
+            paddingVertical: 2,
+            borderRadius: 24,
+          }}
+        >
+          <MaterialIcons
+            name="subway"
+            size={26}
+            color="#0E4C92"
+          />
+          <Text
+            style={{
+              fontSize: 12,
+              color: "#0E4C92",
+              marginTop: -4,
+              textAlign: "center",
+            }}
+          >
+            Accessible by tunnel
+          </Text>
+        </View>
+      ),
     ].filter(Boolean);
   }, [building?.accessibilityMapping]);
 
@@ -127,7 +159,7 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
 
   return (
     <BottomSheet
-      handleComponent={null} 
+      handleComponent={null}
       ref={bottomSheetRef}
       index={0}
       snapPoints={snapPoints}
@@ -146,14 +178,16 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
           {/* Header */}
           <View style={styles.headerContainer}>
             {!props.isNavigationMode && sheetOpen && (
-              <TouchableOpacity onPress={() => props.onStartNavigation?.(building.code)}>
+              <TouchableOpacity
+                onPress={() => props.onStartNavigation?.(building.code)}
+              >
                 <View style={styles.floatingIcon}>
                   <GetDirectionsIcon size={90} color={COLORS.maroon} />
                 </View>
               </TouchableOpacity>
             )}
 
-            { !props.isNavigationMode && (
+            {!props.isNavigationMode && (
               <View style={styles.textContainer}>
                 <Text style={styles.name}>
                   {building.long_name} ({building.code})
@@ -162,7 +196,12 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
               </View>
             )}
 
-            <View style={[styles.iconsContainer, props.isNavigationMode && styles.iconsContainerNavMode]}>
+            <View
+              style={[
+                styles.iconsContainer,
+                props.isNavigationMode && styles.iconsContainerNavMode,
+              ]}
+            >
               {!props.isNavigationMode && (
                 <View style={styles.accessibilityIconsContainer}>
                   {accessibilityIcons}
@@ -170,9 +209,14 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
               )}
 
               <View style={styles.accessibilityIconsContainer}>
-                {!props.isNavigationMode && <FavoriteEmptyIcon color={COLORS.maroon} />}
-                <TouchableOpacity onPress={handleCloseSheet} style={styles.closeIcon}>
-                  <CloseIcon size={28}/>
+                {!props.isNavigationMode && (
+                  <FavoriteEmptyIcon color={COLORS.maroon} />
+                )}
+                <TouchableOpacity
+                  onPress={handleCloseSheet}
+                  style={styles.closeIcon}
+                >
+                  <CloseIcon size={28} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -209,7 +253,7 @@ const styles = StyleSheet.create({
   },
 
   fakeHandleContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: 10,
     paddingTop: 8,
   },
@@ -217,7 +261,7 @@ const styles = StyleSheet.create({
   fakeHandleBar: {
     width: 40,
     height: 4,
-    backgroundColor: '#D1D1D6',
+    backgroundColor: "#D1D1D6",
     borderRadius: 2,
   },
 
@@ -272,8 +316,8 @@ const styles = StyleSheet.create({
   },
 
   iconsContainerNavMode: {
-    marginTop: -12, 
-    justifyContent: 'flex-end',
+    marginTop: -12,
+    justifyContent: "flex-end",
   },
 
   scrollContent: {
