@@ -24,7 +24,7 @@ export function NavigationHeader({
             </View>
             <View style={styles.locationTextContainer}>
               <Text style={styles.locationLabel}>From</Text>
-              <Text style={styles.locationText}>{startLocation}</Text>
+              <Text style={styles.locationText} numberOfLines={1} ellipsizeMode="tail">{startLocation}</Text>
             </View>
           </View>
 
@@ -45,7 +45,7 @@ export function NavigationHeader({
             </View>
             <View style={styles.locationTextContainer}>
               <Text style={styles.locationLabel}>To</Text>
-              <Text style={styles.locationText}>{endLocation}</Text>
+              <Text style={styles.locationText} numberOfLines={1} ellipsizeMode="tail">{endLocation}</Text>
             </View>
           </View>
         </View>
