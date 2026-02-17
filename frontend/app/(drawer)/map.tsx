@@ -286,6 +286,7 @@ export default function MainMap() {
     <View style={styles.container}>
       <MapView
         customMapStyle={mapStyle}
+        showsPointsOfInterest={false}
         ref={mapRef}
         showsMyLocationButton={false} // remove default google location button
         style={styles.map}
