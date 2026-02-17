@@ -119,21 +119,9 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
 
   const hasBuildingData = !!building && getBuildingQuery.isSuccess;
 
-  const CustomHandle = () => (
-  <View style={{ 
-    alignSelf: 'center',
-    marginTop: 8,
-    marginBottom: 4,
-    width: 40,
-    height: 4,
-    backgroundColor: '#D1D1D6',
-    borderRadius: 2,
-  }} />
-);
-
   return (
     <BottomSheet
-      handleComponent={CustomHandle}
+      handleComponent={null} 
       ref={bottomSheetRef}
       index={0}
       snapPoints={snapPoints}
@@ -146,6 +134,9 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
     >
       {hasBuildingData ? (
         <>
+          <View style={styles.fakeHandleContainer}>
+            <View style={styles.fakeHandleBar} />
+          </View>
           {/* Header */}
           <View style={styles.headerContainer}>
             {!props.isNavigationMode && sheetOpen && (
@@ -209,6 +200,19 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 12,
+  },
+
+  fakeHandleContainer: {
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingTop: 8,
+  },
+
+  fakeHandleBar: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#D1D1D6',
+    borderRadius: 2,
   },
 
   headerContainer: {
