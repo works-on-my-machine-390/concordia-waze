@@ -328,7 +328,6 @@ export default function MainMap() {
           searchText={searchText}
           onSearchTextChange={setSearchText}
           onMenuPress={() => {}}
-          // onMenuPress={() => router.push("/menu")} // navigate to menu screen, to be created
         />
       )}
       <View style={styles.bottomSheetContainer}>
