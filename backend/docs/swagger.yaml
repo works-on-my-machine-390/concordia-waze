@@ -337,6 +337,75 @@ paths:
       summary: Get building images
       tags:
       - buildings
+  /shuttle:
+    get:
+      consumes:
+      - application/json
+      description: 'Returns the entire shuttle schedule as a mapping: day -> campus
+        -> list of times.'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              additionalProperties:
+                items:
+                  type: string
+                type: array
+              type: object
+            type: object
+        "500":
+          description: internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get full shuttle schedule
+      tags:
+      - shuttle
+  /shuttle/{day}/{campus_code}:
+    get:
+      consumes:
+      - application/json
+      description: Returns a list of departure times (HH:MM strings) for the specified
+        campus and day.
+      parameters:
+      - description: Day of week (e.g., monday)
+        in: path
+        name: day
+        required: true
+        type: string
+      - description: Campus code (LOY or SGW)
+        in: path
+        name: campus_code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: string
+            type: array
+        "404":
+          description: not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get shuttle departures for a campus on a given day
+      tags:
+      - shuttle
   /users/{userId}/profile:
     get:
       description: Get a user profile by ID
