@@ -35,4 +35,6 @@ const (
 	SirGeorgeWilliamsCampusCode = "SGW"
 	LoyolaCampusName            = "Concordia University - Loyola Campus"
 	SirGeorgeWilliamsCampusName = "Concordia University"
+
+	MaxReturnedImageCount = 2
 )
