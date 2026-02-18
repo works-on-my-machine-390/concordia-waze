@@ -419,6 +419,33 @@ paths:
       summary: Get shuttle departures for a campus on a given day
       tags:
       - shuttle
+  /shuttle/markers:
+    get:
+      consumes:
+      - application/json
+      description: Returns the latitude and longitude for shuttle stop markers at
+        both campuses.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              additionalProperties:
+                format: float64
+                type: number
+              type: object
+            type: object
+        "500":
+          description: internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get shuttle marker positions
+      tags:
+      - shuttle
   /users/{userId}/history:
     delete:
       description: Delete all destination history items for a user (keeps _init placeholder)
