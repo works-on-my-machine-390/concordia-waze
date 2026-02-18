@@ -2,7 +2,14 @@ import type { Building } from "@/hooks/queries/buildingQueries";
 import { useGetBuildingDetails } from "@/hooks/queries/buildingQueries";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { useCallback, useMemo, useRef, useState, useEffect } from "react";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { COLORS } from "../app/constants";
 import {
   CloseIcon,
@@ -16,7 +23,6 @@ import BuildingGallery from "./BuildingGallery";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import BottomSheetListSection from "./BottomSheetListSection";
 import OpeningHours from "./OpeningHours";
-
 
 type Props = {
   buildingCode: string | null;
@@ -66,24 +72,26 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
   const getBuildingQuery = useGetBuildingDetails(props.buildingCode || "");
 
   const building: BottomSheetBuildingModel = useMemo(() => {
-    if (
-      getBuildingQuery.data &&
-      getBuildingQuery.isSuccess &&
-      getBuildingQuery.data.accessibility
-    ) {
+    if (getBuildingQuery.data && getBuildingQuery.isSuccess) {
+      const isAccessibilityDataAvailable =
+        getBuildingQuery.data.accessibility?.length > 0;
+
+      const accessbilityMapping = isAccessibilityDataAvailable
+        ? {
+            wheelchair: getBuildingQuery.data.accessibility.includes(
+              "Accessible entrance",
+            ),
+            elevator: getBuildingQuery.data.accessibility.includes(
+              "Accessible building elevator",
+            ),
+            ramp: getBuildingQuery.data.accessibility.includes(
+              "Accessibility ramp",
+            ),
+          }
+        : { wheelchair: false, elevator: false, ramp: false };
       return {
-        accessibilityMapping: {
-          wheelchair: getBuildingQuery.data.accessibility.includes(
-            "Accessible entrance",
-          ),
-          elevator: getBuildingQuery.data.accessibility.includes(
-            "Accessible building elevator",
-          ),
-          ramp: getBuildingQuery.data.accessibility.includes(
-            "Accessibility ramp",
-          ),
-        },
         ...getBuildingQuery.data,
+        accessibilityMapping: accessbilityMapping,
       };
     }
   }, [getBuildingQuery.data]);
@@ -124,11 +132,7 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
             borderRadius: 24,
           }}
         >
-          <MaterialIcons
-            name="subway"
-            size={26}
-            color="#0E4C92"
-          />
+          <MaterialIcons name="subway" size={26} color="#0E4C92" />
           <Text
             style={{
               fontSize: 12,
@@ -144,6 +148,7 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
     ].filter(Boolean);
   }, [building?.accessibilityMapping]);
 
+  const isLoading = getBuildingQuery.isLoading;
   const hasBuildingData = !!building && getBuildingQuery.isSuccess;
 
   return (
@@ -159,74 +164,91 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
       backgroundStyle={styles.bottomSheet}
       containerStyle={{ overflow: "visible" }}
     >
-      {hasBuildingData ? (
-        <>
-          <View style={styles.fakeHandleContainer}>
-            <View style={styles.fakeHandleBar} />
-          </View>
-          {/* Header */}
-          <View style={styles.headerContainer}>
-            {!props.isNavigationMode && sheetOpen && (
-              <TouchableOpacity
-                onPress={() => props.onStartNavigation?.(building.code)}
-              >
-                <View style={styles.floatingIcon}>
-                  <GetDirectionsIcon size={90} color={COLORS.maroon} />
-                </View>
-              </TouchableOpacity>
-            )}
+      {isLoading && (
+        <View style={{ marginTop: 16 }}>
+          <ActivityIndicator size="large" color={COLORS.maroon} />
+        </View>
+      )}
+      {!isLoading &&
+        (hasBuildingData ? (
+          <>
+            <View style={styles.fakeHandleContainer}>
+              <View style={styles.fakeHandleBar} />
+            </View>
+            {/* Header */}
+            <View style={styles.headerContainer}>
+              {!props.isNavigationMode && sheetOpen && (
+                <TouchableOpacity
+                  onPress={() => props.onStartNavigation?.(building.code)}
+                >
+                  <View style={styles.floatingIcon}>
+                    <GetDirectionsIcon size={90} color={COLORS.maroon} />
+                  </View>
+                </TouchableOpacity>
+              )}
 
-            {!props.isNavigationMode && (
-              <View style={styles.textContainer}>
-                <Text style={styles.name}>
-                  {building.long_name} ({building.code})
-                </Text>
-                <Text style={styles.address}>{building.address}</Text>
-              </View>
-            )}
-
-            <View
-              style={[
-                styles.iconsContainer,
-                props.isNavigationMode && styles.iconsContainerNavMode,
-              ]}
-            >
               {!props.isNavigationMode && (
-                <View style={styles.accessibilityIconsContainer}>
-                  {accessibilityIcons}
+                <View style={styles.textContainer}>
+                  <Text style={styles.name}>
+                    {building.long_name} ({building.code})
+                  </Text>
+                  <Text style={styles.address}>{building.address}</Text>
                 </View>
               )}
 
-              <View style={styles.accessibilityIconsContainer}>
+              <View
+                style={[
+                  styles.iconsContainer,
+                  props.isNavigationMode && styles.iconsContainerNavMode,
+                ]}
+              >
                 {!props.isNavigationMode && (
-                  <FavoriteEmptyIcon color={COLORS.maroon} />
+                  <View style={styles.accessibilityIconsContainer}>
+                    {accessibilityIcons}
+                  </View>
                 )}
-                <TouchableOpacity
-                  onPress={handleCloseSheet}
-                  style={styles.closeIcon}
-                >
-                  <CloseIcon size={28} />
-                </TouchableOpacity>
+
+                <View style={styles.accessibilityIconsContainer}>
+                  {!props.isNavigationMode && (
+                    <FavoriteEmptyIcon color={COLORS.maroon} />
+                  )}
+                  <TouchableOpacity
+                    onPress={handleCloseSheet}
+                    style={styles.closeIcon}
+                  >
+                    <CloseIcon size={28} />
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
-          </View>
 
-          {/* Scrollable Content */}
-          {!props.isNavigationMode && (
-            <BottomSheetScrollView contentContainerStyle={styles.scrollContent}>
-              <OpeningHours openingHours={building.opening_hours} />
-              <BuildingGallery buildingCode={building.code} />
-              <BottomSheetListSection title="Services" items={building.services} />
-              <BottomSheetListSection title="Departments" items={building.departments} />
-              <BottomSheetListSection title="Venues" items={building.venues} />
-            </BottomSheetScrollView>
-          )}
-        </>
-      ) : (
-        <BottomSheetScrollView contentContainerStyle={styles.scrollContent}>
-          <EmptyBuildingState />
-        </BottomSheetScrollView>
-      )}
+            {/* Scrollable Content */}
+            {!props.isNavigationMode && (
+              <BottomSheetScrollView
+                contentContainerStyle={styles.scrollContent}
+              >
+                <OpeningHours openingHours={building.opening_hours} />
+                <BuildingGallery buildingCode={building.code} />
+                <BottomSheetListSection
+                  title="Services"
+                  items={building.services}
+                />
+                <BottomSheetListSection
+                  title="Departments"
+                  items={building.departments}
+                />
+                <BottomSheetListSection
+                  title="Venues"
+                  items={building.venues}
+                />
+              </BottomSheetScrollView>
+            )}
+          </>
+        ) : (
+          <BottomSheetScrollView contentContainerStyle={styles.scrollContent}>
+            <EmptyBuildingState />
+          </BottomSheetScrollView>
+        ))}
     </BottomSheet>
   );
 }

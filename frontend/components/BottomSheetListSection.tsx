@@ -7,33 +7,38 @@ export default function BottomSheetListSection({
   title: string;
   items: string[];
 }) {
+  const hasItems = items?.length > 0;
   return (
     // Reusable list section
     <View style={ListSectionStyles.listContainer}>
       <Text style={ListSectionStyles.listTitle}>{title}</Text>
-      {items.map((item) => (
-        <Text key={item} style={ListSectionStyles.listItem}>
-          {item}
+
+      {!hasItems && (
+        <Text style={[ListSectionStyles.listItem, { fontStyle: "italic" }]}>
+          No information available
         </Text>
-      ))}
+      )}
+      {hasItems &&
+        items.map((item) => (
+          <Text key={item} style={ListSectionStyles.listItem}>
+            {item}
+          </Text>
+        ))}
     </View>
   );
 }
 
 export function ExpandableListSection({
-    title, items, isExpanded, onToggle
+  title,
+  items,
+  isExpanded,
+  onToggle,
 }: {
-    title: string;
-    items: string[];
-    isExpanded: boolean;
-    onToggle: () => void;
-}) {
-    
-}
-
-
-
-
+  title: string;
+  items: string[];
+  isExpanded: boolean;
+  onToggle: () => void;
+}) {}
 
 export const ListSectionStyles = StyleSheet.create({
   listContainer: {
