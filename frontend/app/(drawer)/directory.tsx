@@ -1,294 +1,281 @@
-import { useRouter } from "expo-router";
-import { useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  FlatList,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { COLORS } from "../constants";
-import { DirectoryIcon } from "../icons";
-import { useGetAllBuildings, BuildingListItem } from "../../hooks/queries/buildingQueries";
+import { fireEvent, render, screen } from "@testing-library/react-native";
+import React from "react";
+import Directory from "../app/(drawer)/directory";
 
-export default function Directory() {
-  const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState("");
+// ─── Mocks ───────────────────────────────────────────────────────────────────
 
-  // Connected to backend /buildings/list endpoint
-  const { data: buildingsData, isLoading, error } = useGetAllBuildings();
+const mockPush = jest.fn();
+jest.mock("expo-router", () => ({
+  useRouter: () => ({ push: mockPush }),
+}));
 
-  // Filter buildings based on search query
-  const filteredBuildings = useMemo(() => {
-    if (!buildingsData?.buildings) return { SGW: [], LOY: [] };
+jest.mock("react-native-safe-area-context", () => ({
+  SafeAreaView: ({ children }: { children: React.ReactNode }) => children,
+}));
 
-    const query = searchQuery.toLowerCase().trim();
+jest.mock("@/hooks/queries/buildingQueries", () => ({
+  useGetAllBuildings: jest.fn(),
+}));
 
-    if (!query) {
-      return buildingsData.buildings;
-    }
+jest.mock("@/app/icons", () => ({
+  DirectoryIcon: () => null,
+}));
 
-    const filterList = (buildings: BuildingListItem[]) =>
-      buildings.filter(
-        (building) =>
-          building.name.toLowerCase().includes(query) ||
-          building.long_name.toLowerCase().includes(query) ||
-          building.code.toLowerCase().includes(query)
-      );
+import { useGetAllBuildings } from "@/hooks/queries/buildingQueries";
+const mockUseGetAllBuildings = useGetAllBuildings as jest.Mock;
 
-    return {
-      SGW: filterList(buildingsData.buildings.SGW || []),
-      LOY: filterList(buildingsData.buildings.LOY || []),
-    };
-  }, [buildingsData, searchQuery]);
+// ─── Test Data ────────────────────────────────────────────────────────────────
 
-  const handleBuildingPress = (buildingCode: string) => {
-    router.push(`/map?selectedBuilding=${buildingCode}`);
-  };
+const mockBuildings = {
+  buildings: {
+    SGW: [
+      { code: "MB", name: "MB", long_name: "John Molson School of Business", campus: "SGW" },
+      { code: "H",  name: "H",  long_name: "Henry F. Hall Building",          campus: "SGW" },
+    ],
+    LOY: [
+      { code: "CC", name: "CC", long_name: "Central Building", campus: "LOY" },
+    ],
+  },
+};
 
-  const renderBuilding = ({ item }: { item: BuildingListItem }) => (
-    <Pressable
-      style={({ pressed }) => [
-        styles.buildingItem,
-        pressed && styles.buildingItemPressed,
-      ]}
-      onPress={() => handleBuildingPress(item.code)}
-    >
-      <View style={styles.buildingCodeContainer}>
-        <Text style={styles.buildingCode}>{item.code}</Text>
-      </View>
-      <View style={styles.buildingInfo}>
-        <Text style={styles.buildingName}>{item.long_name}</Text>
-        <Text style={styles.buildingShortName}>{item.name}</Text>
-      </View>
-    </Pressable>
-  );
+// ─── Tests ────────────────────────────────────────────────────────────────────
 
-  const renderCampusSection = (campus: "SGW" | "LOY") => {
-    const buildings = filteredBuildings[campus];
+describe("Directory", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
 
-    if (!buildings || buildings.length === 0) return null;
+  // ── Loading state ──────────────────────────────────────────────────────────
 
-    return (
-      <View key={campus} style={styles.campusSection}>
-        <Text style={styles.campusHeader}>
-          {campus === "SGW" ? "Sir George Williams Campus" : "Loyola Campus"}
-        </Text>
-        <FlatList
-          data={buildings}
-          renderItem={renderBuilding}
-          keyExtractor={(item) => item.code}
-          scrollEnabled={false}
-        />
-      </View>
+  it("shows a loading indicator while buildings are being fetched", () => {
+    mockUseGetAllBuildings.mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      error: null,
+    });
+
+    render(<Directory />);
+
+    expect(screen.getByText("Loading buildings...")).toBeTruthy();
+  });
+
+  // ── Error state ────────────────────────────────────────────────────────────
+
+  it("shows an error message when the fetch fails", () => {
+    mockUseGetAllBuildings.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      error: new Error("Network error"),
+    });
+
+    render(<Directory />);
+
+    expect(
+      screen.getByText("Failed to load buildings. Please try again.")
+    ).toBeTruthy();
+  });
+
+  // ── Successful render ──────────────────────────────────────────────────────
+
+  it("renders the header and search bar when data loads", () => {
+    mockUseGetAllBuildings.mockReturnValue({
+      data: mockBuildings,
+      isLoading: false,
+      error: null,
+    });
+
+    render(<Directory />);
+
+    expect(screen.getByText("Building Directory")).toBeTruthy();
+    expect(
+      screen.getByPlaceholderText(
+        "Search by name or code (e.g., MB, John Molson)"
+      )
+    ).toBeTruthy();
+  });
+
+  it("renders campus section headers", () => {
+    mockUseGetAllBuildings.mockReturnValue({
+      data: mockBuildings,
+      isLoading: false,
+      error: null,
+    });
+
+    render(<Directory />);
+
+    expect(screen.getByText("Sir George Williams Campus")).toBeTruthy();
+    expect(screen.getByText("Loyola Campus")).toBeTruthy();
+  });
+
+  it("renders all buildings with code and full name", () => {
+    mockUseGetAllBuildings.mockReturnValue({
+      data: mockBuildings,
+      isLoading: false,
+      error: null,
+    });
+
+    render(<Directory />);
+
+    expect(screen.getByText("MB")).toBeTruthy();
+    expect(screen.getByText("John Molson School of Business")).toBeTruthy();
+    expect(screen.getByText("H")).toBeTruthy();
+    expect(screen.getByText("Henry F. Hall Building")).toBeTruthy();
+    expect(screen.getByText("CC")).toBeTruthy();
+    expect(screen.getByText("Central Building")).toBeTruthy();
+  });
+
+  // ── Search / filtering ─────────────────────────────────────────────────────
+
+  it("filters buildings by code", () => {
+    mockUseGetAllBuildings.mockReturnValue({
+      data: mockBuildings,
+      isLoading: false,
+      error: null,
+    });
+
+    render(<Directory />);
+
+    const searchInput = screen.getByPlaceholderText(
+      "Search by name or code (e.g., MB, John Molson)"
     );
-  };
+    fireEvent.changeText(searchInput, "MB");
 
-  if (isLoading) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.maroon} />
-          <Text style={styles.loadingText}>Loading buildings...</Text>
-        </View>
-      </SafeAreaView>
+    expect(screen.getByText("John Molson School of Business")).toBeTruthy();
+    expect(screen.queryByText("Henry F. Hall Building")).toBeNull();
+  });
+
+  it("filters buildings by long name (case-insensitive)", () => {
+    mockUseGetAllBuildings.mockReturnValue({
+      data: mockBuildings,
+      isLoading: false,
+      error: null,
+    });
+
+    render(<Directory />);
+
+    const searchInput = screen.getByPlaceholderText(
+      "Search by name or code (e.g., MB, John Molson)"
     );
-  }
+    fireEvent.changeText(searchInput, "hall");
 
-  if (error) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>
-            Failed to load buildings. Please try again.
-          </Text>
-        </View>
-      </SafeAreaView>
+    expect(screen.getByText("Henry F. Hall Building")).toBeTruthy();
+    expect(screen.queryByText("John Molson School of Business")).toBeNull();
+  });
+
+  it("shows result count while searching", () => {
+    mockUseGetAllBuildings.mockReturnValue({
+      data: mockBuildings,
+      isLoading: false,
+      error: null,
+    });
+
+    render(<Directory />);
+
+    // Result count should NOT be visible before typing
+    expect(screen.queryByText(/buildings found/)).toBeNull();
+
+    const searchInput = screen.getByPlaceholderText(
+      "Search by name or code (e.g., MB, John Molson)"
     );
-  }
+    fireEvent.changeText(searchInput, "MB");
 
-  const totalResults =
-    (filteredBuildings.SGW?.length || 0) + (filteredBuildings.LOY?.length || 0);
+    expect(screen.getByText("1 building found")).toBeTruthy();
+  });
 
-  return (
-    <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <DirectoryIcon size={32} color={COLORS.maroon} />
-        <Text style={styles.headerTitle}>Building Directory</Text>
-      </View>
+  it("shows plural 'buildings found' when multiple results match", () => {
+    mockUseGetAllBuildings.mockReturnValue({
+      data: mockBuildings,
+      isLoading: false,
+      error: null,
+    });
 
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search by name or code (e.g., MB, John Molson)"
-          placeholderTextColor={COLORS.textMuted}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-      </View>
+    render(<Directory />);
 
-      {/* Results count while searching */}
-      {searchQuery.length > 0 && (
-        <Text style={styles.resultsCount}>
-          {totalResults} {totalResults === 1 ? "building" : "buildings"} found
-        </Text>
-      )}
+    const searchInput = screen.getByPlaceholderText(
+      "Search by name or code (e.g., MB, John Molson)"
+    );
+    fireEvent.changeText(searchInput, "building"); // matches multiple long_names
 
-      {/* Building List grouped by campus */}
-      <FlatList
-        data={["SGW", "LOY"]}
-        renderItem={({ item }) => renderCampusSection(item as "SGW" | "LOY")}
-        keyExtractor={(item) => item}
-        contentContainerStyle={styles.listContent}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No buildings found</Text>
-            <Text style={styles.emptySubtext}>Try adjusting your search</Text>
-          </View>
-        }
-      />
-    </SafeAreaView>
-  );
-}
+    expect(screen.getByText(/buildings found/)).toBeTruthy();
+  });
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: COLORS.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: COLORS.textPrimary,
-    marginLeft: 12,
-  },
-  searchContainer: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    backgroundColor: COLORS.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  searchInput: {
-    backgroundColor: COLORS.background,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    fontSize: 16,
-    color: COLORS.textPrimary,
-  },
-  resultsCount: {
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    fontStyle: "italic",
-  },
-  listContent: {
-    paddingBottom: 20,
-  },
-  campusSection: {
-    marginTop: 16,
-  },
-  campusHeader: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: COLORS.maroon,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    backgroundColor: COLORS.conuRedLight,
-  },
-  buildingItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: COLORS.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-  },
-  buildingItemPressed: {
-    backgroundColor: COLORS.background,
-  },
-  buildingCodeContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-    backgroundColor: COLORS.maroon,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 16,
-  },
-  buildingCode: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "white",
-  },
-  buildingInfo: {
-    flex: 1,
-  },
-  buildingName: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: COLORS.textPrimary,
-    marginBottom: 4,
-  },
-  buildingShortName: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-  },
-  loadingContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: COLORS.textSecondary,
-  },
-  errorContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 20,
-  },
-  errorText: {
-    fontSize: 16,
-    color: COLORS.error,
-    textAlign: "center",
-  },
-  emptyContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 60,
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: COLORS.textSecondary,
-    marginBottom: 8,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: COLORS.textMuted,
-  },
+  it("hides campus sections that have no matching buildings", () => {
+    mockUseGetAllBuildings.mockReturnValue({
+      data: mockBuildings,
+      isLoading: false,
+      error: null,
+    });
+
+    render(<Directory />);
+
+    const searchInput = screen.getByPlaceholderText(
+      "Search by name or code (e.g., MB, John Molson)"
+    );
+    // "MB" only exists in SGW
+    fireEvent.changeText(searchInput, "MB");
+
+    expect(screen.queryByText("Loyola Campus")).toBeNull();
+  });
+
+  // ── Navigation ─────────────────────────────────────────────────────────────
+
+  it("navigates to the map with the correct building code when a building is pressed", () => {
+    mockUseGetAllBuildings.mockReturnValue({
+      data: mockBuildings,
+      isLoading: false,
+      error: null,
+    });
+
+    render(<Directory />);
+
+    fireEvent.press(screen.getByText("John Molson School of Business"));
+
+    expect(mockPush).toHaveBeenCalledWith("/map?selectedBuilding=MB");
+  });
+
+  it("navigates with the correct code for a Loyola building", () => {
+    mockUseGetAllBuildings.mockReturnValue({
+      data: mockBuildings,
+      isLoading: false,
+      error: null,
+    });
+
+    render(<Directory />);
+
+    fireEvent.press(screen.getByText("Central Building"));
+
+    expect(mockPush).toHaveBeenCalledWith("/map?selectedBuilding=CC");
+  });
+
+  // ── Empty state ────────────────────────────────────────────────────────────
+
+  it("shows empty state when search has no matches", () => {
+    mockUseGetAllBuildings.mockReturnValue({
+      data: mockBuildings,
+      isLoading: false,
+      error: null,
+    });
+
+    render(<Directory />);
+
+    const searchInput = screen.getByPlaceholderText(
+      "Search by name or code (e.g., MB, John Molson)"
+    );
+    fireEvent.changeText(searchInput, "zzznomatch");
+
+    expect(screen.getByText("No buildings found")).toBeTruthy();
+    expect(screen.getByText("Try adjusting your search")).toBeTruthy();
+  });
+
+  it("shows empty state when buildings data is missing", () => {
+    mockUseGetAllBuildings.mockReturnValue({
+      data: { buildings: null },
+      isLoading: false,
+      error: null,
+    });
+
+    render(<Directory />);
+
+    expect(screen.getByText("No buildings found")).toBeTruthy();
+  });
 });
