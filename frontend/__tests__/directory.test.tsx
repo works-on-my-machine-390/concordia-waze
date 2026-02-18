@@ -7,12 +7,31 @@ import { fireEvent, waitFor, act, cleanup } from "@testing-library/react-native"
 import { renderWithProviders } from "../test_utils/renderUtils";
 import Directory from "../app/(drawer)/directory";
 
+const mockPush = jest.fn();
+jest.mock("expo-router", () => ({
+  useRouter: () => ({
+    push: mockPush,
+    replace: jest.fn(),
+    back: jest.fn(),
+  }),
+  useLocalSearchParams: () => ({}),
+  useSegments: () => [],
+  useNavigation: jest.fn(() => ({
+    navigate: jest.fn(),
+    push: jest.fn(),
+    setParams: jest.fn(),
+  })),
+  Stack: { Screen: () => null },
+}));
+
 const mockUseGetAllBuildings = jest.fn();
 jest.mock("@/hooks/queries/buildingQueries", () => ({
   ...jest.requireActual("@/hooks/queries/buildingQueries"),
   useGetAllBuildings: () => mockUseGetAllBuildings(),
   CampusCode: { SGW: "SGW", LOY: "LOY" },
 }));
+
+// ── Fixtures 
 
 const SGW_BUILDINGS = [
   { code: "H",  name: "Hall",        long_name: "Henry F. Hall Building",   campus: "SGW" },
@@ -29,16 +48,11 @@ const mockLoaded  = (data = ALL) => mockUseGetAllBuildings.mockReturnValue({ dat
 const mockLoading = ()           => mockUseGetAllBuildings.mockReturnValue({ data: undefined, isLoading: true,  error: null });
 const mockError   = ()           => mockUseGetAllBuildings.mockReturnValue({ data: undefined, isLoading: false, error: new Error("fail") });
 
+// Tests
+
 describe("Directory screen", () => {
-  let mockPush: jest.Mock;
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-    mockPush = require("expo-router").useRouter().push;
-  });
+  beforeEach(() => jest.clearAllMocks());
   afterEach(() => cleanup());
-
-  //  Loading / error 
 
   test("shows loading indicator", () => {
     mockLoading();
@@ -50,7 +64,6 @@ describe("Directory screen", () => {
     expect(renderWithProviders(<Directory />).getByText("Failed to load buildings. Please try again.")).toBeTruthy();
   });
 
-  // Successful render  
 
   test("renders header", () => {
     mockLoaded();
@@ -97,7 +110,6 @@ describe("Directory screen", () => {
     ).toBeTruthy();
   });
 
-  // Search results count
 
   test("no results count when search is empty", () => {
     mockLoaded();
@@ -131,7 +143,6 @@ describe("Directory screen", () => {
     await waitFor(() => expect(getByText("0 buildings found")).toBeTruthy());
   });
 
-  // Search filtering 
 
   test("filters by long_name case-insensitively", async () => {
     mockLoaded();
@@ -202,7 +213,6 @@ describe("Directory screen", () => {
     });
   });
 
-  // Navigation  
 
   test("pressing a building navigates to /map?selectedBuilding=<code>", async () => {
     mockLoaded();
@@ -225,7 +235,6 @@ describe("Directory screen", () => {
     expect(mockPush).toHaveBeenCalledWith("/map?selectedBuilding=CC");
   });
 
-  // Edge cases
 
   test("renders without crash when both arrays are empty", () => {
     mockLoaded({ buildings: { SGW: [], LOY: [] } });
