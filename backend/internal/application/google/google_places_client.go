@@ -9,6 +9,8 @@ import (
 	"strings"
 
 	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
+
+	"github.com/works-on-my-machine-390/concordia-waze/internal/constants"
 )
 
 type PlacesClient interface {
@@ -93,8 +95,10 @@ func (c *googlePlacesClient) GetPhotoURLs(placeID string) ([]string, error) {
 	var urls []string
 	photos := result.Result.Photos
 
-	if len(photos) > 2 {
-		photos = photos[:2]
+	const max = constants.MaxReturnedImageCount
+
+	if len(photos) > max {
+		photos = photos[:max]
 	}
 
 	for _, p := range photos {
