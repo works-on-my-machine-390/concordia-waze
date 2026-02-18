@@ -12,13 +12,13 @@ export default function LocationButton({
   bottomPosition = 80,
 }: Readonly<LocationButtonProps>) {
   return (
-    <View style={[styles.wrapper, { bottom: bottomPosition }]}>
+    <View style={[MapButtonStyles.wrapper, { bottom: bottomPosition }]}>
       {/* Adds fade (opacity) effect on press */}
       <TouchableOpacity
         accessibilityRole="button"
         accessibilityLabel="Go to my location"
         onPress={onPress}
-        style={styles.button}
+        style={MapButtonStyles.button}
         activeOpacity={0.8}
       >
         {/* GPS crosshairs icon */}
@@ -32,7 +32,7 @@ export default function LocationButton({
   );
 }
 
-const styles = StyleSheet.create({
+export const MapButtonStyles = StyleSheet.create({
   // position of button
   wrapper: {
     position: "absolute",

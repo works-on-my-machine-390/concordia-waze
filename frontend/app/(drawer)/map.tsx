@@ -18,6 +18,9 @@ import LocationButton from "~/components/LocationButton";
 import { MapHeader } from "~/components/MapHeader";
 import { NavigationHeader } from "~/components/NavigationHeader";
 import { getDistance } from "../utils/mapUtils";
+import ShuttleBusMarkers from "@/components/ShuttleBusMapMarkers";
+import MapSettingsBottomSheet from "@/components/MapSettingsBottomSheet";
+import MapSettingsButton from "@/components/MapSettingsButton";
 
 export default function MainMap() {
   const [campus, setCampus] = useState<CampusCode>(CampusCode.SGW);
@@ -38,12 +41,17 @@ export default function MainMap() {
   >({});
 
   const [isNavigationMode, setIsNavigationMode] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const { data: userProfile } = useGetProfile();
   const saveToHistory = useSaveToHistory(userProfile?.id || "");
 
-  const selectedBuildingDetails = useGetBuildingDetails(selectedBuildingCode || "");
-  const currentBuildingDetails = useGetBuildingDetails(currentBuildingCode || "");
+  const selectedBuildingDetails = useGetBuildingDetails(
+    selectedBuildingCode || "",
+  );
+  const currentBuildingDetails = useGetBuildingDetails(
+    currentBuildingCode || "",
+  );
 
   const buildingListQuery = useGetBuildings(campus);
 
@@ -71,21 +79,25 @@ export default function MainMap() {
             latitude: location.coords.latitude,
             longitude: location.coords.longitude,
           });
-                    
+
           if (addresses && addresses.length > 0) {
             const addr = addresses[0];
-            
+
             // street adress
-            const street = [addr.streetNumber, addr.street].filter(Boolean).join(' ');
-            
-            // adding city, region and postal code to it 
+            const street = [addr.streetNumber, addr.street]
+              .filter(Boolean)
+              .join(" ");
+
+            // adding city, region and postal code to it
             const formattedAddress = [
               street,
               addr.city,
               addr.region,
-              addr.postalCode
-            ].filter(Boolean).join(', ');
-            
+              addr.postalCode,
+            ]
+              .filter(Boolean)
+              .join(", ");
+
             setStartAddress(formattedAddress || "Current Location");
           }
         } catch (e) {
@@ -96,21 +108,28 @@ export default function MainMap() {
         setStartAddress(null);
       }
     };
-    
-    getAddress();
-  }, [location?.coords?.latitude, location?.coords?.longitude, currentBuildingCode]);
 
-  const startLocationText = useMemo(() => { 
+    getAddress();
+  }, [
+    location?.coords?.latitude,
+    location?.coords?.longitude,
+    currentBuildingCode,
+  ]);
+
+  const startLocationText = useMemo(() => {
     // if user has location and is in a building
     if (currentBuildingCode && currentBuildingDetails.data) {
       return `${currentBuildingDetails.data.code} - ${currentBuildingDetails.data.long_name}`;
     }
-    
+
     // if user has location but not in a building
     if (location?.coords) {
-      return startAddress || `${location.coords.latitude.toFixed(5)}, ${location.coords.longitude.toFixed(5)}`;
+      return (
+        startAddress ||
+        `${location.coords.latitude.toFixed(5)}, ${location.coords.longitude.toFixed(5)}`
+      );
     }
-    
+
     // if no location available
     return "Please select a building";
   }, [currentBuildingCode, currentBuildingDetails.data, location?.coords]);
@@ -231,6 +250,11 @@ export default function MainMap() {
     );
   };
 
+  const handleBuildingPressed = (buildingCode: string) => {
+    setSelectedBuildingCode(buildingCode);
+    if (isSettingsOpen) setIsSettingsOpen(false);
+  };
+
   // Handle map region changes to auto-switch campus
   const handleRegionChangeComplete = (region: Region) => {
     const { latitude, longitude } = region;
@@ -257,20 +281,23 @@ export default function MainMap() {
 
   const handleStartNavigation = () => {
     if (!location) {
-      Toast.warn("Location access was denied. Please select a start building.", "top");
+      Toast.warn(
+        "Location access was denied. Please select a start building.",
+        "top",
+      );
     }
-    
+
     setIsNavigationMode(true);
 
     // Save the destination building to history
-    if (userProfile?.id && selectedBuildingDetails.data) { 
+    if (userProfile?.id && selectedBuildingDetails.data) {
       saveToHistory.mutate({
         name: selectedBuildingDetails.data.long_name,
         address: selectedBuildingDetails.data.address,
         lat: selectedBuildingDetails.data.latitude,
         lng: selectedBuildingDetails.data.longitude,
         building_code: selectedBuildingDetails.data.code,
-        destinationType: "building"
+        destinationType: "building",
       });
     }
   };
@@ -304,15 +331,16 @@ export default function MainMap() {
           buildings={buildingsToRender}
           highlightedCode={currentBuildingCode}
           selectedCode={selectedBuildingCode}
-          onBuildingPress={setSelectedBuildingCode}
+          onBuildingPress={handleBuildingPressed}
         />
+        <ShuttleBusMarkers campus={campus} />
       </MapView>
 
       {isNavigationMode ? (
         <NavigationHeader
           startLocation={startLocationText}
           endLocation={
-            selectedBuildingDetails.data 
+            selectedBuildingDetails.data
               ? `${selectedBuildingDetails.data.code} - ${selectedBuildingDetails.data.long_name}`
               : selectedBuildingCode || "Unknown Building"
           }
@@ -331,6 +359,14 @@ export default function MainMap() {
         />
       )}
       <View style={styles.bottomSheetContainer}>
+        <MapSettingsButton
+          onPress={() => {
+            if (selectedBuildingCode) {
+              setSelectedBuildingCode(null); // close building bottom sheet if open
+            }
+            setIsSettingsOpen(!isSettingsOpen);
+          }}
+        />
         <LocationButton
           onPress={goToMyLocation}
           bottomPosition={locationButtonPosition}
@@ -341,11 +377,15 @@ export default function MainMap() {
             buildingCode={selectedBuildingCode}
             onClose={() => {
               setSelectedBuildingCode(null);
-              setIsNavigationMode(false); 
+              setIsNavigationMode(false);
             }}
             onStartNavigation={handleStartNavigation}
             isNavigationMode={isNavigationMode}
           />
+        )}
+
+        {isSettingsOpen && (
+          <MapSettingsBottomSheet onClose={() => setIsSettingsOpen(false)} />
         )}
       </View>
     </View>

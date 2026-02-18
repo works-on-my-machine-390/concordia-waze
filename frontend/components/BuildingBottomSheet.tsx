@@ -42,13 +42,13 @@ type BottomSheetBuildingModel = {
 // Function to return the dizzy icon and message if no building info showsf
 function EmptyBuildingState() {
   return (
-    <View style={styles.emptyStateContainer}>
+    <View style={BuildingBottomSheetStyles.emptyStateContainer}>
       <Image
         source={require("../assets/images/icon-dizzy.png")}
-        style={styles.emptyStateImage}
+        style={BuildingBottomSheetStyles.emptyStateImage}
         resizeMode="contain"
       />
-      <Text style={styles.emptyStateText}>
+      <Text style={BuildingBottomSheetStyles.emptyStateText}>
         No information available for this building
       </Text>
     </View>
@@ -161,7 +161,7 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
       enableContentPanningGesture
       enableDynamicSizing={false}
       detached
-      backgroundStyle={styles.bottomSheet}
+      backgroundStyle={BuildingBottomSheetStyles.bottomSheet}
       containerStyle={{ overflow: "visible" }}
     >
       {isLoading && (
@@ -172,49 +172,49 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
       {!isLoading &&
         (hasBuildingData ? (
           <>
-            <View style={styles.fakeHandleContainer}>
-              <View style={styles.fakeHandleBar} />
+            <View style={BuildingBottomSheetStyles.fakeHandleContainer}>
+              <View style={BuildingBottomSheetStyles.fakeHandleBar} />
             </View>
             {/* Header */}
-            <View style={styles.headerContainer}>
+            <View style={BuildingBottomSheetStyles.headerContainer}>
               {!props.isNavigationMode && sheetOpen && (
                 <TouchableOpacity
                   onPress={() => props.onStartNavigation?.(building.code)}
                 >
-                  <View style={styles.floatingIcon}>
+                  <View style={BuildingBottomSheetStyles.floatingIcon}>
                     <GetDirectionsIcon size={90} color={COLORS.maroon} />
                   </View>
                 </TouchableOpacity>
               )}
 
               {!props.isNavigationMode && (
-                <View style={styles.textContainer}>
-                  <Text style={styles.name}>
+                <View style={BuildingBottomSheetStyles.textContainer}>
+                  <Text style={BuildingBottomSheetStyles.name}>
                     {building.long_name} ({building.code})
                   </Text>
-                  <Text style={styles.address}>{building.address}</Text>
+                  <Text style={BuildingBottomSheetStyles.address}>{building.address}</Text>
                 </View>
               )}
 
               <View
                 style={[
-                  styles.iconsContainer,
-                  props.isNavigationMode && styles.iconsContainerNavMode,
+                  BuildingBottomSheetStyles.iconsContainer,
+                  props.isNavigationMode && BuildingBottomSheetStyles.iconsContainerNavMode,
                 ]}
               >
                 {!props.isNavigationMode && (
-                  <View style={styles.accessibilityIconsContainer}>
+                  <View style={BuildingBottomSheetStyles.accessibilityIconsContainer}>
                     {accessibilityIcons}
                   </View>
                 )}
 
-                <View style={styles.accessibilityIconsContainer}>
+                <View style={BuildingBottomSheetStyles.accessibilityIconsContainer}>
                   {!props.isNavigationMode && (
                     <FavoriteEmptyIcon color={COLORS.maroon} />
                   )}
                   <TouchableOpacity
                     onPress={handleCloseSheet}
-                    style={styles.closeIcon}
+                    style={BuildingBottomSheetStyles.closeIcon}
                   >
                     <CloseIcon size={28} />
                   </TouchableOpacity>
@@ -225,7 +225,7 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
             {/* Scrollable Content */}
             {!props.isNavigationMode && (
               <BottomSheetScrollView
-                contentContainerStyle={styles.scrollContent}
+                contentContainerStyle={BuildingBottomSheetStyles.scrollContent}
               >
                 <OpeningHours openingHours={building.opening_hours} />
                 <BuildingGallery buildingCode={building.code} />
@@ -245,7 +245,7 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
             )}
           </>
         ) : (
-          <BottomSheetScrollView contentContainerStyle={styles.scrollContent}>
+          <BottomSheetScrollView contentContainerStyle={BuildingBottomSheetStyles.scrollContent}>
             <EmptyBuildingState />
           </BottomSheetScrollView>
         ))}
@@ -253,7 +253,7 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
   );
 }
 
-const styles = StyleSheet.create({
+export const BuildingBottomSheetStyles = StyleSheet.create({
   bottomSheet: {
     backgroundColor: COLORS.background,
     shadowColor: "#000",

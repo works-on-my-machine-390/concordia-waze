@@ -3,6 +3,7 @@ import { CampusBuilding } from "@/hooks/queries/buildingQueries";
 import { Polygon } from "react-native-maps";
 import { CAMPUS_BUILDING_STYLE } from "../app/styles/buildingPolygons/campusBuildingStyle";
 import { CURRENT_BUILDING_STYLE } from "../app/styles/buildingPolygons/currentBuildingStyle";
+import useMapSettings from "@/hooks/useMapSettings";
 
 export type CampusBuildingPolygonsProps = {
   highlightedCode?: string | null;
@@ -17,6 +18,12 @@ export default function CampusBuildingPolygons({
   buildings,
   onBuildingPress,
 }: Readonly<CampusBuildingPolygonsProps>) {
+
+  const {mapSettings} = useMapSettings();
+  if (!mapSettings.showBuildingPolygons) {
+    return null;
+  }
+
   return (
     <>
       {buildings.map((b: CampusBuilding) => {
