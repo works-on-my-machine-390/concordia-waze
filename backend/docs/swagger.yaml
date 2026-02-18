@@ -82,6 +82,45 @@ definitions:
           type: string
         type: array
     type: object
+  domain.BuildingPolygon:
+    properties:
+      code:
+        type: string
+      polygon:
+        items:
+          $ref: '#/definitions/domain.LatLng'
+        type: array
+    type: object
+  domain.BuildingSummary:
+    properties:
+      address:
+        type: string
+      campus:
+        description: '"SGW" or "LOY"'
+        type: string
+      code:
+        type: string
+      long_name:
+        type: string
+      name:
+        type: string
+    type: object
+  domain.CampusBuildingsResponse:
+    properties:
+      buildings:
+        items:
+          $ref: '#/definitions/domain.BuildingPolygon'
+        type: array
+      campus:
+        type: string
+    type: object
+  domain.LatLng:
+    properties:
+      latitude:
+        type: number
+      longitude:
+        type: number
+    type: object
   domain.User:
     properties:
       email:
@@ -276,6 +315,40 @@ paths:
       summary: Register a new user
       tags:
       - auth
+  /buildings:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Return all building codes, names and long names grouped by campus. Response shape:
+        {
+        "buildings": {
+        "SGW": [ { "code": "...", "name": "...", "long_name": "...", "campus": "SGW" }, ... ],
+        "LOY": [ ... ]
+        }
+        }
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              additionalProperties:
+                items:
+                  $ref: '#/definitions/domain.BuildingSummary'
+                type: array
+              type: object
+            type: object
+        "500":
+          description: internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List all buildings grouped by campus
+      tags:
+      - buildings
   /buildings/{code}:
     get:
       consumes:
@@ -335,6 +408,40 @@ paths:
               type: string
             type: object
       summary: Get building images
+      tags:
+      - buildings
+  /campuses/{campus}/buildings:
+    get:
+      consumes:
+      - application/json
+      description: Return all building codes and names for a given campus (e.g. "SGW"
+        or "LOY").
+      parameters:
+      - description: Campus code (SGW or LOY)
+        in: path
+        name: campus
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.CampusBuildingsResponse'
+        "404":
+          description: campus not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List buildings for a campus
       tags:
       - buildings
   /shuttle:

@@ -42,3 +42,29 @@ func (h *BuildingHandler) GetBuilding(c *gin.Context) {
 
 	c.JSON(http.StatusOK, building)
 }
+
+// GetAllBuildingsByCampus godoc
+// @Summary     List all buildings grouped by campus
+// @Description Return all building codes, names and long names grouped by campus. Response shape:
+// @Description {
+// @Description   "buildings": {
+// @Description     "SGW": [ { "code": "...", "name": "...", "long_name": "...", "campus": "SGW" }, ... ],
+// @Description     "LOY": [ ... ]
+// @Description   }
+// @Description }
+// @Tags        buildings
+// @Accept      json
+// @Produce     json
+// @Success     200 {object} map[string]map[string][]domain.BuildingSummary
+// @Failure     500 {object} map[string]string "internal server error"
+// @Router      /buildings [get]
+func (h *BuildingHandler) GetAllBuildingsByCampus(c *gin.Context) {
+	result, err := h.service.GetAllBuildingsByCampus()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Ensure keys are exactly "SGW" and "LOY" if present in result; handler just returns what service gives.
+	c.JSON(http.StatusOK, gin.H{"buildings": result})
+}

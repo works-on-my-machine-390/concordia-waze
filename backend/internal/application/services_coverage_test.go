@@ -7,8 +7,9 @@ import (
 )
 
 type fakeBuildingRepo struct {
-	b   *domain.Building
-	err error
+	b      *domain.Building
+	err    error
+	allMap map[string][]domain.BuildingSummary
 }
 
 func (f *fakeBuildingRepo) GetBuilding(code string) (*domain.Building, error) {
@@ -18,16 +19,11 @@ func (f *fakeBuildingRepo) GetBuilding(code string) (*domain.Building, error) {
 	return f.b, nil
 }
 
-type fakeCampusRepo struct {
-	polys []domain.BuildingPolygon
-	err   error
-}
-
-func (f *fakeCampusRepo) GetCampusPolygons(campus string) ([]domain.BuildingPolygon, error) {
-	if f.err != nil {
-		return nil, f.err
+func (f *fakeBuildingRepo) GetAllBuildingsByCampus() (map[string][]domain.BuildingSummary, error) {
+	if f.allMap != nil {
+		return f.allMap, nil
 	}
-	return f.polys, nil
+	return nil, f.err
 }
 
 func TestBuildingService_GetBuilding_Success(t *testing.T) {
@@ -58,32 +54,43 @@ func TestBuildingService_GetBuilding_NotFound(t *testing.T) {
 	}
 }
 
-func TestCampusService_GetCampusBuildings_Success(t *testing.T) {
-	repo := &fakeCampusRepo{
-		polys: []domain.BuildingPolygon{
-			{Code: "MB", Polygon: []domain.LatLng{{Lat: 45.0, Lng: -73.0}}},
+func TestBuildingService_GetAllBuildingsByCampus_Success(t *testing.T) {
+	repo := &fakeBuildingRepo{
+		allMap: map[string][]domain.BuildingSummary{
+			"SGW": {
+				{Code: "MB", Name: "MB Building", LongName: "John Molson Building", Campus: "SGW"},
+			},
+			"LOY": {
+				{Code: "VL", Name: "Vanier Library", LongName: "Vanier Library Building", Campus: "LOY"},
+			},
 		},
 	}
-	svc := NewCampusService(repo)
+	svc := NewBuildingService(repo)
 
-	out, err := svc.GetCampusBuildings("SGW")
+	grouped, err := svc.GetAllBuildingsByCampus()
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	if len(out) != 1 || out[0].Code != "MB" {
-		t.Fatalf("unexpected result: %+v", out)
-	}
-}
 
-func TestCampusService_GetCampusBuildings_NotFound(t *testing.T) {
-	repo := &fakeCampusRepo{err: domain.ErrNotFound}
-	svc := NewCampusService(repo)
-
-	_, err := svc.GetCampusBuildings("ABC")
-	if err == nil {
-		t.Fatalf("expected error, got nil")
+	sgwList, ok := grouped["SGW"]
+	if !ok {
+		t.Fatalf("expected SGW key present")
 	}
-	if err != domain.ErrNotFound {
-		t.Fatalf("expected ErrNotFound, got %v", err)
+	if len(sgwList) != 1 {
+		t.Fatalf("expected 1 SGW building, got %d", len(sgwList))
+	}
+	if sgwList[0].Code != "MB" || sgwList[0].Campus != "SGW" {
+		t.Fatalf("unexpected SGW entry: %+v", sgwList[0])
+	}
+
+	loyList, ok := grouped["LOY"]
+	if !ok {
+		t.Fatalf("expected LOY key present")
+	}
+	if len(loyList) != 1 {
+		t.Fatalf("expected 1 LOY building, got %d", len(loyList))
+	}
+	if loyList[0].Code != "VL" || loyList[0].Campus != "LOY" {
+		t.Fatalf("unexpected LOY entry: %+v", loyList[0])
 	}
 }
