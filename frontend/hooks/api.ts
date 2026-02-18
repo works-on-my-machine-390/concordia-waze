@@ -1,6 +1,6 @@
-import wretch from "wretch";
 import Constants from "expo-constants";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SecureStore from "expo-secure-store";
+import wretch from "wretch";
 
 const debuggerHost = Constants.expoConfig?.hostUri?.split(":").shift();
 
@@ -14,6 +14,6 @@ const getBaseUrl = () => {
 export const API_URL = getBaseUrl();
 
 export const api = async (token?: string) => {
-  const jwt = token || (await AsyncStorage.getItem("accessToken"));
+  const jwt = token || (await SecureStore.getItemAsync("accessToken"));
   return wretch(API_URL).headers(jwt ? { Authorization: `Bearer ${jwt}` } : {});
 };

@@ -6,7 +6,7 @@
     "test": "cd backend && go test ./... && cd ../frontend && bun run test",
     "test-ui": "cd frontend && bun run test",
     "test-api": "cd backend && go test ./...",
-    "dev": "powershell -Command \"Start-Process cmd -ArgumentList '/k', 'cd backend && air' -WindowStyle Normal\" && cd frontend && bun run start",
+    "dev": "concurrently \"cd backend && air\" \"cd frontend && bun run start\"",
     "postinstall": "cd frontend && bun install"
   },
   "repository": {
@@ -26,5 +26,8 @@
   },
   "lint-staged": {
     "*.{js,css,md,ts,less,tsx,jsx,json}": "prettier --write"
+  },
+  "dependencies": {
+    "firebase": "^12.9.0"
   }
 }
