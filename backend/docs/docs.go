@@ -314,6 +314,80 @@ const docTemplate = `{
                 }
             }
         },
+        "/directions": {
+            "get": {
+                "description": "Returns route polyline + step instructions (walking/driving/transit/shuttle)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "directions"
+                ],
+                "summary": "Get directions between coordinates",
+                "parameters": [
+                    {
+                        "type": "number",
+                        "description": "Start latitude",
+                        "name": "start_lat",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "number",
+                        "description": "Start longitude",
+                        "name": "start_lng",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "number",
+                        "description": "End latitude",
+                        "name": "end_lat",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "number",
+                        "description": "End longitude",
+                        "name": "end_lng",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Mode (walking, driving, transit, shuttle)",
+                        "name": "mode",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.DirectionsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/shuttle": {
             "get": {
                 "description": "Returns the entire shuttle schedule as a mapping: day -\u003e campus -\u003e list of times.",
@@ -1558,6 +1632,57 @@ const docTemplate = `{
                 }
             }
         },
+        "domain.DirectionStep": {
+            "type": "object",
+            "properties": {
+                "distance": {
+                    "type": "string"
+                },
+                "duration": {
+                    "type": "string"
+                },
+                "end": {
+                    "$ref": "#/definitions/domain.LatLng"
+                },
+                "instruction": {
+                    "type": "string"
+                },
+                "start": {
+                    "$ref": "#/definitions/domain.LatLng"
+                }
+            }
+        },
+        "domain.DirectionsResponse": {
+            "type": "object",
+            "properties": {
+                "mode": {
+                    "type": "string"
+                },
+                "polyline": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.LatLng"
+                    }
+                },
+                "steps": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.DirectionStep"
+                    }
+                }
+            }
+        },
+        "domain.LatLng": {
+            "type": "object",
+            "properties": {
+                "latitude": {
+                    "type": "number"
+                },
+                "longitude": {
+                    "type": "number"
+                }
+            }
+        },
         "domain.User": {
             "type": "object",
             "properties": {
@@ -1638,25 +1763,17 @@ const docTemplate = `{
                 }
             }
         }
-    },
-    "securityDefinitions": {
-        "BearerAuth": {
-            "description": "Type \"Bearer\" followed by a space and JWT token.",
-            "type": "apiKey",
-            "name": "Authorization",
-            "in": "header"
-        }
     }
 }`
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "1.0",
-	Host:             "localhost:8080",
+	Version:          "",
+	Host:             "",
 	BasePath:         "",
 	Schemes:          []string{},
-	Title:            "Concordia Waze API",
-	Description:      "This is the Concordia Waze API server.",
+	Title:            "",
+	Description:      "",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

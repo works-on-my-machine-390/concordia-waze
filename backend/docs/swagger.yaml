@@ -82,6 +82,39 @@ definitions:
           type: string
         type: array
     type: object
+  domain.DirectionStep:
+    properties:
+      distance:
+        type: string
+      duration:
+        type: string
+      end:
+        $ref: '#/definitions/domain.LatLng'
+      instruction:
+        type: string
+      start:
+        $ref: '#/definitions/domain.LatLng'
+    type: object
+  domain.DirectionsResponse:
+    properties:
+      mode:
+        type: string
+      polyline:
+        items:
+          $ref: '#/definitions/domain.LatLng'
+        type: array
+      steps:
+        items:
+          $ref: '#/definitions/domain.DirectionStep'
+        type: array
+    type: object
+  domain.LatLng:
+    properties:
+      latitude:
+        type: number
+      longitude:
+        type: number
+    type: object
   domain.User:
     properties:
       email:
@@ -135,12 +168,8 @@ definitions:
     - name
     - password
     type: object
-host: localhost:8080
 info:
   contact: {}
-  description: This is the Concordia Waze API server.
-  title: Concordia Waze API
-  version: "1.0"
 paths:
   /auth/login:
     post:
@@ -337,6 +366,56 @@ paths:
       summary: Get building images
       tags:
       - buildings
+  /directions:
+    get:
+      description: Returns route polyline + step instructions (walking/driving/transit/shuttle)
+      parameters:
+      - description: Start latitude
+        in: query
+        name: start_lat
+        required: true
+        type: number
+      - description: Start longitude
+        in: query
+        name: start_lng
+        required: true
+        type: number
+      - description: End latitude
+        in: query
+        name: end_lat
+        required: true
+        type: number
+      - description: End longitude
+        in: query
+        name: end_lng
+        required: true
+        type: number
+      - description: Mode (walking, driving, transit, shuttle)
+        in: query
+        name: mode
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.DirectionsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get directions between coordinates
+      tags:
+      - directions
   /shuttle:
     get:
       consumes:
@@ -1070,10 +1149,4 @@ paths:
       summary: Update schedule item
       tags:
       - schedule
-securityDefinitions:
-  BearerAuth:
-    description: Type "Bearer" followed by a space and JWT token.
-    in: header
-    name: Authorization
-    type: apiKey
 swagger: "2.0"
