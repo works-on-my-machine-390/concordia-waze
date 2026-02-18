@@ -181,7 +181,7 @@ func TestBuildingHandler_GetAllBuildingsByCampus_Success200(t *testing.T) {
 		},
 	}
 
-	svc := application.NewBuildingService(repo)
+	svc := application.NewBuildingService(repo, nil)
 	h := NewBuildingHandler(svc)
 
 	r := gin.New()

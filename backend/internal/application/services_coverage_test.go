@@ -151,7 +151,7 @@ func TestBuildingService_GetAllBuildingsByCampus_Success(t *testing.T) {
 			},
 		},
 	}
-	svc := NewBuildingService(repo)
+	svc := NewBuildingService(repo, nil)
 
 	grouped, err := svc.GetAllBuildingsByCampus()
 	if err != nil {
