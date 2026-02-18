@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/application"
+	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
 )
 
 type ShuttleHandler struct {
@@ -59,13 +60,19 @@ func (h *ShuttleHandler) GetDepartureData(c *gin.Context) {
 	c.JSON(http.StatusOK, data)
 }
 
+// ShuttleMarkerPositionResponse represents shuttle marker positions for both campuses
+type ShuttleMarkerPositionResponse struct {
+	LOY domain.LatLng `json:"LOY"`
+	SGW domain.LatLng `json:"SGW"`
+}
+
 // GetShuttleMarkerPositions godoc
 // @Summary     Get shuttle marker positions
 // @Description Returns the latitude and longitude for shuttle stop markers at both campuses.
 // @Tags        shuttle
 // @Accept      json
 // @Produce     json
-// @Success     200 {object} map[string]map[string]float64
+// @Success     200 {object} ShuttleMarkerPositionResponse
 // @Failure     500 {object} map[string]string "internal server error"
 // @Router      /shuttle/markers [get]
 func (h *ShuttleHandler) GetShuttleMarkerPositions(c *gin.Context) {

@@ -91,6 +91,13 @@ definitions:
       open:
         type: string
     type: object
+  domain.LatLng:
+    properties:
+      latitude:
+        type: number
+      longitude:
+        type: number
+    type: object
   domain.OpeningHours:
     additionalProperties:
       $ref: '#/definitions/domain.DayHours'
@@ -133,6 +140,13 @@ definitions:
     required:
     - email
     - password
+    type: object
+  handler.ShuttleMarkerPositionResponse:
+    properties:
+      LOY:
+        $ref: '#/definitions/domain.LatLng'
+      SGW:
+        $ref: '#/definitions/domain.LatLng'
     type: object
   handler.SignUpRequest:
     properties:
@@ -431,12 +445,7 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties:
-              additionalProperties:
-                format: float64
-                type: number
-              type: object
-            type: object
+            $ref: '#/definitions/handler.ShuttleMarkerPositionResponse'
         "500":
           description: internal server error
           schema:

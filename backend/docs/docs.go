@@ -372,14 +372,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "object",
-                                "additionalProperties": {
-                                    "type": "number",
-                                    "format": "float64"
-                                }
-                            }
+                            "$ref": "#/definitions/handler.ShuttleMarkerPositionResponse"
                         }
                     },
                     "500": {
@@ -1611,6 +1604,17 @@ const docTemplate = `{
                 }
             }
         },
+        "domain.LatLng": {
+            "type": "object",
+            "properties": {
+                "latitude": {
+                    "type": "number"
+                },
+                "longitude": {
+                    "type": "number"
+                }
+            }
+        },
         "domain.OpeningHours": {
             "type": "object",
             "additionalProperties": {
@@ -1674,6 +1678,17 @@ const docTemplate = `{
                 },
                 "password": {
                     "type": "string"
+                }
+            }
+        },
+        "handler.ShuttleMarkerPositionResponse": {
+            "type": "object",
+            "properties": {
+                "LOY": {
+                    "$ref": "#/definitions/domain.LatLng"
+                },
+                "SGW": {
+                    "$ref": "#/definitions/domain.LatLng"
                 }
             }
         },
