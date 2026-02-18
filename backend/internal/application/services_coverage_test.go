@@ -234,3 +234,129 @@ func TestImageServiceGetBuildingImagesPlacesError(t *testing.T) {
 	assert.Error(t, err)
 	assert.Nil(t, images)
 }
+
+func TestFetchOpeningHours_Success(t *testing.T) {
+	repo := &fakeBuildingRepo{
+		b: &domain.Building{
+			Code:      "LS",
+			LongName:  "Learning Square",
+			Latitude:  45.49,
+			Longitude: -73.57,
+		},
+	}
+
+	fp := &fakePlacesClient{
+		placeID: "place123",
+		hours: domain.OpeningHours{
+			"monday":    {Open: "08:00", Close: "18:00"},
+			"wednesday": {Open: "09:00", Close: "17:00"},
+		},
+	}
+
+	// Construct a real BuildingService (backed by our fake repo) and pass its value into HoursService.
+	buildingSvcPtr := NewBuildingService(repo, nil)
+	buildingSvcVal := *buildingSvcPtr
+
+	hsvc := NewHoursService(buildingSvcVal, fp)
+
+	out, err := hsvc.FetchOpeningHours("LS")
+	assert.NoError(t, err)
+	assert.NotNil(t, out)
+
+	// Returned building should be a copy with OpeningHours attached.
+	assert.Equal(t, "LS", out.Code)
+	assert.NotNil(t, out.OpeningHours)
+	assert.Equal(t, "08:00", out.OpeningHours["monday"].Open)
+
+	assert.Nil(t, repo.b.OpeningHours)
+}
+
+func TestFetchOpeningHours_GetBuildingError(t *testing.T) {
+	repo := &fakeBuildingRepo{
+		err: errors.New("not found"),
+	}
+	buildingSvcPtr := NewBuildingService(repo, nil)
+	buildingSvcVal := *buildingSvcPtr
+
+	hsvc := NewHoursService(buildingSvcVal, &fakePlacesClient{})
+
+	_, err := hsvc.FetchOpeningHours("MISSING")
+	assert.Error(t, err)
+}
+
+func TestFetchOpeningHours_FindPlaceIDError(t *testing.T) {
+	repo := &fakeBuildingRepo{
+		b: &domain.Building{
+			Code:      "LS",
+			LongName:  "Learning Square",
+			Latitude:  45.49,
+			Longitude: -73.57,
+		},
+	}
+
+	fp := &fakePlacesClient{
+		err: errors.New("places find error"),
+	}
+
+	buildingSvcPtr := NewBuildingService(repo, nil)
+	buildingSvcVal := *buildingSvcPtr
+
+	hsvc := NewHoursService(buildingSvcVal, fp)
+
+	_, err := hsvc.FetchOpeningHours("LS")
+	assert.Error(t, err)
+}
+
+func TestFetchOpeningHours_GetOpeningHoursError(t *testing.T) {
+	repo := &fakeBuildingRepo{
+		b: &domain.Building{
+			Code:      "LS",
+			LongName:  "Learning Square",
+			Latitude:  45.49,
+			Longitude: -73.57,
+		},
+	}
+
+	fp := &fakePlacesClient{
+		placeID: "place123",
+		err:     errors.New("opening hours error"),
+	}
+
+	buildingSvcPtr := NewBuildingService(repo, nil)
+	buildingSvcVal := *buildingSvcPtr
+
+	hsvc := NewHoursService(buildingSvcVal, fp)
+
+	_, err := hsvc.FetchOpeningHours("LS")
+	assert.Error(t, err)
+}
+
+func TestFetchOpeningHours_EmptyHours(t *testing.T) {
+	repo := &fakeBuildingRepo{
+		b: &domain.Building{
+			Code:      "LS",
+			LongName:  "Learning Square",
+			Latitude:  45.49,
+			Longitude: -73.57,
+		},
+	}
+
+	// Simulate Places returning an empty (but non-nil) OpeningHours map
+	fp := &fakePlacesClient{
+		placeID: "place123",
+		hours:   domain.OpeningHours{},
+	}
+
+	buildingSvcPtr := NewBuildingService(repo, nil)
+	buildingSvcVal := *buildingSvcPtr
+
+	hsvc := NewHoursService(buildingSvcVal, fp)
+
+	out, err := hsvc.FetchOpeningHours("LS")
+	assert.NoError(t, err)
+	assert.NotNil(t, out)
+	// OpeningHours may be empty map; ensure it's present (empty) on returned copy
+	if out.OpeningHours == nil {
+		t.Fatalf("expected OpeningHours to be non-nil (may be empty), got nil")
+	}
+}
