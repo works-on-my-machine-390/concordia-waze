@@ -7,6 +7,7 @@ const createTestQueryClient = () =>
     defaultOptions: {
       queries: {
         retry: false, // Prevents Jest from timing out while React Query retries
+        gcTime: Infinity, // Avoids long-running cache timers keeping Jest open
       },
     },
   });

@@ -155,7 +155,7 @@ export default function SearchPage() {
     <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
     <View style={styles.page}>
       <View style={styles.header}>
-        <Pressable style={styles.iconButton} onPress={() => router.back()}>
+        <Pressable style={styles.iconButton} onPress={() => router.back()} testID="back-button">
           <Ionicons name="arrow-back" size={26} color={colors.maroon} />
         </Pressable>
         <View style={styles.searchPill}>
