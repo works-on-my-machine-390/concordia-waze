@@ -182,7 +182,16 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
                   onPress={() => props.onStartNavigation?.(building.code)}
                 >
                   <View style={BuildingBottomSheetStyles.floatingIcon}>
-                    <GetDirectionsIcon size={90} color={COLORS.maroon} />
+                    <MaterialIcons
+                      name="directions"
+                      size={58}
+                      color={COLORS.background}
+                      style={{
+                        backgroundColor: COLORS.maroon,
+                        borderRadius: 12,
+                        padding: 4,
+                      }}
+                    />
                   </View>
                 </TouchableOpacity>
               )}
@@ -192,23 +201,32 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
                   <Text style={BuildingBottomSheetStyles.name}>
                     {building.long_name} ({building.code})
                   </Text>
-                  <Text style={BuildingBottomSheetStyles.address}>{building.address}</Text>
+                  <Text style={BuildingBottomSheetStyles.address}>
+                    {building.address}
+                  </Text>
                 </View>
               )}
 
               <View
                 style={[
                   BuildingBottomSheetStyles.iconsContainer,
-                  props.isNavigationMode && BuildingBottomSheetStyles.iconsContainerNavMode,
+                  props.isNavigationMode &&
+                    BuildingBottomSheetStyles.iconsContainerNavMode,
                 ]}
               >
                 {!props.isNavigationMode && (
-                  <View style={BuildingBottomSheetStyles.accessibilityIconsContainer}>
+                  <View
+                    style={
+                      BuildingBottomSheetStyles.accessibilityIconsContainer
+                    }
+                  >
                     {accessibilityIcons}
                   </View>
                 )}
 
-                <View style={BuildingBottomSheetStyles.accessibilityIconsContainer}>
+                <View
+                  style={BuildingBottomSheetStyles.accessibilityIconsContainer}
+                >
                   {!props.isNavigationMode && (
                     <FavoriteEmptyIcon color={COLORS.maroon} />
                   )}
@@ -245,7 +263,9 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
             )}
           </>
         ) : (
-          <BottomSheetScrollView contentContainerStyle={BuildingBottomSheetStyles.scrollContent}>
+          <BottomSheetScrollView
+            contentContainerStyle={BuildingBottomSheetStyles.scrollContent}
+          >
             <EmptyBuildingState />
           </BottomSheetScrollView>
         ))}
@@ -283,8 +303,8 @@ export const BuildingBottomSheetStyles = StyleSheet.create({
 
   floatingIcon: {
     position: "absolute",
-    top: -88,
-    right: -20,
+    top: -75,
+    right: -10,
     zIndex: 10,
     borderRadius: 20,
     padding: 6,
