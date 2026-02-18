@@ -91,7 +91,13 @@ func (c *googlePlacesClient) GetPhotoURLs(placeID string) ([]string, error) {
 	}
 
 	var urls []string
-	for _, p := range result.Result.Photos {
+	photos := result.Result.Photos
+
+	if len(photos) > 2 {
+		photos = photos[:2]
+	}
+
+	for _, p := range photos {
 		urls = append(urls, fmt.Sprintf(
 			"https://maps.googleapis.com/maps/api/place/photo?maxwidth=1600&photo_reference=%s&key=%s",
 			p.PhotoRef,
