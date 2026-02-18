@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+
+	"github.com/works-on-my-machine-390/concordia-waze/internal/constants"
 )
 
 type PlacesClient interface {
@@ -87,7 +89,15 @@ func (c *googlePlacesClient) GetPhotoURLs(placeID string) ([]string, error) {
 	}
 
 	var urls []string
-	for _, p := range result.Result.Photos {
+	photos := result.Result.Photos
+
+	const max = constants.MaxReturnedImageCount
+
+	if len(photos) > max {
+		photos = photos[:max]
+	}
+
+	for _, p := range photos {
 		urls = append(urls, fmt.Sprintf(
 			"https://maps.googleapis.com/maps/api/place/photo?maxwidth=1600&photo_reference=%s&key=%s",
 			p.PhotoRef,
