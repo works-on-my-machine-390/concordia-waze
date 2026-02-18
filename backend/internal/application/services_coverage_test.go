@@ -37,6 +37,18 @@ func (f *fakeBuildingRepo) GetAllBuildingsByCampus() (map[string][]domain.Buildi
 	return nil, f.err
 }
 
+type fakeCampusRepo struct {
+	polys []domain.BuildingPolygon
+	err   error
+}
+
+func (f *fakeCampusRepo) GetCampusPolygons(campus string) ([]domain.BuildingPolygon, error) {
+	if f.err != nil {
+		return nil, f.err
+	}
+	return f.polys, nil
+}
+
 type fakePlacesClient struct {
 	placeID string
 	images  []string
@@ -132,6 +144,36 @@ func TestBuildingService_GetBuilding_NotFound(t *testing.T) {
 	svc := NewBuildingService(repo, nil)
 
 	_, err := svc.GetBuilding("XYZ")
+	if err == nil {
+		t.Fatalf("expected error, got nil")
+	}
+	if err != domain.ErrNotFound {
+		t.Fatalf("expected ErrNotFound, got %v", err)
+	}
+}
+
+func TestCampusService_GetCampusBuildings_Success(t *testing.T) {
+	repo := &fakeCampusRepo{
+		polys: []domain.BuildingPolygon{
+			{Code: "MB", Polygon: []domain.LatLng{{Lat: 45.0, Lng: -73.0}}},
+		},
+	}
+	svc := NewCampusService(repo)
+
+	out, err := svc.GetCampusBuildings("SGW")
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(out) != 1 || out[0].Code != "MB" {
+		t.Fatalf("unexpected result: %+v", out)
+	}
+}
+
+func TestCampusService_GetCampusBuildings_NotFound(t *testing.T) {
+	repo := &fakeCampusRepo{err: domain.ErrNotFound}
+	svc := NewCampusService(repo)
+
+	_, err := svc.GetCampusBuildings("ABC")
 	if err == nil {
 		t.Fatalf("expected error, got nil")
 	}
