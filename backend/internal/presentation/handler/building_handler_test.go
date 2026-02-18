@@ -185,9 +185,9 @@ func TestBuildingHandler_GetAllBuildingsByCampus_Success200(t *testing.T) {
 	h := NewBuildingHandler(svc)
 
 	r := gin.New()
-	r.GET("/buildings", h.GetAllBuildingsByCampus)
+	r.GET("/buildings/list", h.GetAllBuildingsByCampus)
 
-	req := httptest.NewRequest(http.MethodGet, "/buildings", nil)
+	req := httptest.NewRequest(http.MethodGet, "/buildings/list", nil)
 	w := httptest.NewRecorder()
 
 	r.ServeHTTP(w, req)

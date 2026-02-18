@@ -57,7 +57,7 @@ func (h *BuildingHandler) GetBuilding(c *gin.Context) {
 // @Produce     json
 // @Success     200 {object} map[string]map[string][]domain.BuildingSummary
 // @Failure     500 {object} map[string]string "internal server error"
-// @Router      /buildings [get]
+// @Router      /buildings/list [get]
 func (h *BuildingHandler) GetAllBuildingsByCampus(c *gin.Context) {
 	result, err := h.service.GetAllBuildingsByCampus()
 	if err != nil {

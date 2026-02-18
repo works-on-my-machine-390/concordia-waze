@@ -116,18 +116,19 @@ definitions:
       campus:
         type: string
     type: object
-  domain.LatLng:
-    properties:
-      latitude:
-        type: number
-      longitude:
-        type: number
   domain.DayHours:
     properties:
       close:
         type: string
       open:
         type: string
+    type: object
+  domain.LatLng:
+    properties:
+      latitude:
+        type: number
+      longitude:
+        type: number
     type: object
   domain.OpeningHours:
     additionalProperties:
@@ -327,40 +328,6 @@ paths:
       summary: Register a new user
       tags:
       - auth
-  /buildings:
-    get:
-      consumes:
-      - application/json
-      description: |-
-        Return all building codes, names and long names grouped by campus. Response shape:
-        {
-        "buildings": {
-        "SGW": [ { "code": "...", "name": "...", "long_name": "...", "campus": "SGW" }, ... ],
-        "LOY": [ ... ]
-        }
-        }
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              additionalProperties:
-                items:
-                  $ref: '#/definitions/domain.BuildingSummary'
-                type: array
-              type: object
-            type: object
-        "500":
-          description: internal server error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: List all buildings grouped by campus
-      tags:
-      - buildings
   /buildings/{code}:
     get:
       consumes:
@@ -420,6 +387,40 @@ paths:
               type: string
             type: object
       summary: Get building images
+      tags:
+      - buildings
+  /buildings/list:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Return all building codes, names and long names grouped by campus. Response shape:
+        {
+        "buildings": {
+        "SGW": [ { "code": "...", "name": "...", "long_name": "...", "campus": "SGW" }, ... ],
+        "LOY": [ ... ]
+        }
+        }
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              additionalProperties:
+                items:
+                  $ref: '#/definitions/domain.BuildingSummary'
+                type: array
+              type: object
+            type: object
+        "500":
+          description: internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List all buildings grouped by campus
       tags:
       - buildings
   /campuses/{campus}/buildings:

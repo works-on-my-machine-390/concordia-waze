@@ -223,7 +223,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/buildings": {
+        "/buildings/list": {
             "get": {
                 "description": "Return all building codes, names and long names grouped by campus. Response shape:\n{\n\"buildings\": {\n\"SGW\": [ { \"code\": \"...\", \"name\": \"...\", \"long_name\": \"...\", \"campus\": \"SGW\" }, ... ],\n\"LOY\": [ ... ]\n}\n}",
                 "consumes": [
@@ -1683,13 +1683,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "name": {
-        "domain.DayHours": {
-            "type": "object",
-            "properties": {
-                "close": {
-                    "type": "string"
-                },
-                "open": {
                     "type": "string"
                 }
             }
@@ -1708,6 +1701,17 @@ const docTemplate = `{
                 }
             }
         },
+        "domain.DayHours": {
+            "type": "object",
+            "properties": {
+                "close": {
+                    "type": "string"
+                },
+                "open": {
+                    "type": "string"
+                }
+            }
+        },
         "domain.LatLng": {
             "type": "object",
             "properties": {
@@ -1717,6 +1721,8 @@ const docTemplate = `{
                 "longitude": {
                     "type": "number"
                 }
+            }
+        },
         "domain.OpeningHours": {
             "type": "object",
             "additionalProperties": {
