@@ -8,6 +8,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useQueryClient } from "@tanstack/react-query";
 import { api } from "@/hooks/api";
 import type { Building } from "@/hooks/queries/buildingQueries";
+import {
+  addGuestSearchHistory,
+  clearGuestSearchHistory,
+  getGuestSearchHistory
+} from "@/hooks/guestStorage";
 
 
 export default function SearchPage() {
@@ -21,6 +26,7 @@ export default function SearchPage() {
   const loyBuildingsQuery = useGetBuildings(CampusCode.LOY);
   const queryClient = useQueryClient();
   const [detailsPrefetched, setDetailsPrefetched] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<Array<{ query: string; locations: string }>>([]);
 
   // Prefetch building details for both campuses so we can search by name/code/address
   useEffect(() => {
@@ -44,6 +50,49 @@ export default function SearchPage() {
       })();
     }
   }, [detailsPrefetched, sgwBuildingsQuery.data?.buildings, loyBuildingsQuery.data?.buildings, queryClient]);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const items = await getGuestSearchHistory();
+      if (active) {
+        setRecentSearches(items.map((item) => ({ query: item.query, locations: item.locations })));
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const recentItems = useMemo(() => {
+    const lookup = new Map<string, CampusCode>();
+    for (const building of sgwBuildingsQuery.data?.buildings ?? []) {
+      lookup.set(building.code, CampusCode.SGW);
+    }
+    for (const building of loyBuildingsQuery.data?.buildings ?? []) {
+      lookup.set(building.code, CampusCode.LOY);
+    }
+
+    const seen = new Set<string>();
+    const items: Array<{ query: string; locations: string; code?: string; campus?: CampusCode }> = [];
+    for (const item of recentSearches) {
+      if (seen.has(item.query)) continue;
+      seen.add(item.query);
+
+      const split = item.query.split("-");
+      const candidateCode = split[0]?.trim() ?? "";
+      const normalizedCode = lookup.has(candidateCode) ? candidateCode : lookup.has(item.query) ? item.query : "";
+      const campus = normalizedCode ? lookup.get(normalizedCode) : undefined;
+
+      items.push({
+        ...item,
+        code: normalizedCode || undefined,
+        campus
+      });
+      if (items.length >= 6) break;
+    }
+    return items;
+  }, [recentSearches, sgwBuildingsQuery.data?.buildings, loyBuildingsQuery.data?.buildings]);
 
   const results = useMemo(() => {
     // Combine buildings from both campuses, then filter by code/name/address
@@ -73,10 +122,34 @@ export default function SearchPage() {
       .sort((a, b) => b.score - a.score);
   }, [sgwBuildingsQuery.data?.buildings, loyBuildingsQuery.data?.buildings, query, queryClient]);
 
-  const handleSelect = (code: string, targetCampus: CampusCode) => {
+  const recordRecentSearch = async (item: { query: string; locations: string }) => {
+    try {
+      await addGuestSearchHistory({
+        query: item.query,
+        locations: item.locations,
+        timestamp: new Date()
+      });
+      setRecentSearches((prev) => [item, ...prev.filter((entry) => entry.query !== item.query)]);
+    } catch {
+      // Best effort only; search should still navigate even if persistence fails.
+    }
+  };
+
+  const handleSelect = (code: string, targetCampus: CampusCode, label?: string, address?: string) => {
     // Navigate back to map (to selected building) when user taps on a result
+    void recordRecentSearch({ query: label ?? code, locations: address ?? "" });
     router.replace({ pathname: "/map", params: { selected: code, campus: targetCampus } });
   };
+
+  const handleClearRecent = async () => {
+    try {
+      await clearGuestSearchHistory();
+    } finally {
+      setRecentSearches([]);
+    }
+  };
+
+  const showRecent = query.trim().length === 0 && recentItems.length > 0;
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
@@ -103,8 +176,61 @@ export default function SearchPage() {
         data={results}
         keyExtractor={(item) => item.code}
         contentContainerStyle={styles.listContainer}
+        ListHeaderComponent={
+          showRecent
+            ? () => (
+                <View style={styles.section}>
+                  <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionTitle}>Recent searches</Text>
+                    <Pressable onPress={handleClearRecent}>
+                      <Text style={styles.clearText}>Clear</Text>
+                    </Pressable>
+                  </View>
+                  {recentItems.map((item) => (
+                    <Pressable
+                      key={`${item.query}-${item.locations}`}
+                      style={styles.resultItem}
+                      onPress={() =>
+                        item.code && item.campus
+                          ? handleSelect(item.code, item.campus, item.query, item.locations)
+                          : setQuery(item.query)
+                      }
+                    >
+                      <Text style={styles.resultTitle}>
+                        {item.code
+                          ? (() => {
+                              const details = queryClient.getQueryData<Building>([
+                                "buildingDetails",
+                                item.code
+                              ]);
+                              const name = details?.long_name ?? details?.name;
+                              if (name) return `${item.code} - ${name}`;
+                              if (item.query.includes(" - ")) return item.query;
+                              return item.code;
+                            })()
+                          : item.query}
+                      </Text>
+                      {item.locations ? (
+                        <Text style={styles.resultSubtitle}>{item.locations}</Text>
+                      ) : null}
+                    </Pressable>
+                  ))}
+                </View>
+              )
+            : null
+        }
         renderItem={({ item }) => (
-          <Pressable style={styles.resultItem} onPress={() => handleSelect(item.code, item.campus)}>
+          <Pressable
+            style={styles.resultItem}
+            onPress={() =>
+              handleSelect(
+                item.code,
+                item.campus,
+                item.longName || item.name ? `${item.code} - ${item.longName ?? item.name}` : item.code,
+                item.address
+              )
+            }
+          >
             <Text style={styles.resultTitle}>
               {item.longName || item.name
                 ? `${item.code} - ${item.longName ?? item.name}`
@@ -115,19 +241,23 @@ export default function SearchPage() {
             ) : null}
           </Pressable>
         )}
-        ListEmptyComponent={
-          query.trim()
-            ? () => (
-                <View style={styles.empty}>
-                  <Text style={styles.emptyText}>No matches found</Text>
-                </View>
-              )
-            : () => (
-                <View style={styles.empty}>
-                  <Text style={styles.emptyText}>Start typing to search</Text>
-                </View>
-              )
-        }
+        ListEmptyComponent={() => {
+          if (query.trim()) {
+            return (
+              <View style={styles.empty}>
+                <Text style={styles.emptyText}>No matches found</Text>
+              </View>
+            );
+          }
+          if (showRecent) {
+            return null;
+          }
+          return (
+            <View style={styles.empty}>
+              <Text style={styles.emptyText}>Start typing to search</Text>
+            </View>
+          );
+        }}
       />
     </View>
     </SafeAreaView>
@@ -174,6 +304,28 @@ const styles = StyleSheet.create({
   listContainer: {
     paddingTop: 16,
     paddingHorizontal: 16,
+  },
+  section: {
+    marginBottom: 12,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 8,
+    paddingHorizontal: 4,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    color: colors.subText,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  clearText: {
+    fontSize: 13,
+    color: colors.maroon,
+    fontWeight: "600",
   },
   resultItem: {
     backgroundColor: colors.surface,
