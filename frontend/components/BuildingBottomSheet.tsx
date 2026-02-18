@@ -14,20 +14,9 @@ import {
 } from "../app/icons";
 import BuildingGallery from "./BuildingGallery";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import BottomSheetListSection from "./BottomSheetListSection";
+import OpeningHours from "./OpeningHours";
 
-// Reusable list section
-function ListSection({ title, items }: { title: string; items: string[] }) {
-  return (
-    <View style={styles.listContainer}>
-      <Text style={styles.listTitle}>{title}</Text>
-      {items.map((item) => (
-        <Text key={item} style={styles.listItem}>
-          {item}
-        </Text>
-      ))}
-    </View>
-  );
-}
 
 type Props = {
   buildingCode: string | null;
@@ -225,11 +214,11 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
           {/* Scrollable Content */}
           {!props.isNavigationMode && (
             <BottomSheetScrollView contentContainerStyle={styles.scrollContent}>
+              <OpeningHours openingHours={building.opening_hours} />
               <BuildingGallery buildingCode={building.code} />
-
-              <ListSection title="Services" items={building.services} />
-              <ListSection title="Departments" items={building.departments} />
-              <ListSection title="Venues" items={building.venues} />
+              <BottomSheetListSection title="Services" items={building.services} />
+              <BottomSheetListSection title="Departments" items={building.departments} />
+              <BottomSheetListSection title="Venues" items={building.venues} />
             </BottomSheetScrollView>
           )}
         </>
@@ -323,27 +312,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 16,
     paddingBottom: 20,
-  },
-
-  listContainer: {
-    marginBottom: 20,
-    backgroundColor: "#f2f2f2",
-    padding: 10,
-    width: "100%",
-    borderRadius: 8,
-  },
-
-  listTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 6,
-    color: COLORS.textPrimary,
-  },
-
-  listItem: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    marginBottom: 4,
   },
 
   gallerySkeleton: {

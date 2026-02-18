@@ -16,6 +16,8 @@ export const COLORS = {
   background: "#FBFAFA",
   surface: "#fff",
   border: "#e0e0e0",
+  success: "#4CAF50",
+  warning: "#FF9800",
 };
 
 // App Info
