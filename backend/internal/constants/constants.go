@@ -12,4 +12,6 @@ const (
 	// Campus labels
 	LoyolaCampusCode            = "LOY"
 	SirGeorgeWilliamsCampusCode = "SGW"
+
+	MaxReturnedImageCount = 2
 )
