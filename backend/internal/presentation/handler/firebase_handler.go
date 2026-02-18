@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/application"
@@ -14,9 +15,7 @@ import (
 type FirebaseService interface {
 	CreateUserProfile(ctx context.Context, userID string, profile domain.User) error
 	GetUserProfile(ctx context.Context, userID string) (*domain.User, error)
-	AddSearchHistory(ctx context.Context, userID string, item application.SearchHistoryItem) (string, error)
-	GetSearchHistory(ctx context.Context, userID string, limit int) ([]application.SearchHistoryItem, error)
-	ClearSearchHistory(ctx context.Context, userID string) error
+
 	AddScheduleItem(ctx context.Context, userID string, item application.ScheduleItem) (string, error)
 	GetUserSchedule(ctx context.Context, userID string) ([]application.ScheduleItem, error)
 	UpdateScheduleItem(ctx context.Context, userID, scheduleID string, updates map[string]interface{}) error
@@ -25,6 +24,10 @@ type FirebaseService interface {
 	GetSavedAddresses(ctx context.Context, userID string) ([]application.SavedAddress, error)
 	UpdateSavedAddress(ctx context.Context, userID, addressID string, updates map[string]interface{}) error
 	DeleteSavedAddress(ctx context.Context, userID, addressID string) error
+
+	AddDestinationHistory(ctx context.Context, userID string, item application.DestinationHistoryItem) (string, error)
+	GetDestinationHistory(ctx context.Context, userID string, limit int) ([]application.DestinationHistoryItem, error)
+	ClearDestinationHistory(ctx context.Context, userID string) error
 }
 
 // FirebaseHandler handles Firestore-backed user endpoints.
@@ -59,7 +62,7 @@ func (fh *FirebaseHandler) CreateUserProfile(c *gin.Context) {
 	userID := c.Param("userId")
 	var profile domain.User
 
-	if err := c.ShouldBindJSON(&profile); err != nil {
+	if c.ShouldBindJSON(&profile) != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body for Create User Profile"})
 		return
 	}
@@ -96,57 +99,67 @@ func (fh *FirebaseHandler) GetUserProfile(c *gin.Context) {
 	c.JSON(http.StatusOK, profile)
 }
 
-// ===== Search History =====
+// ===== Destination History =====
 
-// AddSearchHistory godoc
-// @Summary Add search history
-// @Description Add a search query to a user's history
-// @Tags search
+// AddDestinationHistory godoc
+// @Summary Add destination history
+// @Description Add a destination to a user's past destinations history
+// @Tags history
 // @Accept json
 // @Produce json
 // @Security BearerAuth
 // @Param Authorization header string true "Bearer token"
 // @Param userId path string true "User ID"
-// @Param item body application.SearchHistoryItem true "Search item"
+// @Param item body application.DestinationHistoryItem true "Destination history item"
 // @Success 201 {object} map[string]string
-// @Failure 401 {object} map[string]string "Not authenticated"
-// @Failure 403 {object} map[string]string "Forbidden"
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
-// @Router /users/{userId}/search-history [post]
-func (fh *FirebaseHandler) AddSearchHistory(c *gin.Context) {
+// @Router /users/{userId}/history [post]
+func (fh *FirebaseHandler) AddDestinationHistory(c *gin.Context) {
 	userID := c.Param("userId")
-	var item application.SearchHistoryItem
+	var item application.DestinationHistoryItem
 
 	if err := c.ShouldBindJSON(&item); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body for Add Search History", "details": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "invalid request body for Add Destination History",
+			"details": err.Error(),
+		})
 		return
 	}
 
-	searchID, err := fh.service.AddSearchHistory(c.Request.Context(), userID, item)
+	item.DestinationType = strings.ToLower(strings.TrimSpace(item.DestinationType))
+	if item.DestinationType != "building" && item.DestinationType != "poi" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": `invalid destinationType: expected "building" or "poi"`,
+		})
+		return
+	}
+
+	historyID, err := fh.service.AddDestinationHistory(c.Request.Context(), userID, item)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": "search history added", "searchId": searchID})
+	c.JSON(http.StatusCreated, gin.H{
+		"message":   "destination history added",
+		"historyId": historyID,
+	})
 }
 
-// GetSearchHistory godoc
-// @Summary Get search history
-// @Description Get a user's search history
-// @Tags search
+// GetDestinationHistory godoc
+// @Summary Get destination history
+// @Description Get a user's past destinations history (latest first)
+// @Tags history
 // @Produce json
 // @Security BearerAuth
 // @Param Authorization header string true "Bearer token"
 // @Param userId path string true "User ID"
 // @Param limit query int false "Limit results" default(50)
-// @Success 200 {array} application.SearchHistoryItem
-// @Failure 401 {object} map[string]string "Not authenticated"
-// @Failure 403 {object} map[string]string "Forbidden"
+// @Success 200 {array} application.DestinationHistoryItem
 // @Failure 500 {object} map[string]string
-// @Router /users/{userId}/search-history [get]
-func (fh *FirebaseHandler) GetSearchHistory(c *gin.Context) {
+// @Router /users/{userId}/history [get]
+func (fh *FirebaseHandler) GetDestinationHistory(c *gin.Context) {
 	userID := c.Param("userId")
 	limit := 50
 	if limitParam := c.Query("limit"); limitParam != "" {
@@ -155,7 +168,7 @@ func (fh *FirebaseHandler) GetSearchHistory(c *gin.Context) {
 		}
 	}
 
-	history, err := fh.service.GetSearchHistory(c.Request.Context(), userID, limit)
+	history, err := fh.service.GetDestinationHistory(c.Request.Context(), userID, limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -164,28 +177,26 @@ func (fh *FirebaseHandler) GetSearchHistory(c *gin.Context) {
 	c.JSON(http.StatusOK, history)
 }
 
-// ClearSearchHistory godoc
-// @Summary Clear search history
-// @Description Delete all search history items for a user
-// @Tags search
+// ClearDestinationHistory godoc
+// @Summary Clear destination history
+// @Description Delete all destination history items for a user (keeps _init placeholder)
+// @Tags history
 // @Produce json
 // @Security BearerAuth
 // @Param Authorization header string true "Bearer token"
 // @Param userId path string true "User ID"
 // @Success 200 {object} map[string]string
-// @Failure 401 {object} map[string]string "Not authenticated"
-// @Failure 403 {object} map[string]string "Forbidden"
 // @Failure 500 {object} map[string]string
-// @Router /users/{userId}/search-history [delete]
-func (fh *FirebaseHandler) ClearSearchHistory(c *gin.Context) {
+// @Router /users/{userId}/history [delete]
+func (fh *FirebaseHandler) ClearDestinationHistory(c *gin.Context) {
 	userID := c.Param("userId")
 
-	if err := fh.service.ClearSearchHistory(c.Request.Context(), userID); err != nil {
+	if err := fh.service.ClearDestinationHistory(c.Request.Context(), userID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "search history cleared"})
+	c.JSON(http.StatusOK, gin.H{"message": "destination history cleared"})
 }
 
 // ===== Schedule =====
@@ -271,7 +282,7 @@ func (fh *FirebaseHandler) UpdateScheduleItem(c *gin.Context) {
 	scheduleID := c.Param("scheduleId")
 	var updates map[string]interface{}
 
-	if err := c.ShouldBindJSON(&updates); err != nil {
+	if c.ShouldBindJSON(&updates) != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body for Update Schedule Item"})
 		return
 	}
@@ -393,7 +404,7 @@ func (fh *FirebaseHandler) UpdateSavedAddress(c *gin.Context) {
 	addressID := c.Param("addressId")
 	var updates map[string]interface{}
 
-	if err := c.ShouldBindJSON(&updates); err != nil {
+	if c.ShouldBindJSON(&updates) != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
 		return
 	}

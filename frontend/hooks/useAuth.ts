@@ -2,7 +2,7 @@
 React hook managing authentication state and API interactions: providing login and register functions 
 After need to change all API calls with real backend
 */
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
 
 type AuthResult =
@@ -11,13 +11,14 @@ type AuthResult =
 
 import { API_URL } from "./api";
 const API_BASE = process.env.REACT_APP_API_BASE || API_URL;
+const REQUEST_TIMEOUT_MS = 6000;
 
 export function useAuth() {
   const [loading, setLoading] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
 
   const checkToken = async () => {
-    const token = await AsyncStorage.getItem("accessToken");
+    const token = await SecureStore.getItemAsync("accessToken");
     if (token) {
       setLoggedIn(true);
       return true;
@@ -36,18 +37,20 @@ export function useAuth() {
     defaultError: string,
   ): Promise<AuthResult> {
     setLoading(true);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
     try {
       const res = await fetch(`${API_BASE}${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
+        signal: controller.signal,
       });
 
       const json = await res.json();
-      setLoading(false);
 
       if (res.ok && json?.token) {
-        await AsyncStorage.setItem("accessToken", json.token);
+        await SecureStore.setItemAsync("accessToken", json.token);
         setLoggedIn(true);
         return { success: true, data: json };
       }
@@ -57,8 +60,14 @@ export function useAuth() {
         error: json?.error || json?.message || defaultError,
       };
     } catch (err: any) {
+      const isTimeout = err?.name === "AbortError";
+      return {
+        success: false,
+        error: isTimeout ? "Network error." : err?.message || "Network error.",
+      };
+    } finally {
+      clearTimeout(timeoutId);
       setLoading(false);
-      return { success: false, error: err?.message || "Network error." };
     }
   }
 
@@ -84,7 +93,7 @@ export function useAuth() {
 
   async function logout() {
     try {
-      const token = await AsyncStorage.getItem("accessToken");
+      const token = await SecureStore.getItemAsync("accessToken");
 
       if (token) {
         await fetch(`${API_BASE}/auth/logout`, {
@@ -98,7 +107,7 @@ export function useAuth() {
     } catch (err) {
       console.warn("Logout request failed:", err);
     } finally {
-      await AsyncStorage.removeItem("accessToken");
+      await SecureStore.deleteItemAsync("accessToken");
       setLoggedIn(false);
     }
   }
