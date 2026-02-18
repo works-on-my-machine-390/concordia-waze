@@ -1635,6 +1635,9 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
+                "opening_hours": {
+                    "$ref": "#/definitions/domain.OpeningHours"
+                },
                 "services": {
                     "type": "array",
                     "items": {
@@ -1680,6 +1683,13 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "name": {
+        "domain.DayHours": {
+            "type": "object",
+            "properties": {
+                "close": {
+                    "type": "string"
+                },
+                "open": {
                     "type": "string"
                 }
             }
@@ -1707,6 +1717,10 @@ const docTemplate = `{
                 "longitude": {
                     "type": "number"
                 }
+        "domain.OpeningHours": {
+            "type": "object",
+            "additionalProperties": {
+                "$ref": "#/definitions/domain.DayHours"
             }
         },
         "domain.User": {

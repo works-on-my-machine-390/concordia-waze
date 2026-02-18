@@ -1628,6 +1628,9 @@
                 "name": {
                     "type": "string"
                 },
+                "opening_hours": {
+                    "$ref": "#/definitions/domain.OpeningHours"
+                },
                 "services": {
                     "type": "array",
                     "items": {
@@ -1673,6 +1676,13 @@
                     "type": "string"
                 },
                 "name": {
+        "domain.DayHours": {
+            "type": "object",
+            "properties": {
+                "close": {
+                    "type": "string"
+                },
+                "open": {
                     "type": "string"
                 }
             }
@@ -1700,6 +1710,10 @@
                 "longitude": {
                     "type": "number"
                 }
+        "domain.OpeningHours": {
+            "type": "object",
+            "additionalProperties": {
+                "$ref": "#/definitions/domain.DayHours"
             }
         },
         "domain.User": {
