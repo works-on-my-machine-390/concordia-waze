@@ -73,6 +73,8 @@ definitions:
         type: boolean
       name:
         type: string
+      opening_hours:
+        $ref: '#/definitions/domain.OpeningHours'
       services:
         items:
           type: string
@@ -81,6 +83,17 @@ definitions:
         items:
           type: string
         type: array
+    type: object
+  domain.DayHours:
+    properties:
+      close:
+        type: string
+      open:
+        type: string
+    type: object
+  domain.OpeningHours:
+    additionalProperties:
+      $ref: '#/definitions/domain.DayHours'
     type: object
   domain.User:
     properties:
