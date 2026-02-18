@@ -23,12 +23,17 @@ func NewFirebaseService() *FirebaseService {
 	}
 }
 
-// SearchHistoryItem stores a single search entry.
-type SearchHistoryItem struct {
-	SearchID  string    `firestore:"searchId" json:"searchId,omitempty"`
-	Query     string    `firestore:"query" json:"query"`
-	Locations string    `firestore:"locations" json:"locations"`
-	Timestamp time.Time `firestore:"timestamp" json:"timestamp,omitempty"`
+// DestinationHistoryItem stores a past destination entry.
+type DestinationHistoryItem struct {
+	HistoryID       string    `firestore:"historyId" json:"historyId,omitempty"`
+	Name            string    `firestore:"name" json:"name"`
+	Address         string    `firestore:"address" json:"address"`
+	PlaceID         string    `firestore:"placeId,omitempty" json:"placeId,omitempty"`
+	Lat             float64   `firestore:"lat,omitempty" json:"lat,omitempty"`
+	Lng             float64   `firestore:"lng,omitempty" json:"lng,omitempty"`
+	BuildingCode    string    `firestore:"buildingCode,omitempty" json:"buildingCode,omitempty"`
+	DestinationType string    `firestore:"destinationType,omitempty" json:"destinationType,omitempty"` // "building" or "poi"
+	Timestamp       time.Time `firestore:"timestamp" json:"timestamp,omitempty"`
 }
 
 // ScheduleItem stores a schedule entry.
@@ -127,51 +132,61 @@ func (fs *FirebaseService) initializeSubcollections(ctx context.Context, userID 
 		return fmt.Errorf("init savedAddresses: %w", err)
 	}
 
+	// Initialize history subcollection
+	_, err = fs.client.Collection("users").Doc(userID).
+		Collection("history").Doc("_init").
+		Set(ctx, map[string]interface{}{
+			"initialized": true,
+			"createdAt":   time.Now(),
+		})
+	if err != nil {
+		return fmt.Errorf("init history: %w", err)
+	}
+
 	return nil
 }
 
-// ===== Search History =====
+// ===== Destination History =====
 
-func (fs *FirebaseService) AddSearchHistory(ctx context.Context, userID string, item SearchHistoryItem) (string, error) {
+func (fs *FirebaseService) AddDestinationHistory(ctx context.Context, userID string, item DestinationHistoryItem) (string, error) {
 	item.Timestamp = time.Now()
-	ref, _, err := fs.client.Collection("users").Doc(userID).Collection("searchHistory").Add(ctx, item)
+	ref, _, err := fs.client.Collection("users").Doc(userID).Collection("history").Add(ctx, item)
 	if err != nil {
-		return "", fmt.Errorf("add search history: %w", err)
+		return "", fmt.Errorf("add destination history: %w", err)
 	}
 	return ref.ID, nil
 }
 
-func (fs *FirebaseService) GetSearchHistory(ctx context.Context, userID string, limit int) ([]SearchHistoryItem, error) {
+func (fs *FirebaseService) GetDestinationHistory(ctx context.Context, userID string, limit int) ([]DestinationHistoryItem, error) {
 	if limit <= 0 {
 		limit = 50
 	}
 
-	docs, err := fs.client.Collection("users").Doc(userID).Collection("searchHistory").
+	docs, err := fs.client.Collection("users").Doc(userID).Collection("history").
 		OrderBy("timestamp", firestore.Desc).
 		Limit(limit).
 		Documents(ctx).GetAll()
 	if err != nil {
-		return nil, fmt.Errorf("get search history: %w", err)
+		return nil, fmt.Errorf("get destination history: %w", err)
 	}
 
-	history := make([]SearchHistoryItem, 0, len(docs))
+	history := make([]DestinationHistoryItem, 0, len(docs))
 	for _, doc := range docs {
-		// Skip initialization placeholder
 		if doc.Ref.ID == "_init" {
 			continue
 		}
-		var item SearchHistoryItem
-		if doc.DataTo(&item) != nil {
+		var item DestinationHistoryItem
+		if err := doc.DataTo(&item); err != nil {
 			continue
 		}
-		item.SearchID = doc.Ref.ID
+		item.HistoryID = doc.Ref.ID
 		history = append(history, item)
 	}
 	return history, nil
 }
 
-func (fs *FirebaseService) ClearSearchHistory(ctx context.Context, userID string) error {
-	iter := fs.client.Collection("users").Doc(userID).Collection("searchHistory").Documents(ctx)
+func (fs *FirebaseService) ClearDestinationHistory(ctx context.Context, userID string) error {
+	iter := fs.client.Collection("users").Doc(userID).Collection("history").Documents(ctx)
 	batch := fs.client.Batch()
 	count := 0
 
@@ -181,7 +196,11 @@ func (fs *FirebaseService) ClearSearchHistory(ctx context.Context, userID string
 			break
 		}
 		if err != nil {
-			return fmt.Errorf("iterate search history: %w", err)
+			return fmt.Errorf("iterate destination history: %w", err)
+		}
+		// Keep placeholder doc
+		if doc.Ref.ID == "_init" {
+			continue
 		}
 		batch.Delete(doc.Ref)
 		count++
@@ -189,7 +208,7 @@ func (fs *FirebaseService) ClearSearchHistory(ctx context.Context, userID string
 
 	if count > 0 {
 		if _, err := batch.Commit(ctx); err != nil {
-			return fmt.Errorf("clear search history: %w", err)
+			return fmt.Errorf("clear destination history: %w", err)
 		}
 	}
 

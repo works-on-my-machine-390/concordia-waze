@@ -1,10 +1,3 @@
-// Mocking AsyncStorage
-jest.mock("@react-native-async-storage/async-storage", () => ({
-  getItem: jest.fn(),
-  setItem: jest.fn(),
-  removeItem: jest.fn(),
-}));
-
 // Mocking Expo Router
 jest.mock("expo-router", () => ({
   useRouter: () => ({
@@ -33,6 +26,13 @@ jest.mock("toastify-react-native", () => ({
     info: jest.fn(),
     warn: jest.fn(),
   },
+}));
+
+// Mocking expo-secure-store
+jest.mock("expo-secure-store", () => ({
+  getItemAsync: jest.fn(),
+  setItemAsync: jest.fn(),
+  deleteItemAsync: jest.fn(),
 }));
 
 // Mocking AsyncStorage

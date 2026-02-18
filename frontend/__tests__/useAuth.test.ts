@@ -1,14 +1,7 @@
 import React from "react";
 import { render, act } from "@testing-library/react-native";
 import { useAuth } from "../hooks/useAuth";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-
-// Mocking AsyncStorage
-jest.mock("@react-native-async-storage/async-storage", () => ({
-  getItem: jest.fn(),
-  setItem: jest.fn(),
-  removeItem: jest.fn(),
-}));
+import * as SecureStore from "expo-secure-store";
 
 // Helper component to expose hook functions to the test scope
 let loginFn: any;
@@ -301,7 +294,7 @@ describe("useAuth", () => {
   });
 
   test("logout calls backend with token and clears storage", async () => {
-    (AsyncStorage.getItem as jest.Mock)
+    (SecureStore.getItemAsync as jest.Mock)
       .mockResolvedValueOnce("mock-token") // for useEffect
       .mockResolvedValueOnce("mock-token"); // for logout
     (globalThis as any).fetch.mockResolvedValueOnce({ ok: true });
@@ -312,7 +305,7 @@ describe("useAuth", () => {
       await logoutFn();
     });
 
-    expect(AsyncStorage.getItem).toHaveBeenCalledWith("accessToken");
+    expect(SecureStore.getItemAsync).toHaveBeenCalledWith("accessToken");
 
     expect((globalThis as any).fetch).toHaveBeenCalledWith(
       expect.stringContaining("/auth/logout"),
@@ -325,11 +318,11 @@ describe("useAuth", () => {
       }),
     );
 
-    expect(AsyncStorage.removeItem).toHaveBeenCalledWith("accessToken");
+    expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith("accessToken");
   });
 
   test("logout without token does not call backend but clears storage", async () => {
-    (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce(null);
+    (SecureStore.getItemAsync as jest.Mock).mockResolvedValueOnce(null);
 
     render(React.createElement(HookProxy));
 
@@ -338,11 +331,11 @@ describe("useAuth", () => {
     });
 
     expect((globalThis as any).fetch).not.toHaveBeenCalled();
-    expect(AsyncStorage.removeItem).toHaveBeenCalledWith("accessToken");
+    expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith("accessToken");
   });
 
   test("logout clears storage even if backend request fails", async () => {
-    (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce("mock-token");
+    (SecureStore.getItemAsync as jest.Mock).mockResolvedValueOnce("mock-token");
     (globalThis as any).fetch.mockRejectedValueOnce(new Error("Server down"));
 
     render(React.createElement(HookProxy));
@@ -351,6 +344,6 @@ describe("useAuth", () => {
       await logoutFn();
     });
 
-    expect(AsyncStorage.removeItem).toHaveBeenCalledWith("accessToken");
+    expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith("accessToken");
   });
 });
