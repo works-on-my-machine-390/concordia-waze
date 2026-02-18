@@ -1,13 +1,20 @@
 import Entypo from "@expo/vector-icons/Entypo";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { TouchableOpacity, View } from "react-native";
 import { MapButtonStyles } from "./LocationButton";
 export default function MapSettingsButton({
   onPress,
-}: {
+  bottomPositionPercentage = 15,
+}: Readonly<{
   onPress: () => void;
-}) {
+  bottomPositionPercentage?: number;
+}>) {
   return (
-    <View style={[MapButtonStyles.wrapper, { bottom: 160 }]}>
+    <View
+      style={[
+        MapButtonStyles.wrapper,
+        { bottom: `${bottomPositionPercentage}%` },
+      ]}
+    >
       <TouchableOpacity
         accessibilityRole="button"
         accessibilityLabel="Open map settings"

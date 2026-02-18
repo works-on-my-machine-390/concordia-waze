@@ -4,15 +4,20 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 interface LocationButtonProps {
   onPress: () => void; // function to go to current location
-  bottomPosition?: number; // optional prop to adjust bottom position of the button
+  bottomPositionPercentage?: number; // optional prop to adjust bottom position of the button
 }
 
 export default function LocationButton({
   onPress,
-  bottomPosition = 80,
+  bottomPositionPercentage = 10,
 }: Readonly<LocationButtonProps>) {
   return (
-    <View style={[MapButtonStyles.wrapper, { bottom: bottomPosition }]}>
+    <View
+      style={[
+        MapButtonStyles.wrapper,
+        { bottom: `${bottomPositionPercentage}%` as any },
+      ]}
+    >
       {/* Adds fade (opacity) effect on press */}
       <TouchableOpacity
         accessibilityRole="button"

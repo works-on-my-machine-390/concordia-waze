@@ -303,11 +303,16 @@ export default function MainMap() {
   };
 
   const locationButtonPosition = useMemo(() => {
-    if (!selectedBuildingCode) {
-      return 80;
+    if (isNavigationMode) {
+      return 15;
     }
-    return isNavigationMode ? 150 : 220;
-  }, [selectedBuildingCode, isNavigationMode]);
+
+    if (selectedBuildingCode || isSettingsOpen) {
+      return 25;
+    }
+
+    return 10;
+  }, [selectedBuildingCode, isNavigationMode, isSettingsOpen]);
 
   return (
     <View style={styles.container}>
@@ -366,10 +371,11 @@ export default function MainMap() {
             }
             setIsSettingsOpen(!isSettingsOpen);
           }}
+          bottomPositionPercentage={locationButtonPosition + 7}
         />
         <LocationButton
           onPress={goToMyLocation}
-          bottomPosition={locationButtonPosition}
+          bottomPositionPercentage={locationButtonPosition}
         />
 
         {!!selectedBuildingCode && (
