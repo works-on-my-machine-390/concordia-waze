@@ -35,7 +35,12 @@ export default function SearchPage() {
   const loyBuildingsQuery = useGetBuildings(CampusCode.LOY);
   const queryClient = useQueryClient();
   const [detailsPrefetched, setDetailsPrefetched] = useState(false);
-  const [recentSearches, setRecentSearches] = useState<Array<{ query: string; locations: string }>>([]);
+  const [recentSearches, setRecentSearches] = useState<
+    Array<{ query: string; locations: string; code?: string }>
+  >([]);
+  const [pendingRecent, setPendingRecent] = useState<
+    { query: string; locations: string } | null
+  >(null);
 
   // Prefetch building details for both campuses so we can search by name/code/address
   useEffect(() => {
@@ -67,7 +72,13 @@ export default function SearchPage() {
         // For authenticated users, use data from the query
         const entries = userHistoryQuery.data ?? [];
         if (active) {
-          setRecentSearches(entries.map((item) => ({ query: item.name, locations: item.address })));
+          setRecentSearches(
+            entries.map((item) => ({
+              query: item.name,
+              locations: item.address,
+              code: item.building_code || undefined,
+            })),
+          );
         }
       } else if (!userId) {
         // For guests, load recent searches from local storage
@@ -99,7 +110,13 @@ export default function SearchPage() {
 
       const split = item.query.split("-");
       const candidateCode = split[0]?.trim() ?? "";
-      const normalizedCode = lookup.has(candidateCode) ? candidateCode : lookup.has(item.query) ? item.query : "";
+      const normalizedCode = item.code && lookup.has(item.code)
+        ? item.code
+        : lookup.has(candidateCode)
+          ? candidateCode
+          : lookup.has(item.query)
+            ? item.query
+            : "";
       const campus = normalizedCode ? lookup.get(normalizedCode) : undefined;
 
       items.push({
@@ -172,11 +189,44 @@ export default function SearchPage() {
     }
   };
 
-  const handleSelect = (code: string, targetCampus: CampusCode, label?: string, address?: string) => {
+  useEffect(() => {
+    if (!pendingRecent || results.length === 0) return;
+    const normalized = pendingRecent.query.trim().toLowerCase();
+    const match =
+      results.find((item) => {
+        const name = item.longName ?? item.name ?? "";
+        if (!name) return false;
+        const label = `${item.code} - ${name}`.toLowerCase();
+        return name.toLowerCase() === normalized || label === normalized;
+      }) ?? results[0];
+
+    handleSelect(
+      match.code,
+      match.campus,
+      match.longName || match.name ? `${match.code} - ${match.longName ?? match.name}` : match.code,
+      match.address,
+    );
+    setPendingRecent(null);
+  }, [pendingRecent, results]);
+
+  const handleSelect = (
+    code: string,
+    targetCampus?: CampusCode,
+    label?: string,
+    address?: string,
+  ) => {
+    const resolvedCampus = targetCampus ?? (campus as CampusCode);
     // Navigate immediately to avoid UI interruptions from state updates
-    router.replace({ pathname: "/map", params: { selected: code, campus: targetCampus } });
+    router.replace({ pathname: "/map", params: { selected: code, campus: resolvedCampus } });
     // Record the search asynchronously (non-blocking)
     void recordRecentSearch(code, label ?? code, address ?? "");
+  };
+
+  const extractCodeFromQuery = (value: string): string | null => {
+    const candidate = value.split("-")[0]?.trim() ?? "";
+    if (!candidate) return null;
+    if (!/^[a-z0-9]{1,5}$/i.test(candidate)) return null;
+    return candidate.toUpperCase();
   };
 
   const handleClearRecent = async () => {
@@ -242,9 +292,17 @@ export default function SearchPage() {
                       key={`${item.query}-${item.locations}`}
                       style={styles.resultItem}
                       onPress={() =>
-                        item.code && item.campus
-                          ? handleSelect(item.code, item.campus, item.query, item.locations)
-                          : setQuery(item.query)
+                        item.code
+                          ? handleSelect(item.code, item.campus ?? (campus as CampusCode), item.query, item.locations)
+                          : (() => {
+                              const extracted = extractCodeFromQuery(item.query);
+                              if (extracted) {
+                                handleSelect(extracted, campus as CampusCode, item.query, item.locations);
+                                return;
+                              }
+                              setPendingRecent({ query: item.query, locations: item.locations });
+                              setQuery(item.query);
+                            })()
                       }
                     >
                       <Text style={styles.resultTitle}>

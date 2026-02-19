@@ -395,7 +395,7 @@ describe("SearchPage", () => {
       {
         id: "1",
         building_code: "H",
-        name: "H",
+        name: "H - Hall Building",
         address: "1455 De Maisonneuve Blvd. W.",
         lat: 45.497,
         lng: -73.578,
@@ -405,7 +405,7 @@ describe("SearchPage", () => {
       {
         id: "2",
         building_code: "MB",
-        name: "MB",
+        name: "MB - John Molson Building",
         address: "1450 Guy St.",
         lat: 45.495,
         lng: -73.579,
@@ -602,7 +602,7 @@ describe("SearchPage", () => {
         {
           id: "1",
           building_code: "H",
-          name: "H",
+          name: "H - Hall Building",
           address: "1455 De Maisonneuve Blvd. W.",
           lat: 45.497,
           lng: -73.578,
@@ -612,7 +612,7 @@ describe("SearchPage", () => {
         {
           id: "2",
           building_code: "UNKNOWN",
-          name: "UNKNOWN",
+          name: "UNKNOWN - Missing Building",
           address: "Unknown Address",
           lat: 0,
           lng: 0,
@@ -715,6 +715,46 @@ describe("SearchPage", () => {
         pathname: "/map",
         params: { selected: "H", campus: "SGW" },
       });
+    });
+
+    test("navigates when authenticated recent item has no building_code but includes code in name", async () => {
+      const mockHistoryWithoutCode = [
+        {
+          id: "1",
+          building_code: undefined,
+          name: "H - Hall Building",
+          address: "1455 De Maisonneuve Blvd. W.",
+          lat: 45.497,
+          lng: -73.578,
+          destinationType: "building",
+          timestamp: new Date(),
+        },
+      ];
+
+      (useGetProfile as jest.Mock).mockReturnValue({
+        data: mockAuthenticatedUser,
+      });
+      (useGetUserHistory as jest.Mock).mockReturnValue({
+        data: mockHistoryWithoutCode,
+        isLoading: false,
+        isSuccess: true,
+      });
+
+      const { queryByText } = await renderAndFlush();
+
+      await waitFor(() => {
+        const recentItem = queryByText(/^H/);
+        if (recentItem) {
+          fireEvent.press(recentItem);
+        }
+      });
+
+      await waitFor(() => {
+        expect(mockRouter.replace).toHaveBeenCalledWith({
+          pathname: "/map",
+          params: { selected: "H", campus: "SGW" },
+        });
+      }, { timeout: 1000 });
     });
   });
 });
