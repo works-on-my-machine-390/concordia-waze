@@ -169,8 +169,7 @@ func (c *googlePlacesClient) TextSearchPlaces(
 			"places.types,"+
 			"places.location")
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
