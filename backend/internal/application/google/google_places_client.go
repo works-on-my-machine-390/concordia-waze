@@ -10,8 +10,8 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/constants"
+	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
 )
 
 type PlacesClient interface {
