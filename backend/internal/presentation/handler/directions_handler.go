@@ -49,18 +49,60 @@ func normalizeMode(raw string) (string, bool) {
 	}
 }
 
+func hasAny(s ...string) bool {
+	for _, v := range s {
+		if strings.TrimSpace(v) != "" {
+			return true
+		}
+	}
+	return false
+}
+
+func (h *DirectionsHandler) writeDirectionsError(c *gin.Context, err error) {
+	if err == nil {
+		return
+	}
+
+	// bad request family
+	if err.Error() == "invalid mode" ||
+		err.Error() == "invalid day" ||
+		err.Error() == "invalid time" ||
+		err.Error() == "invalid shuttle_day" ||
+		err.Error() == "invalid shuttle_time" ||
+		err.Error() == "invalid shuttle departure" ||
+		err.Error() == "cannot combine day/time with shuttle_day/shuttle_time" ||
+		err.Error() == "shuttle_day and shuttle_time must both be provided" ||
+		err.Error() == "shuttle_day/shuttle_time can only be used with mode=shuttle" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// special case: shuttle not available => only message
+	if err.Error() == "no shuttle available" {
+		c.JSON(http.StatusOK, gin.H{
+			"message": "No shuttle available for the selected time and day",
+		})
+		return
+	}
+
+	// everything else
+	c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+}
+
 // GetDirections godoc
 // @Summary      Get directions between coordinates
 // @Description  Returns route polyline + step instructions (walking/driving/transit/shuttle)
 // @Tags         directions
 // @Produce      json
-// @Param        start_lat query number true "Start latitude"
-// @Param        start_lng query number true "Start longitude"
-// @Param        end_lat   query number true "End latitude"
-// @Param        end_lng   query number true "End longitude"
-// @Param        mode      query string false "Mode (walking, driving, transit, shuttle)"
-// @Param        day       query string false "Optional day for shuttle (monday..sunday)"
-// @Param        time      query string false "Optional time for shuttle (HH:MM 24h)"
+// @Param        start_lat    query number true  "Start latitude"
+// @Param        start_lng    query number true  "Start longitude"
+// @Param        end_lat      query number true  "End latitude"
+// @Param        end_lng      query number true  "End longitude"
+// @Param        mode         query string false "Mode (walking, driving, transit, shuttle)"
+// @Param        day          query string false "Optional day for shuttle (monday..sunday) - automatic"
+// @Param        time         query string false "Optional time for shuttle (HH:MM 24h) - automatic"
+// @Param        shuttle_day  query string false "Manual shuttle day (monday..sunday) - manual departure selection"
+// @Param        shuttle_time query string false "Manual shuttle time (HH:MM 24h) - must exist in schedule"
 // @Success      200 {object} domain.DirectionsResponse
 // @Failure      400 {object} map[string]string
 // @Failure      500 {object} map[string]string
@@ -93,29 +135,45 @@ func (h *DirectionsHandler) GetDirections(c *gin.Context) {
 		return
 	}
 
-	day := c.Query("day") // optional
-	at := c.Query("time") // optional
+	// Automatic params
+	day := c.Query("day")
+	at := c.Query("time")
+
+	// Manual shuttle params
+	shuttleDay := c.Query("shuttle_day")
+	shuttleTime := c.Query("shuttle_time")
 
 	start := domain.LatLng{Lat: startLat, Lng: startLng}
 	end := domain.LatLng{Lat: endLat, Lng: endLng}
 
+	// ---- Manual shuttle selection takes priority if present ----
+	if hasAny(shuttleDay, shuttleTime) {
+		if hasAny(day, at) {
+			h.writeDirectionsError(c, errorString("cannot combine day/time with shuttle_day/shuttle_time"))
+			return
+		}
+		if strings.TrimSpace(shuttleDay) == "" || strings.TrimSpace(shuttleTime) == "" {
+			h.writeDirectionsError(c, errorString("shuttle_day and shuttle_time must both be provided"))
+			return
+		}
+		if mode != "shuttle" {
+			h.writeDirectionsError(c, errorString("shuttle_day/shuttle_time can only be used with mode=shuttle"))
+			return
+		}
+
+		resp, err := h.directions.GetShuttleDirectionsManual(start, end, shuttleDay, shuttleTime)
+		if err != nil {
+			h.writeDirectionsError(c, err)
+			return
+		}
+		c.JSON(http.StatusOK, resp)
+		return
+	}
+
+	// ---- Automatic behavior ----
 	resp, err := h.directions.GetDirectionsWithSchedule(start, end, mode, day, at)
 	if err != nil {
-		if err.Error() == "invalid mode" ||
-			err.Error() == "invalid day" ||
-			err.Error() == "invalid time" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
-		if err.Error() == "no shuttle available" {
-			c.JSON(http.StatusOK, gin.H{
-				"message": "No shuttle available for the selected time and day",
-			})
-			return
-		}
-
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		h.writeDirectionsError(c, err)
 		return
 	}
 
@@ -127,11 +185,13 @@ func (h *DirectionsHandler) GetDirections(c *gin.Context) {
 // @Description  Uses building coordinates as origin/destination
 // @Tags         directions
 // @Produce      json
-// @Param        start_code query string true "Start building code"
-// @Param        end_code   query string true "End building code"
-// @Param        mode       query string false "Mode (walking, driving, transit, shuttle)"
-// @Param        day        query string false "Optional day for shuttle (monday..sunday)"
-// @Param        time       query string false "Optional time for shuttle (HH:MM 24h)"
+// @Param        start_code   query string true  "Start building code"
+// @Param        end_code     query string true  "End building code"
+// @Param        mode         query string false "Mode (walking, driving, transit, shuttle)"
+// @Param        day          query string false "Optional day for shuttle (monday..sunday) - automatic"
+// @Param        time         query string false "Optional time for shuttle (HH:MM 24h) - automatic"
+// @Param        shuttle_day  query string false "Manual shuttle day (monday..sunday) - manual departure selection"
+// @Param        shuttle_time query string false "Manual shuttle time (HH:MM 24h) - must exist in schedule"
 // @Success      200 {object} domain.DirectionsResponse
 // @Failure      400 {object} map[string]string
 // @Failure      500 {object} map[string]string
@@ -165,31 +225,52 @@ func (h *DirectionsHandler) GetDirectionsByBuildings(c *gin.Context) {
 		return
 	}
 
-	day := c.Query("day") // optional
-	at := c.Query("time") // optional
-
 	start := domain.LatLng{Lat: startB.Latitude, Lng: startB.Longitude}
 	end := domain.LatLng{Lat: endB.Latitude, Lng: endB.Longitude}
 
+	// Automatic params
+	day := c.Query("day")
+	at := c.Query("time")
+
+	// Manual shuttle params
+	shuttleDay := c.Query("shuttle_day")
+	shuttleTime := c.Query("shuttle_time")
+
+	// ---- Manual shuttle selection takes priority if present ----
+	if hasAny(shuttleDay, shuttleTime) {
+		if hasAny(day, at) {
+			h.writeDirectionsError(c, errorString("cannot combine day/time with shuttle_day/shuttle_time"))
+			return
+		}
+		if strings.TrimSpace(shuttleDay) == "" || strings.TrimSpace(shuttleTime) == "" {
+			h.writeDirectionsError(c, errorString("shuttle_day and shuttle_time must both be provided"))
+			return
+		}
+		if mode != "shuttle" {
+			h.writeDirectionsError(c, errorString("shuttle_day/shuttle_time can only be used with mode=shuttle"))
+			return
+		}
+
+		resp, err := h.directions.GetShuttleDirectionsManual(start, end, shuttleDay, shuttleTime)
+		if err != nil {
+			h.writeDirectionsError(c, err)
+			return
+		}
+		c.JSON(http.StatusOK, resp)
+		return
+	}
+
+	// ---- Automatic behavior ----
 	resp, err := h.directions.GetDirectionsWithSchedule(start, end, mode, day, at)
 	if err != nil {
-		if err.Error() == "invalid mode" ||
-			err.Error() == "invalid day" ||
-			err.Error() == "invalid time" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
-		if err.Error() == "no shuttle available" {
-			c.JSON(http.StatusOK, gin.H{
-				"message": "No shuttle available for the selected time and day",
-			})
-			return
-		}
-
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		h.writeDirectionsError(c, err)
 		return
 	}
 
 	c.JSON(http.StatusOK, resp)
 }
+
+// tiny local error type so we can create errors without importing "errors"
+type errorString string
+
+func (e errorString) Error() string { return string(e) }

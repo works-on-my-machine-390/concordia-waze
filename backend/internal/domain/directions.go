@@ -9,7 +9,8 @@ type DirectionStep struct {
 }
 
 type DirectionsResponse struct {
-	Mode     string          `json:"mode"`
-	Polyline []LatLng        `json:"polyline"`
-	Steps    []DirectionStep `json:"steps"`
+	Mode             string          `json:"mode"`
+	DepartureMessage string          `json:"departure_message,omitempty"`
+	Polyline         []LatLng        `json:"polyline"`
+	Steps            []DirectionStep `json:"steps"`
 }
