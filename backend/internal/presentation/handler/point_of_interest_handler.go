@@ -38,14 +38,13 @@ type GetPointsRequest struct {
 // @Router      /pointofinterest [get]
 func (h *PointOfInterestHandler) GetNearbyPointsOfInterest(c *gin.Context) {
 	var req GetPointsRequest
-	
+
 	if err := c.ShouldBindQuery(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Missing or invalid parameters: " + err.Error(),
 		})
 		return
 	}
-
 	pointsOfInterests, err := h.service.GetNearbyPointsOfInterest(
 		req.Input,
 		req.Lat,

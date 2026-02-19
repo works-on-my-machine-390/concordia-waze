@@ -23,16 +23,18 @@ type googlePlacesClient struct {
 }
 
 type TextSearchPayload struct {
-	pageSize       int    `json:"pageSize"`
-	rankPreference string `json:"rankPreference"`
-	location       struct {
-		center struct {
-			latitude  float64 `json:"latitude"`
-			longitude float64 `json:"longitude"`
-		} `json:"center"`
-		radius int `json:"radius"`
+	PageSize       int    `json:"pageSize"`
+	RankPreference string `json:"rankPreference"`
+	Location       struct {
+		Circle struct {
+			Center struct {
+				Latitude  float64 `json:"latitude"`
+				Longitude float64 `json:"longitude"`
+			} `json:"center"`
+			Radius int `json:"radius"`
+		} `json:"circle"`
 	} `json:"locationBias"`
-	query string `json:"textQuery"`
+	Query string `json:"textQuery"`
 }
 type RawTextSearchResponse struct {
 	Places []struct {
@@ -140,13 +142,13 @@ func (c *googlePlacesClient) TextSearchPlaces(
 	endpoint := "https://places.googleapis.com/v1/places:searchText"
 
 	data := TextSearchPayload{
-		pageSize:       PAGESIZE,
-		rankPreference: rankPreference,
-		query:          input}
+		PageSize:       PAGESIZE,
+		RankPreference: rankPreference,
+		Query:          input}
 
-	data.location.center.latitude = lat
-	data.location.center.longitude = lng
-	data.location.radius = maxDistanceInMeters
+	data.Location.Circle.Center.Latitude = lat
+	data.Location.Circle.Center.Longitude = lng
+	data.Location.Circle.Radius = maxDistanceInMeters
 
 	jsonData, err := json.Marshal(data)
 	if err != nil {
@@ -164,7 +166,8 @@ func (c *googlePlacesClient) TextSearchPlaces(
 		"places.name,"+
 			"places.displayName,"+
 			"places.formattedAddress,"+
-			"places.primaryTypeDisplayName")
+			"places.types,"+
+			"places.location")
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -175,7 +178,7 @@ func (c *googlePlacesClient) TextSearchPlaces(
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("unexpected status code: %d. %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("unexpected status code: %d. %s", resp.StatusCode, body)
 	}
 
 	var placesResp RawTextSearchResponse

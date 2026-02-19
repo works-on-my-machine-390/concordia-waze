@@ -23,6 +23,10 @@ type fakePlacesClient struct {
 	err     error
 }
 
+func (f *fakePlacesClient) TextSearchPlaces(string, float64, float64, int, string) ([]domain.Building, error) {
+	return nil, nil
+}
+
 func (f *fakePlacesClient) FindPlaceID(string, float64, float64) (string, error) {
 	return f.placeID, f.err
 }
