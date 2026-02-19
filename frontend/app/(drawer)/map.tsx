@@ -19,11 +19,27 @@ import LocationButton from "~/components/LocationButton";
 import { MapHeader } from "~/components/MapHeader";
 import { NavigationHeader } from "~/components/NavigationHeader";
 import { getDistance } from "../utils/mapUtils";
+import NearbyResultsBottomSheet from "~/components/NearbyResultsBottomSheet";
+import { fetchPoisBackend, type Poi } from "~/app/utils/poi";
+import { useRouter } from "expo-router";
 
 export default function MainMap() {
   const { selected, campus: campusParam } = useLocalSearchParams<{ selected?: string; campus?: string }>();
   const [campus, setCampus] = useState<CampusCode>(CampusCode.SGW);
   const [searchText, setSearchText] = useState("");
+  const [poiSheetOpen, setPoiSheetOpen] = useState(true);
+  const [poiLoading, setPoiLoading] = useState(false);
+  const [poiSortMode, setPoiSortMode] = useState<"relevance" | "distance">("relevance");
+  const [poiRadiusM, setPoiRadiusM] = useState(1000);
+  const [pois, setPois] = useState<Poi[]>([]);
+  const [hasSearchedPois, setHasSearchedPois] = useState(false);
+  const [poiQuery, setPoiQuery] = useState("restaurants");
+  const router = useRouter();
+  useEffect(() => {
+  if (pois.length > 0) {
+    setPoiSheetOpen(true);
+  }
+  }, [pois.length]);
   const [currentBuildingCode, setCurrentBuildingCode] = useState<string | null>(
     null,
   );
@@ -34,6 +50,28 @@ export default function MainMap() {
   const [location, setLocation] = useState<Location.LocationObject | null>(
     null,
   );
+
+  type PoiWithDistance = Poi & { distanceM: number };
+
+  const poisWithDistance = useMemo<PoiWithDistance[]>(() => {
+    if (!location?.coords) return [];
+
+  const me = {
+    latitude: location.coords.latitude,
+    longitude: location.coords.longitude,
+  };
+
+  return pois
+    .map((p) => ({
+      ...p,
+      distanceM: getDistance(me, {
+        latitude: (p as any).lat ?? (p as any).latitude,
+        longitude: (p as any).lon ?? (p as any).lng ?? (p as any).longitude,
+      }) * 1000,
+    }))
+    .sort((a, b) => a.distanceM - b.distanceM);
+  }, [pois, location?.coords?.latitude, location?.coords?.longitude]);
+
 
   const [buildingsByCampus, setBuildingsByCampus] = useState<
     Record<string, CampusBuilding[]>
@@ -190,6 +228,31 @@ export default function MainMap() {
       sub?.remove();
     };
   }, []);
+
+  useEffect(() => {
+    if (!hasSearchedPois) return;
+    if (!location?.coords) return;
+
+    setPoiLoading(true);
+
+  fetchPoisBackend({
+    query: poiQuery,
+    center: {
+    lat: location.coords.latitude,
+    lon: location.coords.longitude,
+  },
+    radiusM: poiRadiusM,
+    sortMode: poiSortMode,
+  })
+
+    .then(setPois)
+    .catch((e) => {
+      console.error("POI search failed", e);
+      setPois([]);
+    })
+    .finally(() => setPoiLoading(false));
+  }, [ location?.coords?.latitude, location?.coords?.longitude, poiRadiusM, hasSearchedPois, poiQuery, poiSortMode,]);
+
 
   useEffect(() => {
     if (!location?.coords) return;
@@ -355,9 +418,32 @@ export default function MainMap() {
           campus={campus}
           onCampusChange={handleCampusChange}
           searchText={searchText}
-          onSearchTextChange={setSearchText}
-          onMenuPress={() => {}}
-        />
+          onSearchTextChange={(text) => {
+          setSearchText(text);
+      }}
+          onSubmitSearch={(text) => {
+          const q = text.trim().toLowerCase();
+
+          const isPoi =
+          q.includes("restaurant") ||
+          q.includes("cafe") ||
+          q.includes("coffee") ||
+          q.includes("gym") ||
+          q.includes("bar") ||
+          q.includes("pharmacy") ||
+          q.includes("hospital") ||
+          q.includes("library") ||
+          q.includes("bank");
+
+      
+          setPoiQuery(text.trim());
+          setHasSearchedPois(true);
+          setPoiSheetOpen(true);
+        
+
+  }}
+  onMenuPress={() => {}}
+      />
       )}
       <View style={styles.bottomSheetContainer}>
         <LocationButton
@@ -376,6 +462,18 @@ export default function MainMap() {
             isNavigationMode={isNavigationMode}
           />
         )}
+        <NearbyResultsBottomSheet
+  visible={poiSheetOpen}
+  loading={poiLoading}
+  pois={poisWithDistance}
+  sortMode={poiSortMode}
+  radiusM={poiRadiusM}
+  onClose={() => setPoiSheetOpen(false)}
+  onChangeSort={setPoiSortMode}
+  onChangeRadius={setPoiRadiusM}
+  onSelectPoi={() => {}}
+/>
+
       </View>
     </View>
   );

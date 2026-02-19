@@ -53,6 +53,15 @@ const mockCampusBuildingPolygons = jest.fn(
 let latestCampus: string | undefined;
 let capturedBottomSheetOnClose: (() => void) | null = null;
 
+let capturedNearbyResultsProps: any = null;
+
+jest.mock("../components/NearbyResultsBottomSheet", () => {
+  return function MockNearbyResultsBottomSheet(props: any) {
+    capturedNearbyResultsProps = props;
+    return null;
+  };
+});
+
 // IMPORTANT:
 // This mock assumes MainMap imports CampusBuildingPolygons as DEFAULT:
 //   import CampusBuildingPolygons from "../components/CampusBuildingPolygons"
@@ -115,8 +124,7 @@ jest.mock("react-native-maps", () => {
   };
 });
 
-// Mock the BuildingBottomSheet component to not render it during test
-// returns null because only want to test MainMap behavior (not the bottom sheet itself)
+// Mock the BuildingBottomSheet component
 let capturedOnStartNavigation: (() => void) | null = null;
 
 jest.mock('@/components/BuildingBottomSheet', () => {

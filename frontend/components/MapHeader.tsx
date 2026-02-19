@@ -11,6 +11,7 @@ type Props = Readonly<{
   onMenuPress?: () => void;
   searchText: string;
   onSearchTextChange: (t: string) => void;
+  onSubmitSearch?: (text: string) => void;
 }>;
 
 export function MapHeader({
@@ -19,6 +20,7 @@ export function MapHeader({
   onMenuPress,
   searchText,
   onSearchTextChange,
+  onSubmitSearch,
 }: Props) {
   const navigation = useNavigation();
   const router = useRouter();
@@ -43,7 +45,7 @@ export function MapHeader({
         </Pressable>
 
         {/* search section */}
-        <Pressable style={styles.searchPill} onPress={buildingSearch}>
+        <View style={styles.searchPill}>
           <Ionicons name="search" size={26} color={colors.maroon} />
           <TextInput
             value={searchText}
@@ -51,9 +53,14 @@ export function MapHeader({
             placeholder="Where to…"
             placeholderTextColor="#818181"
             style={styles.searchInput}
-            editable={false}
+            editable={true}
+            returnKeyType="search"
+            onSubmitEditing={() => onSubmitSearch?.(searchText)}
           />
+        <Pressable onPress={buildingSearch} hitSlop={10} style={styles.buildingBtn}>
+          <Ionicons name="business" size={20} color={colors.maroon} />
         </Pressable>
+        </View>
       </View>
       {/* campus selection sections */}
       <View style={styles.chipsRow}>
@@ -148,6 +155,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#111",
     paddingVertical: 0,
+  },
+
+  buildingBtn: {
+  width: 34,
+  height: 34,
+  borderRadius: 17,
+  alignItems: "center",
+  justifyContent: "center",
   },
 
   chipsRow: {

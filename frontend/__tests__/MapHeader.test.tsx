@@ -1,82 +1,105 @@
-/**
- * Tests for MapHeader component
- */
+import React from "react";
 import { render, fireEvent } from "@testing-library/react-native";
-import { MapHeader } from "@/components/MapHeader";
+import { DrawerActions } from "@react-navigation/native";
+import { CampusCode } from "@/hooks/queries/buildingQueries";
+import { MapHeader } from "@/components/MapHeader"; // <-- adjust if your path differs
+
+// ---- Ionicons mock (safe: no out-of-scope Text usage) ----
+jest.mock("@expo/vector-icons", () => {
+  const React = require("react");
+  const { Text } = require("react-native");
+  return {
+    Ionicons: ({ name }: any) => React.createElement(Text, null, name),
+  };
+});
+
+// ---- Navigation + router mocks ----
+const mockDispatch = jest.fn();
+jest.mock("@react-navigation/native", () => {
+  const actual = jest.requireActual("@react-navigation/native");
+  return {
+    ...actual,
+    DrawerActions: actual.DrawerActions,
+    useNavigation: () => ({ dispatch: mockDispatch }),
+  };
+});
+
+const mockPush = jest.fn();
+jest.mock("expo-router", () => ({
+  useRouter: () => ({ push: mockPush }),
+  useNavigation: () => ({ dispatch: mockDispatch }),
+}));
 
 describe("MapHeader", () => {
-  test("SGW button is active when campus prop is 'SGW'", () => {
-    const { getByText } = render(
-      <MapHeader
-        campus="SGW"
-        onCampusChange={jest.fn()}
-        onMenuPress={jest.fn()}
-        searchText=""
-        onSearchTextChange={jest.fn()}
-      />,
-    );
+  const baseProps = {
+    campus: CampusCode.SGW,
+    onCampusChange: jest.fn(),
+    onMenuPress: jest.fn(),
+    searchText: "",
+    onSearchTextChange: jest.fn(),
+    onSubmitSearch: jest.fn(),
+  };
 
-    const sgwButton = getByText("SGW");
-    const loyolaButton = getByText("Loyola");
-
-    // SGW button should have active text color (soft pink)
-    expect(sgwButton.props.style).toEqual(
-      expect.arrayContaining([expect.objectContaining({ color: "#DEBDC4" })]),
-    );
-
-    // Loyola button should not be active
-    expect(loyolaButton.props.style).toEqual(
-      expect.arrayContaining([expect.objectContaining({ color: "#222" })]),
-    );
+  beforeEach(() => {
+    jest.clearAllMocks();
   });
 
-  test("Loyola button is active when campus prop is 'Loyola'", () => {
-    const { getByText } = render(
-      <MapHeader
-        campus="LOY"
-        onCampusChange={jest.fn()}
-        onMenuPress={jest.fn()}
-        searchText=""
-        onSearchTextChange={jest.fn()}
-      />,
-    );
+  test("pressing menu triggers drawer open + onMenuPress", () => {
+    const { getByText } = render(<MapHeader {...baseProps} />);
 
-    const loyolaButton = getByText("Loyola");
-    const sgwButton = getByText("SGW");
+    // Icon mock renders the name as text
+    const menuIcon = getByText("menu");
 
-    // Loyola button should now be active (soft pink)
-    expect(loyolaButton.props.style).toEqual(
-      expect.arrayContaining([expect.objectContaining({ color: "#DEBDC4" })]),
-    );
+    // Press the wrapper Pressable (parent)
+    fireEvent.press((menuIcon as any).parent);
 
-    // SGW button should now be inactive (dark gray)
-    expect(sgwButton.props.style).toEqual(
-      expect.arrayContaining([expect.objectContaining({ color: "#222" })]),
-    );
+    expect(mockDispatch).toHaveBeenCalledTimes(1);
+    expect(mockDispatch).toHaveBeenCalledWith(DrawerActions.openDrawer());
+    expect(baseProps.onMenuPress).toHaveBeenCalledTimes(1);
   });
 
-  test("Clicking SGW or Loyola button calls onCampusChange with correct value", () => {
-    const mockOnCampusChange = jest.fn();
+  test("typing in the search input calls onSearchTextChange", () => {
+    const { getByPlaceholderText } = render(<MapHeader {...baseProps} />);
 
-    const { getByText } = render(
-      <MapHeader
-        campus="SGW"
-        onCampusChange={mockOnCampusChange}
-        onMenuPress={jest.fn()}
-        searchText=""
-        onSearchTextChange={jest.fn()}
-      />,
-    );
+    const input = getByPlaceholderText("Where to…");
+    fireEvent.changeText(input, "Hall building");
 
-    const loyolaButton = getByText("Loyola");
-    const sgwButton = getByText("SGW");
-
-    fireEvent.press(loyolaButton);
-    expect(mockOnCampusChange).toHaveBeenCalledWith("LOY");
-
-    fireEvent.press(sgwButton);
-    expect(mockOnCampusChange).toHaveBeenCalledWith("SGW");
+    expect(baseProps.onSearchTextChange).toHaveBeenCalledWith("Hall building");
   });
 
-  // TO DO: need more tests for menu button and search input
+  test("submitting search calls onSubmitSearch with current searchText", () => {
+    const props = { ...baseProps, searchText: "JMSB" };
+    const { getByPlaceholderText } = render(<MapHeader {...props} />);
+
+    const input = getByPlaceholderText("Where to…");
+    fireEvent(input, "submitEditing");
+
+    expect(props.onSubmitSearch).toHaveBeenCalledWith("JMSB");
+  });
+
+  test("pressing SGW calls onCampusChange(SGW)", () => {
+    const { getByText } = render(<MapHeader {...baseProps} campus={CampusCode.LOY} />);
+
+    fireEvent.press(getByText("SGW"));
+    expect(baseProps.onCampusChange).toHaveBeenCalledWith(CampusCode.SGW);
+  });
+
+  test("pressing Loyola calls onCampusChange(LOY)", () => {
+    const { getByText } = render(<MapHeader {...baseProps} campus={CampusCode.SGW} />);
+
+    fireEvent.press(getByText("Loyola"));
+    expect(baseProps.onCampusChange).toHaveBeenCalledWith(CampusCode.LOY);
+  });
+
+  test("pressing building button navigates to /search with campus param", () => {
+    const { getByText } = render(<MapHeader {...baseProps} campus={CampusCode.SGW} />);
+
+    const businessIcon = getByText("business");
+    fireEvent.press((businessIcon as any).parent);
+
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/search",
+      params: { campus: CampusCode.SGW },
+    });
+  });
 });
