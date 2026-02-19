@@ -3,8 +3,43 @@
  */
 import { render, fireEvent } from "@testing-library/react-native";
 import { MapHeader } from "@/components/MapHeader";
+import { useNavigation, useRouter } from "expo-router";
+import { DrawerActions } from "@react-navigation/native";
+
+// Mock expo-router
+jest.mock("expo-router", () => ({
+  useNavigation: jest.fn(),
+  useRouter: jest.fn(),
+}));
+
+// Mock @react-navigation/native
+jest.mock("@react-navigation/native", () => ({
+  DrawerActions: {
+    openDrawer: jest.fn(() => ({ type: "OPEN_DRAWER" })),
+  },
+}));
 
 describe("MapHeader", () => {
+  let mockDispatch: jest.Mock;
+  let mockPush: jest.Mock;
+
+  beforeEach(() => {
+    mockDispatch = jest.fn();
+    mockPush = jest.fn();
+
+    (useNavigation as jest.Mock).mockReturnValue({
+      dispatch: mockDispatch,
+    });
+
+    (useRouter as jest.Mock).mockReturnValue({
+      push: mockPush,
+    });
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   test("SGW button is active when campus prop is 'SGW'", () => {
     const { getByText } = render(
       <MapHeader
@@ -78,5 +113,85 @@ describe("MapHeader", () => {
     expect(mockOnCampusChange).toHaveBeenCalledWith("SGW");
   });
 
-  // TO DO: need more tests for menu button and search input
+  test("pressing menu button dispatches DrawerActions.openDrawer and calls onMenuPress", () => {
+    const mockOnMenuPress = jest.fn();
+
+    const { getByTestId } = render(
+      <MapHeader
+        campus="SGW"
+        onCampusChange={jest.fn()}
+        onMenuPress={mockOnMenuPress}
+        searchText=""
+        onSearchTextChange={jest.fn()}
+      />,
+    );
+
+    // Get the menu button (first icon button with menu icon)
+    const menuButton = getByTestId("menu-button");
+
+    fireEvent.press(menuButton);
+
+    expect(mockDispatch).toHaveBeenCalledWith({ type: "OPEN_DRAWER" });
+    expect(mockOnMenuPress).toHaveBeenCalled();
+  });
+
+  test("pressing search pill navigates to search page with campus parameter", () => {
+    const { getByTestId } = render(
+      <MapHeader
+        campus="SGW"
+        onCampusChange={jest.fn()}
+        onMenuPress={jest.fn()}
+        searchText=""
+        onSearchTextChange={jest.fn()}
+      />,
+    );
+
+    const searchPill = getByTestId("search-pill");
+
+    fireEvent.press(searchPill);
+
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/search",
+      params: { campus: "SGW" },
+    });
+  });
+
+  test("pressing search pill with LOY campus navigates with LOY parameter", () => {
+    const { getByTestId } = render(
+      <MapHeader
+        campus="LOY"
+        onCampusChange={jest.fn()}
+        onMenuPress={jest.fn()}
+        searchText=""
+        onSearchTextChange={jest.fn()}
+      />,
+    );
+
+    const searchPill = getByTestId("search-pill");
+
+    fireEvent.press(searchPill);
+
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/search",
+      params: { campus: "LOY" },
+    });
+  });
+
+  test("onMenuPress is optional and component handles undefined gracefully", () => {
+    const { getByTestId } = render(
+      <MapHeader
+        campus="SGW"
+        onCampusChange={jest.fn()}
+        searchText=""
+        onSearchTextChange={jest.fn()}
+      />,
+    );
+
+    const menuButton = getByTestId("menu-button");
+
+    // Should not throw error when onMenuPress is undefined
+    fireEvent.press(menuButton);
+
+    expect(mockDispatch).toHaveBeenCalledWith({ type: "OPEN_DRAWER" });
+  });
 });
