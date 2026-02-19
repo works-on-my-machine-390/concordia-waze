@@ -75,7 +75,7 @@ export async function fetchPoisBackend(params: {
     );
   }
 
-  const url = new URL(`${API_BASE}/api/pointofinterest`);
+  const url = new URL(`${API_BASE}/pointofinterest`);
   url.searchParams.set("input", query);
   url.searchParams.set("lat", String(center.lat));
   url.searchParams.set("lng", String(center.lon));
