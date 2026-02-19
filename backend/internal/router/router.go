@@ -41,6 +41,7 @@ func SetupRouter() *gin.Engine {
 	imageService := application.NewImageService(buildingService, placesClient)
 	firebaseService := application.NewFirebaseService()
 	shuttleService := application.NewShuttleService(shuttleDataRepo)
+	pointOfInterestService := application.NewPointOfInterestService(placesClient)
 
 	authHandler := handler.NewAuthHandler(userService, firebaseService)
 
@@ -49,6 +50,7 @@ func SetupRouter() *gin.Engine {
 	imageHandler := handler.NewImageHandler(imageService)
 	firebaseHandler := handler.NewFirebaseHandler(firebaseService)
 	shuttleHandler := handler.NewShuttleHandler(shuttleService)
+	pointOfInterestHandler := handler.NewPointOfInterestHandler(pointOfInterestService)
 
 	router.Use(middleware.AuthMiddleware(jwtManager))
 
@@ -93,6 +95,7 @@ func SetupRouter() *gin.Engine {
 		shuttleGroup.GET("", shuttleHandler.GetDepartureData)
 		shuttleGroup.GET("/:day/:campus_code", shuttleHandler.GetCampusDaySchedule)
 	}
+	router.GET("/pointofinterest", pointOfInterestHandler.GetNearbyPointsOfInterest)
 
 	router.GET("/campuses/:campus/buildings", campusHandler.GetCampusBuildings)
 

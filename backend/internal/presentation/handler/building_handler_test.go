@@ -44,6 +44,10 @@ func (f *fakePlacesClient) GetPhotoURLs(string) ([]string, error) {
 	return f.images, f.err
 }
 
+func (f *fakePlacesClient) TextSearchPlaces(input string, lat, lng float64, maxDistanceInMeters int, rankPreference string) ([]domain.Building, error) {
+	return nil, nil
+}
+
 func (f *fakeBuildingRepo) GetBuilding(code string) (*domain.Building, error) {
 	if f.buildingErr != nil {
 		return nil, f.buildingErr
