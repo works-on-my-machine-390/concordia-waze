@@ -38,12 +38,12 @@ export function MapHeader({
     <View style={styles.wrapper} pointerEvents="box-none">
       <View style={styles.headerRow}>
         {/* menu section */}
-        <Pressable style={styles.iconButton} onPress={handleMenuButtonPress} testID="menu-button">
+        <Pressable style={styles.iconButton} onPress={handleMenuButtonPress}>
           <Ionicons name="menu" size={26} color={colors.maroon} />
         </Pressable>
 
         {/* search section */}
-        <Pressable style={styles.searchPill} onPress={buildingSearch} testID="search-pill">
+        <Pressable style={styles.searchPill} onPress={buildingSearch}>
           <Ionicons name="search" size={26} color={colors.maroon} />
           <TextInput
             value={searchText}
