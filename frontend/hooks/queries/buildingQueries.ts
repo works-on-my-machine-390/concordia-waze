@@ -79,3 +79,30 @@ export const useGetBuildingImages = (buildingCode: string) => {
     staleTime: Infinity,
   });
 };
+
+// Types for the /buildings/list endpoint (used by Directory page)
+export interface AllBuildingsResponse {
+  buildings: {
+    SGW: BuildingListItem[];
+    LOY: BuildingListItem[];
+  };
+}
+
+export interface BuildingListItem {
+  name: string;
+  long_name: string;
+  code: string;
+  campus: string;
+}
+
+// Hook to fetch all buildings for Directory page
+export const useGetAllBuildings = () => {
+  return useQuery<AllBuildingsResponse>({
+    queryKey: ["buildings", "all"],
+    queryFn: async () => {
+      const apiClient = await api();
+      return apiClient.get("/buildings/list").json<AllBuildingsResponse>();
+    },
+    staleTime: 1000 * 60 * 10,
+  });
+};

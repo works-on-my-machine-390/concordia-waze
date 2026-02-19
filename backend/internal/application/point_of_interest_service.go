@@ -7,7 +7,7 @@ import (
 	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
 )
 
-type PointOfInterestService interface {
+type PointOfInterestGetter interface {
 	GetNearbyPointsOfInterest(input string, lat, lng float64, maxDistanceInMeters int, rankPreference string) ([]domain.Building, error)
 }
 
@@ -15,7 +15,7 @@ type pointOfInterestService struct {
 	placesClient google.PlacesClient
 }
 
-func NewPointOfInterestService(placesClient google.PlacesClient) PointOfInterestService {
+func NewPointOfInterestService(placesClient google.PlacesClient) PointOfInterestGetter {
 	return &pointOfInterestService{placesClient: placesClient}
 }
 

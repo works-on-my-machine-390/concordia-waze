@@ -19,12 +19,12 @@ import LocationButton from "~/components/LocationButton";
 import { MapHeader } from "~/components/MapHeader";
 import { NavigationHeader } from "~/components/NavigationHeader";
 import { getDistance } from "../utils/mapUtils";
-import NearbyResultsBottomSheet from "~/components/NearbyResultsBottomSheet";
-import { fetchPoisBackend, type Poi } from "~/app/utils/poi";
 import { useRouter } from "expo-router";
+import type { Poi } from "../utils/poi";
+import { fetchPoisBackend } from "../utils/poi";
+import NearbyResultsBottomSheet from "~/components/NearbyResultsBottomSheet";
 
 export default function MainMap() {
-  const { selected, campus: campusParam } = useLocalSearchParams<{ selected?: string; campus?: string }>();
   const [campus, setCampus] = useState<CampusCode>(CampusCode.SGW);
   const [searchText, setSearchText] = useState("");
   const [poiSheetOpen, setPoiSheetOpen] = useState(true);
@@ -95,33 +95,6 @@ export default function MainMap() {
       }));
     }
   }, [buildingListQuery.data]);
-
-  // Initialize building selection from search params, if present
-  useEffect(() => {
-    if (typeof selected === "string" && selected.length > 0) {
-      setSelectedBuildingCode(selected);
-    }
-  }, [selected]);
-
-  // Initialize campus from navigation params, if present
-  useEffect(() => {
-    if (typeof campusParam === "string") {
-      const normalized = campusParam.toUpperCase();
-      if (normalized === CampusCode.SGW || normalized === CampusCode.LOY) {
-        setCampus(normalized as CampusCode);
-        const coords = CAMPUS_COORDS[normalized as CampusCode];
-        mapRef.current?.animateToRegion(
-          {
-            latitude: coords.latitude,
-            longitude: coords.longitude,
-            latitudeDelta: 0.005,
-            longitudeDelta: 0.005,
-          },
-          500,
-        );
-      }
-    }
-  }, [campusParam]);
 
   const buildingsToRender = useMemo(() => {
     return buildingsByCampus[campus] || [];

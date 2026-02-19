@@ -10,9 +10,9 @@ import (
 // It compares the userID from the JWT claims with the userID in the URL parameter
 func ValidateUserOwnership() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Get authenticated user ID from context (set by AuthMiddleware)
-		userID, exists := c.Get("userID")
-		if !exists {
+		// Get authenticated user from context (set by AuthMiddleware)
+		userClaims := GetUserFromContext(c)
+		if userClaims == nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
 			c.Abort()
 			return
@@ -27,7 +27,7 @@ func ValidateUserOwnership() gin.HandlerFunc {
 		}
 
 		// Verify that the authenticated user matches the requested resource owner
-		if userID != requestedUserID {
+		if userClaims.ID != requestedUserID {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Access denied: You can only access your own resources"})
 			c.Abort()
 			return

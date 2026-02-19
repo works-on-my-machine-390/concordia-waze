@@ -85,15 +85,6 @@ const docTemplate = `{
                     "auth"
                 ],
                 "summary": "Logout user",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer token",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    }
-                ],
                 "responses": {
                     "200": {
                         "description": "Logout successful",
@@ -134,15 +125,6 @@ const docTemplate = `{
                     "auth"
                 ],
                 "summary": "Get user profile",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer token",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    }
-                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -405,6 +387,85 @@ const docTemplate = `{
                 }
             }
         },
+        "/pointofinterest": {
+            "get": {
+                "description": "Get nearby points of interest via text search from Google Places API",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "point of interest"
+                ],
+                "summary": "Get nearby points of interest",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search query (e.g., 'coffee shop')",
+                        "name": "input",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "number",
+                        "description": "Latitude of the location",
+                        "name": "lat",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "number",
+                        "description": "Longitude of the location",
+                        "name": "lng",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Maximum distance in meters (default: 1000)",
+                        "name": "max_distance",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Rank preference (e.g., 'DISTANCE', 'RELEVANCE'; default: 'DISTANCE')",
+                        "name": "rank_preference",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/domain.Building"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "bad request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/shuttle": {
             "get": {
                 "description": "Returns the entire shuttle schedule as a mapping: day -\u003e campus -\u003e list of times.",
@@ -524,13 +585,6 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Bearer token",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
                         "description": "User ID",
                         "name": "userId",
                         "in": "path",
@@ -583,13 +637,6 @@ const docTemplate = `{
                 ],
                 "summary": "Add destination history",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer token",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
                     {
                         "type": "string",
                         "description": "User ID",
@@ -654,13 +701,6 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Bearer token",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
                         "description": "User ID",
                         "name": "userId",
                         "in": "path",
@@ -705,13 +745,6 @@ const docTemplate = `{
                 ],
                 "summary": "Get user profile",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer token",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
                     {
                         "type": "string",
                         "description": "User ID",
@@ -774,13 +807,6 @@ const docTemplate = `{
                 ],
                 "summary": "Create user profile",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer token",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
                     {
                         "type": "string",
                         "description": "User ID",
@@ -865,13 +891,6 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Bearer token",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
                         "description": "User ID",
                         "name": "userId",
                         "in": "path",
@@ -935,13 +954,6 @@ const docTemplate = `{
                 ],
                 "summary": "Add favorite",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer token",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
                     {
                         "type": "string",
                         "description": "User ID",
@@ -1027,13 +1039,6 @@ const docTemplate = `{
                 ],
                 "summary": "Update saved address",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer token",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
                     {
                         "type": "string",
                         "description": "User ID",
@@ -1124,13 +1129,6 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Bearer token",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
                         "description": "User ID",
                         "name": "userId",
                         "in": "path",
@@ -1202,13 +1200,6 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Bearer token",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
                         "description": "User ID",
                         "name": "userId",
                         "in": "path",
@@ -1272,13 +1263,6 @@ const docTemplate = `{
                 ],
                 "summary": "Add schedule item",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer token",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
                     {
                         "type": "string",
                         "description": "User ID",
@@ -1364,13 +1348,6 @@ const docTemplate = `{
                 ],
                 "summary": "Update schedule item",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer token",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
                     {
                         "type": "string",
                         "description": "User ID",
@@ -1459,13 +1436,6 @@ const docTemplate = `{
                 ],
                 "summary": "Delete schedule item",
                 "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Bearer token",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
                     {
                         "type": "string",
                         "description": "User ID",
