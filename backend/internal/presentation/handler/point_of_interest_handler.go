@@ -8,10 +8,10 @@ import (
 )
 
 type PointOfInterestHandler struct {
-	service application.PointOfInterestService
+	service application.PointOfInterestGetter
 }
 
-func NewPointOfInterestHandler(service application.PointOfInterestService) *PointOfInterestHandler {
+func NewPointOfInterestHandler(service application.PointOfInterestGetter) *PointOfInterestHandler {
 	return &PointOfInterestHandler{service: service}
 }
 
