@@ -19,7 +19,6 @@ import LocationButton from "~/components/LocationButton";
 import { MapHeader } from "~/components/MapHeader";
 import { NavigationHeader } from "~/components/NavigationHeader";
 import { getDistance } from "../utils/mapUtils";
-import { useLocalSearchParams } from "expo-router";
 
 export default function MainMap() {
   const { selected, campus: campusParam } = useLocalSearchParams<{ selected?: string; campus?: string }>();
