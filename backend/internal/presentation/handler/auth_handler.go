@@ -190,7 +190,6 @@ func (h *AuthHandler) Login(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param Authorization header string true "Bearer token"
 // @Success 200 {object} AuthResponse
 // @Failure 401 {object} map[string]string "Not authenticated"
 // @Failure 404 {object} map[string]string "User not found"
@@ -239,7 +238,6 @@ func (h *AuthHandler) GetProfile(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param Authorization header string true "Bearer token"
 // @Success 200 {object} map[string]string "Logout successful"
 // @Failure 401 {object} map[string]string "Not authenticated"
 // @Router /auth/logout [post]

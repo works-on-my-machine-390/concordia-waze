@@ -233,12 +233,6 @@ paths:
       consumes:
       - application/json
       description: Logout the authenticated user and revoke their token
-      parameters:
-      - description: Bearer token
-        in: header
-        name: Authorization
-        required: true
-        type: string
       produces:
       - application/json
       responses:
@@ -264,12 +258,6 @@ paths:
       consumes:
       - application/json
       description: Get the authenticated user's information
-      parameters:
-      - description: Bearer token
-        in: header
-        name: Authorization
-        required: true
-        type: string
       produces:
       - application/json
       responses:
