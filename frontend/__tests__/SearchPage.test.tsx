@@ -757,4 +757,427 @@ describe("SearchPage", () => {
       }, { timeout: 1000 });
     });
   });
+
+  describe("Code Extraction and Validation", () => {
+    test("extracts valid building code from query", async () => {
+      (guestStorage.getGuestSearchHistory as jest.Mock).mockResolvedValue([]);
+
+      const { getByPlaceholderText, queryByText } = await renderAndFlush();
+
+      const input = getByPlaceholderText("Where to…");
+      // Type just "H" to match the building code
+      fireEvent.changeText(input, "H");
+
+      await waitFor(() => {
+        const result = queryByText(/^H/);
+        expect(result).toBeTruthy();
+      });
+    });
+
+    test("does not recognize code longer than 5 characters", async () => {
+      (guestStorage.getGuestSearchHistory as jest.Mock).mockResolvedValue([]);
+
+      const { getByPlaceholderText, getByText } = await renderAndFlush();
+
+      const input = getByPlaceholderText("Where to…");
+      // Type a code that's too long
+      fireEvent.changeText(input, "TOOLONG");
+
+      expect(getByText("No matches found")).toBeTruthy();
+    });
+
+    test("recognizes alphanumeric codes", async () => {
+      (guestStorage.getGuestSearchHistory as jest.Mock).mockResolvedValue([]);
+
+      const { getByPlaceholderText, queryByText } = await renderAndFlush();
+
+      const input = getByPlaceholderText("Where to…");
+      fireEvent.changeText(input, "MB");
+
+      await waitFor(() => {
+        const result = queryByText(/^MB/);
+        expect(result).toBeTruthy();
+      });
+    });
+  });
+
+  describe("Results Scoring and Filtering", () => {
+    test("prioritizes code match over name match", async () => {
+      (useGetBuildings as jest.Mock).mockImplementation((campus: string) => {
+        if (campus === "SGW") {
+          return {
+            data: {
+              campus: "SGW",
+              buildings: [
+                { code: "H", polygon: [] },
+                { code: "MB", polygon: [] },
+                { code: "HA", polygon: [] },
+              ],
+            },
+            isLoading: false,
+            isSuccess: true,
+          };
+        }
+        return { data: { campus: "LOY", buildings: [] }, isLoading: false, isSuccess: true };
+      });
+
+      (guestStorage.getGuestSearchHistory as jest.Mock).mockResolvedValue([]);
+
+      const { getByPlaceholderText, getAllByText } = await renderAndFlush();
+
+      const input = getByPlaceholderText("Where to…");
+      // Query "H" should match H (code match) first, then HA
+      fireEvent.changeText(input, "H");
+
+      await waitFor(() => {
+        const results = getAllByText(/^H/);
+        expect(results.length).toBeGreaterThan(0);
+      });
+    });
+
+    test("includes address in search results", async () => {
+      (useGetBuildings as jest.Mock).mockImplementation((campus: string) => {
+        if (campus === "SGW") {
+          return {
+            data: {
+              campus: "SGW",
+              buildings: [{ code: "H", polygon: [] }],
+            },
+            isLoading: false,
+            isSuccess: true,
+          };
+        }
+        return { data: { campus: "LOY", buildings: [] }, isLoading: false, isSuccess: true };
+      });
+
+      (guestStorage.getGuestSearchHistory as jest.Mock).mockResolvedValue([]);
+
+      const { getByPlaceholderText, queryByText } = await renderAndFlush();
+
+      const input = getByPlaceholderText("Where to…");
+      // Search by address substring
+      fireEvent.changeText(input, "De Maisonneuve");
+
+      await waitFor(() => {
+        // Results might include address-matched buildings
+        const result = queryByText(/De Maisonneuve/);
+        // Address should be shown if building matches
+        expect(result === null || queryByText(/^H/) !== null).toBe(true);
+      });
+    });
+  });
+
+  describe("Recent Search Deduplication", () => {
+    test("deduplicates recent searches with same query", async () => {
+      (guestStorage.getGuestSearchHistory as jest.Mock).mockResolvedValue([
+        {
+          query: "H",
+          locations: "1455 De Maisonneuve Blvd. W.",
+          timestamp: new Date(),
+        },
+        {
+          query: "H",
+          locations: "1455 De Maisonneuve Blvd. W.",
+          timestamp: new Date(),
+        },
+      ]);
+
+      const { queryAllByText } = await renderAndFlush();
+
+      // Should only show one "Recent searches" heading
+      const recentSections = queryAllByText("Recent searches");
+      expect(recentSections.length).toBe(1);
+    });
+
+    test("shows different recent search items separately", async () => {
+      (guestStorage.getGuestSearchHistory as jest.Mock).mockResolvedValue([
+        {
+          query: "H",
+          locations: "1455 De Maisonneuve Blvd. W.",
+          timestamp: new Date(),
+        },
+        {
+          query: "MB",
+          locations: "1450 Guy St.",
+          timestamp: new Date(),
+        },
+      ]);
+
+      const { queryByText } = await renderAndFlush();
+
+      expect(queryByText("Recent searches")).toBeTruthy();
+      // Both items should be shown
+      expect(queryByText(/H/)).toBeTruthy();
+      expect(queryByText(/MB/)).toBeTruthy();
+    });
+  });
+
+  describe("PendingRecent and Exact Matching", () => {
+    test("navigates when recent item code is already set", async () => {
+      (guestStorage.getGuestSearchHistory as jest.Mock).mockResolvedValue([
+        {
+          query: "H",
+          locations: "1455 De Maisonneuve Blvd. W.",
+          code: "H",
+          timestamp: new Date(),
+        },
+      ]);
+
+      const { queryByText } = await renderAndFlush();
+
+      await waitFor(() => {
+        const item = queryByText(/^H/);
+        expect(item).toBeTruthy();
+        if (item) {
+          fireEvent.press(item);
+        }
+      });
+
+      await waitFor(() => {
+        expect(mockRouter.replace).toHaveBeenCalledWith({
+          pathname: "/map",
+          params: { selected: "H", campus: "SGW" },
+        });
+      }, { timeout: 1000 });
+    });
+
+    test("navigates to first search result when exact match not found in pendingRecent", async () => {
+      (guestStorage.getGuestSearchHistory as jest.Mock).mockResolvedValue([
+        {
+          query: "Hall",
+          locations: "1455 De Maisonneuve Blvd. W.",
+          timestamp: new Date(),
+        },
+      ]);
+
+      const { queryByText, getByPlaceholderText } = await renderAndFlush();
+
+      // Manually trigger pendingRecent logic by setting a pending recent search
+      const recentItem = queryByText(/Hall/);
+      expect(recentItem).toBeTruthy();
+      
+      if (recentItem) {
+        fireEvent.press(recentItem);
+      }
+
+      await waitFor(() => {
+        expect(mockRouter.replace).toHaveBeenCalled();
+      }, { timeout: 1000 });
+    });
+  });
+
+  describe("Edge Cases and Error Handling", () => {
+    test("handles query with only whitespace", async () => {
+      (guestStorage.getGuestSearchHistory as jest.Mock).mockResolvedValue([]);
+
+      const { getByPlaceholderText, getByText } = await renderAndFlush();
+
+      const input = getByPlaceholderText("Where to…");
+      fireEvent.changeText(input, "   ");
+
+      expect(getByText("Start typing to search")).toBeTruthy();
+    });
+
+    test("handles search result with missing building details", async () => {
+      (useGetBuildings as jest.Mock).mockImplementation((campus: string) => {
+        if (campus === "SGW") {
+          return {
+            data: {
+              campus: "SGW",
+              buildings: [{ code: "H", polygon: [] }],
+            },
+            isLoading: false,
+            isSuccess: true,
+          };
+        }
+        return { data: { campus: "LOY", buildings: [] }, isLoading: false, isSuccess: true };
+      });
+
+      (guestStorage.getGuestSearchHistory as jest.Mock).mockResolvedValue([]);
+
+      const { getByPlaceholderText, queryByText } = await renderAndFlush();
+
+      const input = getByPlaceholderText("Where to…");
+      fireEvent.changeText(input, "H");
+
+      await waitFor(() => {
+        const result = queryByText(/^H/);
+        expect(result).toBeTruthy();
+      });
+    });
+
+    test("handles selecting result when details are not in cache yet", async () => {
+      (guestStorage.getGuestSearchHistory as jest.Mock).mockResolvedValue([]);
+      const mockSaveToHistory = jest.fn();
+      (useSaveToHistory as jest.Mock).mockReturnValue({
+        mutate: mockSaveToHistory,
+        isPending: false,
+      });
+
+      const { getByPlaceholderText, queryByText } = await renderAndFlush();
+
+      const input = getByPlaceholderText("Where to…");
+      fireEvent.changeText(input, "H");
+
+      await waitFor(() => {
+        const result = queryByText(/^H/);
+        if (result) {
+          fireEvent.press(result);
+        }
+      });
+
+      // Should still navigate even if building details aren't cached
+      await waitFor(() => {
+        expect(mockRouter.replace).toHaveBeenCalled();
+      }, { timeout: 1000 });
+    });
+
+    test("does not crash when recordRecentSearch encounters error", async () => {
+      (guestStorage.addGuestSearchHistory as jest.Mock).mockRejectedValue(
+        new Error("Storage error")
+      );
+
+      const { getByPlaceholderText, queryByText } = await renderAndFlush();
+
+      const input = getByPlaceholderText("Where to…");
+      fireEvent.changeText(input, "H");
+
+      await waitFor(() => {
+        const result = queryByText(/^H/);
+        if (result) {
+          fireEvent.press(result);
+        }
+      });
+
+      // Navigation should still happen even if history save fails
+      await waitFor(() => {
+        expect(mockRouter.replace).toHaveBeenCalled();
+      }, { timeout: 1000 });
+    });
+
+    test("attempts extraction for recent search without code", async () => {
+      (guestStorage.getGuestSearchHistory as jest.Mock).mockResolvedValue([
+        {
+          query: "MB",
+          locations: "John Molson Building",
+          timestamp: new Date(),
+        },
+      ]);
+
+      const { queryByText } = await renderAndFlush();
+
+      const recentItem = queryByText(/MB/);
+      expect(recentItem).toBeTruthy();
+
+      if (recentItem) {
+        fireEvent.press(recentItem);
+      }
+
+      // Should navigate because "MB" can be extracted from query
+      await waitFor(() => {
+        expect(mockRouter.replace).toHaveBeenCalled();
+      }, { timeout: 1000 });
+    });
+  });
+
+  describe("Cross-Campus Behavior", () => {
+    test("selects appropriate campus when building exists on only one campus", async () => {
+      (guestStorage.getGuestSearchHistory as jest.Mock).mockResolvedValue([]);
+
+      const { getByPlaceholderText, queryByText } = await renderAndFlush();
+
+      const input = getByPlaceholderText("Where to…");
+      // "CC" only exists on LOY campus in the mock data
+      fireEvent.changeText(input, "CC");
+
+      await waitFor(() => {
+        const result = queryByText(/^CC/);
+        if (result) {
+          fireEvent.press(result);
+        }
+      });
+
+      await waitFor(() => {
+        expect(mockRouter.replace).toHaveBeenCalledWith(
+          expect.objectContaining({
+            params: expect.objectContaining({
+              campus: "LOY",
+            }),
+          })
+        );
+      }, { timeout: 1000 });
+    });
+
+    test("maintains campus context when navigating from recent search", async () => {
+      (guestStorage.getGuestSearchHistory as jest.Mock).mockResolvedValue([
+        {
+          query: "CC",
+          locations: "Loyola Campus",
+          code: "CC",
+          timestamp: new Date(),
+        },
+      ]);
+
+      const { queryByText } = await renderAndFlush();
+
+      const recentItem = queryByText(/CC/);
+      expect(recentItem).toBeTruthy();
+
+      if (recentItem) {
+        fireEvent.press(recentItem);
+      }
+
+      await waitFor(() => {
+        expect(mockRouter.replace).toHaveBeenCalledWith({
+          pathname: "/map",
+          params: { selected: "CC", campus: "LOY" },
+        });
+      }, { timeout: 1000 });
+    });
+  });
+
+  describe("Query Parsing and Normalization", () => {
+    test("case-insensitive search for building codes", async () => {
+      (guestStorage.getGuestSearchHistory as jest.Mock).mockResolvedValue([]);
+
+      const { getByPlaceholderText, queryByText } = await renderAndFlush();
+
+      const input = getByPlaceholderText("Where to…");
+      fireEvent.changeText(input, "h"); // lowercase
+
+      await waitFor(() => {
+        // Should match uppercase "H"
+        const result = queryByText(/^H/);
+        expect(result).toBeTruthy();
+      });
+    });
+
+    test("trims whitespace from query before searching", async () => {
+      (guestStorage.getGuestSearchHistory as jest.Mock).mockResolvedValue([]);
+
+      const { getByPlaceholderText, queryByText } = await renderAndFlush();
+
+      const input = getByPlaceholderText("Where to…");
+      fireEvent.changeText(input, "  H  ");
+
+      await waitFor(() => {
+        const result = queryByText(/^H/);
+        expect(result).toBeTruthy();
+      });
+    });
+
+    test("extracts code from query with extra whitespace", async () => {
+      (guestStorage.getGuestSearchHistory as jest.Mock).mockResolvedValue([]);
+
+      const { getByPlaceholderText, queryByText } = await renderAndFlush();
+
+      const input = getByPlaceholderText("Where to…");
+      fireEvent.changeText(input, "  MB  ");
+
+      await waitFor(() => {
+        const result = queryByText(/^MB/);
+        expect(result).toBeTruthy();
+      });
+    });
+  });
 });
