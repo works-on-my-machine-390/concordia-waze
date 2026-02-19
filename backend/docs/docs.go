@@ -387,6 +387,85 @@ const docTemplate = `{
                 }
             }
         },
+        "/pointofinterest": {
+            "get": {
+                "description": "Get nearby points of interest via text search from Google Places API",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "point of interest"
+                ],
+                "summary": "Get nearby points of interest",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search query (e.g., 'coffee shop')",
+                        "name": "input",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "number",
+                        "description": "Latitude of the location",
+                        "name": "lat",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "number",
+                        "description": "Longitude of the location",
+                        "name": "lng",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Maximum distance in meters (default: 1000)",
+                        "name": "max_distance",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Rank preference (e.g., 'DISTANCE', 'RELEVANCE'; default: 'DISTANCE')",
+                        "name": "rank_preference",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/domain.Building"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "bad request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/shuttle": {
             "get": {
                 "description": "Returns the entire shuttle schedule as a mapping: day -\u003e campus -\u003e list of times.",

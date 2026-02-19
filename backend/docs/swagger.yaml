@@ -445,6 +445,61 @@ paths:
       summary: List buildings for a campus
       tags:
       - buildings
+  /pointofinterest:
+    get:
+      consumes:
+      - application/json
+      description: Get nearby points of interest via text search from Google Places
+        API
+      parameters:
+      - description: Search query (e.g., 'coffee shop')
+        in: query
+        name: input
+        required: true
+        type: string
+      - description: Latitude of the location
+        in: query
+        name: lat
+        required: true
+        type: number
+      - description: Longitude of the location
+        in: query
+        name: lng
+        required: true
+        type: number
+      - description: 'Maximum distance in meters (default: 1000)'
+        in: query
+        name: max_distance
+        type: integer
+      - description: 'Rank preference (e.g., ''DISTANCE'', ''RELEVANCE''; default:
+          ''DISTANCE'')'
+        in: query
+        name: rank_preference
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/domain.Building'
+            type: array
+        "400":
+          description: bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get nearby points of interest
+      tags:
+      - point of interest
   /shuttle:
     get:
       consumes:
