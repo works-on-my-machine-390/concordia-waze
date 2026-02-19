@@ -3219,7 +3219,7 @@
     {
       "code": "FG",
       "name": "FG Building",
-      "long_name": "Faubourg Ste-Catherine uilding",
+      "long_name": "Faubourg Ste-Catherine Building",
       "address": "1610 Ste-Catherine W",
       "latitude": 45.494381,
       "longitude": -73.578425,
@@ -5372,42 +5372,6 @@
       "services": [],
       "venues": [],
       "accessibility": []
-    },
-    {
-      "code": "TU",
-      "name": "TU Building",
-      "long_name": "TU Tunnel",
-      "address": "1550 DeMaisonneuve",
-      "latitude": 45.49648,
-      "longitude": -73.578918,
-      "metro_accessible": false,
-      "shape": {
-        "coordinates": [
-          [
-            [
-              -73.5790823,
-              45.4957182
-            ],
-            [
-              -73.5789382,
-              45.4956491
-            ],
-            [
-              -73.5789026,
-              45.4956858
-            ],
-            [
-              -73.5790457,
-              45.4957553
-            ],
-            [
-              -73.5790823,
-              45.4957182
-            ]
-          ]
-        ],
-        "type": "Polygon"
-      }
     },
     {
       "code": "V",
