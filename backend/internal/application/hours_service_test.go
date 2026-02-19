@@ -21,6 +21,20 @@ func (f *fakeBuildingServiceRepo) GetBuilding(code string) (*domain.Building, er
 	return f.b, nil
 }
 
+func (f *fakeBuildingServiceRepo) GetAllBuildingsByCampus() (map[string][]domain.BuildingSummary, error) {
+	if f.err != nil {
+		return nil, f.err
+	}
+	if f.b != nil {
+		return map[string][]domain.BuildingSummary{
+			"default": {
+				{Code: f.b.Code, LongName: f.b.LongName},
+			},
+		}, nil
+	}
+	return map[string][]domain.BuildingSummary{}, nil
+}
+
 // fakePlaces implements the PlacesClient expected by HoursService in these tests.
 type fakePlaces struct {
 	placeID string
