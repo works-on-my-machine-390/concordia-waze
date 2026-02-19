@@ -91,6 +91,41 @@ definitions:
       open:
         type: string
     type: object
+  domain.DirectionStep:
+    properties:
+      distance:
+        type: string
+      duration:
+        type: string
+      end:
+        $ref: '#/definitions/domain.LatLng'
+      instruction:
+        type: string
+      start:
+        $ref: '#/definitions/domain.LatLng'
+    type: object
+  domain.DirectionsResponse:
+    properties:
+      departure_message:
+        type: string
+      mode:
+        type: string
+      polyline:
+        items:
+          $ref: '#/definitions/domain.LatLng'
+        type: array
+      steps:
+        items:
+          $ref: '#/definitions/domain.DirectionStep'
+        type: array
+    type: object
+  domain.LatLng:
+    properties:
+      latitude:
+        type: number
+      longitude:
+        type: number
+    type: object
   domain.OpeningHours:
     additionalProperties:
       $ref: '#/definitions/domain.DayHours'
@@ -350,6 +385,128 @@ paths:
       summary: Get building images
       tags:
       - buildings
+  /directions:
+    get:
+      description: Returns route polyline + step instructions (walking/driving/transit/shuttle)
+      parameters:
+      - description: Start latitude
+        in: query
+        name: start_lat
+        required: true
+        type: number
+      - description: Start longitude
+        in: query
+        name: start_lng
+        required: true
+        type: number
+      - description: End latitude
+        in: query
+        name: end_lat
+        required: true
+        type: number
+      - description: End longitude
+        in: query
+        name: end_lng
+        required: true
+        type: number
+      - description: Mode (walking, driving, transit, shuttle)
+        in: query
+        name: mode
+        type: string
+      - description: Optional day for shuttle (monday..sunday) - automatic
+        in: query
+        name: day
+        type: string
+      - description: Optional time for shuttle (HH:MM 24h) - automatic
+        in: query
+        name: time
+        type: string
+      - description: Manual shuttle day (monday..sunday) - manual departure selection
+        in: query
+        name: shuttle_day
+        type: string
+      - description: Manual shuttle time (HH:MM 24h) - must exist in schedule
+        in: query
+        name: shuttle_time
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.DirectionsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get directions between coordinates
+      tags:
+      - directions
+  /directions/buildings:
+    get:
+      description: Uses building coordinates as origin/destination
+      parameters:
+      - description: Start building code
+        in: query
+        name: start_code
+        required: true
+        type: string
+      - description: End building code
+        in: query
+        name: end_code
+        required: true
+        type: string
+      - description: Mode (walking, driving, transit, shuttle)
+        in: query
+        name: mode
+        type: string
+      - description: Optional day for shuttle (monday..sunday) - automatic
+        in: query
+        name: day
+        type: string
+      - description: Optional time for shuttle (HH:MM 24h) - automatic
+        in: query
+        name: time
+        type: string
+      - description: Manual shuttle day (monday..sunday) - manual departure selection
+        in: query
+        name: shuttle_day
+        type: string
+      - description: Manual shuttle time (HH:MM 24h) - must exist in schedule
+        in: query
+        name: shuttle_time
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.DirectionsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get directions by building codes
+      tags:
+      - directions
   /shuttle:
     get:
       consumes:
