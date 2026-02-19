@@ -13,8 +13,10 @@ import (
 )
 
 type fakeBuildingRepo struct {
-	building *domain.Building
-	err      error
+	building    *domain.Building
+	buildingErr error
+	allMap      map[string][]domain.BuildingSummary
+	campusErr   error
 }
 
 type fakePlacesClient struct {
@@ -43,10 +45,20 @@ func (f *fakePlacesClient) GetPhotoURLs(string) ([]string, error) {
 }
 
 func (f *fakeBuildingRepo) GetBuilding(code string) (*domain.Building, error) {
-	if f.err != nil {
-		return nil, f.err
+	if f.buildingErr != nil {
+		return nil, f.buildingErr
 	}
 	return f.building, nil
+}
+
+func (f *fakeBuildingRepo) GetAllBuildingsByCampus() (map[string][]domain.BuildingSummary, error) {
+	if f.campusErr != nil {
+		return nil, f.campusErr
+	}
+	if f.allMap != nil {
+		return f.allMap, nil
+	}
+	return map[string][]domain.BuildingSummary{}, nil
 }
 
 func TestBuildingHandler_GetBuilding_Success200(t *testing.T) {
@@ -99,7 +111,7 @@ func TestBuildingHandler_GetBuilding_Success200(t *testing.T) {
 func TestBuildingHandler_GetBuilding_NotFound404(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	repo := &fakeBuildingRepo{err: domain.ErrNotFound}
+	repo := &fakeBuildingRepo{buildingErr: domain.ErrNotFound}
 
 	fp := &fakePlacesClient{
 		placeID: "place123",
@@ -130,7 +142,7 @@ func TestBuildingHandler_GetBuilding_NotFound404(t *testing.T) {
 func TestBuildingHandler_GetBuilding_InternalError500(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	repo := &fakeBuildingRepo{err: errors.New("boom")}
+	repo := &fakeBuildingRepo{buildingErr: errors.New("EVERYTHING EXPLODES")}
 
 	fp := &fakePlacesClient{
 		placeID: "place123",
@@ -152,5 +164,40 @@ func TestBuildingHandler_GetBuilding_InternalError500(t *testing.T) {
 
 	if w.Code != http.StatusInternalServerError {
 		t.Fatalf("expected status 500, got %d, body=%s", w.Code, w.Body.String())
+	}
+}
+
+func TestBuildingHandler_GetAllBuildingsByCampus_Success200(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	repo := &fakeBuildingRepo{
+		allMap: map[string][]domain.BuildingSummary{
+			"SGW": {
+				{Code: "MB", Name: "MB Building", LongName: "John Molson Building", Campus: "SGW"},
+			},
+			"LOY": {
+				{Code: "VL", Name: "Vanier Library", LongName: "Vanier Library Building", Campus: "LOY"},
+			},
+		},
+	}
+
+	svc := application.NewBuildingService(repo, nil)
+	h := NewBuildingHandler(svc)
+
+	r := gin.New()
+	r.GET("/buildings/list", h.GetAllBuildingsByCampus)
+
+	req := httptest.NewRequest(http.MethodGet, "/buildings/list", nil)
+	w := httptest.NewRecorder()
+
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d, body=%s", w.Code, w.Body.String())
+	}
+	body := w.Body.String()
+
+	if !strings.Contains(body, `"buildings"`) || !strings.Contains(body, `"SGW"`) || !strings.Contains(body, `"LOY"`) {
+		t.Fatalf("unexpected body: %s", body)
 	}
 }

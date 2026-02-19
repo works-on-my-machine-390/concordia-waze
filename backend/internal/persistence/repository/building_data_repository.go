@@ -140,3 +140,25 @@ func (r *BuildingDataRepository) GetCampusPolygons(campus string) ([]domain.Buil
 
 	return result, nil
 }
+
+func (r *BuildingDataRepository) GetAllBuildingsByCampus() (map[string][]domain.BuildingSummary, error) {
+	if err := r.ensureLoaded(); err != nil {
+		return nil, err
+	}
+
+	out := make(map[string][]domain.BuildingSummary, len(r.byCampus))
+	for campusKey, buildings := range r.byCampus {
+		list := make([]domain.BuildingSummary, 0, len(buildings))
+		for _, b := range buildings {
+			list = append(list, domain.BuildingSummary{
+				Code:     b.Code,
+				Name:     b.Name,
+				LongName: b.LongName,
+				Address:  b.Address,
+				Campus:   campusKey,
+			})
+		}
+		out[campusKey] = list
+	}
+	return out, nil
+}

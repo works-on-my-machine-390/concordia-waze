@@ -9,6 +9,7 @@ import (
 
 type BuildingReader interface {
 	GetBuilding(code string) (*domain.Building, error)
+	GetAllBuildingsByCampus() (map[string][]domain.BuildingSummary, error)
 }
 
 type BuildingService struct {
@@ -77,4 +78,8 @@ func campusFallback(lat, lng float64) (string, domain.LatLng, bool) {
 		return constants.LoyolaCampusName, loy, true
 	}
 	return constants.SirGeorgeWilliamsCampusName, sgw, true
+}
+
+func (s *BuildingService) GetAllBuildingsByCampus() (map[string][]domain.BuildingSummary, error) {
+	return s.repo.GetAllBuildingsByCampus()
 }
