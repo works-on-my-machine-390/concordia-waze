@@ -68,6 +68,7 @@ func SetupRouter() *gin.Engine {
 
 	buildingsGroup := router.Group("/buildings")
 	{
+		buildingsGroup.GET("/list", buildingHandler.GetAllBuildingsByCampus)
 		buildingsGroup.GET("/:code", buildingHandler.GetBuilding)
 		buildingsGroup.GET("/:code/images", imageHandler.GetBuildingImages)
 	}
