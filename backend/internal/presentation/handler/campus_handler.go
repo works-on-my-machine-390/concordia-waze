@@ -16,6 +16,17 @@ func NewCampusHandler(service *application.CampusService) *CampusHandler {
 	return &CampusHandler{service: service}
 }
 
+// GetCampusBuildings godoc
+// @Summary     List buildings for a campus
+// @Description Return all building codes and names for a given campus (e.g. "SGW" or "LOY").
+// @Tags        buildings
+// @Accept      json
+// @Produce     json
+// @Param       campus path string true "Campus code (SGW or LOY)"
+// @Success     200 {object} domain.CampusBuildingsResponse
+// @Failure     404 {object} map[string]string "campus not found"
+// @Failure     500 {object} map[string]string "internal server error"
+// @Router      /campuses/{campus}/buildings [get]
 func (h *CampusHandler) GetCampusBuildings(c *gin.Context) {
 	campus := c.Param("campus")
 

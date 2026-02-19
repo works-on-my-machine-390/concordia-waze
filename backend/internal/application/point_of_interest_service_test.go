@@ -32,6 +32,10 @@ func (f *fakePlacesClientPOI) GetPhotoURLs(string) ([]string, error) {
 	return nil, nil
 }
 
+func (f *fakePlacesClientPOI) GetOpeningHours(string) (domain.OpeningHours, error) {
+	return nil, nil
+}
+
 func (f *fakePlacesClientPOI) TextSearchPlaces(input string, lat, lng float64, maxDistanceInMeters int, rankPreference string) ([]domain.Building, error) {
 	f.called = true
 	f.Input = input

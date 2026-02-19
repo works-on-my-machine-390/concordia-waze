@@ -36,7 +36,7 @@ func SetupRouter() *gin.Engine {
 
 	placesClient := google.NewGooglePlacesClient(os.Getenv("GOOGLE_PLACES_API_KEY"))
 
-	buildingService := application.NewBuildingService(buildingDataRepo)
+	buildingService := application.NewBuildingService(buildingDataRepo, placesClient)
 	campusService := application.NewCampusService(buildingDataRepo)
 	imageService := application.NewImageService(buildingService, placesClient)
 	firebaseService := application.NewFirebaseService()
@@ -64,6 +64,7 @@ func SetupRouter() *gin.Engine {
 
 	buildingsGroup := router.Group("/buildings")
 	{
+		buildingsGroup.GET("/list", buildingHandler.GetAllBuildingsByCampus)
 		buildingsGroup.GET("/:code", buildingHandler.GetBuilding)
 		buildingsGroup.GET("/:code/images", imageHandler.GetBuildingImages)
 	}

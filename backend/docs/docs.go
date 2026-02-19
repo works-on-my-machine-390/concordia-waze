@@ -223,6 +223,47 @@ const docTemplate = `{
                 }
             }
         },
+        "/buildings/list": {
+            "get": {
+                "description": "Return all building codes, names and long names grouped by campus. Response shape:\n{\n\"buildings\": {\n\"SGW\": [ { \"code\": \"...\", \"name\": \"...\", \"long_name\": \"...\", \"campus\": \"SGW\" }, ... ],\n\"LOY\": [ ... ]\n}\n}",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "buildings"
+                ],
+                "summary": "List all buildings grouped by campus",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "object",
+                                "additionalProperties": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/definitions/domain.BuildingSummary"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/buildings/{code}": {
             "get": {
                 "description": "Get detailed information about a specific building by its code",
@@ -304,6 +345,56 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "building not found or no images available",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/campuses/{campus}/buildings": {
+            "get": {
+                "description": "Return all building codes and names for a given campus (e.g. \"SGW\" or \"LOY\").",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "buildings"
+                ],
+                "summary": "List buildings for a campus",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Campus code (SGW or LOY)",
+                        "name": "campus",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.CampusBuildingsResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "campus not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal server error",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1544,6 +1635,9 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
+                "opening_hours": {
+                    "$ref": "#/definitions/domain.OpeningHours"
+                },
                 "services": {
                     "type": "array",
                     "items": {
@@ -1556,6 +1650,83 @@ const docTemplate = `{
                         "type": "string"
                     }
                 }
+            }
+        },
+        "domain.BuildingPolygon": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "polygon": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.LatLng"
+                    }
+                }
+            }
+        },
+        "domain.BuildingSummary": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "campus": {
+                    "description": "\"SGW\" or \"LOY\"",
+                    "type": "string"
+                },
+                "code": {
+                    "type": "string"
+                },
+                "long_name": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.CampusBuildingsResponse": {
+            "type": "object",
+            "properties": {
+                "buildings": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.BuildingPolygon"
+                    }
+                },
+                "campus": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.DayHours": {
+            "type": "object",
+            "properties": {
+                "close": {
+                    "type": "string"
+                },
+                "open": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.LatLng": {
+            "type": "object",
+            "properties": {
+                "latitude": {
+                    "type": "number"
+                },
+                "longitude": {
+                    "type": "number"
+                }
+            }
+        },
+        "domain.OpeningHours": {
+            "type": "object",
+            "additionalProperties": {
+                "$ref": "#/definitions/domain.DayHours"
             }
         },
         "domain.User": {
