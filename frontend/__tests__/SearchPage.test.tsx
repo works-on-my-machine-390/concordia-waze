@@ -8,7 +8,7 @@ import SearchPage from "../app/search";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useGetBuildings } from "@/hooks/queries/buildingQueries";
 import * as guestStorage from "@/hooks/guestStorage";
-import { useGetUserHistory, useSaveToHistory } from "@/hooks/queries/userHistoryQueries";
+import { useGetUserHistory, useSaveToHistory, useClearUserHistory } from "@/hooks/queries/userHistoryQueries";
 import { useGetProfile } from "@/hooks/queries/userQueries";
 
 // Mock expo-router
@@ -126,6 +126,17 @@ describe("SearchPage", () => {
     // Mock save to history mutation
     (useSaveToHistory as jest.Mock).mockReturnValue({
       mutate: jest.fn(),
+      isPending: false,
+    });
+
+    // Mock clear user history mutation
+    (useClearUserHistory as jest.Mock).mockReturnValue({
+      mutate: jest.fn((_, options) => {
+        // Call onSuccess callback to simulate successful mutation
+        if (options?.onSuccess) {
+          options.onSuccess();
+        }
+      }),
       isPending: false,
     });
   });
@@ -291,6 +302,37 @@ describe("SearchPage", () => {
     await waitFor(() => {
       expect(mockRouter.replace).toHaveBeenCalled();
     }, { timeout: 1000 });
+  });
+
+  test("navigates immediately for guest user on recent search click without waiting for history save", async () => {
+    (guestStorage.getGuestSearchHistory as jest.Mock).mockResolvedValue([
+      {
+        query: "H",
+        locations: "1455 De Maisonneuve Blvd. W.",
+        timestamp: new Date(),
+      },
+    ]);
+    // Make addGuestSearchHistory take a long time
+    (guestStorage.addGuestSearchHistory as jest.Mock).mockImplementation(
+      () => new Promise((resolve) => setTimeout(resolve, 1000))
+    );
+
+    const { queryByText } = await renderAndFlush();
+
+    await waitFor(() => {
+      expect(queryByText("Recent searches")).toBeTruthy();
+    });
+
+    const recentItem = queryByText(/^H/);
+    expect(recentItem).toBeTruthy();
+
+    fireEvent.press(recentItem!);
+
+    // Navigation should happen immediately, not wait for the slow addGuestSearchHistory
+    expect(mockRouter.replace).toHaveBeenCalledWith({
+      pathname: "/map",
+      params: { selected: "H", campus: "SGW" },
+    });
   });
 
   test("limits recent searches to 6 items", async () => {
@@ -596,6 +638,11 @@ describe("SearchPage", () => {
     });
 
     test("clears authenticated user recent searches without calling guest storage", async () => {
+      const mockClearMutate = jest.fn((_, options) => {
+        if (options?.onSuccess) {
+          options.onSuccess();
+        }
+      });
       (useGetProfile as jest.Mock).mockReturnValue({
         data: mockAuthenticatedUser,
       });
@@ -603,6 +650,10 @@ describe("SearchPage", () => {
         data: mockUserHistory,
         isLoading: false,
         isSuccess: true,
+      });
+      (useClearUserHistory as jest.Mock).mockReturnValue({
+        mutate: mockClearMutate,
+        isPending: false,
       });
 
       const { getByText, queryByText } = await renderAndFlush();
@@ -612,6 +663,11 @@ describe("SearchPage", () => {
 
       // Guest storage should not be called for authenticated users
       expect(guestStorage.clearGuestSearchHistory).not.toHaveBeenCalled();
+
+      // clearUserHistory.mutate should be called instead
+      await waitFor(() => {
+        expect(mockClearMutate).toHaveBeenCalled();
+      });
 
       await waitFor(() => {
         expect(queryByText("Recent searches")).toBeNull();
@@ -627,6 +683,38 @@ describe("SearchPage", () => {
 
       // When userId is empty string, it should still call with empty string
       expect(useGetUserHistory).toHaveBeenCalledWith("");
+    });
+
+    test("navigates immediately when clicking recent search without waiting for mutation", async () => {
+      const mockClearMutate = jest.fn();
+      (useGetProfile as jest.Mock).mockReturnValue({
+        data: mockAuthenticatedUser,
+      });
+      (useGetUserHistory as jest.Mock).mockReturnValue({
+        data: mockUserHistory,
+        isLoading: false,
+        isSuccess: true,
+      });
+      (useSaveToHistory as jest.Mock).mockReturnValue({
+        mutate: jest.fn(),
+        isPending: true, // Simulate pending state
+      });
+
+      const { queryByText } = await renderAndFlush();
+
+      // Verify recent searches are visible before clicking
+      expect(queryByText("Recent searches")).toBeTruthy();
+
+      const recentItem = queryByText(/^H/);
+      expect(recentItem).toBeTruthy();
+
+      fireEvent.press(recentItem!);
+
+      // Navigation should occur immediately, even if mutation is pending
+      expect(mockRouter.replace).toHaveBeenCalledWith({
+        pathname: "/map",
+        params: { selected: "H", campus: "SGW" },
+      });
     });
   });
 });

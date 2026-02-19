@@ -16,7 +16,7 @@ import {
   clearGuestSearchHistory,
   getGuestSearchHistory
 } from "@/hooks/guestStorage";
-import { useGetUserHistory, useSaveToHistory } from "@/hooks/queries/userHistoryQueries";
+import { useGetUserHistory, useSaveToHistory, useClearUserHistory } from "@/hooks/queries/userHistoryQueries";
 import { useGetProfile } from "@/hooks/queries/userQueries";
 
 export default function SearchPage() {
@@ -26,6 +26,7 @@ export default function SearchPage() {
   const { data: userProfile } = useGetProfile();
   const userId = userProfile?.id || "";
   const saveToHistory = useSaveToHistory(userId);
+  const clearUserHistory = useClearUserHistory(userId);
   const userHistoryQuery = useGetUserHistory(userId);
 
   const [query, setQuery] = useState("");
@@ -172,16 +173,28 @@ export default function SearchPage() {
   };
 
   const handleSelect = (code: string, targetCampus: CampusCode, label?: string, address?: string) => {
-    // Navigate back to map (to selected building) when user taps on a result
-    void recordRecentSearch(code, label ?? code, address ?? "");
+    // Navigate immediately to avoid UI interruptions from state updates
     router.replace({ pathname: "/map", params: { selected: code, campus: targetCampus } });
+    // Record the search asynchronously (non-blocking)
+    void recordRecentSearch(code, label ?? code, address ?? "");
   };
 
   const handleClearRecent = async () => {
     try {
-      if (!userId) {
-         await clearGuestSearchHistory();
+      if (userId) {
+        clearUserHistory.mutate(undefined, {
+          onSuccess: () => {
+            setRecentSearches([]);
+          },
+          onError: () => {
+            // optional: still clear UI even if backend fails
+            setRecentSearches([]);
+          },
+        });
+        return;
       }
+
+      await clearGuestSearchHistory();
     } finally {
       setRecentSearches([]);
     }
