@@ -42,11 +42,11 @@ func SetupRouter() *gin.Engine {
 	firebaseService := application.NewFirebaseService()
 	shuttleService := application.NewShuttleService(shuttleDataRepo)
 
-	// ---- Directions wiring (NEW) ----
+	// ---- Directions wiring (FIXED: inject shuttle schedule repo) ----
 	directionsClient := google.NewGoogleDirectionsClient(os.Getenv("GOOGLE_DIRECTIONS_API_KEY"))
-	directionsService := application.NewDirectionsService(directionsClient)
+	directionsService := application.NewDirectionsService(directionsClient).WithShuttleRepo(shuttleService)
 	directionsHandler := handler.NewDirectionsHandler(directionsService, buildingService)
-	// --------------------------------
+	// ---------------------------------------------------------------
 
 	authHandler := handler.NewAuthHandler(userService, firebaseService)
 
@@ -74,11 +74,13 @@ func SetupRouter() *gin.Engine {
 
 	// Directions endpoints (PUBLIC)
 	// 1) Lat/Lng version:
-	// GET /directions?start_lat=...&start_lng=...&end_lat=...&end_lng=...&mode=walking|transit|driving
+	// GET /directions?start_lat=...&start_lng=...&end_lat=...&end_lng=...&mode=walking|transit|driving|shuttle
+	// Optional for shuttle: &day=monday..sunday &time=HH:MM
 	router.GET("/directions", directionsHandler.GetDirections)
 
 	// 2) Building codes version:
-	// GET /directions/buildings?start_code=EV&end_code=H&mode=walking|transit|driving
+	// GET /directions/buildings?start_code=EV&end_code=H&mode=walking|transit|driving|shuttle
+	// Optional for shuttle: &day=monday..sunday &time=HH:MM
 	router.GET("/directions/buildings", directionsHandler.GetDirectionsByBuildings)
 
 	shuttleGroup := router.Group("/shuttle")
