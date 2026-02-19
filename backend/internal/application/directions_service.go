@@ -126,8 +126,17 @@ func (s *DirectionsService) getShuttleDirectionsAt(start, end domain.LatLng, ref
 
 	// Shuttle middle leg (based on arrivalAtStop)
 	shuttleStep, nextDeparture, err := s.buildShuttleStepAt(arrivalAtStop, day)
+
 	if err != nil {
-		return domain.DirectionsResponse{}, err // handler will convert to only-message JSON
+		// build shuttle step WITHOUT schedule
+		shuttleStep = domain.DirectionStep{
+			Instruction: "Take the Concordia Shuttle Bus from SGW to LOY",
+			Distance:    formatKm(haversineKm(sgwShuttleStop, loyShuttleStop)),
+			Duration:    "25 mins",
+			Start:       sgwShuttleStop,
+			End:         loyShuttleStop,
+		}
+		nextDeparture = ""
 	}
 
 	// Steps = walking + shuttle + walking
@@ -438,5 +447,6 @@ func pickNextDepartureAt(ref time.Time, times []string) string {
 
 // BACKWARD COMPAT: keep old name so your existing test compiles unchanged
 func pickNextDeparture(times []string) string {
-	return pickNextDepartureAt(time.Now(), times)
+	now := time.Now().Truncate(time.Minute)
+	return pickNextDepartureAt(now, times)
 }
