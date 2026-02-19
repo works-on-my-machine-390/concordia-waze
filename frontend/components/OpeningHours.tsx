@@ -11,7 +11,7 @@ import {
 export default function OpeningHours({
   openingHours,
 }: {
-  openingHours: OpeningHours;
+  readonly openingHours: OpeningHours;
 }) {
   const isOpen247 = getIsOpen247(openingHours);
   const openStatus = getOpenStatus(openingHours);
@@ -23,19 +23,7 @@ export default function OpeningHours({
   ) => {
     const formattedDay = day.charAt(0).toUpperCase() + day.slice(1);
 
-    if (!hours) {
-      return (
-        <View style={styles.row} key={day}>
-          <Text style={[ListSectionStyles.listItem, styles.dayText]}>
-            {formattedDay}:
-          </Text>
-          <Text style={[ListSectionStyles.listItem, styles.hoursText]}>
-            Closed
-          </Text>
-        </View>
-      );
-    }
-
+    // Handle 24/7 case first
     if (isOpen247) {
       return (
         <View style={styles.row} key={day}>
@@ -44,6 +32,19 @@ export default function OpeningHours({
           </Text>
           <Text style={[ListSectionStyles.listItem, styles.hoursText]}>
             Open 24 hours
+          </Text>
+        </View>
+      );
+    }
+
+    if (!hours) {
+      return (
+        <View style={styles.row} key={day}>
+          <Text style={[ListSectionStyles.listItem, styles.dayText]}>
+            {formattedDay}:
+          </Text>
+          <Text style={[ListSectionStyles.listItem, styles.hoursText]}>
+            Closed
           </Text>
         </View>
       );
