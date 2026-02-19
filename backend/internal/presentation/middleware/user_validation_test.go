@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/presentation/middleware"
 )
 
@@ -15,7 +16,7 @@ func TestValidateUserOwnershipSuccess(t *testing.T) {
 
 	// Setup middleware
 	router.Use(func(c *gin.Context) {
-		c.Set("userID", "user123")
+		c.Set("user", &domain.UserClaims{ID: "user123", Email: "test@example.com"})
 		c.Next()
 	})
 	router.Use(middleware.ValidateUserOwnership())
@@ -40,7 +41,7 @@ func TestValidateUserOwnershipForbidden(t *testing.T) {
 
 	// Setup middleware with different user
 	router.Use(func(c *gin.Context) {
-		c.Set("userID", "user123")
+		c.Set("user", &domain.UserClaims{ID: "user123", Email: "test@example.com"})
 		c.Next()
 	})
 	router.Use(middleware.ValidateUserOwnership())
@@ -87,7 +88,7 @@ func TestValidateUserOwnershipNoUserIdParam(t *testing.T) {
 
 	// Setup middleware
 	router.Use(func(c *gin.Context) {
-		c.Set("userID", "user123")
+		c.Set("user", &domain.UserClaims{ID: "user123", Email: "test@example.com"})
 		c.Next()
 	})
 	router.Use(middleware.ValidateUserOwnership())
