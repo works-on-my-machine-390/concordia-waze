@@ -44,8 +44,8 @@ export default function MainMap() {
   const { data: userProfile } = useGetProfile();
   const saveToHistory = useSaveToHistory(userProfile?.id || "");
 
-  const selectedBuildingDetails = useGetBuildingDetails(selectedBuildingCode || "");
-  const currentBuildingDetails = useGetBuildingDetails(currentBuildingCode || "");
+  const selectedBuildingDetails = useGetBuildingDetails(selectedBuildingCode || undefined);
+  const currentBuildingDetails = useGetBuildingDetails(currentBuildingCode ||undefined);
 
   const buildingListQuery = useGetBuildings(campus);
 

@@ -3,7 +3,10 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { colors, SHADOW } from "./styles/theme";
-import { CampusCode, useGetBuildings } from "@/hooks/queries/buildingQueries";
+import {
+  CampusCode,
+  useGetBuildings,
+} from "@/hooks/queries/buildingQueries";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useQueryClient } from "@tanstack/react-query";
 import { api } from "@/hooks/api";
@@ -13,12 +16,17 @@ import {
   clearGuestSearchHistory,
   getGuestSearchHistory
 } from "@/hooks/guestStorage";
-
+import { useGetUserHistory, useSaveToHistory } from "@/hooks/queries/userHistoryQueries";
+import { useGetProfile } from "@/hooks/queries/userQueries";
 
 export default function SearchPage() {
   const router = useRouter();
   const params = useLocalSearchParams<{ campus?: string }>();
   const campus = (params.campus as string) || CampusCode.SGW;
+  const { data: userProfile } = useGetProfile();
+  const userId = userProfile?.id || "";
+  const saveToHistory = useSaveToHistory(userId);
+  const userHistoryQuery = useGetUserHistory(userId);
 
   const [query, setQuery] = useState("");
   // Fetch building lists for both campuses to support cross-campus search
@@ -54,15 +62,24 @@ export default function SearchPage() {
   useEffect(() => {
     let active = true;
     (async () => {
-      const items = await getGuestSearchHistory();
-      if (active) {
-        setRecentSearches(items.map((item) => ({ query: item.query, locations: item.locations })));
+      if (userId) {
+        // For authenticated users, use data from the query
+        const entries = userHistoryQuery.data ?? [];
+        if (active) {
+          setRecentSearches(entries.map((item) => ({ query: item.name, locations: item.address })));
+        }
+      } else if (!userId) {
+        // For guests, load recent searches from local storage
+        const items = await getGuestSearchHistory();
+        if (active) {
+          setRecentSearches(items.map((item) => ({ query: item.query, locations: item.locations })));
+        }
       }
     })();
     return () => {
       active = false;
     };
-  }, []);
+  }, [userId, userHistoryQuery.data]);
 
   const recentItems = useMemo(() => {
     const lookup = new Map<string, CampusCode>();
@@ -122,14 +139,33 @@ export default function SearchPage() {
       .sort((a, b) => b.score - a.score);
   }, [sgwBuildingsQuery.data?.buildings, loyBuildingsQuery.data?.buildings, query, queryClient]);
 
-  const recordRecentSearch = async (item: { query: string; locations: string }) => {
+  const recordRecentSearch = async (code: string, label: string, address: string) => {
     try {
-      await addGuestSearchHistory({
-        query: item.query,
-        locations: item.locations,
-        timestamp: new Date()
-      });
-      setRecentSearches((prev) => [item, ...prev.filter((entry) => entry.query !== item.query)]);
+      if (userProfile?.id) {
+        // For authenticated users, save to backend
+        const buildingDetails = queryClient.getQueryData<Building>(["buildingDetails", code]);
+        if (buildingDetails) {
+          saveToHistory.mutate({
+            name: buildingDetails.long_name,
+            address: buildingDetails.address,
+            lat: buildingDetails.latitude,
+            lng: buildingDetails.longitude,
+            building_code: buildingDetails.code,
+            destinationType: "building"
+          });
+        }
+      } else {
+        // For guests, persist to local storage
+        await addGuestSearchHistory({
+          query: label,
+          locations: address,
+          timestamp: new Date()
+        });
+        setRecentSearches((prev) => [
+          { query: label, locations: address },
+          ...prev.filter((entry) => entry.query !== label)
+        ]);
+      }
     } catch {
       // Best effort only; search should still navigate even if persistence fails.
     }
@@ -137,13 +173,15 @@ export default function SearchPage() {
 
   const handleSelect = (code: string, targetCampus: CampusCode, label?: string, address?: string) => {
     // Navigate back to map (to selected building) when user taps on a result
-    void recordRecentSearch({ query: label ?? code, locations: address ?? "" });
+    void recordRecentSearch(code, label ?? code, address ?? "");
     router.replace({ pathname: "/map", params: { selected: code, campus: targetCampus } });
   };
 
   const handleClearRecent = async () => {
     try {
-      await clearGuestSearchHistory();
+      if (!userId) {
+         await clearGuestSearchHistory();
+      }
     } finally {
       setRecentSearches([]);
     }
