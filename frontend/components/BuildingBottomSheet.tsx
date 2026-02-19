@@ -1,7 +1,8 @@
 import type { Building } from "@/hooks/queries/buildingQueries";
 import { useGetBuildingDetails } from "@/hooks/queries/buildingQueries";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
-import { useCallback, useMemo, useRef, useState, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -15,13 +16,11 @@ import {
   CloseIcon,
   ElevatorIcon,
   FavoriteEmptyIcon,
-  GetDirectionsIcon,
   SlopeUpIcon,
   WheelchairIcon,
 } from "../app/icons";
-import BuildingGallery from "./BuildingGallery";
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import BottomSheetListSection from "./BottomSheetListSection";
+import BuildingGallery from "./BuildingGallery";
 import OpeningHours from "./OpeningHours";
 
 type Props = {
@@ -179,6 +178,7 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
             <View style={BuildingBottomSheetStyles.headerContainer}>
               {!props.isNavigationMode && sheetOpen && (
                 <TouchableOpacity
+                  testID="get-directions-icon"
                   onPress={() => props.onStartNavigation?.(building.code)}
                 >
                   <View style={BuildingBottomSheetStyles.floatingIcon}>

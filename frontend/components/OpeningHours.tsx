@@ -13,6 +13,9 @@ export default function OpeningHours({
 }: {
   readonly openingHours: OpeningHours;
 }) {
+  if (!openingHours || Object.keys(openingHours).length === 0) {
+    return null;
+  }
   const isOpen247 = getIsOpen247(openingHours);
   const openStatus = getOpenStatus(openingHours);
   const openStatusColor = getOpenStatusColor(openStatus);

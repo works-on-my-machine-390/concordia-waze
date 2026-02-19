@@ -55,10 +55,6 @@ jest.mock("../app/icons", () => {
       const { View } = require("react-native");
       return <View testID="favorite-icon" />;
     },
-    GetDirectionsIcon: () => {
-      const { View } = require("react-native");
-      return <View testID="get-directions-icon" />;
-    },
     WheelchairIcon: () => {
       const { View } = require("react-native");
       return <View testID="wheelchair-icon" />;
