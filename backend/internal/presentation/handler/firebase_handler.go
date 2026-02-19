@@ -49,7 +49,6 @@ func NewFirebaseHandler(service FirebaseService) *FirebaseHandler {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param Authorization header string true "Bearer token"
 // @Param userId path string true "User ID"
 // @Param profile body domain.User true "User profile"
 // @Success 201 {object} map[string]string
@@ -81,7 +80,6 @@ func (fh *FirebaseHandler) CreateUserProfile(c *gin.Context) {
 // @Tags users
 // @Produce json
 // @Security BearerAuth
-// @Param Authorization header string true "Bearer token"
 // @Param userId path string true "User ID"
 // @Success 200 {object} domain.User
 // @Failure 401 {object} map[string]string "Not authenticated"
@@ -108,7 +106,6 @@ func (fh *FirebaseHandler) GetUserProfile(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param Authorization header string true "Bearer token"
 // @Param userId path string true "User ID"
 // @Param item body application.DestinationHistoryItem true "Destination history item"
 // @Success 201 {object} map[string]string
@@ -153,7 +150,6 @@ func (fh *FirebaseHandler) AddDestinationHistory(c *gin.Context) {
 // @Tags history
 // @Produce json
 // @Security BearerAuth
-// @Param Authorization header string true "Bearer token"
 // @Param userId path string true "User ID"
 // @Param limit query int false "Limit results" default(50)
 // @Success 200 {array} application.DestinationHistoryItem
@@ -183,7 +179,6 @@ func (fh *FirebaseHandler) GetDestinationHistory(c *gin.Context) {
 // @Tags history
 // @Produce json
 // @Security BearerAuth
-// @Param Authorization header string true "Bearer token"
 // @Param userId path string true "User ID"
 // @Success 200 {object} map[string]string
 // @Failure 500 {object} map[string]string
@@ -208,7 +203,6 @@ func (fh *FirebaseHandler) ClearDestinationHistory(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param Authorization header string true "Bearer token"
 // @Param userId path string true "User ID"
 // @Param item body application.ScheduleItem true "Schedule item"
 // @Success 201 {object} map[string]string
@@ -241,7 +235,6 @@ func (fh *FirebaseHandler) AddScheduleItem(c *gin.Context) {
 // @Tags schedule
 // @Produce json
 // @Security BearerAuth
-// @Param Authorization header string true "Bearer token"
 // @Param userId path string true "User ID"
 // @Success 200 {array} application.ScheduleItem
 // @Failure 401 {object} map[string]string "Not authenticated"
@@ -267,7 +260,6 @@ func (fh *FirebaseHandler) GetUserSchedule(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param Authorization header string true "Bearer token"
 // @Param userId path string true "User ID"
 // @Param scheduleId path string true "Schedule ID"
 // @Param updates body map[string]interface{} true "Schedule updates"
@@ -301,7 +293,6 @@ func (fh *FirebaseHandler) UpdateScheduleItem(c *gin.Context) {
 // @Tags schedule
 // @Produce json
 // @Security BearerAuth
-// @Param Authorization header string true "Bearer token"
 // @Param userId path string true "User ID"
 // @Param scheduleId path string true "Schedule ID"
 // @Success 200 {object} map[string]string
@@ -330,7 +321,6 @@ func (fh *FirebaseHandler) DeleteScheduleItem(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param Authorization header string true "Bearer token"
 // @Param userId path string true "User ID"
 // @Param address body application.SavedAddress true "Saved address"
 // @Success 201 {object} map[string]string
@@ -363,7 +353,6 @@ func (fh *FirebaseHandler) AddSavedAddress(c *gin.Context) {
 // @Tags addresses
 // @Produce json
 // @Security BearerAuth
-// @Param Authorization header string true "Bearer token"
 // @Param userId path string true "User ID"
 // @Success 200 {array} application.SavedAddress
 // @Failure 401 {object} map[string]string "Not authenticated"
@@ -389,7 +378,6 @@ func (fh *FirebaseHandler) GetSavedAddresses(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Security BearerAuth
-// @Param Authorization header string true "Bearer token"
 // @Param userId path string true "User ID"
 // @Param addressId path string true "Address ID"
 // @Param updates body map[string]interface{} true "Address updates"
@@ -423,7 +411,6 @@ func (fh *FirebaseHandler) UpdateSavedAddress(c *gin.Context) {
 // @Tags addresses
 // @Produce json
 // @Security BearerAuth
-// @Param Authorization header string true "Bearer token"
 // @Param userId path string true "User ID"
 // @Param addressId path string true "Address ID"
 // @Success 200 {object} map[string]string
