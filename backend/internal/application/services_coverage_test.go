@@ -9,8 +9,9 @@ import (
 )
 
 type fakeBuildingRepo struct {
-	b   *domain.Building
-	err error
+	b      *domain.Building
+	err    error
+	allMap map[string][]domain.BuildingSummary
 }
 
 type fakeBuildingService struct {
@@ -27,6 +28,13 @@ func (f *fakeBuildingRepo) GetBuilding(code string) (*domain.Building, error) {
 		return nil, f.err
 	}
 	return f.b, nil
+}
+
+func (f *fakeBuildingRepo) GetAllBuildingsByCampus() (map[string][]domain.BuildingSummary, error) {
+	if f.allMap != nil {
+		return f.allMap, nil
+	}
+	return nil, f.err
 }
 
 type fakeCampusRepo struct {
@@ -171,6 +179,47 @@ func TestCampusService_GetCampusBuildings_NotFound(t *testing.T) {
 	}
 	if err != domain.ErrNotFound {
 		t.Fatalf("expected ErrNotFound, got %v", err)
+	}
+}
+
+func TestBuildingService_GetAllBuildingsByCampus_Success(t *testing.T) {
+	repo := &fakeBuildingRepo{
+		allMap: map[string][]domain.BuildingSummary{
+			"SGW": {
+				{Code: "MB", Name: "MB Building", LongName: "John Molson Building", Campus: "SGW"},
+			},
+			"LOY": {
+				{Code: "VL", Name: "Vanier Library", LongName: "Vanier Library Building", Campus: "LOY"},
+			},
+		},
+	}
+	svc := NewBuildingService(repo, nil)
+
+	grouped, err := svc.GetAllBuildingsByCampus()
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	sgwList, ok := grouped["SGW"]
+	if !ok {
+		t.Fatalf("expected SGW key present")
+	}
+	if len(sgwList) != 1 {
+		t.Fatalf("expected 1 SGW building, got %d", len(sgwList))
+	}
+	if sgwList[0].Code != "MB" || sgwList[0].Campus != "SGW" {
+		t.Fatalf("unexpected SGW entry: %+v", sgwList[0])
+	}
+
+	loyList, ok := grouped["LOY"]
+	if !ok {
+		t.Fatalf("expected LOY key present")
+	}
+	if len(loyList) != 1 {
+		t.Fatalf("expected 1 LOY building, got %d", len(loyList))
+	}
+	if loyList[0].Code != "VL" || loyList[0].Campus != "LOY" {
+		t.Fatalf("unexpected LOY entry: %+v", loyList[0])
 	}
 }
 
