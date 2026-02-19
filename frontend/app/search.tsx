@@ -335,11 +335,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     ...SHADOW,
   },
-  resultText: {
-    fontSize: 16,
-    color: colors.text,
-    fontWeight: "600",
-  },
   resultTitle: {
     fontSize: 16,
     color: colors.text,
