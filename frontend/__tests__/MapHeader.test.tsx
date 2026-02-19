@@ -225,6 +225,4 @@ describe("MapHeader", () => {
     searchInput = getByPlaceholderText("Where to…");
     expect(searchInput.props.value).toBe("Henry F. Hall");
   });
-
-  // TO DO: need more tests for menu button and search input
 });

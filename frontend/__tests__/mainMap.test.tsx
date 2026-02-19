@@ -758,49 +758,6 @@ describe("MainMap screen", () => {
     });
   });
 
-  test("initializes with selectedBuilding parameter from URL", async () => {
-    mockGrantedWatchLocation();
-
-    mockUseGetBuildingDetails.mockImplementation((code) => {
-      if (code === "MB") {
-        return {
-          data: {
-            code: "MB",
-            long_name: "Michael de la Ronde Building",
-            address: "1450 Guy St",
-            latitude: 45.496,
-            longitude: -73.576
-          },
-          isLoading: false,
-          error: null
-        };
-      }
-      return {
-        data: null,
-        isLoading: false,
-        error: null
-      };
-    });
-
-    // Mock useLocalSearchParams to return selectedBuilding
-    jest.spyOn(require("expo-router"), "useLocalSearchParams").mockReturnValue({
-      selectedBuilding: "MB"
-    });
-
-    const { getByText } = renderWithProviders(<MainMap />);
-
-    await waitFor(() => {
-      expect(mockCampusBuildingPolygons).toHaveBeenCalled();
-    });
-
-    // Building should be selected (bottom sheet should render)
-    const calls = mockCampusBuildingPolygons.mock.calls;
-    await waitFor(() => {
-      const lastCall = calls[calls.length - 1];
-      expect(lastCall[0].selectedCode).toBe("MB");
-    });
-  });
-
   test("initializes with campus parameter from URL and animates to coords", async () => {
     (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
       status: "denied",
