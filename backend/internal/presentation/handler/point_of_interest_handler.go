@@ -34,7 +34,8 @@ type GetPointsRequest struct {
 // @Param       maxDistanceInMeters query int false "Maximum distance in meters (default: 1000)"
 // @Param       rankPreference query string false "Rank preference (e.g., 'DISTANCE', 'RELEVANCE'; default: 'DISTANCE')"
 // @Success     200 {object} []domain.Building
-// @Failure     404 {object} map[string]string "building not found"
+// @Failure     400 {object} map[string]string "bad request"
+// @Failure     500 {object} map[string]string "internal server error"
 // @Router      /pointofinterest [get]
 func (h *PointOfInterestHandler) GetNearbyPointsOfInterest(c *gin.Context) {
 	var req GetPointsRequest

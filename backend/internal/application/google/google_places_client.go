@@ -260,11 +260,11 @@ func (c *googlePlacesClient) TextSearchPlaces(
 	maxDistanceInMeters int,
 	rankPreference string,
 ) ([]domain.Building, error) {
-	PAGESIZE := 10
+	pageSize := 10
 	endpoint := "https://places.googleapis.com/v1/places:searchText"
 
 	data := TextSearchPayload{
-		PageSize:       PAGESIZE,
+		PageSize:       pageSize,
 		RankPreference: rankPreference,
 		Query:          input}
 
@@ -291,15 +291,14 @@ func (c *googlePlacesClient) TextSearchPlaces(
 			"places.types,"+
 			"places.location")
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 1024*1024))
 		return nil, fmt.Errorf("unexpected status code: %d. %s", resp.StatusCode, body)
 	}
 
