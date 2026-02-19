@@ -147,26 +147,7 @@ func (h *DirectionsHandler) GetDirections(c *gin.Context) {
 	end := domain.LatLng{Lat: endLat, Lng: endLng}
 
 	// ---- Manual shuttle selection takes priority if present ----
-	if hasAny(shuttleDay, shuttleTime) {
-		if hasAny(day, at) {
-			h.writeDirectionsError(c, errorString("cannot combine day/time with shuttle_day/shuttle_time"))
-			return
-		}
-		if strings.TrimSpace(shuttleDay) == "" || strings.TrimSpace(shuttleTime) == "" {
-			h.writeDirectionsError(c, errorString("shuttle_day and shuttle_time must both be provided"))
-			return
-		}
-		if mode != "shuttle" {
-			h.writeDirectionsError(c, errorString("shuttle_day/shuttle_time can only be used with mode=shuttle"))
-			return
-		}
-
-		resp, err := h.directions.GetShuttleDirectionsManual(start, end, shuttleDay, shuttleTime)
-		if err != nil {
-			h.writeDirectionsError(c, err)
-			return
-		}
-		c.JSON(http.StatusOK, resp)
+	if h.handleShuttleRouting(c, start, end, mode, day, at, shuttleDay, shuttleTime) {
 		return
 	}
 
@@ -237,26 +218,7 @@ func (h *DirectionsHandler) GetDirectionsByBuildings(c *gin.Context) {
 	shuttleTime := c.Query("shuttle_time")
 
 	// ---- Manual shuttle selection takes priority if present ----
-	if hasAny(shuttleDay, shuttleTime) {
-		if hasAny(day, at) {
-			h.writeDirectionsError(c, errorString("cannot combine day/time with shuttle_day/shuttle_time"))
-			return
-		}
-		if strings.TrimSpace(shuttleDay) == "" || strings.TrimSpace(shuttleTime) == "" {
-			h.writeDirectionsError(c, errorString("shuttle_day and shuttle_time must both be provided"))
-			return
-		}
-		if mode != "shuttle" {
-			h.writeDirectionsError(c, errorString("shuttle_day/shuttle_time can only be used with mode=shuttle"))
-			return
-		}
-
-		resp, err := h.directions.GetShuttleDirectionsManual(start, end, shuttleDay, shuttleTime)
-		if err != nil {
-			h.writeDirectionsError(c, err)
-			return
-		}
-		c.JSON(http.StatusOK, resp)
+	if h.handleShuttleRouting(c, start, end, mode, day, at, shuttleDay, shuttleTime) {
 		return
 	}
 
@@ -274,3 +236,36 @@ func (h *DirectionsHandler) GetDirectionsByBuildings(c *gin.Context) {
 type errorString string
 
 func (e errorString) Error() string { return string(e) }
+
+func (h *DirectionsHandler) handleShuttleRouting(
+	c *gin.Context,
+	start, end domain.LatLng,
+	mode, day, at, shuttleDay, shuttleTime string,
+) bool {
+
+	if !hasAny(shuttleDay, shuttleTime) {
+		return false
+	}
+
+	if hasAny(day, at) {
+		h.writeDirectionsError(c, errorString("cannot combine day/time with shuttle_day/shuttle_time"))
+		return true
+	}
+	if strings.TrimSpace(shuttleDay) == "" || strings.TrimSpace(shuttleTime) == "" {
+		h.writeDirectionsError(c, errorString("shuttle_day and shuttle_time must both be provided"))
+		return true
+	}
+	if mode != "shuttle" {
+		h.writeDirectionsError(c, errorString("shuttle_day/shuttle_time can only be used with mode=shuttle"))
+		return true
+	}
+
+	resp, err := h.directions.GetShuttleDirectionsManual(start, end, shuttleDay, shuttleTime)
+	if err != nil {
+		h.writeDirectionsError(c, err)
+		return true
+	}
+
+	c.JSON(http.StatusOK, resp)
+	return true
+}
