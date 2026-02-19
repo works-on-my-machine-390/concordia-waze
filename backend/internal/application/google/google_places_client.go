@@ -177,7 +177,7 @@ func (c *googlePlacesClient) TextSearchPlaces(
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, 1024*1024))
 		return nil, fmt.Errorf("unexpected status code: %d. %s", resp.StatusCode, body)
 	}
 
