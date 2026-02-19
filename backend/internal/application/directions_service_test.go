@@ -244,3 +244,64 @@ func TestParseGoogleDuration_CoversVariants(t *testing.T) {
 		assert.Equal(t, tt.want, got, "input: %q", tt.input)
 	}
 }
+
+func TestParseOptionalDayTime_ValidInputs(t *testing.T) {
+	ref, day, err := parseOptionalDayTime("monday", "10:15")
+	assert.NoError(t, err)
+	assert.Equal(t, "monday", day)
+	assert.Equal(t, 10, ref.Hour())
+	assert.Equal(t, 15, ref.Minute())
+}
+
+func TestWeekdayFromString(t *testing.T) {
+	wd, ok := weekdayFromString("monday")
+	assert.True(t, ok)
+	assert.Equal(t, time.Monday, wd)
+
+	_, ok = weekdayFromString("noday")
+	assert.False(t, ok)
+}
+
+func TestNextOccurrence(t *testing.T) {
+	now := time.Date(2026, 2, 18, 0, 0, 0, 0, time.UTC) // Wednesday
+	next := nextOccurrence(now, time.Friday)
+	assert.Equal(t, time.Friday, next.Weekday())
+}
+
+func TestFormatKm(t *testing.T) {
+	assert.Equal(t, "500 m", formatKm(0.5))
+	assert.Equal(t, "1.2 km", formatKm(1.23))
+}
+
+func TestHaversineKm(t *testing.T) {
+	a := domain.LatLng{Lat: 45.0, Lng: -73.0}
+	b := domain.LatLng{Lat: 45.1, Lng: -73.1}
+	dist := haversineKm(a, b)
+	assert.Greater(t, dist, 0.0)
+}
+
+func TestPickNextDeparture_NoMatch(t *testing.T) {
+	now := time.Date(2026, 2, 18, 23, 59, 0, 0, time.UTC)
+	departures := []string{"00:10", "00:20"}
+
+	next := pickNextDepartureAt(now, departures)
+	assert.Equal(t, "", next)
+}
+
+func TestNonShuttle_InvalidTimeInput(t *testing.T) {
+	f := &fakeDirectionsClient{resp: domain.DirectionsResponse{Mode: "walking"}}
+	s := NewDirectionsService(f)
+
+	_, err := s.GetDirectionsWithSchedule(domain.LatLng{}, domain.LatLng{}, "walking", "", "25:99")
+	assert.Error(t, err)
+	assert.Equal(t, "invalid time", err.Error())
+}
+
+func TestManualShuttle_NoRepo(t *testing.T) {
+	f := &fakeDirectionsClient{}
+	s := NewDirectionsService(f)
+
+	_, err := s.GetShuttleDirectionsManual(domain.LatLng{}, domain.LatLng{}, "monday", "10:00")
+	assert.Error(t, err)
+	assert.Equal(t, "no shuttle available", err.Error())
+}
