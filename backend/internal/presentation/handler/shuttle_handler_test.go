@@ -212,12 +212,12 @@ func TestGetStopPositionOK(t *testing.T) {
 
 	want := map[string]map[string]float64{
 		"SGW": {
-			"lat": constants.SGWCampusPosition.Lat,
-			"lng": constants.SGWCampusPosition.Lng,
+			"lat": constants.SGWShuttleStopPosition.Lat,
+			"lng": constants.SGWShuttleStopPosition.Lng,
 		},
 		"LOY": {
-			"lat": constants.LOYCampusPosition.Lat,
-			"lng": constants.LOYCampusPosition.Lng,
+			"lat": constants.LOYShuttleStopPosition.Lat,
+			"lng": constants.LOYShuttleStopPosition.Lng,
 		},
 	}
 	if !reflect.DeepEqual(got, want) {
