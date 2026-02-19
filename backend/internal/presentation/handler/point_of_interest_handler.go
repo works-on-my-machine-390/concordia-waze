@@ -31,8 +31,8 @@ type GetPointsRequest struct {
 // @Param       input query string true "Search query (e.g., 'coffee shop')"
 // @Param       lat query number true "Latitude of the location"
 // @Param       lng query number true "Longitude of the location"
-// @Param       maxDistanceInMeters query int false "Maximum distance in meters (default: 1000)"
-// @Param       rankPreference query string false "Rank preference (e.g., 'DISTANCE', 'RELEVANCE'; default: 'DISTANCE')"
+// @Param       max_distance query int false "Maximum distance in meters (default: 1000)"
+// @Param       rank_preference query string false "Rank preference (e.g., 'DISTANCE', 'RELEVANCE'; default: 'DISTANCE')"
 // @Success     200 {object} []domain.Building
 // @Failure     400 {object} map[string]string "bad request"
 // @Failure     500 {object} map[string]string "internal server error"
