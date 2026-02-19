@@ -1,11 +1,9 @@
-import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
-import { useMemo, useRef } from "react";
-import { Switch, Text, View } from "react-native";
-import { BuildingBottomSheetStyles } from "./BuildingBottomSheet";
-import BottomSheetListSection, {
-  ListSectionStyles,
-} from "./BottomSheetListSection";
 import useMapSettings, { MapSettingsList } from "@/hooks/useMapSettings";
+import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import { useRef } from "react";
+import { Switch, Text, View } from "react-native";
+import { ListSectionStyles } from "./BottomSheetListSection";
+import { BuildingBottomSheetStyles } from "./BuildingBottomSheet";
 
 type MapSettingsBottomSheetProps = {
   onClose?: () => void;
@@ -63,7 +61,7 @@ type SettingListItemProps = {
   value: any;
   onChange?: (newValue: any) => void;
 };
-export function SettingListItem(props: SettingListItemProps) {
+export function SettingListItem(props: Readonly<SettingListItemProps>) {
   const settingInfo = MapSettingsList.find(
     (setting) => setting.key === props.settingKey,
   );
@@ -93,7 +91,7 @@ export function SettingListItem(props: SettingListItemProps) {
       <View>
         {settingInfo.controlType === "switch" && (
           <Switch
-            value={props.value ? true : false}
+            value={!!props.value}
             onValueChange={(newValue) => props.onChange?.(newValue)}
           />
         )}

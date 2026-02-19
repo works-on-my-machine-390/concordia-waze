@@ -3,10 +3,10 @@ import { StyleSheet, Text, View } from "react-native";
 export default function BottomSheetListSection({
   title,
   items,
-}: {
+}: Readonly<{
   title: string;
   items: string[];
-}) {
+}>) {
   const hasItems = items?.length > 0;
   return (
     // Reusable list section
@@ -27,18 +27,6 @@ export default function BottomSheetListSection({
     </View>
   );
 }
-
-export function ExpandableListSection({
-  title,
-  items,
-  isExpanded,
-  onToggle,
-}: {
-  title: string;
-  items: string[];
-  isExpanded: boolean;
-  onToggle: () => void;
-}) {}
 
 export const ListSectionStyles = StyleSheet.create({
   listContainer: {

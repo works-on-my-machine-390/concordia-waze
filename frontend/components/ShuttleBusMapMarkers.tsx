@@ -5,7 +5,9 @@ import useMapSettings from "@/hooks/useMapSettings";
 import { Marker } from "react-native-maps";
 import { StyleSheet, View } from "react-native";
 import { COLORS } from "@/app/constants";
-export default function ShuttleBusMarkers({ campus }: { campus?: CampusCode }) {
+export default function ShuttleBusMarkers({
+  campus,
+}: Readonly<{ campus?: CampusCode }>) {
   const { mapSettings } = useMapSettings();
 
   const shuttleMarkerQuery = useGetShuttlePositions();
