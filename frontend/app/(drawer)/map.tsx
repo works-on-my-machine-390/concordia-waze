@@ -19,9 +19,13 @@ import LocationButton from "~/components/LocationButton";
 import { MapHeader } from "~/components/MapHeader";
 import { NavigationHeader } from "~/components/NavigationHeader";
 import { getDistance } from "../utils/mapUtils";
+import { useLocalSearchParams } from "expo-router";
 
 export default function MainMap() {
   const { selected, campus: campusParam } = useLocalSearchParams<{ selected?: string; campus?: string }>();
+  // Get selectedBuilding parameter from URL (when navigating from Directory)
+  const { selectedBuilding } = useLocalSearchParams<{ selectedBuilding?: string }>();
+
   const [campus, setCampus] = useState<CampusCode>(CampusCode.SGW);
   const [searchText, setSearchText] = useState("");
   const [currentBuildingCode, setCurrentBuildingCode] = useState<string | null>(
@@ -84,6 +88,13 @@ export default function MainMap() {
       }
     }
   }, [campusParam]);
+  // Handle building selection from Directory page
+  useEffect(() => {
+    if (selectedBuilding && typeof selectedBuilding === 'string') {
+      // Set the building as selected (this will open the bottom sheet)
+      setSelectedBuildingCode(selectedBuilding);
+    }
+  }, [selectedBuilding]);
 
   const buildingsToRender = useMemo(() => {
     return buildingsByCampus[campus] || [];
