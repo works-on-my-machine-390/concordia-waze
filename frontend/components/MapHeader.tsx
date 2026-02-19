@@ -1,7 +1,7 @@
 import { CampusCode } from "@/hooks/queries/buildingQueries";
 import { Ionicons } from "@expo/vector-icons";
 import { DrawerActions } from "@react-navigation/native";
-import { useNavigation } from "expo-router";
+import { useNavigation, useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { colors, SHADOW } from "../app/styles/theme";
 
@@ -21,11 +21,17 @@ export function MapHeader({
   onSearchTextChange,
 }: Props) {
   const navigation = useNavigation();
+  const router = useRouter();
 
   const handleMenuButtonPress = () => {
     navigation.dispatch(DrawerActions.openDrawer());
 
     onMenuPress?.();
+  };
+
+  const buildingSearch = () => {
+    // Navigate to dedicated search page 
+    router.push({ pathname: "/search", params: { campus } });
   };
 
   return (
@@ -37,7 +43,7 @@ export function MapHeader({
         </Pressable>
 
         {/* search section */}
-        <View style={styles.searchPill}>
+        <Pressable style={styles.searchPill} onPress={buildingSearch}>
           <Ionicons name="search" size={26} color={colors.maroon} />
           <TextInput
             value={searchText}
@@ -45,10 +51,10 @@ export function MapHeader({
             placeholder="Where to…"
             placeholderTextColor="#818181"
             style={styles.searchInput}
+            pointerEvents = "none"
           />
-        </View>
+        </Pressable>
       </View>
-
       {/* campus selection sections */}
       <View style={styles.chipsRow}>
         <CampusButton
@@ -102,7 +108,7 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
     paddingHorizontal: 16,
     width: "100%",
-    top: 40, // need to test on different devices (gap from top of screen))
+    top: 40, 
   },
 
   headerRow: {

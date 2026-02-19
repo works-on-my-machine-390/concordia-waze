@@ -44,6 +44,7 @@ jest.mock("../app/utils/mapUtils", () => ({
 type CampusBuildingPolygonsProps = {
   highlightedCode?: string | null;
   campus?: string;
+  selectedCode?: string;
 };
 
 const mockCampusBuildingPolygons = jest.fn(
@@ -754,6 +755,99 @@ describe("MainMap screen", () => {
 
     await waitFor(() => {
       expect(getByText("H - Henry F. Hall Building")).toBeTruthy();
+    });
+  });
+
+  test("initializes with campus parameter from URL and animates to coords", async () => {
+    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
+      status: "denied",
+    });
+
+    // Mock useLocalSearchParams to return campus
+    jest.spyOn(require("expo-router"), "useLocalSearchParams").mockReturnValue({
+      campus: "LOY"
+    });
+
+    renderWithProviders(<MainMap />);
+
+    await waitFor(() => {
+      expect(mockAnimateToRegion).toHaveBeenCalledWith(
+        {
+          latitude: 45.4589,
+          longitude: -73.64,
+          latitudeDelta: 0.005,
+          longitudeDelta: 0.005,
+        },
+        500,
+      );
+    });
+
+    await waitFor(() => {
+      expect(latestCampus).toBe("LOY");
+    });
+  });
+
+  test("displays building details in NavigationHeader when navigation starts", async () => {
+    mockGrantedWatchLocation(45.497, -73.579);
+
+    mockUseGetBuildingDetails.mockImplementation((code) => {
+      if (code === "H") {
+        return {
+          data: {
+            code: "H",
+            long_name: "Henry F. Hall Building",
+            address: "1455 De Maisonneuve Blvd W",
+            latitude: 45.497,
+            longitude: -73.579
+          },
+          isLoading: false,
+          error: null
+        };
+      }
+      return {
+        data: null,
+        isLoading: false,
+        error: null
+      };
+    });
+
+    mockUseGetBuildings.mockReturnValue({
+      data: {
+        campus: "SGW",
+        buildings: [
+          {
+            code: "H",
+            long_name: "Henry F. Hall Building",
+            polygon: [[45.497, -73.579], [45.498, -73.578], [45.497, -73.577]]
+          }
+        ]
+      },
+      isLoading: false,
+      error: null
+    });
+
+    const { getAllByText } = renderWithProviders(<MainMap />);
+
+    await waitFor(() => {
+      expect(mockCampusBuildingPolygons).toHaveBeenCalled();
+    });
+
+    const lastCall = mockCampusBuildingPolygons.mock.calls[mockCampusBuildingPolygons.mock.calls.length - 1];
+    const onBuildingPress = (lastCall[0] as any).onBuildingPress;
+
+    await act(async () => {
+      onBuildingPress("H");
+    });
+
+    await act(async () => {
+      if (capturedOnStartNavigation) {
+        capturedOnStartNavigation();
+      }
+    });
+
+    await waitFor(() => {
+      const elements = getAllByText("H - Henry F. Hall Building");
+      expect(elements.length).toBeGreaterThan(0);
     });
   });
 });

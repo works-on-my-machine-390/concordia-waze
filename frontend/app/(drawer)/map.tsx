@@ -11,6 +11,7 @@ import * as Location from "expo-location";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, StyleSheet, View } from "react-native";
 import MapView, { Region } from "react-native-maps";
+import { useLocalSearchParams } from "expo-router";
 import { Toast } from "toastify-react-native";
 import { isPointInPolygon } from "~/app/utils/pointInPolygon";
 import CampusBuildingPolygons from "~/components/CampusBuildingPolygons";
@@ -18,12 +19,9 @@ import LocationButton from "~/components/LocationButton";
 import { MapHeader } from "~/components/MapHeader";
 import { NavigationHeader } from "~/components/NavigationHeader";
 import { getDistance } from "../utils/mapUtils";
-import { useLocalSearchParams } from "expo-router";
 
 export default function MainMap() {
-  // Get selectedBuilding parameter from URL (when navigating from Directory)
-  const { selectedBuilding } = useLocalSearchParams<{ selectedBuilding?: string }>();
-
+  const { selected, campus: campusParam } = useLocalSearchParams<{ selected?: string; campus?: string }>();
   const [campus, setCampus] = useState<CampusCode>(CampusCode.SGW);
   const [searchText, setSearchText] = useState("");
   const [currentBuildingCode, setCurrentBuildingCode] = useState<string | null>(
@@ -46,8 +44,8 @@ export default function MainMap() {
   const { data: userProfile } = useGetProfile();
   const saveToHistory = useSaveToHistory(userProfile?.id || "");
 
-  const selectedBuildingDetails = useGetBuildingDetails(selectedBuildingCode || "");
-  const currentBuildingDetails = useGetBuildingDetails(currentBuildingCode || "");
+  const selectedBuildingDetails = useGetBuildingDetails(selectedBuildingCode || undefined);
+  const currentBuildingDetails = useGetBuildingDetails(currentBuildingCode ||undefined);
 
   const buildingListQuery = useGetBuildings(campus);
 
@@ -60,13 +58,32 @@ export default function MainMap() {
     }
   }, [buildingListQuery.data]);
 
-  // Handle building selection from Directory page
+  // Initialize building selection from search params, if present
   useEffect(() => {
-    if (selectedBuilding && typeof selectedBuilding === 'string') {
-      // Set the building as selected (this will open the bottom sheet)
-      setSelectedBuildingCode(selectedBuilding);
+    if (typeof selected === "string" && selected.length > 0) {
+      setSelectedBuildingCode(selected);
     }
-  }, [selectedBuilding]);
+  }, [selected]);
+
+  // Initialize campus from navigation params, if present
+  useEffect(() => {
+    if (typeof campusParam === "string") {
+      const normalized = campusParam.toUpperCase();
+      if (normalized === CampusCode.SGW || normalized === CampusCode.LOY) {
+        setCampus(normalized as CampusCode);
+        const coords = CAMPUS_COORDS[normalized as CampusCode];
+        mapRef.current?.animateToRegion(
+          {
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+            latitudeDelta: 0.005,
+            longitudeDelta: 0.005,
+          },
+          500,
+        );
+      }
+    }
+  }, [campusParam]);
 
   const buildingsToRender = useMemo(() => {
     return buildingsByCampus[campus] || [];

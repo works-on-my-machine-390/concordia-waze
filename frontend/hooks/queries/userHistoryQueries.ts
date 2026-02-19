@@ -43,3 +43,21 @@ export const useSaveToHistory = (userId: string) => {
     },
   });
 };
+
+// Hook to clear user history
+export const useClearUserHistory = (userId: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      const apiClient = await api();
+      return apiClient
+        .url(`/users/${userId}/history`)
+        .delete()
+        .json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["userHistory", userId] });
+    },
+  });
+};
