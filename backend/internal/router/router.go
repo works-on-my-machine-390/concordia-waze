@@ -36,11 +36,12 @@ func SetupRouter() *gin.Engine {
 
 	placesClient := google.NewGooglePlacesClient(os.Getenv("GOOGLE_PLACES_API_KEY"))
 
-	buildingService := application.NewBuildingService(buildingDataRepo)
+	buildingService := application.NewBuildingService(buildingDataRepo, placesClient)
 	campusService := application.NewCampusService(buildingDataRepo)
 	imageService := application.NewImageService(buildingService, placesClient)
 	firebaseService := application.NewFirebaseService()
 	shuttleService := application.NewShuttleService(shuttleDataRepo)
+	pointOfInterestService := application.NewPointOfInterestService(placesClient)
 
 	authHandler := handler.NewAuthHandler(userService, firebaseService)
 
@@ -49,6 +50,7 @@ func SetupRouter() *gin.Engine {
 	imageHandler := handler.NewImageHandler(imageService)
 	firebaseHandler := handler.NewFirebaseHandler(firebaseService)
 	shuttleHandler := handler.NewShuttleHandler(shuttleService)
+	pointOfInterestHandler := handler.NewPointOfInterestHandler(pointOfInterestService)
 
 	router.Use(middleware.AuthMiddleware(jwtManager))
 
@@ -62,6 +64,7 @@ func SetupRouter() *gin.Engine {
 
 	buildingsGroup := router.Group("/buildings")
 	{
+		buildingsGroup.GET("/list", buildingHandler.GetAllBuildingsByCampus)
 		buildingsGroup.GET("/:code", buildingHandler.GetBuilding)
 		buildingsGroup.GET("/:code/images", imageHandler.GetBuildingImages)
 	}
@@ -92,6 +95,7 @@ func SetupRouter() *gin.Engine {
 		shuttleGroup.GET("", shuttleHandler.GetDepartureData)
 		shuttleGroup.GET("/:day/:campus_code", shuttleHandler.GetCampusDaySchedule)
 	}
+	router.GET("/pointofinterest", pointOfInterestHandler.GetNearbyPointsOfInterest)
 
 	router.GET("/campuses/:campus/buildings", campusHandler.GetCampusBuildings)
 
