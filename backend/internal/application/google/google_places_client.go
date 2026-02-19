@@ -138,11 +138,11 @@ func (c *googlePlacesClient) TextSearchPlaces(
 	maxDistanceInMeters int,
 	rankPreference string,
 ) ([]domain.Building, error) {
-	PAGESIZE := 10
+	pageSize := 10
 	endpoint := "https://places.googleapis.com/v1/places:searchText"
 
 	data := TextSearchPayload{
-		PageSize:       PAGESIZE,
+		PageSize:       pageSize,
 		RankPreference: rankPreference,
 		Query:          input}
 
