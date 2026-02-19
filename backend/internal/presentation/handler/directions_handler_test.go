@@ -45,6 +45,23 @@ func (r *fakeBuildingReader) GetBuilding(code string) (*domain.Building, error) 
 	return b, nil
 }
 
+// Match the real BuildingReader interface
+func (r *fakeBuildingReader) GetAllBuildingsByCampus() (map[string][]domain.BuildingSummary, error) {
+	if r.err != nil {
+		return nil, r.err
+	}
+
+	result := make(map[string][]domain.BuildingSummary)
+	for _, b := range r.buildings {
+		// For testing, just assign all buildings to a dummy campus "SGW"
+		result["SGW"] = append(result["SGW"], domain.BuildingSummary{
+			Code: b.Code,
+			Name: b.Name,
+		})
+	}
+	return result, nil
+}
+
 func setupHandler(fetcher *fakeDirectionsFetcher) *DirectionsHandler {
 	svc := application.NewDirectionsService(fetcher)
 
@@ -53,15 +70,16 @@ func setupHandler(fetcher *fakeDirectionsFetcher) *DirectionsHandler {
 		hours:   domain.OpeningHours{"monday": {Open: "08:00", Close: "18:00"}},
 	}
 
-	bSvc := application.NewBuildingService(
-		&fakeBuildingReader{buildings: map[string]*domain.Building{
-			"B":  {Code: "B", Latitude: 45.497856, Longitude: -73.579588},
-			"VL": {Code: "VL", Latitude: 45.459026, Longitude: -73.638606},
-			"EV": {Code: "EV", Latitude: 45.0, Longitude: -73.0},
-			"H":  {Code: "H", Latitude: 45.1, Longitude: -73.1},
-		}},
-		fp,
-	)
+	buildingReader := &fakeBuildingReader{
+		buildings: map[string]*domain.Building{
+			"B":  {Code: "B", Latitude: 45.497856, Longitude: -73.579588, Name: "Building B"},
+			"VL": {Code: "VL", Latitude: 45.459026, Longitude: -73.638606, Name: "VL Building"},
+			"EV": {Code: "EV", Latitude: 45.0, Longitude: -73.0, Name: "EV Building"},
+			"H":  {Code: "H", Latitude: 45.1, Longitude: -73.1, Name: "H Building"},
+		},
+	}
+
+	bSvc := application.NewBuildingService(buildingReader, fp)
 
 	return NewDirectionsHandler(svc, bSvc)
 }

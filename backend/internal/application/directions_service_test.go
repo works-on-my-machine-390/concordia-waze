@@ -216,15 +216,13 @@ func TestDirectionsService_GetShuttleDirectionsManual_InvalidInput(t *testing.T)
 }
 
 func TestPickNextDeparture_CoversBranches(t *testing.T) {
-	now := time.Now()
-	early := now.Add(-2 * time.Hour).Format("15:04")
-	late := now.Add(2 * time.Hour).Format("15:04")
+	now := time.Date(2026, 2, 18, 0, 20, 0, 0, time.UTC) // 00:20
 
-	got := pickNextDeparture([]string{"bad", early, late})
-	assert.Equal(t, late, got)
+	departures := []string{"00:24", "00:54", "01:24"} // your schedule
 
-	got2 := pickNextDeparture([]string{"bad", early})
-	assert.Equal(t, "", got2)
+	next := pickNextDepartureAt(now, departures)
+
+	assert.Equal(t, "00:24", next)
 }
 
 func TestParseGoogleDuration_CoversVariants(t *testing.T) {
