@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { COLORS } from "../app/constants";
 import { CircleIcon, LocationIcon } from "../app/icons";
 
@@ -6,19 +6,23 @@ type NavigationHeaderProps = {
   startLocation: string;
   endLocation: string;
   onCancel: () => void;
+  onStartLocationPress?: () => void;
+  onEndLocationPress?: () => void;
 };
 
 export function NavigationHeader({
   startLocation,
   endLocation,
   onCancel,
+  onStartLocationPress,
+  onEndLocationPress,
 }: NavigationHeaderProps) {
   return (
     <View style={styles.container}>
       <View style={styles.card}>
         <View style={styles.locationsContainer}>
           {/* Start location */}
-          <View style={styles.locationRow}>
+          <Pressable style={styles.locationRow} onPress={onStartLocationPress}>
             <View style={styles.iconContainer}>
               <CircleIcon size={16} />
             </View>
@@ -26,7 +30,7 @@ export function NavigationHeader({
               <Text style={styles.locationLabel}>From</Text>
               <Text style={styles.locationText} numberOfLines={1} ellipsizeMode="tail">{startLocation}</Text>
             </View>
-          </View>
+          </Pressable>
 
           {/* Divider row with dots on the left */}
           <View style={styles.dividerRow}>
@@ -39,7 +43,7 @@ export function NavigationHeader({
           </View>
 
           {/* End location */}
-          <View style={styles.locationRow}>
+          <Pressable style={styles.locationRow} onPress={onEndLocationPress}>
             <View style={styles.iconContainer}>
               <LocationIcon size={20} color={COLORS.maroon} />
             </View>
@@ -47,7 +51,7 @@ export function NavigationHeader({
               <Text style={styles.locationLabel}>To</Text>
               <Text style={styles.locationText} numberOfLines={1} ellipsizeMode="tail">{endLocation}</Text>
             </View>
-          </View>
+          </Pressable>
         </View>
       </View>
     </View>

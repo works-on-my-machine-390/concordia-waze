@@ -37,6 +37,10 @@ func (f *fakeBuildingRepo) GetAllBuildingsByCampus() (map[string][]domain.Buildi
 	return nil, f.err
 }
 
+func (f *fakePlacesClient) TextSearchPlaces(input string, lat, lng float64, maxDistanceInMeters int, rankPreference string) ([]domain.Building, error) {
+	return nil, nil
+}
+
 type fakeCampusRepo struct {
 	polys []domain.BuildingPolygon
 	err   error

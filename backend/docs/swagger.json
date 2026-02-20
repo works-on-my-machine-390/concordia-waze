@@ -380,73 +380,51 @@
                 }
             }
         },
-        "/directions": {
+        "/pointofinterest": {
             "get": {
-                "description": "Returns route polyline + step instructions (walking/driving/transit/shuttle)",
+                "description": "Get nearby points of interest via text search from Google Places API",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "directions"
+                    "point of interest"
                 ],
-                "summary": "Get directions between coordinates",
+                "summary": "Get nearby points of interest",
                 "parameters": [
                     {
-                        "type": "number",
-                        "description": "Start latitude",
-                        "name": "start_lat",
+                        "type": "string",
+                        "description": "Search query (e.g., 'coffee shop')",
+                        "name": "input",
                         "in": "query",
                         "required": true
                     },
                     {
                         "type": "number",
-                        "description": "Start longitude",
-                        "name": "start_lng",
+                        "description": "Latitude of the location",
+                        "name": "lat",
                         "in": "query",
                         "required": true
                     },
                     {
                         "type": "number",
-                        "description": "End latitude",
-                        "name": "end_lat",
+                        "description": "Longitude of the location",
+                        "name": "lng",
                         "in": "query",
                         "required": true
                     },
                     {
-                        "type": "number",
-                        "description": "End longitude",
-                        "name": "end_lng",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Mode (walking, driving, transit, shuttle)",
-                        "name": "mode",
+                        "type": "integer",
+                        "description": "Maximum distance in meters (default: 1000)",
+                        "name": "max_distance",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "Optional day for shuttle (monday..sunday) - automatic",
-                        "name": "day",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Optional time for shuttle (HH:MM 24h) - automatic",
-                        "name": "time",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Manual shuttle day (monday..sunday) - manual departure selection",
-                        "name": "shuttle_day",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Manual shuttle time (HH:MM 24h) - must exist in schedule",
-                        "name": "shuttle_time",
+                        "description": "Rank preference (e.g., 'DISTANCE', 'RELEVANCE'; default: 'DISTANCE')",
+                        "name": "rank_preference",
                         "in": "query"
                     }
                 ],
@@ -454,11 +432,14 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/domain.DirectionsResponse"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/domain.Building"
+                            }
                         }
                     },
                     "400": {
-                        "description": "Bad Request",
+                        "description": "bad request",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -467,91 +448,7 @@
                         }
                     },
                     "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/directions/buildings": {
-            "get": {
-                "description": "Uses building coordinates as origin/destination",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "directions"
-                ],
-                "summary": "Get directions by building codes",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Start building code",
-                        "name": "start_code",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "End building code",
-                        "name": "end_code",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Mode (walking, driving, transit, shuttle)",
-                        "name": "mode",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Optional day for shuttle (monday..sunday) - automatic",
-                        "name": "day",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Optional time for shuttle (HH:MM 24h) - automatic",
-                        "name": "time",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Manual shuttle day (monday..sunday) - manual departure selection",
-                        "name": "shuttle_day",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Manual shuttle time (HH:MM 24h) - must exist in schedule",
-                        "name": "shuttle_time",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/domain.DirectionsResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
+                        "description": "internal server error",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {

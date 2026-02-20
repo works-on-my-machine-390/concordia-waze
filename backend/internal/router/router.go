@@ -41,6 +41,7 @@ func SetupRouter() *gin.Engine {
 	imageService := application.NewImageService(buildingService, placesClient)
 	firebaseService := application.NewFirebaseService()
 	shuttleService := application.NewShuttleService(shuttleDataRepo)
+	pointOfInterestService := application.NewPointOfInterestService(placesClient)
 
 	// ---- Directions wiring (FIXED: inject shuttle schedule repo) ----
 	directionsClient := google.NewGoogleDirectionsClient(os.Getenv("GOOGLE_DIRECTIONS_API_KEY"))
@@ -55,6 +56,7 @@ func SetupRouter() *gin.Engine {
 	imageHandler := handler.NewImageHandler(imageService)
 	firebaseHandler := handler.NewFirebaseHandler(firebaseService)
 	shuttleHandler := handler.NewShuttleHandler(shuttleService)
+	pointOfInterestHandler := handler.NewPointOfInterestHandler(pointOfInterestService)
 
 	router.Use(middleware.AuthMiddleware(jwtManager))
 
@@ -118,6 +120,17 @@ func SetupRouter() *gin.Engine {
 		usersGroup.GET("/:userId/history", firebaseHandler.GetDestinationHistory)
 		usersGroup.DELETE("/:userId/history", firebaseHandler.ClearDestinationHistory)
 	}
+
+	shuttleGroup := router.Group("/shuttle")
+	{
+		shuttleGroup.GET("", shuttleHandler.GetDepartureData)
+		shuttleGroup.GET("/:day/:campus_code", shuttleHandler.GetCampusDaySchedule)
+	}
+	router.GET("/pointofinterest", pointOfInterestHandler.GetNearbyPointsOfInterest)
+
+	router.GET("/campuses/:campus/buildings", campusHandler.GetCampusBuildings)
+
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	return router
 }
