@@ -121,11 +121,6 @@ func SetupRouter() *gin.Engine {
 		usersGroup.DELETE("/:userId/history", firebaseHandler.ClearDestinationHistory)
 	}
 
-	shuttleGroup := router.Group("/shuttle")
-	{
-		shuttleGroup.GET("", shuttleHandler.GetDepartureData)
-		shuttleGroup.GET("/:day/:campus_code", shuttleHandler.GetCampusDaySchedule)
-	}
 	router.GET("/pointofinterest", pointOfInterestHandler.GetNearbyPointsOfInterest)
 
 	router.GET("/campuses/:campus/buildings", campusHandler.GetCampusBuildings)
