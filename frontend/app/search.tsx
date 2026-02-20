@@ -141,6 +141,16 @@ export default function SearchPage() {
     router.replace({ pathname: "/map", params: { selected: code, campus: targetCampus } });
   };
 
+  const handleSearchNearbyPoi = () => {
+  const q = query.trim();
+  if (!q) return;
+
+  router.replace({
+    pathname: "/map",
+    params: { poiQuery: q, poiSearch: "1" },
+  });
+  };
+
   const handleClearRecent = async () => {
     try {
       await clearGuestSearchHistory();
@@ -176,49 +186,49 @@ export default function SearchPage() {
         data={results}
         keyExtractor={(item) => item.code}
         contentContainerStyle={styles.listContainer}
-        ListHeaderComponent={
-          showRecent
-            ? () => (
-                <View style={styles.section}>
-                  <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitle}>Recent searches</Text>
-                    <Pressable onPress={handleClearRecent}>
-                      <Text style={styles.clearText}>Clear</Text>
-                    </Pressable>
-                  </View>
-                  {recentItems.map((item) => (
-                    <Pressable
-                      key={`${item.query}-${item.locations}`}
-                      style={styles.resultItem}
-                      onPress={() =>
-                        item.code && item.campus
-                          ? handleSelect(item.code, item.campus, item.query, item.locations)
-                          : setQuery(item.query)
-                      }
-                    >
-                      <Text style={styles.resultTitle}>
-                        {item.code
-                          ? (() => {
-                              const details = queryClient.getQueryData<Building>([
-                                "buildingDetails",
-                                item.code
-                              ]);
-                              const name = details?.long_name ?? details?.name;
-                              if (name) return `${item.code} - ${name}`;
-                              if (item.query.includes(" - ")) return item.query;
-                              return item.code;
-                            })()
-                          : item.query}
-                      </Text>
-                      {item.locations ? (
-                        <Text style={styles.resultSubtitle}>{item.locations}</Text>
-                      ) : null}
-                    </Pressable>
-                  ))}
+        ListHeaderComponent={() => (
+          <View>
+            {query.trim().length > 0 && (
+              <Pressable
+                style={[styles.resultItem, { borderStyle: "dashed", borderWidth: 1 }]}
+                onPress={handleSearchNearbyPoi}
+              >
+                <Text style={styles.resultTitle}>
+                  Search nearby results for "{query}"
+                </Text>
+              </Pressable>
+            )}
+
+            {showRecent && (
+              <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>Recent searches</Text>
+                  <Pressable onPress={handleClearRecent}>
+                    <Text style={styles.clearText}>Clear</Text>
+                  </Pressable>
                 </View>
-              )
-            : null
-        }
+
+                {recentItems.map((item) => (
+                  <Pressable
+                    key={`${item.query}-${item.locations}`}
+                    style={styles.resultItem}
+                    onPress={() =>
+                      item.code && item.campus
+                        ? handleSelect(item.code, item.campus, item.query, item.locations)
+                        : setQuery(item.query)
+                    }
+                  >
+                    <Text style={styles.resultTitle}>{item.query}</Text>
+                    {item.locations ? (
+                      <Text style={styles.resultSubtitle}>{item.locations}</Text>
+                    ) : null}
+                  </Pressable>
+               ))}
+              </View>
+            )}
+          </View>
+        )}
+
         renderItem={({ item }) => (
           <Pressable
             style={styles.resultItem}
@@ -243,12 +253,12 @@ export default function SearchPage() {
         )}
         ListEmptyComponent={() => {
           if (query.trim()) {
-            return (
-              <View style={styles.empty}>
-                <Text style={styles.emptyText}>No matches found</Text>
-              </View>
-            );
-          }
+          return (
+            <View style={styles.empty}>
+              <Text style={styles.emptyText}>No matches found</Text>
+            </View>
+          );
+        }
           if (showRecent) {
             return null;
           }

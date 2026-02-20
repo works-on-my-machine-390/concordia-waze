@@ -27,7 +27,7 @@ import NearbyResultsBottomSheet from "~/components/NearbyResultsBottomSheet";
 export default function MainMap() {
   const [campus, setCampus] = useState<CampusCode>(CampusCode.SGW);
   const [searchText, setSearchText] = useState("");
-  const [poiSheetOpen, setPoiSheetOpen] = useState(true);
+  const [poiSheetOpen, setPoiSheetOpen] = useState(false);
   const [poiLoading, setPoiLoading] = useState(false);
   const [poiSortMode, setPoiSortMode] = useState<"relevance" | "distance">("relevance");
   const [poiRadiusM, setPoiRadiusM] = useState(1000);
@@ -35,6 +35,25 @@ export default function MainMap() {
   const [hasSearchedPois, setHasSearchedPois] = useState(false);
   const [poiQuery, setPoiQuery] = useState("restaurants");
   const router = useRouter();
+  
+  const params = useLocalSearchParams<{
+    selected?: string;
+    campus?: string;
+    poiQuery?: string;
+    poiSearch?: string;
+  }>();
+
+  useEffect(() => {
+  const q = typeof params.poiQuery === "string" ? params.poiQuery.trim() : "";
+  const doPoiSearch = params.poiSearch === "1";
+
+  if (!doPoiSearch || !q) return;
+
+    setPoiQuery(q);
+    setHasSearchedPois(true);
+    setPoiSheetOpen(true);
+  }, [params.poiQuery, params.poiSearch]);
+
   useEffect(() => {
   if (pois.length > 0) {
     setPoiSheetOpen(true);
@@ -54,24 +73,27 @@ export default function MainMap() {
   type PoiWithDistance = Poi & { distanceM: number };
 
   const poisWithDistance = useMemo<PoiWithDistance[]>(() => {
-    if (!location?.coords) return [];
+  if (!location?.coords) return [];
 
   const me = {
     latitude: location.coords.latitude,
     longitude: location.coords.longitude,
   };
 
-  return pois
-    .map((p) => ({
-      ...p,
-      distanceM: getDistance(me, {
+  const withDistance = pois.map((p) => ({
+    ...p,
+    distanceM:
+      getDistance(me, {
         latitude: (p as any).lat ?? (p as any).latitude,
         longitude: (p as any).lon ?? (p as any).lng ?? (p as any).longitude,
       }) * 1000,
-    }))
-    .sort((a, b) => a.distanceM - b.distanceM);
-  }, [pois, location?.coords?.latitude, location?.coords?.longitude]);
+  }));
 
+  const withinRadius = withDistance.filter((p) => p.distanceM <= poiRadiusM);
+
+  // Always sort nearest → farthest
+  return withinRadius.sort((a, b) => a.distanceM - b.distanceM);
+  }, [ pois, location?.coords?.latitude, location?.coords?.longitude, poiRadiusM, poiSortMode, ]);
 
   const [buildingsByCampus, setBuildingsByCampus] = useState<
     Record<string, CampusBuilding[]>
@@ -207,6 +229,7 @@ export default function MainMap() {
     if (!location?.coords) return;
 
     setPoiLoading(true);
+    setPois([]);
 
   fetchPoisBackend({
     query: poiQuery,

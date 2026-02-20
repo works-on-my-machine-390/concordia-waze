@@ -110,9 +110,11 @@ export default function NearbyResultsBottomSheet({
                 <Text style={styles.poiName} numberOfLines={1}>
                   {item.name}
                 </Text>
+                {item.category && item.category.toLowerCase() !== "poi" ? (
                 <Text style={styles.poiMeta} numberOfLines={1}>
                   {item.category}
                 </Text>
+                ) : null}
                 {item.address ? (
                   <Text style={styles.poiAddr} numberOfLines={1}>
                     {item.address}

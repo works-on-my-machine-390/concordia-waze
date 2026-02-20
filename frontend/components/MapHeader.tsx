@@ -45,7 +45,7 @@ export function MapHeader({
         </Pressable>
 
         {/* search section */}
-        <View style={styles.searchPill}>
+        <Pressable style={styles.searchPill} onPress={buildingSearch}>
           <Ionicons name="search" size={26} color={colors.maroon} />
           <TextInput
             value={searchText}
@@ -53,14 +53,10 @@ export function MapHeader({
             placeholder="Where to…"
             placeholderTextColor="#818181"
             style={styles.searchInput}
-            editable={true}
-            returnKeyType="search"
-            onSubmitEditing={() => onSubmitSearch?.(searchText)}
+            editable={false}
+            pointerEvents="none"
           />
-        <Pressable onPress={buildingSearch} hitSlop={10} style={styles.buildingBtn}>
-          <Ionicons name="business" size={20} color={colors.maroon} />
         </Pressable>
-        </View>
       </View>
       {/* campus selection sections */}
       <View style={styles.chipsRow}>
@@ -155,14 +151,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#111",
     paddingVertical: 0,
-  },
-
-  buildingBtn: {
-  width: 34,
-  height: 34,
-  borderRadius: 17,
-  alignItems: "center",
-  justifyContent: "center",
   },
 
   chipsRow: {
