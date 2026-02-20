@@ -62,6 +62,7 @@ export default function MainMap() {
   useEffect(() => {
     if (typeof selected === "string" && selected.length > 0) {
       setSelectedBuildingCode(selected);
+      setIsNavigationMode(true);
     }
   }, [selected]);
 
