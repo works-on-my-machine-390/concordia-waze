@@ -8,10 +8,10 @@ import {
 import { useSaveToHistory } from "@/hooks/queries/userHistoryQueries";
 import { useGetProfile } from "@/hooks/queries/userQueries";
 import * as Location from "expo-location";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, StyleSheet, View } from "react-native";
 import MapView, { Region } from "react-native-maps";
-import { useLocalSearchParams } from "expo-router";
 import { Toast } from "toastify-react-native";
 import { isPointInPolygon } from "~/app/utils/pointInPolygon";
 import CampusBuildingPolygons from "~/components/CampusBuildingPolygons";
@@ -21,7 +21,15 @@ import { NavigationHeader } from "~/components/NavigationHeader";
 import { getDistance } from "../utils/mapUtils";
 
 export default function MainMap() {
-  const { selected, campus: campusParam } = useLocalSearchParams<{ selected?: string; campus?: string }>();
+  const router = useRouter();
+  const { selected, campus: campusParam, editMode, editValue, preserveEnd, preserveStart } = useLocalSearchParams<{ 
+    selected?: string; 
+    campus?: string;
+    editMode?: string;
+    editValue?: string;
+    preserveEnd?: string;
+    preserveStart?: string;
+  }>();
   const [campus, setCampus] = useState<CampusCode>(CampusCode.SGW);
   const [searchText, setSearchText] = useState("");
   const [currentBuildingCode, setCurrentBuildingCode] = useState<string | null>(
@@ -40,12 +48,14 @@ export default function MainMap() {
   >({});
 
   const [isNavigationMode, setIsNavigationMode] = useState(false);
+  const [customStartBuilding, setCustomStartBuilding] = useState<string | null>(null);
 
   const { data: userProfile } = useGetProfile();
   const saveToHistory = useSaveToHistory(userProfile?.id || "");
 
   const selectedBuildingDetails = useGetBuildingDetails(selectedBuildingCode || undefined);
   const currentBuildingDetails = useGetBuildingDetails(currentBuildingCode ||undefined);
+  const customStartBuildingDetails = useGetBuildingDetails(customStartBuilding || undefined);
 
   const buildingListQuery = useGetBuildings(campus);
 
@@ -60,9 +70,9 @@ export default function MainMap() {
 
   // Initialize building selection from search params, if present
   useEffect(() => {
+    if (editMode) return;
     if (typeof selected === "string" && selected.length > 0) {
       setSelectedBuildingCode(selected);
-      setIsNavigationMode(true);
     }
   }, [selected]);
 
@@ -131,6 +141,10 @@ export default function MainMap() {
   }, [location?.coords?.latitude, location?.coords?.longitude, currentBuildingCode]);
 
   const startLocationText = useMemo(() => { 
+    // if user edits
+    if (customStartBuilding && customStartBuildingDetails.data) {
+      return `${customStartBuildingDetails.data.code} - ${customStartBuildingDetails.data.long_name}`;
+    }
     // if user has location and is in a building
     if (currentBuildingCode && currentBuildingDetails.data) {
       return `${currentBuildingDetails.data.code} - ${currentBuildingDetails.data.long_name}`;
@@ -143,7 +157,7 @@ export default function MainMap() {
     
     // if no location available
     return "Please select a building";
-  }, [currentBuildingCode, currentBuildingDetails.data, location?.coords]);
+  }, [customStartBuilding, customStartBuildingDetails.data, currentBuildingCode, currentBuildingDetails.data, location?.coords, startAddress]);
 
   const mapStyle = [
     {
@@ -290,6 +304,7 @@ export default function MainMap() {
       Toast.warn("Location access was denied. Please select a start building.", "top");
     }
     
+    setCustomStartBuilding(null);
     setIsNavigationMode(true);
 
     // Save the destination building to history
@@ -305,12 +320,66 @@ export default function MainMap() {
     }
   };
 
+  const handleStartLocationPress = () => {
+    router.push({ 
+      pathname: "/search", 
+      params: { 
+        campus,
+        editMode: 'start',
+        preserveEnd: selectedBuildingCode || '', 
+        preserveStart: customStartBuilding || '' 
+      } 
+    });
+  };
+
+  const handleEndLocationPress = () => {
+    router.push({ 
+      pathname: "/search", 
+      params: { 
+        campus,
+        editMode: 'end',
+        preserveEnd: selectedBuildingCode || '', 
+        preserveStart: customStartBuilding || ''  
+      } 
+    });
+  };
+
   const locationButtonPosition = useMemo(() => {
     if (!selectedBuildingCode) {
       return 80;
     }
     return isNavigationMode ? 150 : 220;
   }, [selectedBuildingCode, isNavigationMode]);
+
+useEffect(() => {
+  console.log("=== EDIT MODE DEBUG ===");
+  console.log("editMode:", editMode);
+  console.log("editValue:", editValue);
+  console.log("preserveEnd:", preserveEnd);
+  console.log("preserveStart:", preserveStart);
+  console.log("Current selectedBuildingCode:", selectedBuildingCode);
+  console.log("Current customStartBuilding:", customStartBuilding);
+  
+  if (editMode && editValue) {
+    if (editMode === 'start') {
+      console.log("Setting custom start to:", editValue);
+      setCustomStartBuilding(editValue);
+      if (preserveEnd) {
+        console.log("Restoring end location to:", preserveEnd);
+        setSelectedBuildingCode(preserveEnd);
+      }
+      setIsNavigationMode(true);
+    } else if (editMode === 'end') {
+      console.log("Setting end location to:", editValue);
+      setSelectedBuildingCode(editValue);
+      if (preserveStart) {
+        console.log("Restoring start location to:", preserveStart);
+        setCustomStartBuilding(preserveStart);
+      }
+      setIsNavigationMode(true);
+    }
+  }
+}, [editMode, editValue, preserveEnd, preserveStart]);
 
   return (
     <View style={styles.container}>
@@ -349,7 +418,10 @@ export default function MainMap() {
           onCancel={() => {
             setIsNavigationMode(false);
             setSelectedBuildingCode(null);
+            setCustomStartBuilding(null);
           }}
+          onStartLocationPress={handleStartLocationPress}
+          onEndLocationPress={handleEndLocationPress}
         />
       ) : (
         <MapHeader
