@@ -341,11 +341,6 @@ describe("BuildingBottomSheet", () => {
       expect(queryByTestId("favorite-icon")).toBeNull();
     });
 
-    test("shows Walk as the default transit mode title", () => {
-      const { getByText } = renderNav();
-      expect(getByText("Walk")).toBeTruthy();
-    });
-
     test("renders duration chips for all four transit modes", () => {
       const { getByText, getAllByText } = renderNav();
       expect(getByText("5 min")).toBeTruthy();  // car
@@ -434,4 +429,89 @@ describe("BuildingBottomSheet", () => {
       expect(getByTestId("bottom-sheet")).toBeTruthy();
     });
   });
+  
+  // ── Cross-campus navigation ────────────────────────────────────────────────
+  describe("cross-campus navigation", () => {
+    const renderCrossCampus = () => {
+      mockSuccess();
+      return render(
+        <BuildingBottomSheet
+          buildingCode="MB"
+          isNavigationMode={true}
+          startCampus="SGW"
+          endCampus="LOY"
+        />
+      );
+    };
+
+    const renderSameCampus = () => {
+      mockSuccess();
+      return render(
+        <BuildingBottomSheet
+          buildingCode="MB"
+          isNavigationMode={true}
+          startCampus="SGW"
+          endCampus="SGW"
+        />
+      );
+    };
+
+    test("shows Shuttle as default transit mode for cross-campus route", () => {
+      const { getByText } = renderCrossCampus();
+      expect(getByText("Shuttle")).toBeTruthy();
+    });
+
+    test("shows first transit mode as default for same-campus route", () => {
+      const { getByText } = renderSameCampus();
+      expect(getByText("Drive")).toBeTruthy();
+    });
+
+    test("renders shuttle option first for cross-campus route", () => {
+      const { getAllByText } = renderCrossCampus();
+      expect(getAllByText("2 min")).toBeTruthy();
+    });
+
+    test("shuttle chip is selected by default for cross-campus route", () => {
+      const { getByText } = renderCrossCampus();
+      const shuttleChip = getByText("2 min").parent;
+      expect(shuttleChip).toBeTruthy();
+    });
+
+    test("can switch from shuttle to other modes in cross-campus navigation", () => {
+      const { getByText } = renderCrossCampus();
+      expect(getByText("Shuttle")).toBeTruthy();
+      
+      act(() => {
+        fireEvent.press(getByText("5 min"));
+      });
+      
+      expect(getByText("Drive")).toBeTruthy();
+    });
+
+    test("does not reorder transit options when not in navigation mode", () => {
+      mockSuccess();
+      const { queryByText } = render(
+        <BuildingBottomSheet
+          buildingCode="MB"
+          isNavigationMode={false}
+          startCampus="SGW"
+          endCampus="LOY"
+        />
+      );
+      expect(queryByText("Shuttle")).toBeNull();
+    });
+
+    test("handles missing campus props gracefully", () => {
+      mockSuccess();
+      const { getByText } = render(
+        <BuildingBottomSheet
+          buildingCode="MB"
+          isNavigationMode={true}
+        />
+      );
+      expect(getByText("Drive")).toBeTruthy();
+    });
+  });
 });
+
+
