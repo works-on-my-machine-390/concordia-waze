@@ -1,28 +1,34 @@
-import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
-import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
-import { colors, SHADOW } from "./styles/theme";
-import {
-  CampusCode,
-  useGetBuildings,
-} from "@/hooks/queries/buildingQueries";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useQueryClient } from "@tanstack/react-query";
 import { api } from "@/hooks/api";
-import type { Building } from "@/hooks/queries/buildingQueries";
 import {
   addGuestSearchHistory,
   clearGuestSearchHistory,
   getGuestSearchHistory
 } from "@/hooks/guestStorage";
-import { useGetUserHistory, useSaveToHistory, useClearUserHistory } from "@/hooks/queries/userHistoryQueries";
+import type { Building } from "@/hooks/queries/buildingQueries";
+import {
+  CampusCode,
+  useGetBuildings,
+} from "@/hooks/queries/buildingQueries";
+import { useClearUserHistory, useGetUserHistory, useSaveToHistory } from "@/hooks/queries/userHistoryQueries";
 import { useGetProfile } from "@/hooks/queries/userQueries";
+import { Ionicons } from "@expo/vector-icons";
+import { useQueryClient } from "@tanstack/react-query";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useMemo, useState } from "react";
+import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { colors, SHADOW } from "./styles/theme";
 
 export default function SearchPage() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ campus?: string }>();
+  const params = useLocalSearchParams<{ 
+    campus?: string; 
+    editMode?: string; 
+    preserveEnd?: string; 
+    preserveStart?: string; 
+  }>();
   const campus = (params.campus as string) || CampusCode.SGW;
+  const editMode = params.editMode as 'start' | 'end' | undefined;
   const { data: userProfile } = useGetProfile();
   const userId = userProfile?.id || "";
   const saveToHistory = useSaveToHistory(userId);
@@ -216,8 +222,24 @@ export default function SearchPage() {
     address?: string,
   ) => {
     const resolvedCampus = targetCampus ?? (campus as CampusCode);
-    // Navigate immediately to avoid UI interruptions from state updates
-    router.replace({ pathname: "/map", params: { selected: code, campus: resolvedCampus } });
+
+    // if user in edit mode, pass the edit info back to map
+    if (editMode) {
+      router.replace({ 
+        pathname: "/map", 
+        params: { 
+          selected: code, 
+          campus: resolvedCampus,
+          editMode: editMode,
+          editValue: code,
+          preserveEnd: params.preserveEnd || '', 
+          preserveStart: params.preserveStart || ''
+        } 
+      });
+    } else {
+      // Navigate immediately to avoid UI interruptions from state updates
+      router.replace({ pathname: "/map", params: { selected: code, campus: resolvedCampus } });
+    }
     // Record the search asynchronously (non-blocking)
     void recordRecentSearch(code, label ?? code, address ?? "");
   };

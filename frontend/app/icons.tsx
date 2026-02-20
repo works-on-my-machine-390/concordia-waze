@@ -5,6 +5,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import Octicons from '@expo/vector-icons/Octicons';
+import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import React from "react";
 import { COLORS } from "./constants";
 
@@ -138,3 +139,24 @@ export const CircleIcon: React.FC<IconProps> = ({ size = DEFAULT_ICON_SIZE, colo
 export const LocationIcon: React.FC<IconProps> = ({ size = DEFAULT_ICON_SIZE, color = DEFAULT_ICON_COLOR }) => (
   <Octicons name="location" size={size} color={color} />
 );
+
+// walking icon
+export const WalkingIcon: React.FC<IconProps> = ({ size = DEFAULT_ICON_SIZE, color = DEFAULT_ICON_COLOR }) => (
+  <FontAwesome5 name="walking" size={size} color={color} />
+);
+
+// car icon
+export const CarIcon: React.FC<IconProps> = ({ size = DEFAULT_ICON_SIZE, color = DEFAULT_ICON_COLOR }) => (
+  <AntDesign name="car" size={size} color={color} />
+);
+
+// train icon
+export const TrainIcon: React.FC<IconProps> = ({ size = DEFAULT_ICON_SIZE, color = DEFAULT_ICON_COLOR }) => (
+  <FontAwesome6 name="train-subway" size={size} color={color} />
+);
+
+// bike icon
+export const BikeIcon: React.FC<IconProps> = ({ size = DEFAULT_ICON_SIZE, color = DEFAULT_ICON_COLOR }) => (
+  <MaterialIcons name="directions-bike" size={size} color={color} />
+);
+

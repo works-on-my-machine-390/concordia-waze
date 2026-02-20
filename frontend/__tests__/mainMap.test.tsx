@@ -135,16 +135,23 @@ jest.mock('@/components/BuildingBottomSheet', () => {
   };
 });
 
+let capturedOnStartLocationPress: (() => void) | null = null;
+let capturedOnEndLocationPress: (() => void) | null = null;
+
 // Mock NavigationHeader
 jest.mock("../components/NavigationHeader", () => ({
-  NavigationHeader: ({ startLocation, endLocation, onCancel }: any) => {
+  NavigationHeader: ({ startLocation, endLocation, onCancel, onStartLocationPress, onEndLocationPress }: any) => {
+    capturedOnStartLocationPress = onStartLocationPress;
+    capturedOnEndLocationPress = onEndLocationPress;
     const { View, Text, Button } = require("react-native");
     return (
       <View>
         <Text>From</Text>
         <Text>{startLocation}</Text>
+        <Button title="Edit Start" onPress={onStartLocationPress} />
         <Text>To</Text>
         <Text>{endLocation}</Text>
+        <Button title="Edit End" onPress={onEndLocationPress} />
         <Button title="Cancel Navigation" onPress={onCancel} />
       </View>
     );
@@ -849,5 +856,636 @@ describe("MainMap screen", () => {
       const elements = getAllByText("H - Henry F. Hall Building");
       expect(elements.length).toBeGreaterThan(0);
     });
+  });
+});
+
+describe("Edit Mode Navigation", () => {
+  beforeEach(() => {
+    mockGrantedWatchLocation();
+  });
+
+  test("sets customStartBuilding when editMode is 'start'", async () => {
+    jest.spyOn(require("expo-router"), "useLocalSearchParams").mockReturnValue({
+      editMode: "start",
+      editValue: "MB",
+      preserveEnd: "H",
+      preserveStart: ""
+    });
+
+    mockUseGetBuildingDetails.mockImplementation((code) => {
+      if (code === "MB") {
+        return {
+          data: {
+            code: "MB",
+            long_name: "John Molson Building"
+          },
+          isLoading: false,
+          error: null
+        };
+      }
+      if (code === "H") {
+        return {
+          data: {
+            code: "H",
+            long_name: "Henry F. Hall Building"
+          },
+          isLoading: false,
+          error: null
+        };
+      }
+      return { data: null, isLoading: false, error: null };
+    });
+
+    const { getByText } = renderWithProviders(<MainMap />);
+
+    await waitFor(() => {
+      expect(getByText("MB - John Molson Building")).toBeTruthy();
+    });
+
+    await waitFor(() => {
+      expect(getByText("H - Henry F. Hall Building")).toBeTruthy();
+    });
+  });
+
+  test("preserves end location when editing start location", async () => {
+    jest.spyOn(require("expo-router"), "useLocalSearchParams").mockReturnValue({
+      editMode: "start",
+      editValue: "MB",
+      preserveEnd: "H",
+      preserveStart: ""
+    });
+
+    mockUseGetBuildingDetails.mockImplementation((code) => {
+      if (code === "MB") {
+        return {
+          data: { code: "MB", long_name: "John Molson Building" },
+          isLoading: false,
+          error: null
+        };
+      }
+      if (code === "H") {
+        return {
+          data: { code: "H", long_name: "Henry F. Hall Building" },
+          isLoading: false,
+          error: null
+        };
+      }
+      return { data: null, isLoading: false, error: null };
+    });
+
+    const { getByText } = renderWithProviders(<MainMap />);
+
+    await waitFor(() => {
+      expect(getByText("Cancel Navigation")).toBeTruthy();
+    });
+
+    await waitFor(() => {
+      expect(getByText("H - Henry F. Hall Building")).toBeTruthy();
+    });
+  });
+
+  test("sets selectedBuildingCode when editMode is 'end'", async () => {
+    jest.spyOn(require("expo-router"), "useLocalSearchParams").mockReturnValue({
+      editMode: "end",
+      editValue: "MB",
+      preserveEnd: "",
+      preserveStart: "H"
+    });
+
+    mockUseGetBuildingDetails.mockImplementation((code) => {
+      if (code === "MB") {
+        return {
+          data: { code: "MB", long_name: "John Molson Building" },
+          isLoading: false,
+          error: null
+        };
+      }
+      if (code === "H") {
+        return {
+          data: { code: "H", long_name: "Henry F. Hall Building" },
+          isLoading: false,
+          error: null
+        };
+      }
+      return { data: null, isLoading: false, error: null };
+    });
+
+    const { getByText } = renderWithProviders(<MainMap />);
+
+    await waitFor(() => {
+      expect(getByText("MB - John Molson Building")).toBeTruthy();
+    });
+  });
+
+  test("preserves start location when editing end location", async () => {
+    jest.spyOn(require("expo-router"), "useLocalSearchParams").mockReturnValue({
+      editMode: "end",
+      editValue: "MB",
+      preserveEnd: "",
+      preserveStart: "H"
+    });
+
+    mockUseGetBuildingDetails.mockImplementation((code) => {
+      if (code === "MB") {
+        return {
+          data: { code: "MB", long_name: "John Molson Building" },
+          isLoading: false,
+          error: null
+        };
+      }
+      if (code === "H") {
+        return {
+          data: { code: "H", long_name: "Henry F. Hall Building" },
+          isLoading: false,
+          error: null
+        };
+      }
+      return { data: null, isLoading: false, error: null };
+    });
+
+    const { getByText } = renderWithProviders(<MainMap />);
+
+    await waitFor(() => {
+      expect(getByText("Cancel Navigation")).toBeTruthy();
+    });
+
+    await waitFor(() => {
+      expect(getByText("H - Henry F. Hall Building")).toBeTruthy();
+    });
+  });
+
+  test("sets navigation mode to true when in edit mode", async () => {
+    jest.spyOn(require("expo-router"), "useLocalSearchParams").mockReturnValue({
+      editMode: "start",
+      editValue: "MB",
+      preserveEnd: "H",
+      preserveStart: ""
+    });
+
+    const { getByText } = renderWithProviders(<MainMap />);
+
+    await waitFor(() => {
+      expect(getByText("Cancel Navigation")).toBeTruthy();
+    });
+  });
+
+  test("does not set preserveEnd when it's not provided in start edit mode", async () => {
+    jest.spyOn(require("expo-router"), "useLocalSearchParams").mockReturnValue({
+      editMode: "start",
+      editValue: "MB",
+      preserveEnd: undefined,
+      preserveStart: ""
+    });
+
+    mockUseGetBuildingDetails.mockImplementation((code) => {
+      if (code === "MB") {
+        return {
+          data: { code: "MB", long_name: "John Molson Building" },
+          isLoading: false,
+          error: null
+        };
+      }
+      return { data: null, isLoading: false, error: null };
+    });
+
+    const { getByText } = renderWithProviders(<MainMap />);
+
+    await waitFor(() => {
+      expect(getByText("MB - John Molson Building")).toBeTruthy();
+    });
+
+    await waitFor(() => {
+      expect(getByText("Unknown Building")).toBeTruthy();
+    });
+  });
+
+  test("does not set preserveStart when it's not provided in end edit mode", async () => {
+    jest.spyOn(require("expo-router"), "useLocalSearchParams").mockReturnValue({
+      editMode: "end",
+      editValue: "MB",
+      preserveEnd: "",
+      preserveStart: undefined
+    });
+
+    mockUseGetBuildingDetails.mockImplementation((code) => {
+      if (code === "MB") {
+        return {
+          data: { code: "MB", long_name: "John Molson Building" },
+          isLoading: false,
+          error: null
+        };
+      }
+      return { data: null, isLoading: false, error: null };
+    });
+
+    const { getByText } = renderWithProviders(<MainMap />);
+
+    await waitFor(() => {
+      expect(getByText("MB - John Molson Building")).toBeTruthy();
+    });
+
+    await waitFor(() => {
+      const fromText = getByText("From");
+      expect(fromText).toBeTruthy();
+    });
+  });
+
+  test("handles both editMode branches independently", async () => {
+    const useLocalSearchParamsSpy = jest.spyOn(require("expo-router"), "useLocalSearchParams");
+    
+    useLocalSearchParamsSpy.mockReturnValue({
+      editMode: "start",
+      editValue: "MB",
+      preserveEnd: "H",
+      preserveStart: ""
+    });
+
+    mockUseGetBuildingDetails.mockImplementation((code) => {
+      if (code === "MB" || code === "H") {
+        return {
+          data: { code, long_name: `${code} Building` },
+          isLoading: false,
+          error: null
+        };
+      }
+      return { data: null, isLoading: false, error: null };
+    });
+
+    const { unmount, getByText } = renderWithProviders(<MainMap />);
+
+    await waitFor(() => {
+      expect(getByText("MB - MB Building")).toBeTruthy(); 
+    });
+
+    unmount();
+
+    useLocalSearchParamsSpy.mockReturnValue({
+      editMode: "end",
+      editValue: "CC",
+      preserveEnd: "",
+      preserveStart: "MB"
+    });
+
+    mockUseGetBuildingDetails.mockImplementation((code) => {
+      if (code === "CC" || code === "MB") {
+        return {
+          data: { code, long_name: `${code} Building` },
+          isLoading: false,
+          error: null
+        };
+      }
+      return { data: null, isLoading: false, error: null };
+    });
+
+    const result2 = renderWithProviders(<MainMap />);
+
+    await waitFor(() => {
+      expect(result2.getByText("CC - CC Building")).toBeTruthy(); 
+    });
+  });
+});
+
+describe("Navigation Header Location Press Handlers", () => {
+  beforeEach(() => {
+    mockGrantedWatchLocation();
+  });
+
+  test("handleStartLocationPress calls router.push with correct params", async () => {
+  const mockRouterPush = jest.fn();
+  
+  const routerMock = {
+    push: mockRouterPush,
+    replace: jest.fn(),
+    back: jest.fn()
+  };
+  
+  jest.spyOn(require("expo-router"), "useRouter").mockReturnValue(routerMock);
+
+  mockUseGetBuildingDetails.mockImplementation((code) => {
+    if (code === "H") {
+      return {
+        data: { code: "H", long_name: "Hall Building" },
+        isLoading: false,
+        error: null
+      };
+    }
+    return { data: null, isLoading: false, error: null };
+  });
+
+  mockUseGetBuildings.mockReturnValue({
+    data: {
+      campus: "SGW",
+      buildings: [
+        { code: "H", polygon: [[45.497, -73.579], [45.498, -73.578]] }
+      ]
+    },
+    isLoading: false,
+    error: null
+  });
+
+  const { getByText } = renderWithProviders(<MainMap />);
+
+  await waitFor(() => {
+    expect(mockCampusBuildingPolygons).toHaveBeenCalled();
+  });
+
+  const lastCall = mockCampusBuildingPolygons.mock.calls[mockCampusBuildingPolygons.mock.calls.length - 1];
+  const onBuildingPress = (lastCall[0] as any).onBuildingPress;
+
+  await act(async () => {
+    onBuildingPress("H");
+  });
+
+  await act(async () => {
+    if (capturedOnStartNavigation) {
+      capturedOnStartNavigation();
+    }
+  });
+
+  await waitFor(() => {
+    expect(getByText("Cancel Navigation")).toBeTruthy();
+  });
+
+  await act(async () => {
+    fireEvent.press(getByText("Edit Start"));
+  });
+
+  expect(mockRouterPush).toHaveBeenCalledWith({
+    pathname: "/search",
+    params: {
+      campus: "SGW",
+      editMode: "start",
+      preserveEnd: "H",
+      preserveStart: ""
+    }
+  });
+});
+
+test("handleEndLocationPress calls router.push with correct params", async () => {
+  const mockRouterPush = jest.fn();
+  
+  const routerMock = {
+    push: mockRouterPush,
+    replace: jest.fn(),
+    back: jest.fn()
+  };
+  
+  jest.spyOn(require("expo-router"), "useRouter").mockReturnValue(routerMock);
+
+  mockUseGetBuildingDetails.mockImplementation((code) => {
+    if (code === "H") {
+      return {
+        data: { code: "H", long_name: "Hall Building" },
+        isLoading: false,
+        error: null
+      };
+    }
+    return { data: null, isLoading: false, error: null };
+  });
+
+  mockUseGetBuildings.mockReturnValue({
+    data: {
+      campus: "SGW",
+      buildings: [
+        { code: "H", polygon: [[45.497, -73.579], [45.498, -73.578]] }
+      ]
+    },
+    isLoading: false,
+    error: null
+  });
+
+  const { getByText } = renderWithProviders(<MainMap />);
+
+  await waitFor(() => {
+    expect(mockCampusBuildingPolygons).toHaveBeenCalled();
+  });
+
+  const lastCall = mockCampusBuildingPolygons.mock.calls[mockCampusBuildingPolygons.mock.calls.length - 1];
+  const onBuildingPress = (lastCall[0] as any).onBuildingPress;
+
+  await act(async () => {
+    onBuildingPress("H");
+  });
+
+  await act(async () => {
+    if (capturedOnStartNavigation) {
+      capturedOnStartNavigation();
+    }
+  });
+
+  await waitFor(() => {
+    expect(getByText("Cancel Navigation")).toBeTruthy();
+  });
+
+  await act(async () => {
+    fireEvent.press(getByText("Edit End"));
+  });
+
+  expect(mockRouterPush).toHaveBeenCalledWith({
+    pathname: "/search",
+    params: {
+      campus: "SGW",
+      editMode: "end",
+      preserveEnd: "H",
+      preserveStart: ""
+    }
+  });
+});
+
+test("handleStartLocationPress includes customStartBuilding in params", async () => {
+  const mockRouterPush = jest.fn();
+  
+  const routerMock = {
+    push: mockRouterPush,
+    replace: jest.fn(),
+    back: jest.fn()
+  };
+  
+  jest.spyOn(require("expo-router"), "useRouter").mockReturnValue(routerMock);
+
+  jest.spyOn(require("expo-router"), "useLocalSearchParams").mockReturnValue({
+    editMode: "start",
+    editValue: "MB",
+    preserveEnd: "H",
+    preserveStart: ""
+  });
+
+  mockUseGetBuildingDetails.mockImplementation((code) => {
+    if (code === "MB") {
+      return {
+        data: { code: "MB", long_name: "John Molson Building" },
+        isLoading: false,
+        error: null
+      };
+    }
+    if (code === "H") {
+      return {
+        data: { code: "H", long_name: "Hall Building" },
+        isLoading: false,
+        error: null
+      };
+    }
+    return { data: null, isLoading: false, error: null };
+  });
+
+  mockUseGetBuildings.mockReturnValue({
+    data: {
+      campus: "SGW",
+      buildings: [
+        { code: "H", polygon: [] },
+        { code: "MB", polygon: [] }
+      ]
+    },
+    isLoading: false,
+    error: null
+  });
+
+  const { getByText } = renderWithProviders(<MainMap />);
+
+  await waitFor(() => {
+    expect(getByText("Cancel Navigation")).toBeTruthy();
+  });
+
+  // Click the "Edit Start" button
+  await act(async () => {
+    fireEvent.press(getByText("Edit Start"));
+  });
+
+  expect(mockRouterPush).toHaveBeenCalledWith({
+    pathname: "/search",
+    params: {
+      campus: "SGW",
+      editMode: "start",
+      preserveEnd: "H",
+      preserveStart: "MB"
+    }
+  });
+});
+});
+
+describe("Start Location Text with Custom Start Building", () => {
+  test("displays custom start building code and name when customStartBuilding is set", async () => {
+    jest.spyOn(require("expo-router"), "useLocalSearchParams").mockReturnValue({
+      editMode: "start",
+      editValue: "MB",
+      preserveEnd: "H",
+      preserveStart: ""
+    });
+
+    mockUseGetBuildingDetails.mockImplementation((code) => {
+      if (code === "MB") {
+        return {
+          data: {
+            code: "MB",
+            long_name: "John Molson Building"
+          },
+          isLoading: false,
+          error: null
+        };
+      }
+      if (code === "H") {
+        return {
+          data: {
+            code: "H",
+            long_name: "Hall Building"
+          },
+          isLoading: false,
+          error: null
+        };
+      }
+      return { data: null, isLoading: false, error: null };
+    });
+
+    mockUseGetBuildings.mockReturnValue({
+      data: {
+        campus: "SGW",
+        buildings: [
+          { code: "MB", polygon: [] },
+          { code: "H", polygon: [] }
+        ]
+      },
+      isLoading: false,
+      error: null
+    });
+
+    const { getByText } = renderWithProviders(<MainMap />);
+
+    await waitFor(() => {
+      expect(getByText("MB - John Molson Building")).toBeTruthy();
+    });
+
+    await waitFor(() => {
+      expect(getByText("Cancel Navigation")).toBeTruthy();
+    });
+  });
+
+  test("customStartBuilding takes priority over currentBuildingCode", async () => {
+    const { isPointInPolygon } = require("../app/utils/pointInPolygon");
+    isPointInPolygon.mockReturnValue(true);
+
+    jest.spyOn(require("expo-router"), "useLocalSearchParams").mockReturnValue({
+      editMode: "start",
+      editValue: "MB",
+      preserveEnd: "H",
+      preserveStart: ""
+    });
+
+    mockUseGetBuildingDetails.mockImplementation((code) => {
+      if (code === "MB") {
+        return {
+          data: {
+            code: "MB",
+            long_name: "John Molson Building"
+          },
+          isLoading: false,
+          error: null
+        };
+      }
+      if (code === "H") {
+        return {
+          data: {
+            code: "H",
+            long_name: "Hall Building"
+          },
+          isLoading: false,
+          error: null
+        };
+      }
+      if (code === "EV") {
+        return {
+          data: {
+            code: "EV",
+            long_name: "EV Building"
+          },
+          isLoading: false,
+          error: null
+        };
+      }
+      return { data: null, isLoading: false, error: null };
+    });
+
+    mockUseGetBuildings.mockReturnValue({
+      data: {
+        campus: "SGW",
+        buildings: [
+          { code: "EV", polygon: [[45.495, -73.577]] },
+          { code: "MB", polygon: [] },
+          { code: "H", polygon: [] }
+        ]
+      },
+      isLoading: false,
+      error: null
+    });
+
+    mockGrantedWatchLocation(45.495, -73.577);
+
+    const { getByText } = renderWithProviders(<MainMap />);
+
+    await waitFor(() => {
+      expect(getByText("MB - John Molson Building")).toBeTruthy();
+    });
+
+    const evText = getByText("MB - John Molson Building");
+    expect(evText).toBeTruthy();
   });
 });

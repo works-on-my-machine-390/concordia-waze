@@ -52,6 +52,7 @@ export function MapHeader({
             placeholderTextColor="#818181"
             style={styles.searchInput}
             pointerEvents = "none"
+            editable={false}
           />
         </Pressable>
       </View>

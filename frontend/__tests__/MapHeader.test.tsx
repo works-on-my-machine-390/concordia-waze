@@ -179,25 +179,6 @@ describe("MapHeader", () => {
     useNavigationMock.mockRestore();
   });
 
-  test("Changing search text calls onSearchTextChange callback", () => {
-    const mockOnSearchTextChange = jest.fn();
-
-    const { getByPlaceholderText } = render(
-      <MapHeader
-        campus="SGW"
-        onCampusChange={jest.fn()}
-        onMenuPress={jest.fn()}
-        searchText=""
-        onSearchTextChange={mockOnSearchTextChange}
-      />,
-    );
-
-    const searchInput = getByPlaceholderText("Where to…");
-    fireEvent.changeText(searchInput, "Henry F. Hall");
-
-    expect(mockOnSearchTextChange).toHaveBeenCalledWith("Henry F. Hall");
-  });
-
   test("Search text updates when searchText prop changes", () => {
     const { getByPlaceholderText, rerender } = render(
       <MapHeader
