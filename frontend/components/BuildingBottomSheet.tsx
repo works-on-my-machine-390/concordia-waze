@@ -1,7 +1,7 @@
 import type { Building } from "@/hooks/queries/buildingQueries";
-import { useGetBuildingDetails } from "@/hooks/queries/buildingQueries";
+import { CampusCode, useGetBuildingDetails } from "@/hooks/queries/buildingQueries";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
-import { useCallback, useMemo, useRef, useState, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { COLORS } from "../app/constants";
 import {
@@ -39,6 +39,8 @@ type Props = {
   onClose?: () => void;
   onStartNavigation?: (buildingCode: string) => void;
   isNavigationMode?: boolean;
+  startCampus?: CampusCode;
+  endCampus?: CampusCode;
 };
 
 type BottomSheetBuildingModel = {
@@ -58,14 +60,6 @@ export const TransitMode = {
 } as const;
 export type TransitMode = (typeof TransitMode)[keyof typeof TransitMode];
 
-const TRANSIT_OPTIONS: { mode: TransitMode; Icon?: React.FC<{ size?: number; color?: string }>; image?: any; label: string; duration: string }[] = [
-  { mode: TransitMode.CAR,   Icon: CarIcon,     label: 'Drive',   duration: '5 min' },
-  { mode: TransitMode.TRAIN, Icon: TrainIcon,   label: 'Transit', duration: '3 min' },
-  { mode: TransitMode.WALK,  Icon: WalkingIcon, label: 'Walk',    duration: '3 min' },
-  { mode: TransitMode.BIKE,  Icon: BikeIcon,    label: 'Bike',    duration: '4 min' },
-  { mode: TransitMode.SHUTTLE, image: concordiaLogo, label: 'Shuttle', duration: '2 min' },
-];
-
 function EmptyBuildingState() {
   return (
     <View style={styles.emptyStateContainer}>
@@ -84,7 +78,7 @@ function EmptyBuildingState() {
 export default function BuildingBottomSheet(props: Readonly<Props>) {
   const bottomSheetRef = useRef<BottomSheet>(null);
   const [sheetOpen, setSheetOpen] = useState(true);
-  const [transitMode, setTransitMode] = useState<TransitMode>(TransitMode.WALK);
+  const [transitMode, setTransitMode] = useState<TransitMode | null>(null);
 
   const snapPoints = useMemo(() => {
     return props.isNavigationMode ? ["20%"] : ["20%", "70%"];
@@ -148,7 +142,41 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
 
   const hasBuildingData = !!building && getBuildingQuery.isSuccess;
 
-  const selectedOption = TRANSIT_OPTIONS.find((o) => o.mode === transitMode)!;
+  // Check if route is cross-campus
+  const isCrossCampus = useMemo(() => {
+    if (!props.isNavigationMode) return false;
+    if (!props.startCampus || !props.endCampus) return false;
+    
+    return props.startCampus !== props.endCampus;
+  }, [props.isNavigationMode, props.startCampus, props.endCampus]);
+
+  // Reorder options (the shuttle is first if cross-campus)
+  const transitOptions = useMemo(() => {
+    const baseOptions = [
+      { mode: TransitMode.CAR,     Icon: CarIcon,        label: 'Drive',   duration: '5 min' },
+      { mode: TransitMode.TRAIN,   Icon: TrainIcon,      label: 'Transit', duration: '3 min' },
+      { mode: TransitMode.WALK,    Icon: WalkingIcon,    label: 'Walk',    duration: '3 min' },
+      { mode: TransitMode.BIKE,    Icon: BikeIcon,       label: 'Bike',    duration: '4 min' },
+      { mode: TransitMode.SHUTTLE, image: concordiaLogo, label: 'Shuttle', duration: '2 min' },
+    ];
+
+    // if cross-campus, move shuttle to the front
+    if (isCrossCampus) {
+      const shuttleOption = baseOptions.find(o => o.mode === TransitMode.SHUTTLE);
+      const otherOptions = baseOptions.filter(o => o.mode !== TransitMode.SHUTTLE);
+      return shuttleOption ? [shuttleOption, ...otherOptions] : baseOptions;
+    }
+    return baseOptions;
+  }, [isCrossCampus]);
+
+  // Set default transit mode to the first option
+  useEffect(() => {
+    if (props.isNavigationMode && transitOptions.length > 0) {
+      setTransitMode(transitOptions[0].mode);
+    }
+  }, [transitOptions, props.isNavigationMode]);
+
+  const selectedOption = transitOptions.find((o) => o.mode === transitMode) || transitOptions[0];
 
   return (
     <BottomSheet
@@ -201,7 +229,7 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.transitRow}
                 >
-                  {TRANSIT_OPTIONS.map(({ mode, Icon, image, duration }) => {
+                  {transitOptions.map(({ mode, Icon, image, duration }) => {
                     const selected = transitMode === mode;
                     return (
                       <TouchableOpacity

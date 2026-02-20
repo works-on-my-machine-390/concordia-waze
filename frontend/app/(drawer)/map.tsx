@@ -9,7 +9,7 @@ import { useSaveToHistory } from "@/hooks/queries/userHistoryQueries";
 import { useGetProfile } from "@/hooks/queries/userQueries";
 import * as Location from "expo-location";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, StyleSheet, View } from "react-native";
 import MapView, { Region } from "react-native-maps";
 import { Toast } from "toastify-react-native";
@@ -320,6 +320,20 @@ export default function MainMap() {
     }
   };
 
+  const getCampusForBuilding = useCallback((buildingCode: string | null): CampusCode | undefined => {
+    if (!buildingCode) return undefined;
+    
+    for (const [campusCode, buildings] of Object.entries(buildingsByCampus)) {
+      if (buildings.some(b => b.code === buildingCode)) {
+        return campusCode as CampusCode;
+      }
+    }
+    return undefined;
+  }, [buildingsByCampus]);
+
+  const startCampus = getCampusForBuilding(customStartBuilding || currentBuildingCode);
+  const endCampus = getCampusForBuilding(selectedBuildingCode);
+
   const handleStartLocationPress = () => {
     router.push({ 
       pathname: "/search", 
@@ -435,6 +449,8 @@ useEffect(() => {
             }}
             onStartNavigation={handleStartNavigation}
             isNavigationMode={isNavigationMode}
+            startCampus={startCampus}
+            endCampus={endCampus}
           />
         )}
       </View>
