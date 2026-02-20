@@ -331,7 +331,34 @@ export default function MainMap() {
     return undefined;
   }, [buildingsByCampus]);
 
-  const startCampus = getCampusForBuilding(customStartBuilding || currentBuildingCode);
+  const startCampus = useMemo(() => {
+    // custom start building 
+    if (customStartBuilding) {
+      return getCampusForBuilding(customStartBuilding);
+    }
+    
+    // current building (user is inside a building)
+    if (currentBuildingCode) {
+      return getCampusForBuilding(currentBuildingCode);
+    }
+    
+    // user's location but not in building (determine campus from coordinates)
+    if (location?.coords) {
+      const distanceToSGW = getDistance(
+        { latitude: location.coords.latitude, longitude: location.coords.longitude },
+        CAMPUS_COORDS[CampusCode.SGW]
+      );
+      const distanceToLOY = getDistance(
+        { latitude: location.coords.latitude, longitude: location.coords.longitude },
+        CAMPUS_COORDS[CampusCode.LOY]
+      );
+      
+      return distanceToSGW < distanceToLOY ? CampusCode.SGW : CampusCode.LOY;
+    }
+    
+    return undefined;
+  }, [customStartBuilding, currentBuildingCode, location?.coords, getCampusForBuilding]);
+
   const endCampus = getCampusForBuilding(selectedBuildingCode);
 
   const handleStartLocationPress = () => {
