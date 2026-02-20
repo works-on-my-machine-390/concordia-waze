@@ -228,6 +228,7 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
                   horizontal
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.transitRow}
+                  nestedScrollEnabled={true}
                 >
                   {transitOptions.map(({ mode, Icon, image, duration }) => {
                     const selected = transitMode === mode;
