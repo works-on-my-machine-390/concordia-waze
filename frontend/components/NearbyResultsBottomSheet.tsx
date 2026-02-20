@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -32,6 +32,9 @@ const radiusLabel = (m: number) => {
   return `Within ${m}m`;
 };
 
+const sortLabel = (s: "relevance" | "distance") =>
+  s === "relevance" ? "Relevance" : "Distance";
+
 const formatDistance = (m?: number) => {
   if (m == null || Number.isNaN(m)) return null;
 
@@ -54,6 +57,10 @@ export default function NearbyResultsBottomSheet({
   onSelectPoi,
 }: Props) {
   const radiusOptions = useMemo(() => [250, 500, 1000, 2000], []);
+  const sortOptions = useMemo(() => ["relevance", "distance"] as const, []);
+
+  const [radiusMenuOpen, setRadiusMenuOpen] = useState(false);
+  const [sortMenuOpen, setSortMenuOpen] = useState(false);
 
   if (!visible) return null;
 
@@ -63,35 +70,101 @@ export default function NearbyResultsBottomSheet({
 
       <View style={styles.headerRow}>
         <Text style={styles.title}>Nearby results</Text>
-        <Pressable onPress={onClose} style={styles.closeBtn} hitSlop={10}>
+        <Pressable
+          onPress={() => {
+            setRadiusMenuOpen(false);
+            setSortMenuOpen(false);
+            onClose();
+          }}
+          style={styles.closeBtn}
+          hitSlop={10}
+        >
           <Ionicons name="close" size={22} color={colors.text} />
         </Pressable>
       </View>
 
       <View style={styles.chipsRow}>
-        <Pressable
-          style={styles.chip}
-          onPress={() =>
-            onChangeSort(sortMode === "relevance" ? "distance" : "relevance")
-          }
-        >
-          <Ionicons name="chevron-down" size={16} color={colors.subText} />
-          <Text style={styles.chipText}>
-            {sortMode === "relevance" ? "Relevance" : "Distance"}
-          </Text>
-        </Pressable>
+        {/* Sort dropdown */}
+        <View style={styles.dropdownAnchor}>
+          <Pressable
+            style={styles.chip}
+            onPress={() => {
+              setRadiusMenuOpen(false);
+              setSortMenuOpen((v) => !v);
+            }}
+          >
+            <Ionicons name="chevron-down" size={16} color={colors.subText} />
+            <Text style={styles.chipText}>{sortLabel(sortMode)}</Text>
+          </Pressable>
 
-        <Pressable
-          style={styles.chip}
-          onPress={() => {
-            const idx = radiusOptions.indexOf(radiusM);
-            const next = radiusOptions[(idx + 1) % radiusOptions.length];
-            onChangeRadius(next);
-          }}
-        >
-          <Ionicons name="navigate" size={16} color={colors.subText} />
-          <Text style={styles.chipText}>{radiusLabel(radiusM)}</Text>
-        </Pressable>
+          {sortMenuOpen ? (
+            <View style={styles.dropdown}>
+              {sortOptions.map((opt) => (
+                <Pressable
+                  key={opt}
+                  style={[
+                    styles.dropdownItem,
+                    opt === sortMode && styles.dropdownItemActive,
+                  ]}
+                  onPress={() => {
+                    onChangeSort(opt);
+                    setSortMenuOpen(false);
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.dropdownText,
+                      opt === sortMode && styles.dropdownTextActive,
+                    ]}
+                  >
+                    {sortLabel(opt)}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
+        </View>
+
+        {/* Radius dropdown */}
+        <View style={styles.dropdownAnchor}>
+          <Pressable
+            style={styles.chip}
+            onPress={() => {
+              setSortMenuOpen(false);
+              setRadiusMenuOpen((v) => !v);
+            }}
+          >
+            <Ionicons name="navigate" size={16} color={colors.subText} />
+            <Text style={styles.chipText}>{radiusLabel(radiusM)}</Text>
+          </Pressable>
+
+          {radiusMenuOpen ? (
+            <View style={styles.dropdown}>
+              {radiusOptions.map((opt) => (
+                <Pressable
+                  key={opt}
+                  style={[
+                    styles.dropdownItem,
+                    opt === radiusM && styles.dropdownItemActive,
+                  ]}
+                  onPress={() => {
+                    onChangeRadius(opt);
+                    setRadiusMenuOpen(false);
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.dropdownText,
+                      opt === radiusM && styles.dropdownTextActive,
+                    ]}
+                  >
+                    {radiusLabel(opt)}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
+        </View>
       </View>
 
       {loading ? (
@@ -110,11 +183,13 @@ export default function NearbyResultsBottomSheet({
                 <Text style={styles.poiName} numberOfLines={1}>
                   {item.name}
                 </Text>
+
                 {item.category && item.category.toLowerCase() !== "poi" ? (
-                <Text style={styles.poiMeta} numberOfLines={1}>
-                  {item.category}
-                </Text>
+                  <Text style={styles.poiMeta} numberOfLines={1}>
+                    {item.category}
+                  </Text>
                 ) : null}
+
                 {item.address ? (
                   <Text style={styles.poiAddr} numberOfLines={1}>
                     {item.address}
@@ -193,6 +268,10 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingHorizontal: 14,
     paddingBottom: 10,
+    zIndex: 2,
+  },
+  dropdownAnchor: {
+    position: "relative",
   },
   chip: {
     flexDirection: "row",
@@ -208,6 +287,32 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.text,
     fontWeight: "600",
+  },
+  dropdown: {
+    position: "absolute",
+    top: 44,
+    left: 0,
+    minWidth: 160,
+    borderRadius: 12,
+    backgroundColor: "white",
+    paddingVertical: 6,
+    ...SHADOW,
+    zIndex: 999,
+  },
+  dropdownItem: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  dropdownItemActive: {
+    backgroundColor: colors.surface,
+  },
+  dropdownText: {
+    fontSize: 13,
+    color: colors.text,
+    fontWeight: "600",
+  },
+  dropdownTextActive: {
+    color: colors.maroon,
   },
   loading: {
     paddingVertical: 30,
