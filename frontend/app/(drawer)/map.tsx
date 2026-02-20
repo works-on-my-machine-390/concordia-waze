@@ -8,34 +8,35 @@ import {
 import { useSaveToHistory } from "@/hooks/queries/userHistoryQueries";
 import { useGetProfile } from "@/hooks/queries/userQueries";
 import * as Location from "expo-location";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, StyleSheet, View } from "react-native";
 import MapView, { Region } from "react-native-maps";
-import { useLocalSearchParams } from "expo-router";
 import { Toast } from "toastify-react-native";
 import { isPointInPolygon } from "~/app/utils/pointInPolygon";
 import CampusBuildingPolygons from "~/components/CampusBuildingPolygons";
 import LocationButton from "~/components/LocationButton";
 import { MapHeader } from "~/components/MapHeader";
 import { NavigationHeader } from "~/components/NavigationHeader";
+import NearbyResultsBottomSheet from "~/components/NearbyResultsBottomSheet";
 import { getDistance } from "../utils/mapUtils";
-import { useRouter } from "expo-router";
 import type { Poi } from "../utils/poi";
 import { fetchPoisBackend } from "../utils/poi";
-import NearbyResultsBottomSheet from "~/components/NearbyResultsBottomSheet";
 
 export default function MainMap() {
   const [campus, setCampus] = useState<CampusCode>(CampusCode.SGW);
   const [searchText, setSearchText] = useState("");
   const [poiSheetOpen, setPoiSheetOpen] = useState(false);
   const [poiLoading, setPoiLoading] = useState(false);
-  const [poiSortMode, setPoiSortMode] = useState<"relevance" | "distance">("relevance");
+  const [poiSortMode, setPoiSortMode] = useState<"relevance" | "distance">(
+    "relevance",
+  );
   const [poiRadiusM, setPoiRadiusM] = useState(1000);
   const [pois, setPois] = useState<Poi[]>([]);
   const [hasSearchedPois, setHasSearchedPois] = useState(false);
   const [poiQuery, setPoiQuery] = useState("restaurants");
   const router = useRouter();
-  
+
   const params = useLocalSearchParams<{
     selected?: string;
     campus?: string;
@@ -44,10 +45,10 @@ export default function MainMap() {
   }>();
 
   useEffect(() => {
-  const q = typeof params.poiQuery === "string" ? params.poiQuery.trim() : "";
-  const doPoiSearch = params.poiSearch === "1";
+    const q = typeof params.poiQuery === "string" ? params.poiQuery.trim() : "";
+    const doPoiSearch = params.poiSearch === "1";
 
-  if (!doPoiSearch || !q) return;
+    if (!doPoiSearch || !q) return;
 
     setPoiQuery(q);
     setHasSearchedPois(true);
@@ -55,9 +56,9 @@ export default function MainMap() {
   }, [params.poiQuery, params.poiSearch]);
 
   useEffect(() => {
-  if (pois.length > 0) {
-    setPoiSheetOpen(true);
-  }
+    if (pois.length > 0) {
+      setPoiSheetOpen(true);
+    }
   }, [pois.length]);
   const [currentBuildingCode, setCurrentBuildingCode] = useState<string | null>(
     null,
@@ -73,27 +74,33 @@ export default function MainMap() {
   type PoiWithDistance = Poi & { distanceM: number };
 
   const poisWithDistance = useMemo<PoiWithDistance[]>(() => {
-  if (!location?.coords) return [];
+    if (!location?.coords) return [];
 
-  const me = {
-    latitude: location.coords.latitude,
-    longitude: location.coords.longitude,
-  };
+    const me = {
+      latitude: location.coords.latitude,
+      longitude: location.coords.longitude,
+    };
 
-  const withDistance = pois.map((p) => ({
-    ...p,
-    distanceM:
-      getDistance(me, {
-        latitude: (p as any).lat ?? (p as any).latitude,
-        longitude: (p as any).lon ?? (p as any).lng ?? (p as any).longitude,
-      }) * 1000,
-  }));
+    const withDistance = pois.map((p) => ({
+      ...p,
+      distanceM:
+        getDistance(me, {
+          latitude: (p as any).lat ?? (p as any).latitude,
+          longitude: (p as any).lon ?? (p as any).lng ?? (p as any).longitude,
+        }) * 1000,
+    }));
 
-  const withinRadius = withDistance.filter((p) => p.distanceM <= poiRadiusM);
+    const withinRadius = withDistance.filter((p) => p.distanceM <= poiRadiusM);
 
-  // Always sort nearest → farthest
-  return withinRadius.sort((a, b) => a.distanceM - b.distanceM);
-  }, [ pois, location?.coords?.latitude, location?.coords?.longitude, poiRadiusM, poiSortMode, ]);
+    // Always sort nearest → farthest
+    return withinRadius.sort((a, b) => a.distanceM - b.distanceM);
+  }, [
+    pois,
+    location?.coords?.latitude,
+    location?.coords?.longitude,
+    poiRadiusM,
+    poiSortMode,
+  ]);
 
   const [buildingsByCampus, setBuildingsByCampus] = useState<
     Record<string, CampusBuilding[]>
@@ -104,8 +111,12 @@ export default function MainMap() {
   const { data: userProfile } = useGetProfile();
   const saveToHistory = useSaveToHistory(userProfile?.id || "");
 
-  const selectedBuildingDetails = useGetBuildingDetails(selectedBuildingCode || "");
-  const currentBuildingDetails = useGetBuildingDetails(currentBuildingCode || "");
+  const selectedBuildingDetails = useGetBuildingDetails(
+    selectedBuildingCode || undefined,
+  );
+  const currentBuildingDetails = useGetBuildingDetails(
+    currentBuildingCode || undefined,
+  );
 
   const buildingListQuery = useGetBuildings(campus);
 
@@ -117,6 +128,33 @@ export default function MainMap() {
       }));
     }
   }, [buildingListQuery.data]);
+
+  // Initialize building selection from search params, if present
+  useEffect(() => {
+    if (typeof params.selected === "string" && params.selected.length > 0) {
+      setSelectedBuildingCode(params.selected);
+    }
+  }, [params.selected]);
+
+  // Initialize campus from navigation params, if present
+  useEffect(() => {
+    if (typeof params.campus === "string") {
+      const normalized = params.campus.toUpperCase();
+      if (normalized === CampusCode.SGW || normalized === CampusCode.LOY) {
+        setCampus(normalized as CampusCode);
+        const coords = CAMPUS_COORDS[normalized as CampusCode];
+        mapRef.current?.animateToRegion(
+          {
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+            latitudeDelta: 0.005,
+            longitudeDelta: 0.005,
+          },
+          500,
+        );
+      }
+    }
+  }, [params.campus]);
 
   const buildingsToRender = useMemo(() => {
     return buildingsByCampus[campus] || [];
@@ -133,21 +171,25 @@ export default function MainMap() {
             latitude: location.coords.latitude,
             longitude: location.coords.longitude,
           });
-                    
+
           if (addresses && addresses.length > 0) {
             const addr = addresses[0];
-            
+
             // street adress
-            const street = [addr.streetNumber, addr.street].filter(Boolean).join(' ');
-            
-            // adding city, region and postal code to it 
+            const street = [addr.streetNumber, addr.street]
+              .filter(Boolean)
+              .join(" ");
+
+            // adding city, region and postal code to it
             const formattedAddress = [
               street,
               addr.city,
               addr.region,
-              addr.postalCode
-            ].filter(Boolean).join(', ');
-            
+              addr.postalCode,
+            ]
+              .filter(Boolean)
+              .join(", ");
+
             setStartAddress(formattedAddress || "Current Location");
           }
         } catch (e) {
@@ -158,21 +200,28 @@ export default function MainMap() {
         setStartAddress(null);
       }
     };
-    
-    getAddress();
-  }, [location?.coords?.latitude, location?.coords?.longitude, currentBuildingCode]);
 
-  const startLocationText = useMemo(() => { 
+    getAddress();
+  }, [
+    location?.coords?.latitude,
+    location?.coords?.longitude,
+    currentBuildingCode,
+  ]);
+
+  const startLocationText = useMemo(() => {
     // if user has location and is in a building
     if (currentBuildingCode && currentBuildingDetails.data) {
       return `${currentBuildingDetails.data.code} - ${currentBuildingDetails.data.long_name}`;
     }
-    
+
     // if user has location but not in a building
     if (location?.coords) {
-      return startAddress || `${location.coords.latitude.toFixed(5)}, ${location.coords.longitude.toFixed(5)}`;
+      return (
+        startAddress ||
+        `${location.coords.latitude.toFixed(5)}, ${location.coords.longitude.toFixed(5)}`
+      );
     }
-    
+
     // if no location available
     return "Please select a building";
   }, [currentBuildingCode, currentBuildingDetails.data, location?.coords]);
@@ -231,24 +280,29 @@ export default function MainMap() {
     setPoiLoading(true);
     setPois([]);
 
-  fetchPoisBackend({
-    query: poiQuery,
-    center: {
-    lat: location.coords.latitude,
-    lon: location.coords.longitude,
-  },
-    radiusM: poiRadiusM,
-    sortMode: poiSortMode,
-  })
-
-    .then(setPois)
-    .catch((e) => {
-      console.error("POI search failed", e);
-      setPois([]);
+    fetchPoisBackend({
+      query: poiQuery,
+      center: {
+        lat: location.coords.latitude,
+        lon: location.coords.longitude,
+      },
+      radiusM: poiRadiusM,
+      sortMode: poiSortMode,
     })
-    .finally(() => setPoiLoading(false));
-  }, [ location?.coords?.latitude, location?.coords?.longitude, poiRadiusM, hasSearchedPois, poiQuery, poiSortMode,]);
-
+      .then(setPois)
+      .catch((e) => {
+        console.error("POI search failed", e);
+        setPois([]);
+      })
+      .finally(() => setPoiLoading(false));
+  }, [
+    location?.coords?.latitude,
+    location?.coords?.longitude,
+    poiRadiusM,
+    hasSearchedPois,
+    poiQuery,
+    poiSortMode,
+  ]);
 
   useEffect(() => {
     if (!location?.coords) return;
@@ -345,20 +399,23 @@ export default function MainMap() {
 
   const handleStartNavigation = () => {
     if (!location) {
-      Toast.warn("Location access was denied. Please select a start building.", "top");
+      Toast.warn(
+        "Location access was denied. Please select a start building.",
+        "top",
+      );
     }
-    
+
     setIsNavigationMode(true);
 
     // Save the destination building to history
-    if (userProfile?.id && selectedBuildingDetails.data) { 
+    if (userProfile?.id && selectedBuildingDetails.data) {
       saveToHistory.mutate({
         name: selectedBuildingDetails.data.long_name,
         address: selectedBuildingDetails.data.address,
         lat: selectedBuildingDetails.data.latitude,
         lng: selectedBuildingDetails.data.longitude,
         building_code: selectedBuildingDetails.data.code,
-        destinationType: "building"
+        destinationType: "building",
       });
     }
   };
@@ -400,7 +457,7 @@ export default function MainMap() {
         <NavigationHeader
           startLocation={startLocationText}
           endLocation={
-            selectedBuildingDetails.data 
+            selectedBuildingDetails.data
               ? `${selectedBuildingDetails.data.code} - ${selectedBuildingDetails.data.long_name}`
               : selectedBuildingCode || "Unknown Building"
           }
@@ -415,31 +472,28 @@ export default function MainMap() {
           onCampusChange={handleCampusChange}
           searchText={searchText}
           onSearchTextChange={(text) => {
-          setSearchText(text);
-      }}
+            setSearchText(text);
+          }}
           onSubmitSearch={(text) => {
-          const q = text.trim().toLowerCase();
+            const q = text.trim().toLowerCase();
 
-          const isPoi =
-          q.includes("restaurant") ||
-          q.includes("cafe") ||
-          q.includes("coffee") ||
-          q.includes("gym") ||
-          q.includes("bar") ||
-          q.includes("pharmacy") ||
-          q.includes("hospital") ||
-          q.includes("library") ||
-          q.includes("bank");
+            const isPoi =
+              q.includes("restaurant") ||
+              q.includes("cafe") ||
+              q.includes("coffee") ||
+              q.includes("gym") ||
+              q.includes("bar") ||
+              q.includes("pharmacy") ||
+              q.includes("hospital") ||
+              q.includes("library") ||
+              q.includes("bank");
 
-      
-          setPoiQuery(text.trim());
-          setHasSearchedPois(true);
-          setPoiSheetOpen(true);
-        
-
-  }}
-  onMenuPress={() => {}}
-      />
+            setPoiQuery(text.trim());
+            setHasSearchedPois(true);
+            setPoiSheetOpen(true);
+          }}
+          onMenuPress={() => {}}
+        />
       )}
       <View style={styles.bottomSheetContainer}>
         <LocationButton
@@ -452,24 +506,23 @@ export default function MainMap() {
             buildingCode={selectedBuildingCode}
             onClose={() => {
               setSelectedBuildingCode(null);
-              setIsNavigationMode(false); 
+              setIsNavigationMode(false);
             }}
             onStartNavigation={handleStartNavigation}
             isNavigationMode={isNavigationMode}
           />
         )}
         <NearbyResultsBottomSheet
-  visible={poiSheetOpen}
-  loading={poiLoading}
-  pois={poisWithDistance}
-  sortMode={poiSortMode}
-  radiusM={poiRadiusM}
-  onClose={() => setPoiSheetOpen(false)}
-  onChangeSort={setPoiSortMode}
-  onChangeRadius={setPoiRadiusM}
-  onSelectPoi={() => {}}
-/>
-
+          visible={poiSheetOpen}
+          loading={poiLoading}
+          pois={poisWithDistance}
+          sortMode={poiSortMode}
+          radiusM={poiRadiusM}
+          onClose={() => setPoiSheetOpen(false)}
+          onChangeSort={setPoiSortMode}
+          onChangeRadius={setPoiRadiusM}
+          onSelectPoi={() => {}}
+        />
       </View>
     </View>
   );

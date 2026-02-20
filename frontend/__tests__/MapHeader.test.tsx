@@ -15,19 +15,15 @@ jest.mock("@expo/vector-icons", () => {
 
 // ---- Navigation + router mocks ----
 const mockDispatch = jest.fn();
-jest.mock("@react-navigation/native", () => {
-  const actual = jest.requireActual("@react-navigation/native");
-  return {
-    ...actual,
-    DrawerActions: actual.DrawerActions,
-    useNavigation: () => ({ dispatch: mockDispatch }),
-  };
-});
-
 const mockPush = jest.fn();
 jest.mock("expo-router", () => ({
   useRouter: () => ({ push: mockPush }),
   useNavigation: () => ({ dispatch: mockDispatch }),
+}));
+
+jest.mock("@react-navigation/native", () => ({
+  ...jest.requireActual("@react-navigation/native"),
+  DrawerActions: jest.requireActual("@react-navigation/native").DrawerActions,
 }));
 
 describe("MapHeader", () => {
@@ -91,4 +87,66 @@ describe("MapHeader", () => {
     fireEvent.press(getByText("Loyola"));
     expect(baseProps.onCampusChange).toHaveBeenCalledWith(CampusCode.LOY);
   });
+});
+
+test("onMenuPress callback is optional and doesn't cause errors", () => {
+  const { getByPlaceholderText } = render(
+    <MapHeader
+      campus="SGW"
+      onCampusChange={jest.fn()}
+      onMenuPress={undefined}
+      searchText=""
+      onSearchTextChange={jest.fn()}
+    />,
+  );
+
+  const searchInput = getByPlaceholderText("Where to…");
+  expect(searchInput).toBeTruthy();
+});
+
+test("changing search text does not call callback because input is read-only", () => {
+  const mockOnSearchTextChange = jest.fn();
+
+  const { getByPlaceholderText } = render(
+    <MapHeader
+      campus="SGW"
+      onCampusChange={jest.fn()}
+      onMenuPress={jest.fn()}
+      searchText=""
+      onSearchTextChange={mockOnSearchTextChange}
+    />,
+  );
+
+  const searchInput = getByPlaceholderText("Where to…");
+  fireEvent.changeText(searchInput, "Henry F. Hall");
+
+  expect(mockOnSearchTextChange).not.toHaveBeenCalled();
+});
+
+test("search text updates when searchText prop changes", () => {
+  const { getByPlaceholderText, rerender } = render(
+    <MapHeader
+      campus="SGW"
+      onCampusChange={jest.fn()}
+      onMenuPress={jest.fn()}
+      searchText=""
+      onSearchTextChange={jest.fn()}
+    />,
+  );
+
+  let searchInput = getByPlaceholderText("Where to…");
+  expect(searchInput.props.value).toBe("");
+
+  rerender(
+    <MapHeader
+      campus="SGW"
+      onCampusChange={jest.fn()}
+      onMenuPress={jest.fn()}
+      searchText="Henry F. Hall"
+      onSearchTextChange={jest.fn()}
+    />,
+  );
+
+  searchInput = getByPlaceholderText("Where to…");
+  expect(searchInput.props.value).toBe("Henry F. Hall");
 });

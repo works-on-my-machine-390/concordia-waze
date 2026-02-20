@@ -55,8 +55,9 @@ describe("NearbyResultsBottomSheet", () => {
     );
 
     // ActivityIndicator is a native component, easiest reliable way:
-    expect(() => UNSAFE_getByType(require("react-native").ActivityIndicator)).not
-      .toThrow();
+    expect(() =>
+      UNSAFE_getByType(require("react-native").ActivityIndicator),
+    ).not.toThrow();
   });
 
   test("renders POI rows when loading=false", () => {
@@ -77,16 +78,18 @@ describe("NearbyResultsBottomSheet", () => {
   test("calls onChangeSort when sort chip is pressed", () => {
     const { getByText } = render(<NearbyResultsBottomSheet {...baseProps} />);
 
-    // chip shows current mode label
+    // open sort menu from current chip label, then select new sort option
     fireEvent.press(getByText("Relevance"));
+    fireEvent.press(getByText("Distance"));
     expect(baseProps.onChangeSort).toHaveBeenCalledWith("distance");
   });
 
   test("calls onChangeRadius when radius chip is pressed", () => {
     const { getByText } = render(<NearbyResultsBottomSheet {...baseProps} />);
 
-    // "Within 1km" -> next is 2km in your options [250, 500, 1000, 2000]
+    // open radius menu from current chip label, then select a new radius
     fireEvent.press(getByText("Within 1km"));
+    fireEvent.press(getByText("Within 2km"));
     expect(baseProps.onChangeRadius).toHaveBeenCalledWith(2000);
   });
 
