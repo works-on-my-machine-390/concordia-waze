@@ -352,28 +352,16 @@ export default function MainMap() {
   }, [selectedBuildingCode, isNavigationMode]);
 
 useEffect(() => {
-  console.log("=== EDIT MODE DEBUG ===");
-  console.log("editMode:", editMode);
-  console.log("editValue:", editValue);
-  console.log("preserveEnd:", preserveEnd);
-  console.log("preserveStart:", preserveStart);
-  console.log("Current selectedBuildingCode:", selectedBuildingCode);
-  console.log("Current customStartBuilding:", customStartBuilding);
-  
   if (editMode && editValue) {
     if (editMode === 'start') {
-      console.log("Setting custom start to:", editValue);
       setCustomStartBuilding(editValue);
       if (preserveEnd) {
-        console.log("Restoring end location to:", preserveEnd);
         setSelectedBuildingCode(preserveEnd);
       }
       setIsNavigationMode(true);
     } else if (editMode === 'end') {
-      console.log("Setting end location to:", editValue);
       setSelectedBuildingCode(editValue);
       if (preserveStart) {
-        console.log("Restoring start location to:", preserveStart);
         setCustomStartBuilding(preserveStart);
       }
       setIsNavigationMode(true);
