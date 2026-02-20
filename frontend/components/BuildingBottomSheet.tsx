@@ -18,6 +18,8 @@ import {
 } from "../app/icons";
 import BuildingGallery from "./BuildingGallery";
 
+const concordiaLogo = require("../assets/images/concordia_logo.png");
+
 // Reusable list section
 function ListSection({ title, items }: { title: string; items: string[] }) {
   return (
@@ -47,13 +49,21 @@ type BottomSheetBuildingModel = {
   };
 } & Building;
 
-type TransitMode = 'car' | 'train' | 'walk' | 'bike';
+export const TransitMode = {
+  CAR: "CAR",
+  TRAIN: "TRAIN",
+  WALK: "WALK",
+  BIKE: "BIKE",
+  SHUTTLE: "SHUTTLE"
+} as const;
+export type TransitMode = (typeof TransitMode)[keyof typeof TransitMode];
 
-const TRANSIT_OPTIONS: { mode: TransitMode; Icon: React.FC<{ size?: number; color?: string }>; label: string; duration: string }[] = [
-  { mode: 'car',   Icon: CarIcon,     label: 'Drive',   duration: '5 min' },
-  { mode: 'train', Icon: TrainIcon,   label: 'Transit', duration: '3 min' },
-  { mode: 'walk',  Icon: WalkingIcon, label: 'Walk',    duration: '3 min' },
-  { mode: 'bike',  Icon: BikeIcon,    label: 'Bike',    duration: '4 min' },
+const TRANSIT_OPTIONS: { mode: TransitMode; Icon?: React.FC<{ size?: number; color?: string }>; image?: any; label: string; duration: string }[] = [
+  { mode: TransitMode.CAR,   Icon: CarIcon,     label: 'Drive',   duration: '5 min' },
+  { mode: TransitMode.TRAIN, Icon: TrainIcon,   label: 'Transit', duration: '3 min' },
+  { mode: TransitMode.WALK,  Icon: WalkingIcon, label: 'Walk',    duration: '3 min' },
+  { mode: TransitMode.BIKE,  Icon: BikeIcon,    label: 'Bike',    duration: '4 min' },
+  { mode: TransitMode.SHUTTLE, image: concordiaLogo, label: 'Shuttle', duration: '2 min' },
 ];
 
 function EmptyBuildingState() {
@@ -74,7 +84,7 @@ function EmptyBuildingState() {
 export default function BuildingBottomSheet(props: Readonly<Props>) {
   const bottomSheetRef = useRef<BottomSheet>(null);
   const [sheetOpen, setSheetOpen] = useState(true);
-  const [transitMode, setTransitMode] = useState<TransitMode>('walk');
+  const [transitMode, setTransitMode] = useState<TransitMode>(TransitMode.WALK);
 
   const snapPoints = useMemo(() => {
     return props.isNavigationMode ? ["20%"] : ["20%", "70%"];
@@ -191,7 +201,7 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.transitRow}
                 >
-                  {TRANSIT_OPTIONS.map(({ mode, Icon, duration }) => {
+                  {TRANSIT_OPTIONS.map(({ mode, Icon, image, duration }) => {
                     const selected = transitMode === mode;
                     return (
                       <TouchableOpacity
@@ -199,7 +209,15 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
                         style={[styles.transitChip, selected && styles.transitChipSelected]}
                         onPress={() => setTransitMode(mode)}
                       >
-                        <Icon size={18} color={selected ? '#fff' : COLORS.textPrimary} />
+                        {Icon ? (
+                          <Icon size={18} color={selected ? '#fff' : COLORS.textPrimary} />
+                        ) : (
+                          <Image 
+                            source={image} 
+                            style={{ width: 18, height: 18 }}
+                            resizeMode="contain"
+                          />
+                        )}
                         <Text style={[styles.transitChipText, selected && styles.transitChipTextSelected]}>
                           {duration}
                         </Text>
