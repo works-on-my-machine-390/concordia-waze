@@ -96,6 +96,8 @@ func SetupRouter() *gin.Engine {
 
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
+	router.GET("/pointofinterest", pointOfInterestHandler.GetNearbyPointsOfInterest)
+
 	// =========================
 	// PROTECTED ROUTES (auth)
 	// =========================
@@ -120,12 +122,6 @@ func SetupRouter() *gin.Engine {
 		usersGroup.GET("/:userId/history", firebaseHandler.GetDestinationHistory)
 		usersGroup.DELETE("/:userId/history", firebaseHandler.ClearDestinationHistory)
 	}
-
-	router.GET("/pointofinterest", pointOfInterestHandler.GetNearbyPointsOfInterest)
-
-	router.GET("/campuses/:campus/buildings", campusHandler.GetCampusBuildings)
-
-	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	return router
 }
