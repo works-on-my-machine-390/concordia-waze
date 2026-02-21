@@ -1,0 +1,37 @@
+appId: host.exp.Exponent   
+name: "E2E - Select destination VL, then From LB"
+---
+- launchApp
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "open-search"
+
+- waitForAnimationToEnd
+
+- tapOn: "Where to…"
+- inputText: "VL"
+
+- tapOn: "VL - Vanier Library Building"
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "start-navigation"
+- waitForAnimationToEnd
+
+- assertVisible: "From"
+- assertVisible: "To"
+- assertVisible: "VL - Vanier Library Building"
+
+- tapOn: "Please select a building"
+
+- inputText: "LB"
+- tapOn: "LB - J.W. McConnell Building"
+- waitForAnimationToEnd
+
+- assertVisible: "LB - J.W. McConnell Building"
+- assertVisible: "VL - Vanier Library Building"
+
+- tapOn:
+    id: "close-navigation"
+- waitForAnimationToEnd
