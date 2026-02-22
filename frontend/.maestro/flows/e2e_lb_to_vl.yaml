@@ -5,6 +5,12 @@ name: "E2E - Select destination VL, then From LB"
 - waitForAnimationToEnd
 
 - tapOn:
+    id: "no-account-button"
+
+- waitForAnimationToEnd
+
+
+- tapOn:
     id: "open-search"
 
 - waitForAnimationToEnd
