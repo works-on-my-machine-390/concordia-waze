@@ -10,7 +10,7 @@ import { useGetProfile } from "@/hooks/queries/userQueries";
 import * as Location from "expo-location";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Alert, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import MapView, { Region } from "react-native-maps";
 import { Toast } from "toastify-react-native";
 import { isPointInPolygon } from "~/app/utils/pointInPolygon";
@@ -156,7 +156,7 @@ export default function MainMap() {
     }
     
     // if no location available
-    return "Please select a building";
+    return "Select a start location";
   }, [customStartBuilding, customStartBuildingDetails.data, currentBuildingCode, currentBuildingDetails.data, location?.coords, startAddress]);
 
   const mapStyle = [
@@ -180,7 +180,6 @@ export default function MainMap() {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== "granted") {
-          Alert.alert("Permission to access location was denied");
           return;
         }
 
@@ -236,7 +235,6 @@ export default function MainMap() {
       if (!coords) {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== "granted") {
-          Alert.alert("Permission to access location was denied");
           return;
         }
         const current = await Location.getCurrentPositionAsync({});
@@ -300,10 +298,6 @@ export default function MainMap() {
   };
 
   const handleStartNavigation = () => {
-    if (!location) {
-      Toast.warn("Location access was denied. Please select a start building.", "top");
-    }
-    
     setCustomStartBuilding(null);
     setIsNavigationMode(true);
 
@@ -478,6 +472,7 @@ useEffect(() => {
             isNavigationMode={isNavigationMode}
             startCampus={startCampus}
             endCampus={endCampus}
+            hasLocation={!!location || !!customStartBuilding}
           />
         )}
       </View>

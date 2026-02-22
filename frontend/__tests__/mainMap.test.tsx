@@ -664,40 +664,6 @@ describe("MainMap screen", () => {
     });
   });
 
-  test("handleStartNavigation shows warning when location is not available", async () => {
-    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
-      status: "denied",
-    });
-
-    const { Toast } = require("toastify-react-native");
-
-    renderWithProviders(<MainMap />);
-
-    await waitFor(() => {
-      expect(mockCampusBuildingPolygons).toHaveBeenCalled();
-    });
-
-    const lastCall = mockCampusBuildingPolygons.mock.calls[mockCampusBuildingPolygons.mock.calls.length - 1];
-    const onBuildingPress = (lastCall[0] as any).onBuildingPress;
-
-    await act(async () => {
-      onBuildingPress("H");
-    });
-
-    await act(async () => {
-      if (capturedOnStartNavigation) {
-        capturedOnStartNavigation();
-      }
-    });
-
-    await waitFor(() => {
-      expect(Toast.warn).toHaveBeenCalledWith(
-        "Location access was denied. Please select a start building.",
-        "top"
-      );
-    });
-  });
-
   test("startLocationText shows building code and name when user is in a building", async () => {
     const { isPointInPolygon } = require("../app/utils/pointInPolygon");
     isPointInPolygon.mockReturnValue(true);
