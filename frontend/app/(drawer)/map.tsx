@@ -74,31 +74,36 @@ export default function MainMap() {
     null,
   );
 
+  const [cameraCenter, setCameraCenter] = useState<{ lat: number; lon: number } | null>(
+    null);
+
   type PoiWithDistance = Poi & { distanceM: number };
 
   const poisWithDistance = useMemo<PoiWithDistance[]>(() => {
-    if (!location?.coords) return [];
+  const base =
+    cameraCenter
+      ? { latitude: cameraCenter.lat, longitude: cameraCenter.lon }
+      : location?.coords
+        ? { latitude: location.coords.latitude, longitude: location.coords.longitude }
+        : null;
 
-    const me = {
-      latitude: location.coords.latitude,
-      longitude: location.coords.longitude,
-    };
+  if (!base) return [];
 
-    const withDistance = pois.map((p) => ({
-      ...p,
-      distanceM:
-        getDistance(me, {
-          latitude: (p as any).lat ?? (p as any).latitude,
-          longitude: (p as any).lon ?? (p as any).lng ?? (p as any).longitude,
-        }) * 1000,
-    }));
+  const withDistance = pois.map((p) => ({
+    ...p,
+    distanceM: getDistance(base, { latitude: p.lat, longitude: p.lon }) * 1000,
+  }));
 
-    const withinRadius = withDistance.filter((p) => p.distanceM <= poiRadiusM);
+  const withinRadius = withDistance.filter((p) => p.distanceM <= poiRadiusM);
 
-    // Always sort nearest → farthest
-    return withinRadius.sort((a, b) => a.distanceM - b.distanceM);
+  // Only sort by distance if user selected Distance
+  return poiSortMode === "distance"
+    ? withinRadius.sort((a, b) => a.distanceM - b.distanceM)
+    : withinRadius;
   }, [
     pois,
+    cameraCenter?.lat,
+    cameraCenter?.lon,
     location?.coords?.latitude,
     location?.coords?.longitude,
     poiRadiusM,
