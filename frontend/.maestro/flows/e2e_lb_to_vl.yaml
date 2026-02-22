@@ -15,14 +15,15 @@ name: "E2E - Select destination VL, then From LB"
 - waitForAnimationToEnd
 
 - tapOn:
-    id: "start-navigation"
+    point: "88%, 82%"
+    # id: "start-navigation"
 - waitForAnimationToEnd
 
 - assertVisible: "From"
 - assertVisible: "To"
 - assertVisible: "VL - Vanier Library Building"
 
-- tapOn: "Please select a building"
+- tapOn: "From"
 
 - inputText: "LB"
 - tapOn: "LB - J.W. McConnell Building"
