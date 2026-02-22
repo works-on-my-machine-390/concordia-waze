@@ -199,8 +199,8 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
           {/* Header */}
           <View style={styles.headerContainer}>
             {!props.isNavigationMode && sheetOpen && (
-              <TouchableOpacity onPress={() => props.onStartNavigation?.(building.code)} testID="start-navigation">
-                <View style={styles.floatingIcon}>
+              <TouchableOpacity onPress={() => props.onStartNavigation?.(building.code)}>
+                <View style={styles.floatingIcon} testID="start-navigation">
                   <GetDirectionsIcon size={90} color={COLORS.maroon} />
                 </View>
               </TouchableOpacity>
