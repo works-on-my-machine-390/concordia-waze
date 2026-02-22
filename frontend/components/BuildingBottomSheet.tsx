@@ -41,6 +41,7 @@ type Props = {
   isNavigationMode?: boolean;
   startCampus?: CampusCode;
   endCampus?: CampusCode;
+  hasLocation?: boolean;
 };
 
 type BottomSheetBuildingModel = {
@@ -81,8 +82,10 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
   const [transitMode, setTransitMode] = useState<TransitMode | null>(null);
 
   const snapPoints = useMemo(() => {
-    return props.isNavigationMode ? ["20%"] : ["20%", "70%"];
-  }, [props.isNavigationMode]);
+    if (!props.isNavigationMode) return ["20%", "70%"];
+    if (!props.hasLocation) return ["14%"];
+    return ["20%"];
+  }, [props.isNavigationMode, props.hasLocation]);
 
   useEffect(() => {
     if (props.isNavigationMode) {
@@ -219,11 +222,15 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
             {props.isNavigationMode && (
               <View style={styles.navModeContainer}>
                 <View style={styles.navModeHeader}>
-                  <Text style={styles.transitModeTitle}>{selectedOption.label}</Text>
+                  <Text style={styles.transitModeTitle}>
+                    {props.hasLocation ? selectedOption.label : "Please select a start location"}
+                  </Text>
                   <TouchableOpacity onPress={handleCloseSheet} style={styles.closeIcon}   testID="close-navigation" accessibilityLabel="Close navigation" accessibilityRole="button">
                     <CloseIcon size={28} />
                   </TouchableOpacity>
                 </View>
+
+                {props.hasLocation && (
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
@@ -254,6 +261,7 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
                     );
                   })}
                 </ScrollView>
+                )}
               </View>
             )}
 
