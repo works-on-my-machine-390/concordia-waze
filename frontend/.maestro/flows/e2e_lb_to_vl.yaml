@@ -1,14 +1,6 @@
-appId: com.concordiawaze.app  
+appId: com.concordiawaze.app
 name: "E2E - Select destination VL, then From LB"
 ---
-- launchApp
-- waitForAnimationToEnd
-
-- tapOn:
-    id: "no-account-button"
-
-- waitForAnimationToEnd
-
 
 - tapOn:
     id: "open-search"
@@ -17,6 +9,7 @@ name: "E2E - Select destination VL, then From LB"
 
 - tapOn: "Where to…"
 - inputText: "VL"
+- pressKey: Enter
 
 - tapOn: "VL - Vanier Library Building"
 - waitForAnimationToEnd
