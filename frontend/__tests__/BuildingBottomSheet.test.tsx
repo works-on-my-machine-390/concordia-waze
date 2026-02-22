@@ -321,7 +321,7 @@ describe("BuildingBottomSheet", () => {
     const renderNav = (overrides: Record<string, any> = {}) => {
       mockSuccess(overrides);
       return render(
-        <BuildingBottomSheet buildingCode="MB" isNavigationMode={true} />
+        <BuildingBottomSheet buildingCode="MB" isNavigationMode={true} hasLocation={true}/>
       );
     };
 
@@ -415,6 +415,14 @@ describe("BuildingBottomSheet", () => {
         fireEvent.press(getByTestId("close-icon").parent as any)
       ).not.toThrow();
     });
+
+    test("shows 'Please select a start location' when hasLocation is false", () => {
+      mockSuccess();
+      const { getByText } = render(
+        <BuildingBottomSheet buildingCode="MB" isNavigationMode={true} hasLocation={false} />
+      );
+      expect(getByText("Please select a start location")).toBeTruthy();
+    });
   });
 
   // ── handleSheetChanges (onChange branch) ──────────────────────────────────
@@ -440,6 +448,7 @@ describe("BuildingBottomSheet", () => {
           isNavigationMode={true}
           startCampus="SGW"
           endCampus="LOY"
+          hasLocation={true}
         />
       );
     };
@@ -452,6 +461,7 @@ describe("BuildingBottomSheet", () => {
           isNavigationMode={true}
           startCampus="SGW"
           endCampus="SGW"
+          hasLocation={true}
         />
       );
     };
@@ -507,6 +517,7 @@ describe("BuildingBottomSheet", () => {
         <BuildingBottomSheet
           buildingCode="MB"
           isNavigationMode={true}
+          hasLocation={true}
         />
       );
       expect(getByText("Drive")).toBeTruthy();
