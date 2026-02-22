@@ -45,7 +45,7 @@ export function MapHeader({
         </Pressable>
 
         {/* search section */}
-        <Pressable style={styles.searchPill} onPress={buildingSearch}>
+        <Pressable style={styles.searchPill} onPress={buildingSearch} testID="open-search">
           <Ionicons name="search" size={26} color={colors.maroon} />
           <TextInput
             value={searchText}
@@ -53,8 +53,8 @@ export function MapHeader({
             placeholder="Where to…"
             placeholderTextColor="#818181"
             style={styles.searchInput}
+            pointerEvents = "none"
             editable={false}
-            pointerEvents="none"
           />
         </Pressable>
       </View>

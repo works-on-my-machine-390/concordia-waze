@@ -1,0 +1,37 @@
+appId: com.concordiawaze.app
+name: "E2E - Select destination VL, then From LB"
+---
+
+- tapOn:
+    id: "open-search"
+
+- waitForAnimationToEnd
+
+- tapOn: "Where to…"
+- inputText: "VL"
+- pressKey: Enter
+
+- tapOn: "VL - Vanier Library Building"
+- waitForAnimationToEnd
+
+- tapOn:
+    point: "88%, 82%"
+    # id: "start-navigation"
+- waitForAnimationToEnd
+
+- assertVisible: "From"
+- assertVisible: "To"
+- assertVisible: "VL - Vanier Library Building"
+
+- tapOn: "From"
+
+- inputText: "LB"
+- tapOn: "LB - J.W. McConnell Building"
+- waitForAnimationToEnd
+
+- assertVisible: "LB - J.W. McConnell Building"
+- assertVisible: "VL - Vanier Library Building"
+
+- tapOn:
+    id: "close-navigation"
+- waitForAnimationToEnd

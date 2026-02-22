@@ -380,6 +380,188 @@
                 }
             }
         },
+        "/directions": {
+            "get": {
+                "description": "Returns route polyline + step instructions (walking/driving/transit/shuttle)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "directions"
+                ],
+                "summary": "Get directions between coordinates",
+                "parameters": [
+                    {
+                        "type": "number",
+                        "description": "Start latitude",
+                        "name": "start_lat",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "number",
+                        "description": "Start longitude",
+                        "name": "start_lng",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "number",
+                        "description": "End latitude",
+                        "name": "end_lat",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "number",
+                        "description": "End longitude",
+                        "name": "end_lng",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Mode (walking, driving, transit, shuttle)",
+                        "name": "mode",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Optional day for shuttle (monday..sunday) - automatic",
+                        "name": "day",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Optional time for shuttle (HH:MM 24h) - automatic",
+                        "name": "time",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Manual shuttle day (monday..sunday) - manual departure selection",
+                        "name": "shuttle_day",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Manual shuttle time (HH:MM 24h) - must exist in schedule",
+                        "name": "shuttle_time",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.DirectionsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/directions/buildings": {
+            "get": {
+                "description": "Uses building coordinates as origin/destination",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "directions"
+                ],
+                "summary": "Get directions by building codes",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Start building code",
+                        "name": "start_code",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "End building code",
+                        "name": "end_code",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Mode (walking, driving, transit, shuttle)",
+                        "name": "mode",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Optional day for shuttle (monday..sunday) - automatic",
+                        "name": "day",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Optional time for shuttle (HH:MM 24h) - automatic",
+                        "name": "time",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Manual shuttle day (monday..sunday) - manual departure selection",
+                        "name": "shuttle_day",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Manual shuttle time (HH:MM 24h) - must exist in schedule",
+                        "name": "shuttle_time",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.DirectionsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/pointofinterest": {
             "get": {
                 "description": "Get nearby points of interest via text search from Google Places API",
@@ -1672,6 +1854,49 @@
                 },
                 "open": {
                     "type": "string"
+                }
+            }
+        },
+        "domain.DirectionStep": {
+            "type": "object",
+            "properties": {
+                "distance": {
+                    "type": "string"
+                },
+                "duration": {
+                    "type": "string"
+                },
+                "end": {
+                    "$ref": "#/definitions/domain.LatLng"
+                },
+                "instruction": {
+                    "type": "string"
+                },
+                "start": {
+                    "$ref": "#/definitions/domain.LatLng"
+                }
+            }
+        },
+        "domain.DirectionsResponse": {
+            "type": "object",
+            "properties": {
+                "departure_message": {
+                    "type": "string"
+                },
+                "mode": {
+                    "type": "string"
+                },
+                "polyline": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.LatLng"
+                    }
+                },
+                "steps": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.DirectionStep"
+                    }
                 }
             }
         },

@@ -69,7 +69,6 @@ describe("MapHeader", () => {
       params: { campus: CampusCode.SGW },
     });
   });
-
   test("pressing SGW calls onCampusChange(SGW)", () => {
     const { getByText } = render(
       <MapHeader {...baseProps} campus={CampusCode.LOY} />,
@@ -87,66 +86,66 @@ describe("MapHeader", () => {
     fireEvent.press(getByText("Loyola"));
     expect(baseProps.onCampusChange).toHaveBeenCalledWith(CampusCode.LOY);
   });
-});
 
-test("onMenuPress callback is optional and doesn't cause errors", () => {
-  const { getByPlaceholderText } = render(
-    <MapHeader
-      campus="SGW"
-      onCampusChange={jest.fn()}
-      onMenuPress={undefined}
-      searchText=""
-      onSearchTextChange={jest.fn()}
-    />,
-  );
+  test("onMenuPress callback is optional and doesn't cause errors", () => {
+    const { getByPlaceholderText } = render(
+      <MapHeader
+        campus="SGW"
+        onCampusChange={jest.fn()}
+        onMenuPress={undefined}
+        searchText=""
+        onSearchTextChange={jest.fn()}
+      />,
+    );
 
-  const searchInput = getByPlaceholderText("Where to…");
-  expect(searchInput).toBeTruthy();
-});
+    const searchInput = getByPlaceholderText("Where to…");
+    expect(searchInput).toBeTruthy();
+  });
 
-test("changing search text does not call callback because input is read-only", () => {
-  const mockOnSearchTextChange = jest.fn();
+  test("changing search text does not call callback because input is read-only", () => {
+    const mockOnSearchTextChange = jest.fn();
 
-  const { getByPlaceholderText } = render(
-    <MapHeader
-      campus="SGW"
-      onCampusChange={jest.fn()}
-      onMenuPress={jest.fn()}
-      searchText=""
-      onSearchTextChange={mockOnSearchTextChange}
-    />,
-  );
+    const { getByPlaceholderText } = render(
+      <MapHeader
+        campus="SGW"
+        onCampusChange={jest.fn()}
+        onMenuPress={jest.fn()}
+        searchText=""
+        onSearchTextChange={mockOnSearchTextChange}
+      />,
+    );
 
-  const searchInput = getByPlaceholderText("Where to…");
-  fireEvent.changeText(searchInput, "Henry F. Hall");
+    const searchInput = getByPlaceholderText("Where to…");
+    fireEvent.changeText(searchInput, "Henry F. Hall");
 
-  expect(mockOnSearchTextChange).not.toHaveBeenCalled();
-});
+    expect(mockOnSearchTextChange).not.toHaveBeenCalled();
+  });
 
-test("search text updates when searchText prop changes", () => {
-  const { getByPlaceholderText, rerender } = render(
-    <MapHeader
-      campus="SGW"
-      onCampusChange={jest.fn()}
-      onMenuPress={jest.fn()}
-      searchText=""
-      onSearchTextChange={jest.fn()}
-    />,
-  );
+  test("search text updates when searchText prop changes", () => {
+    const { getByPlaceholderText, rerender } = render(
+      <MapHeader
+        campus="SGW"
+        onCampusChange={jest.fn()}
+        onMenuPress={jest.fn()}
+        searchText=""
+        onSearchTextChange={jest.fn()}
+      />,
+    );
 
-  let searchInput = getByPlaceholderText("Where to…");
-  expect(searchInput.props.value).toBe("");
+    let searchInput = getByPlaceholderText("Where to…");
+    expect(searchInput.props.value).toBe("");
 
-  rerender(
-    <MapHeader
-      campus="SGW"
-      onCampusChange={jest.fn()}
-      onMenuPress={jest.fn()}
-      searchText="Henry F. Hall"
-      onSearchTextChange={jest.fn()}
-    />,
-  );
+    rerender(
+      <MapHeader
+        campus="SGW"
+        onCampusChange={jest.fn()}
+        onMenuPress={jest.fn()}
+        searchText="Henry F. Hall"
+        onSearchTextChange={jest.fn()}
+      />,
+    );
 
-  searchInput = getByPlaceholderText("Where to…");
-  expect(searchInput.props.value).toBe("Henry F. Hall");
+    searchInput = getByPlaceholderText("Where to…");
+    expect(searchInput.props.value).toBe("Henry F. Hall");
+  });
 });

@@ -1453,4 +1453,286 @@ describe("SearchPage", () => {
       );
     });
   });
+
+  describe("Edit Mode Navigation", () => {
+  test("passes editMode and editValue params when in start edit mode", async () => {
+    (useLocalSearchParams as jest.Mock).mockReturnValue({
+      campus: "SGW",
+      editMode: "start",
+      preserveEnd: "MB",
+      preserveStart: "",
+    });
+
+    const { getByPlaceholderText, queryByText } = await renderAndFlush();
+
+    const input = getByPlaceholderText("Where to…");
+    fireEvent.changeText(input, "H");
+
+    await waitFor(() => {
+      const result = queryByText(/^H/);
+      if (result) {
+        fireEvent.press(result);
+      }
+    });
+
+    await waitFor(() => {
+      expect(mockRouter.replace).toHaveBeenCalledWith({
+        pathname: "/map",
+        params: {
+          selected: "H",
+          campus: "SGW",
+          editMode: "start",
+          editValue: "H",
+          preserveEnd: "MB",
+          preserveStart: "",
+        },
+      });
+    }, { timeout: 1000 });
+  });
+
+  test("passes editMode and editValue params when in end edit mode", async () => {
+    (useLocalSearchParams as jest.Mock).mockReturnValue({
+      campus: "SGW",
+      editMode: "end",
+      preserveEnd: "",
+      preserveStart: "H",
+    });
+
+    const { getByPlaceholderText, queryByText } = await renderAndFlush();
+
+    const input = getByPlaceholderText("Where to…");
+    fireEvent.changeText(input, "MB");
+
+    await waitFor(() => {
+      const result = queryByText(/^MB/);
+      if (result) {
+        fireEvent.press(result);
+      }
+    });
+
+    await waitFor(() => {
+      expect(mockRouter.replace).toHaveBeenCalledWith({
+        pathname: "/map",
+        params: {
+          selected: "MB",
+          campus: "SGW",
+          editMode: "end",
+          editValue: "MB",
+          preserveEnd: "",
+          preserveStart: "H",
+        },
+      });
+    }, { timeout: 1000 });
+  });
+
+  test("preserves both start and end locations when editing start", async () => {
+    (useLocalSearchParams as jest.Mock).mockReturnValue({
+      campus: "SGW",
+      editMode: "start",
+      preserveEnd: "MB",
+      preserveStart: "H",
+    });
+
+    const { getByPlaceholderText, queryByText } = await renderAndFlush();
+
+    const input = getByPlaceholderText("Where to…");
+    fireEvent.changeText(input, "CC");
+
+    await waitFor(() => {
+      const result = queryByText(/^CC/);
+      if (result) {
+        fireEvent.press(result);
+      }
+    });
+
+    await waitFor(() => {
+      expect(mockRouter.replace).toHaveBeenCalledWith({
+        pathname: "/map",
+        params: {
+          selected: "CC",
+          campus: "LOY",
+          editMode: "start",
+          editValue: "CC",
+          preserveEnd: "MB",
+          preserveStart: "H",
+        },
+      });
+    }, { timeout: 1000 });
+  });
+
+  test("uses empty strings for preserve params when not provided in edit mode", async () => {
+    (useLocalSearchParams as jest.Mock).mockReturnValue({
+      campus: "SGW",
+      editMode: "start",
+    });
+
+    const { getByPlaceholderText, queryByText } = await renderAndFlush();
+
+    const input = getByPlaceholderText("Where to…");
+    fireEvent.changeText(input, "H");
+
+    await waitFor(() => {
+      const result = queryByText(/^H/);
+      if (result) {
+        fireEvent.press(result);
+      }
+    });
+
+    await waitFor(() => {
+      expect(mockRouter.replace).toHaveBeenCalledWith({
+        pathname: "/map",
+        params: {
+          selected: "H",
+          campus: "SGW",
+          editMode: "start",
+          editValue: "H",
+          preserveEnd: "",
+          preserveStart: "",
+        },
+      });
+    }, { timeout: 1000 });
+  });
+
+  test("does not pass edit params when not in edit mode", async () => {
+    (useLocalSearchParams as jest.Mock).mockReturnValue({
+      campus: "SGW",
+    });
+
+    const { getByPlaceholderText, queryByText } = await renderAndFlush();
+
+    const input = getByPlaceholderText("Where to…");
+    fireEvent.changeText(input, "H");
+
+    await waitFor(() => {
+      const result = queryByText(/^H/);
+      if (result) {
+        fireEvent.press(result);
+      }
+    });
+
+    await waitFor(() => {
+      expect(mockRouter.replace).toHaveBeenCalledWith({
+        pathname: "/map",
+        params: {
+          selected: "H",
+          campus: "SGW",
+        },
+      });
+    }, { timeout: 1000 });
+  });
+
+  test("navigates with edit mode from recent search selection", async () => {
+    (useLocalSearchParams as jest.Mock).mockReturnValue({
+      campus: "SGW",
+      editMode: "end",
+      preserveEnd: "MB",
+      preserveStart: "H",
+    });
+
+    (guestStorage.getGuestSearchHistory as jest.Mock).mockResolvedValue([
+      {
+        query: "CC",
+        locations: "Loyola Campus",
+        code: "CC",
+        timestamp: new Date(),
+      },
+    ]);
+
+    const { queryByText } = await renderAndFlush();
+
+    const recentItem = queryByText(/CC/);
+    expect(recentItem).toBeTruthy();
+
+    if (recentItem) {
+      fireEvent.press(recentItem);
+    }
+
+    await waitFor(() => {
+      expect(mockRouter.replace).toHaveBeenCalledWith({
+        pathname: "/map",
+        params: {
+          selected: "CC",
+          campus: "LOY",
+          editMode: "end",
+          editValue: "CC",
+          preserveEnd: "MB",
+          preserveStart: "H",
+        },
+      });
+    }, { timeout: 1000 });
+  });
+
+  test("switches campus correctly when selecting cross-campus building in edit mode", async () => {
+    (useLocalSearchParams as jest.Mock).mockReturnValue({
+      campus: "SGW",
+      editMode: "start",
+      preserveEnd: "H",
+      preserveStart: "",
+    });
+
+    const { getByPlaceholderText, queryByText } = await renderAndFlush();
+
+    const input = getByPlaceholderText("Where to…");
+    // Select a Loyola campus building
+    fireEvent.changeText(input, "CC");
+
+    await waitFor(() => {
+      const result = queryByText(/^CC/);
+      if (result) {
+        fireEvent.press(result);
+      }
+    });
+
+    await waitFor(() => {
+      expect(mockRouter.replace).toHaveBeenCalledWith({
+        pathname: "/map",
+        params: {
+          selected: "CC",
+          campus: "LOY",
+          editMode: "start",
+          editValue: "CC",
+          preserveEnd: "H",
+          preserveStart: "",
+        },
+      });
+    }, { timeout: 1000 });
+  });
+
+  test("calls router.replace with exact edit mode structure", async () => {
+  (useLocalSearchParams as jest.Mock).mockReturnValue({
+    campus: "SGW",
+    editMode: "start",
+    preserveEnd: "MB",
+    preserveStart: "H",
+  });
+
+  const { getByPlaceholderText, queryByText } = await renderAndFlush();
+
+  const input = getByPlaceholderText("Where to…");
+  fireEvent.changeText(input, "CC");
+
+  await waitFor(() => {
+    const result = queryByText(/^CC/);
+    expect(result).toBeTruthy();
+    fireEvent.press(result!);
+  });
+
+  await waitFor(() => {
+    expect(mockRouter.replace).toHaveBeenCalledTimes(1);
+  }, { timeout: 1000 });
+
+  const replaceCall = mockRouter.replace.mock.calls[0][0];
+  expect(replaceCall).toEqual({
+    pathname: "/map",
+    params: {
+      selected: "CC",
+      campus: "LOY",
+      editMode: "start",
+      editValue: "CC",
+      preserveEnd: "MB",
+      preserveStart: "H",
+    },
+  });
+});
+});
 });
