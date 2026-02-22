@@ -43,7 +43,7 @@ export function MapHeader({
         </Pressable>
 
         {/* search section */}
-        <Pressable style={styles.searchPill} onPress={buildingSearch}>
+        <Pressable style={styles.searchPill} onPress={buildingSearch} testID="open-search">
           <Ionicons name="search" size={26} color={colors.maroon} />
           <TextInput
             value={searchText}

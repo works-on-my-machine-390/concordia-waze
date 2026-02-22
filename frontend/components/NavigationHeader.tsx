@@ -18,7 +18,7 @@ export function NavigationHeader({
   onEndLocationPress,
 }: NavigationHeaderProps) {
   return (
-    <View style={styles.container}>
+    <View style={styles.container} testID="navigation-header" accessibilityLabel="Navigation header">
       <View style={styles.card}>
         <View style={styles.locationsContainer}>
           {/* Start location */}

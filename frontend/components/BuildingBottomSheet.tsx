@@ -199,7 +199,7 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
           {/* Header */}
           <View style={styles.headerContainer}>
             {!props.isNavigationMode && sheetOpen && (
-              <TouchableOpacity onPress={() => props.onStartNavigation?.(building.code)}>
+              <TouchableOpacity onPress={() => props.onStartNavigation?.(building.code)} testID="start-navigation">
                 <View style={styles.floatingIcon}>
                   <GetDirectionsIcon size={90} color={COLORS.maroon} />
                 </View>
@@ -220,7 +220,7 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
               <View style={styles.navModeContainer}>
                 <View style={styles.navModeHeader}>
                   <Text style={styles.transitModeTitle}>{selectedOption.label}</Text>
-                  <TouchableOpacity onPress={handleCloseSheet} style={styles.closeIcon}>
+                  <TouchableOpacity onPress={handleCloseSheet} style={styles.closeIcon}   testID="close-navigation" accessibilityLabel="Close navigation" accessibilityRole="button">
                     <CloseIcon size={28} />
                   </TouchableOpacity>
                 </View>
