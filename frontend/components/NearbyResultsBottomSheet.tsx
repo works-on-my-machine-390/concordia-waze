@@ -10,6 +10,8 @@ import {
 } from "react-native";
 import { colors, SHADOW } from "~/app/styles/theme";
 import type { Poi } from "~/app/utils/poi";
+import MaterialIcons from "react-native-vector-icons/MaterialIcons";
+import { COLORS } from "@/app/constants";
 
 type Props = {
   visible: boolean;
@@ -28,6 +30,8 @@ type Props = {
 };
 
 const radiusLabel = (m: number) => {
+  if (m === 0) return "All distances";
+
   if (m >= 1000) return `Within ${m / 1000}km`;
   return `Within ${m}m`;
 };
@@ -55,12 +59,14 @@ export default function NearbyResultsBottomSheet({
   onChangeSort,
   onChangeRadius,
   onSelectPoi,
-}: Props) {
-  const radiusOptions = useMemo(() => [250, 500, 1000, 2000], []);
+}: Readonly<Props>) {
+  const radiusOptions = useMemo(() => [0, 250, 500, 1000, 2000], []);
   const sortOptions = useMemo(() => ["relevance", "distance"] as const, []);
 
   const [radiusMenuOpen, setRadiusMenuOpen] = useState(false);
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
+  const [isDistanceFilterTipVisible, setDistanceFilterTipVisible] =
+    useState<boolean>(false);
 
   if (!visible) return null;
 
@@ -165,6 +171,26 @@ export default function NearbyResultsBottomSheet({
             </View>
           ) : null}
         </View>
+
+        <View style={styles.tooltipAnchor}>
+          <Pressable
+            onPress={() => setDistanceFilterTipVisible((visible) => !visible)}
+            accessibilityRole="button"
+            accessibilityLabel="Nearby search information"
+            hitSlop={8}
+          >
+            <MaterialIcons name="info" size={24} color={COLORS.textMuted} />
+          </Pressable>
+
+          {isDistanceFilterTipVisible ? (
+            <View style={styles.tooltip}>
+              <Text style={styles.tooltipText}>
+                Nearby search results are relative to your camera position,
+                however, filtering by distance is relative to your location.
+              </Text>
+            </View>
+          ) : null}
+        </View>
       </View>
 
       {loading ? (
@@ -179,7 +205,10 @@ export default function NearbyResultsBottomSheet({
           contentContainerStyle={styles.list}
           renderItem={({ item }) => (
             <View style={styles.row}>
-              <Pressable style={styles.rowText} onPress={() => onSelectPoi(item)}>
+              <Pressable
+                style={styles.rowText}
+                onPress={() => onSelectPoi(item)}
+              >
                 <Text style={styles.poiName} numberOfLines={1}>
                   {item.name}
                 </Text>
@@ -198,6 +227,7 @@ export default function NearbyResultsBottomSheet({
               </Pressable>
 
               <View style={styles.rightCol}>
+                {/* there is a scenario where distance is not shown - this means the user's location was not provided. */}
                 {formatDistance(item.distanceM) ? (
                   <Text style={styles.distanceText}>
                     {formatDistance(item.distanceM)}
@@ -265,10 +295,31 @@ const styles = StyleSheet.create({
   },
   chipsRow: {
     flexDirection: "row",
+    alignItems: "center",
     gap: 10,
     paddingHorizontal: 14,
     paddingBottom: 10,
     zIndex: 2,
+  },
+  tooltipAnchor: {
+    position: "relative",
+  },
+  tooltip: {
+    position: "absolute",
+    top: 34,
+    right: 0,
+    width: 240,
+    borderRadius: 10,
+    backgroundColor: colors.text,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    ...SHADOW,
+    zIndex: 1200,
+  },
+  tooltipText: {
+    fontSize: 12,
+    lineHeight: 17,
+    color: "white",
   },
   dropdownAnchor: {
     position: "relative",

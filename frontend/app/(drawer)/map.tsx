@@ -25,8 +25,17 @@ import { fetchPoisBackend } from "../utils/poi";
 
 export default function MainMap() {
   const router = useRouter();
-  const { selected, campus: campusParam, poiQuery: poiQueryParam, poiSearch: poiSearchParam,  editMode, editValue, preserveEnd, preserveStart } = useLocalSearchParams<{ 
-    selected?: string; 
+  const {
+    selected,
+    campus: campusParam,
+    poiQuery: poiQueryParam,
+    poiSearch: poiSearchParam,
+    editMode,
+    editValue,
+    preserveEnd,
+    preserveStart,
+  } = useLocalSearchParams<{
+    selected?: string;
     campus?: string;
     poiQuery?: string;
     poiSearch?: string;
@@ -48,7 +57,7 @@ export default function MainMap() {
   const [poiQuery, setPoiQuery] = useState("restaurants");
 
   useEffect(() => {
-    const q = typeof poiQuery === "string" ? poiQuery.trim() : "";
+    const q = typeof poiQueryParam === "string" ? poiQueryParam.trim() : "";
     const doPoiSearch = poiSearchParam === "1";
 
     if (!doPoiSearch || !q) return;
@@ -56,7 +65,7 @@ export default function MainMap() {
     setPoiQuery(q);
     setHasSearchedPois(true);
     setPoiSheetOpen(true);
-  }, [poiQuery, poiSearchParam]);
+  }, [poiQueryParam, poiSearchParam]);
 
   useEffect(() => {
     if (pois.length > 0) {
@@ -74,32 +83,45 @@ export default function MainMap() {
     null,
   );
 
-  const [cameraCenter, setCameraCenter] = useState<{ lat: number; lon: number } | null>(
-    null);
+  const [cameraCenter, setCameraCenter] = useState<{
+    lat: number;
+    lon: number;
+  } | null>(null);
 
   type PoiWithDistance = Poi & { distanceM: number };
 
   const poisWithDistance = useMemo<PoiWithDistance[]>(() => {
-  const base =
-    cameraCenter
-      ? { latitude: cameraCenter.lat, longitude: cameraCenter.lon }
-      : location?.coords
-        ? { latitude: location.coords.latitude, longitude: location.coords.longitude }
-        : null;
+    const userLocation = location?.coords;
 
-  if (!base) return [];
+    const withDistance = pois.map((p) => ({
+      ...p,
+      distanceM: userLocation
+        ? getDistance(userLocation, { latitude: p.lat, longitude: p.lon }) *
+          1000
+        : null, // if the user's location is not available, we cannot compute distance.
+      // This can happen if the user denied location permissions.
+    }));
 
-  const withDistance = pois.map((p) => ({
-    ...p,
-    distanceM: getDistance(base, { latitude: p.lat, longitude: p.lon }) * 1000,
-  }));
+    const filterByDistancePredicate = (p: PoiWithDistance) => {
+      // if distance is available, filter by radius
+      if (poiRadiusM === 0) {
+        return true; // show all POIs if radius is 0 (which means "All distances")
+      }
 
-  const withinRadius = withDistance.filter((p) => p.distanceM <= poiRadiusM);
+      if (p.distanceM != null) {
+        return p.distanceM <= poiRadiusM;
+      }
 
-  // Only sort by distance if user selected Distance
-  return poiSortMode === "distance"
-    ? withinRadius.sort((a, b) => a.distanceM - b.distanceM)
-    : withinRadius;
+      return true; // if distance is not available,
+      // we will show the POI anyway since we don't want to hide results from users who denied location access.
+      // we'll simply not show the distance for those POIs.
+    };
+    const withinRadius = withDistance.filter(filterByDistancePredicate);
+
+    // Only sort by distance if user selected Distance
+    return poiSortMode === "distance"
+      ? withinRadius.sort((a, b) => a.distanceM - b.distanceM)
+      : withinRadius;
   }, [
     pois,
     cameraCenter?.lat,
@@ -115,14 +137,22 @@ export default function MainMap() {
   >({});
 
   const [isNavigationMode, setIsNavigationMode] = useState(false);
-  const [customStartBuilding, setCustomStartBuilding] = useState<string | null>(null);
+  const [customStartBuilding, setCustomStartBuilding] = useState<string | null>(
+    null,
+  );
 
   const { data: userProfile } = useGetProfile();
   const saveToHistory = useSaveToHistory(userProfile?.id || "");
 
-  const selectedBuildingDetails = useGetBuildingDetails(selectedBuildingCode || undefined);
-  const currentBuildingDetails = useGetBuildingDetails(currentBuildingCode ||undefined);
-  const customStartBuildingDetails = useGetBuildingDetails(customStartBuilding || undefined);
+  const selectedBuildingDetails = useGetBuildingDetails(
+    selectedBuildingCode || undefined,
+  );
+  const currentBuildingDetails = useGetBuildingDetails(
+    currentBuildingCode || undefined,
+  );
+  const customStartBuildingDetails = useGetBuildingDetails(
+    customStartBuilding || undefined,
+  );
 
   const buildingListQuery = useGetBuildings(campus);
 
@@ -215,7 +245,7 @@ export default function MainMap() {
     currentBuildingCode,
   ]);
 
-  const startLocationText = useMemo(() => { 
+  const startLocationText = useMemo(() => {
     // if user edits
     if (customStartBuilding && customStartBuildingDetails.data) {
       return `${customStartBuildingDetails.data.code} - ${customStartBuildingDetails.data.long_name}`;
@@ -235,7 +265,14 @@ export default function MainMap() {
 
     // if no location available
     return "Please select a building";
-  }, [customStartBuilding, customStartBuildingDetails.data, currentBuildingCode, currentBuildingDetails.data, location?.coords, startAddress]);
+  }, [
+    customStartBuilding,
+    customStartBuildingDetails.data,
+    currentBuildingCode,
+    currentBuildingDetails.data,
+    location?.coords,
+    startAddress,
+  ]);
 
   const mapStyle = [
     {
@@ -286,7 +323,7 @@ export default function MainMap() {
 
   useEffect(() => {
     if (!hasSearchedPois) return;
-    if (!location?.coords) return;
+    if (!cameraCenter) return;
 
     setPoiLoading(true);
     setPois([]);
@@ -294,10 +331,9 @@ export default function MainMap() {
     fetchPoisBackend({
       query: poiQuery,
       center: {
-        lat: location.coords.latitude,
-        lon: location.coords.longitude,
+        lat: cameraCenter.lat,
+        lon: cameraCenter.lon,
       },
-      radiusM: poiRadiusM,
       sortMode: poiSortMode,
     })
       .then(setPois)
@@ -307,9 +343,8 @@ export default function MainMap() {
       })
       .finally(() => setPoiLoading(false));
   }, [
-    location?.coords?.latitude,
-    location?.coords?.longitude,
-    poiRadiusM,
+    cameraCenter?.lat,
+    cameraCenter?.lon,
     hasSearchedPois,
     poiQuery,
     poiSortMode,
@@ -387,6 +422,7 @@ export default function MainMap() {
   // Handle map region changes to auto-switch campus
   const handleRegionChangeComplete = (region: Region) => {
     const { latitude, longitude } = region;
+    setCameraCenter({ lat: latitude, lon: longitude });
 
     // Calculate distance to each campus
     const distanceToSGW = getDistance(
@@ -415,7 +451,7 @@ export default function MainMap() {
         "top",
       );
     }
-    
+
     setCustomStartBuilding(null);
     setIsNavigationMode(true);
 
@@ -432,68 +468,82 @@ export default function MainMap() {
     }
   };
 
-  const getCampusForBuilding = useCallback((buildingCode: string | null): CampusCode | undefined => {
-    if (!buildingCode) return undefined;
-    
-    for (const [campusCode, buildings] of Object.entries(buildingsByCampus)) {
-      if (buildings.some(b => b.code === buildingCode)) {
-        return campusCode as CampusCode;
+  const getCampusForBuilding = useCallback(
+    (buildingCode: string | null): CampusCode | undefined => {
+      if (!buildingCode) return undefined;
+
+      for (const [campusCode, buildings] of Object.entries(buildingsByCampus)) {
+        if (buildings.some((b) => b.code === buildingCode)) {
+          return campusCode as CampusCode;
+        }
       }
-    }
-    return undefined;
-  }, [buildingsByCampus]);
+      return undefined;
+    },
+    [buildingsByCampus],
+  );
 
   const startCampus = useMemo(() => {
-    // custom start building 
+    // custom start building
     if (customStartBuilding) {
       return getCampusForBuilding(customStartBuilding);
     }
-    
+
     // current building (user is inside a building)
     if (currentBuildingCode) {
       return getCampusForBuilding(currentBuildingCode);
     }
-    
+
     // user's location but not in building (determine campus from coordinates)
     if (location?.coords) {
       const distanceToSGW = getDistance(
-        { latitude: location.coords.latitude, longitude: location.coords.longitude },
-        CAMPUS_COORDS[CampusCode.SGW]
+        {
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        },
+        CAMPUS_COORDS[CampusCode.SGW],
       );
       const distanceToLOY = getDistance(
-        { latitude: location.coords.latitude, longitude: location.coords.longitude },
-        CAMPUS_COORDS[CampusCode.LOY]
+        {
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        },
+        CAMPUS_COORDS[CampusCode.LOY],
       );
-      
+
       return distanceToSGW < distanceToLOY ? CampusCode.SGW : CampusCode.LOY;
     }
-    
+
     return undefined;
-  }, [customStartBuilding, currentBuildingCode, location?.coords, getCampusForBuilding]);
+  }, [
+    customStartBuilding,
+    currentBuildingCode,
+    location?.coords,
+    getCampusForBuilding,
+  ]);
 
   const endCampus = getCampusForBuilding(selectedBuildingCode);
 
   const handleStartLocationPress = () => {
-    router.push({ 
-      pathname: "/search", 
-      params: { 
+    router.push({
+      pathname: "/search",
+      params: {
         campus,
-        editMode: 'start',
-        preserveEnd: selectedBuildingCode || '', 
-        preserveStart: customStartBuilding || '' 
-      } 
+        editMode: "start",
+        preserveEnd: selectedBuildingCode || "",
+        preserveStart: customStartBuilding || "",
+      },
     });
   };
 
   const handleEndLocationPress = () => {
-    router.push({ 
-      pathname: "/search", 
-      params: { 
+    router.push({
+      pathname: "/search",
+      params: {
         campus,
-        editMode: 'end',
-        preserveEnd: selectedBuildingCode || '', 
-        preserveStart: customStartBuilding || ''  
-      } 
+        editMode: "end",
+        preserveEnd: selectedBuildingCode || "",
+        preserveStart: customStartBuilding || "",
+      },
     });
   };
 
@@ -504,23 +554,23 @@ export default function MainMap() {
     return isNavigationMode ? 150 : 220;
   }, [selectedBuildingCode, isNavigationMode]);
 
-useEffect(() => {
-  if (editMode && editValue) {
-    if (editMode === 'start') {
-      setCustomStartBuilding(editValue);
-      if (preserveEnd) {
-        setSelectedBuildingCode(preserveEnd);
+  useEffect(() => {
+    if (editMode && editValue) {
+      if (editMode === "start") {
+        setCustomStartBuilding(editValue);
+        if (preserveEnd) {
+          setSelectedBuildingCode(preserveEnd);
+        }
+        setIsNavigationMode(true);
+      } else if (editMode === "end") {
+        setSelectedBuildingCode(editValue);
+        if (preserveStart) {
+          setCustomStartBuilding(preserveStart);
+        }
+        setIsNavigationMode(true);
       }
-      setIsNavigationMode(true);
-    } else if (editMode === 'end') {
-      setSelectedBuildingCode(editValue);
-      if (preserveStart) {
-        setCustomStartBuilding(preserveStart);
-      }
-      setIsNavigationMode(true);
     }
-  }
-}, [editMode, editValue, preserveEnd, preserveStart]);
+  }, [editMode, editValue, preserveEnd, preserveStart]);
 
   return (
     <View style={styles.container}>
@@ -573,19 +623,6 @@ useEffect(() => {
             setSearchText(text);
           }}
           onSubmitSearch={(text) => {
-            const q = text.trim().toLowerCase();
-
-            const isPoi =
-              q.includes("restaurant") ||
-              q.includes("cafe") ||
-              q.includes("coffee") ||
-              q.includes("gym") ||
-              q.includes("bar") ||
-              q.includes("pharmacy") ||
-              q.includes("hospital") ||
-              q.includes("library") ||
-              q.includes("bank");
-
             setPoiQuery(text.trim());
             setHasSearchedPois(true);
             setPoiSheetOpen(true);

@@ -1,5 +1,7 @@
 import { API_URL } from "@/hooks/api";
 
+export const DEFAULT_POI_SEARCH_RADIUS_IN_METERS = 2000;
+
 export type Poi = {
   id: string;
   name: string;
@@ -14,17 +16,21 @@ type SortMode = "relevance" | "distance";
 export async function fetchPoisBackend(params: {
   query: string;
   center: { lat: number; lon: number };
-  radiusM: number;
   sortMode?: SortMode;
 }): Promise<Poi[]> {
-  const { query, center, radiusM, sortMode } = params;
+  const { query, center, sortMode } = params;
 
   const url = new URL(`${API_URL}/pointofinterest`);
   const sp = url.searchParams;
   sp.set("input", query);
   sp.set("lat", String(center.lat));
   sp.set("lng", String(center.lon));
-  sp.set("max_distance", String(radiusM));
+  
+  // max_distance is the distance from which the POI backend with query google for results.
+  // this distance is relative to the camera center, not necessarily the user's location.
+  // the frontend will then filter the results to the radius specified by the user.
+  sp.set("max_distance", String(DEFAULT_POI_SEARCH_RADIUS_IN_METERS));
+
   sp.set("rank_preference", sortMode === "distance" ? "DISTANCE" : "RELEVANCE");
 
   const res = await fetch(url.toString());
