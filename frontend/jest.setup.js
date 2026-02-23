@@ -1,3 +1,21 @@
+module.exports = {
+  preset: "react-native",
+  testEnvironment: "node",
+  setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
+  collectCoverage: true,
+  coverageDirectory: "coverage",
+  collectCoverageFrom: [
+    "app/**/*.{ts,tsx}",
+    "src/**/*.{ts,tsx}",
+    "!**/*.test.{ts,tsx}",
+    "!**/node_modules/**",
+    "!**/__tests__/**",
+  ],
+  testMatch: [
+    "**/__tests__/**/*.test.{ts,tsx}",
+  ],
+};
+
 // Mocking Expo Router
 jest.mock("expo-router", () => ({
   useRouter: () => ({
