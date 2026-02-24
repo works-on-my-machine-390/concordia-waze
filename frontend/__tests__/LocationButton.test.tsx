@@ -4,7 +4,6 @@
 import LocationButton from "@/components/LocationButton";
 import { fireEvent, render } from "@testing-library/react-native";
 
-
 describe("LocationButton", () => {
   test("Button renders correctly", () => {
     const mockOnPress = jest.fn();
@@ -32,9 +31,3 @@ describe("LocationButton", () => {
     expect(button.props.accessibilityLabel).toBe("Go to my location");
   });
 });
-
-
-
-
-
-

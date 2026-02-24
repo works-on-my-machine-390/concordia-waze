@@ -34,10 +34,7 @@ jest.mock("@gorhom/bottom-sheet", () => {
         snapToIndex: jest.fn(),
       }));
       return (
-        <View
-          testID="bottom-sheet"
-          onLayout={() => onChange && onChange(1)}
-        >
+        <View testID="bottom-sheet" onLayout={() => onChange && onChange(1)}>
           {children}
         </View>
       );
@@ -116,7 +113,9 @@ describe("BuildingBottomSheet", () => {
     test("renders empty state message when data is null", () => {
       mockNoData();
       const { getByText } = render(<BuildingBottomSheet buildingCode={null} />);
-      expect(getByText("No information available for this building")).toBeTruthy();
+      expect(
+        getByText("No information available for this building"),
+      ).toBeTruthy();
     });
 
     test("renders empty state when isSuccess is false even with data", () => {
@@ -125,7 +124,9 @@ describe("BuildingBottomSheet", () => {
         isSuccess: false,
       });
       const { getByText } = render(<BuildingBottomSheet buildingCode="MB" />);
-      expect(getByText("No information available for this building")).toBeTruthy();
+      expect(
+        getByText("No information available for this building"),
+      ).toBeTruthy();
     });
 
     test("renders empty state when data has no accessibility field", () => {
@@ -134,13 +135,15 @@ describe("BuildingBottomSheet", () => {
         isSuccess: true,
       });
       const { getByText } = render(<BuildingBottomSheet buildingCode="MB" />);
-      expect(getByText("No information available for this building")).toBeTruthy();
+      expect(
+        getByText("No information available for this building"),
+      ).toBeTruthy();
     });
 
     test("does not render building content when no data", () => {
       mockNoData();
       const { queryByText, queryByTestId } = render(
-        <BuildingBottomSheet buildingCode="MB" />
+        <BuildingBottomSheet buildingCode="MB" />,
       );
       expect(queryByText("Services")).toBeNull();
       expect(queryByTestId("building-gallery")).toBeNull();
@@ -188,7 +191,10 @@ describe("BuildingBottomSheet", () => {
       mockSuccess();
       const onStartNavigation = jest.fn();
       const { getByTestId } = render(
-        <BuildingBottomSheet buildingCode="MB" onStartNavigation={onStartNavigation} />
+        <BuildingBottomSheet
+          buildingCode="MB"
+          onStartNavigation={onStartNavigation}
+        />,
       );
       act(() => {
         fireEvent.press(getByTestId("get-directions-icon").parent as any);
@@ -200,7 +206,7 @@ describe("BuildingBottomSheet", () => {
       mockSuccess();
       const { getByTestId } = render(<BuildingBottomSheet buildingCode="MB" />);
       expect(() =>
-        fireEvent.press(getByTestId("get-directions-icon").parent as any)
+        fireEvent.press(getByTestId("get-directions-icon").parent as any),
       ).not.toThrow();
     });
 
@@ -208,7 +214,7 @@ describe("BuildingBottomSheet", () => {
       mockSuccess();
       const onClose = jest.fn();
       const { getByTestId } = render(
-        <BuildingBottomSheet buildingCode="MB" onClose={onClose} />
+        <BuildingBottomSheet buildingCode="MB" onClose={onClose} />,
       );
       act(() => {
         fireEvent.press(getByTestId("close-icon").parent as any);
@@ -220,7 +226,7 @@ describe("BuildingBottomSheet", () => {
       mockSuccess();
       const { getByTestId } = render(<BuildingBottomSheet buildingCode="MB" />);
       expect(() =>
-        fireEvent.press(getByTestId("close-icon").parent as any)
+        fireEvent.press(getByTestId("close-icon").parent as any),
       ).not.toThrow();
     });
   });
@@ -231,7 +237,7 @@ describe("BuildingBottomSheet", () => {
     test("renders wheelchair and elevator icons (no ramp)", () => {
       mockSuccess();
       const { getByTestId, queryByTestId } = render(
-        <BuildingBottomSheet buildingCode="MB" />
+        <BuildingBottomSheet buildingCode="MB" />,
       );
       expect(getByTestId("wheelchair-icon")).toBeTruthy();
       expect(getByTestId("elevator-icon")).toBeTruthy();
@@ -254,7 +260,9 @@ describe("BuildingBottomSheet", () => {
 
     test("renders no accessibility icons when array is empty", () => {
       mockSuccess({ accessibility: [] });
-      const { queryByTestId } = render(<BuildingBottomSheet buildingCode="MB" />);
+      const { queryByTestId } = render(
+        <BuildingBottomSheet buildingCode="MB" />,
+      );
       expect(queryByTestId("wheelchair-icon")).toBeNull();
       expect(queryByTestId("elevator-icon")).toBeNull();
       expect(queryByTestId("slope-up-icon")).toBeNull();
@@ -263,7 +271,7 @@ describe("BuildingBottomSheet", () => {
     test("renders only ramp icon when only ramp is listed", () => {
       mockSuccess({ accessibility: ["Accessibility ramp"] });
       const { getByTestId, queryByTestId } = render(
-        <BuildingBottomSheet buildingCode="MB" />
+        <BuildingBottomSheet buildingCode="MB" />,
       );
       expect(getByTestId("slope-up-icon")).toBeTruthy();
       expect(queryByTestId("wheelchair-icon")).toBeNull();
@@ -273,7 +281,7 @@ describe("BuildingBottomSheet", () => {
     test("renders only elevator icon when only elevator is listed", () => {
       mockSuccess({ accessibility: ["Accessible building elevator"] });
       const { getByTestId, queryByTestId } = render(
-        <BuildingBottomSheet buildingCode="MB" />
+        <BuildingBottomSheet buildingCode="MB" />,
       );
       expect(getByTestId("elevator-icon")).toBeTruthy();
       expect(queryByTestId("wheelchair-icon")).toBeNull();
@@ -303,7 +311,7 @@ describe("BuildingBottomSheet", () => {
     test("renders normally when isNavigationMode is false", () => {
       mockSuccess();
       const { getByText } = render(
-        <BuildingBottomSheet buildingCode="MB" isNavigationMode={false} />
+        <BuildingBottomSheet buildingCode="MB" isNavigationMode={false} />,
       );
       expect(getByText("John Molson Building (MB)")).toBeTruthy();
     });
@@ -321,7 +329,11 @@ describe("BuildingBottomSheet", () => {
     const renderNav = (overrides: Record<string, any> = {}) => {
       mockSuccess(overrides);
       return render(
-        <BuildingBottomSheet buildingCode="MB" isNavigationMode={true} hasLocation={true}/>
+        <BuildingBottomSheet
+          buildingCode="MB"
+          isNavigationMode={true}
+          hasLocation={true}
+        />,
       );
     };
 
@@ -343,9 +355,9 @@ describe("BuildingBottomSheet", () => {
 
     test("renders duration chips for all four transit modes", () => {
       const { getByText, getAllByText } = renderNav();
-      expect(getByText("5 min")).toBeTruthy();  // car
+      expect(getByText("5 min")).toBeTruthy(); // car
       expect(getAllByText("3 min").length).toBeGreaterThanOrEqual(2); // train + walk
-      expect(getByText("4 min")).toBeTruthy();  // bike
+      expect(getByText("4 min")).toBeTruthy(); // bike
     });
 
     test("renders transit mode icons", () => {
@@ -401,7 +413,7 @@ describe("BuildingBottomSheet", () => {
           buildingCode="MB"
           isNavigationMode={true}
           onClose={onClose}
-        />
+        />,
       );
       act(() => {
         fireEvent.press(getByTestId("close-icon").parent as any);
@@ -412,14 +424,18 @@ describe("BuildingBottomSheet", () => {
     test("does not throw when onClose is not provided in navigation mode", () => {
       const { getByTestId } = renderNav();
       expect(() =>
-        fireEvent.press(getByTestId("close-icon").parent as any)
+        fireEvent.press(getByTestId("close-icon").parent as any),
       ).not.toThrow();
     });
 
     test("shows 'Please select a start location' when hasLocation is false", () => {
       mockSuccess();
       const { getByText } = render(
-        <BuildingBottomSheet buildingCode="MB" isNavigationMode={true} hasLocation={false} />
+        <BuildingBottomSheet
+          buildingCode="MB"
+          isNavigationMode={true}
+          hasLocation={false}
+        />,
       );
       expect(getByText("Please select a start location")).toBeTruthy();
     });
@@ -437,7 +453,7 @@ describe("BuildingBottomSheet", () => {
       expect(getByTestId("bottom-sheet")).toBeTruthy();
     });
   });
-  
+
   // ── Cross-campus navigation ────────────────────────────────────────────────
   describe("cross-campus navigation", () => {
     const renderCrossCampus = () => {
@@ -449,7 +465,7 @@ describe("BuildingBottomSheet", () => {
           startCampus="SGW"
           endCampus="LOY"
           hasLocation={true}
-        />
+        />,
       );
     };
 
@@ -462,7 +478,7 @@ describe("BuildingBottomSheet", () => {
           startCampus="SGW"
           endCampus="SGW"
           hasLocation={true}
-        />
+        />,
       );
     };
 
@@ -490,11 +506,11 @@ describe("BuildingBottomSheet", () => {
     test("can switch from shuttle to other modes in cross-campus navigation", () => {
       const { getByText } = renderCrossCampus();
       expect(getByText("Shuttle")).toBeTruthy();
-      
+
       act(() => {
         fireEvent.press(getByText("5 min"));
       });
-      
+
       expect(getByText("Drive")).toBeTruthy();
     });
 
@@ -506,7 +522,7 @@ describe("BuildingBottomSheet", () => {
           isNavigationMode={false}
           startCampus="SGW"
           endCampus="LOY"
-        />
+        />,
       );
       expect(queryByText("Shuttle")).toBeNull();
     });
@@ -518,11 +534,9 @@ describe("BuildingBottomSheet", () => {
           buildingCode="MB"
           isNavigationMode={true}
           hasLocation={true}
-        />
+        />,
       );
       expect(getByText("Drive")).toBeTruthy();
     });
   });
 });
-
-

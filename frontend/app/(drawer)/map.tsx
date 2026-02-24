@@ -22,8 +22,15 @@ import { getDistance } from "../utils/mapUtils";
 
 export default function MainMap() {
   const router = useRouter();
-  const { selected, campus: campusParam, editMode, editValue, preserveEnd, preserveStart } = useLocalSearchParams<{ 
-    selected?: string; 
+  const {
+    selected,
+    campus: campusParam,
+    editMode,
+    editValue,
+    preserveEnd,
+    preserveStart,
+  } = useLocalSearchParams<{
+    selected?: string;
     campus?: string;
     editMode?: string;
     editValue?: string;
@@ -48,14 +55,22 @@ export default function MainMap() {
   >({});
 
   const [isNavigationMode, setIsNavigationMode] = useState(false);
-  const [customStartBuilding, setCustomStartBuilding] = useState<string | null>(null);
+  const [customStartBuilding, setCustomStartBuilding] = useState<string | null>(
+    null,
+  );
 
   const { data: userProfile } = useGetProfile();
   const saveToHistory = useSaveToHistory(userProfile?.id || "");
 
-  const selectedBuildingDetails = useGetBuildingDetails(selectedBuildingCode || undefined);
-  const currentBuildingDetails = useGetBuildingDetails(currentBuildingCode ||undefined);
-  const customStartBuildingDetails = useGetBuildingDetails(customStartBuilding || undefined);
+  const selectedBuildingDetails = useGetBuildingDetails(
+    selectedBuildingCode || undefined,
+  );
+  const currentBuildingDetails = useGetBuildingDetails(
+    currentBuildingCode || undefined,
+  );
+  const customStartBuildingDetails = useGetBuildingDetails(
+    customStartBuilding || undefined,
+  );
 
   const buildingListQuery = useGetBuildings(campus);
 
@@ -111,21 +126,25 @@ export default function MainMap() {
             latitude: location.coords.latitude,
             longitude: location.coords.longitude,
           });
-                    
+
           if (addresses && addresses.length > 0) {
             const addr = addresses[0];
-            
+
             // street adress
-            const street = [addr.streetNumber, addr.street].filter(Boolean).join(' ');
-            
-            // adding city, region and postal code to it 
+            const street = [addr.streetNumber, addr.street]
+              .filter(Boolean)
+              .join(" ");
+
+            // adding city, region and postal code to it
             const formattedAddress = [
               street,
               addr.city,
               addr.region,
-              addr.postalCode
-            ].filter(Boolean).join(', ');
-            
+              addr.postalCode,
+            ]
+              .filter(Boolean)
+              .join(", ");
+
             setStartAddress(formattedAddress || "Current Location");
           }
         } catch (e) {
@@ -136,11 +155,15 @@ export default function MainMap() {
         setStartAddress(null);
       }
     };
-    
-    getAddress();
-  }, [location?.coords?.latitude, location?.coords?.longitude, currentBuildingCode]);
 
-  const startLocationText = useMemo(() => { 
+    getAddress();
+  }, [
+    location?.coords?.latitude,
+    location?.coords?.longitude,
+    currentBuildingCode,
+  ]);
+
+  const startLocationText = useMemo(() => {
     // if user edits
     if (customStartBuilding && customStartBuildingDetails.data) {
       return `${customStartBuildingDetails.data.code} - ${customStartBuildingDetails.data.long_name}`;
@@ -149,15 +172,25 @@ export default function MainMap() {
     if (currentBuildingCode && currentBuildingDetails.data) {
       return `${currentBuildingDetails.data.code} - ${currentBuildingDetails.data.long_name}`;
     }
-    
+
     // if user has location but not in a building
     if (location?.coords) {
-      return startAddress || `${location.coords.latitude.toFixed(5)}, ${location.coords.longitude.toFixed(5)}`;
+      return (
+        startAddress ||
+        `${location.coords.latitude.toFixed(5)}, ${location.coords.longitude.toFixed(5)}`
+      );
     }
-    
+
     // if no location available
     return "Select a start location";
-  }, [customStartBuilding, customStartBuildingDetails.data, currentBuildingCode, currentBuildingDetails.data, location?.coords, startAddress]);
+  }, [
+    customStartBuilding,
+    customStartBuildingDetails.data,
+    currentBuildingCode,
+    currentBuildingDetails.data,
+    location?.coords,
+    startAddress,
+  ]);
 
   const mapStyle = [
     {
@@ -302,80 +335,94 @@ export default function MainMap() {
     setIsNavigationMode(true);
 
     // Save the destination building to history
-    if (userProfile?.id && selectedBuildingDetails.data) { 
+    if (userProfile?.id && selectedBuildingDetails.data) {
       saveToHistory.mutate({
         name: selectedBuildingDetails.data.long_name,
         address: selectedBuildingDetails.data.address,
         lat: selectedBuildingDetails.data.latitude,
         lng: selectedBuildingDetails.data.longitude,
         building_code: selectedBuildingDetails.data.code,
-        destinationType: "building"
+        destinationType: "building",
       });
     }
   };
 
-  const getCampusForBuilding = useCallback((buildingCode: string | null): CampusCode | undefined => {
-    if (!buildingCode) return undefined;
-    
-    for (const [campusCode, buildings] of Object.entries(buildingsByCampus)) {
-      if (buildings.some(b => b.code === buildingCode)) {
-        return campusCode as CampusCode;
+  const getCampusForBuilding = useCallback(
+    (buildingCode: string | null): CampusCode | undefined => {
+      if (!buildingCode) return undefined;
+
+      for (const [campusCode, buildings] of Object.entries(buildingsByCampus)) {
+        if (buildings.some((b) => b.code === buildingCode)) {
+          return campusCode as CampusCode;
+        }
       }
-    }
-    return undefined;
-  }, [buildingsByCampus]);
+      return undefined;
+    },
+    [buildingsByCampus],
+  );
 
   const startCampus = useMemo(() => {
-    // custom start building 
+    // custom start building
     if (customStartBuilding) {
       return getCampusForBuilding(customStartBuilding);
     }
-    
+
     // current building (user is inside a building)
     if (currentBuildingCode) {
       return getCampusForBuilding(currentBuildingCode);
     }
-    
+
     // user's location but not in building (determine campus from coordinates)
     if (location?.coords) {
       const distanceToSGW = getDistance(
-        { latitude: location.coords.latitude, longitude: location.coords.longitude },
-        CAMPUS_COORDS[CampusCode.SGW]
+        {
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        },
+        CAMPUS_COORDS[CampusCode.SGW],
       );
       const distanceToLOY = getDistance(
-        { latitude: location.coords.latitude, longitude: location.coords.longitude },
-        CAMPUS_COORDS[CampusCode.LOY]
+        {
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        },
+        CAMPUS_COORDS[CampusCode.LOY],
       );
-      
+
       return distanceToSGW < distanceToLOY ? CampusCode.SGW : CampusCode.LOY;
     }
-    
+
     return undefined;
-  }, [customStartBuilding, currentBuildingCode, location?.coords, getCampusForBuilding]);
+  }, [
+    customStartBuilding,
+    currentBuildingCode,
+    location?.coords,
+    getCampusForBuilding,
+  ]);
 
   const endCampus = getCampusForBuilding(selectedBuildingCode);
 
   const handleStartLocationPress = () => {
-    router.push({ 
-      pathname: "/search", 
-      params: { 
+    router.push({
+      pathname: "/search",
+      params: {
         campus,
-        editMode: 'start',
-        preserveEnd: selectedBuildingCode || '', 
-        preserveStart: customStartBuilding || '' 
-      } 
+        editMode: "start",
+        preserveEnd: selectedBuildingCode || "",
+        preserveStart: customStartBuilding || "",
+      },
     });
   };
 
   const handleEndLocationPress = () => {
-    router.push({ 
-      pathname: "/search", 
-      params: { 
+    router.push({
+      pathname: "/search",
+      params: {
         campus,
-        editMode: 'end',
-        preserveEnd: selectedBuildingCode || '', 
-        preserveStart: customStartBuilding || ''  
-      } 
+        editMode: "end",
+        preserveEnd: selectedBuildingCode || "",
+        preserveStart: customStartBuilding || "",
+      },
     });
   };
 
@@ -386,23 +433,23 @@ export default function MainMap() {
     return isNavigationMode ? 150 : 220;
   }, [selectedBuildingCode, isNavigationMode]);
 
-useEffect(() => {
-  if (editMode && editValue) {
-    if (editMode === 'start') {
-      setCustomStartBuilding(editValue);
-      if (preserveEnd) {
-        setSelectedBuildingCode(preserveEnd);
+  useEffect(() => {
+    if (editMode && editValue) {
+      if (editMode === "start") {
+        setCustomStartBuilding(editValue);
+        if (preserveEnd) {
+          setSelectedBuildingCode(preserveEnd);
+        }
+        setIsNavigationMode(true);
+      } else if (editMode === "end") {
+        setSelectedBuildingCode(editValue);
+        if (preserveStart) {
+          setCustomStartBuilding(preserveStart);
+        }
+        setIsNavigationMode(true);
       }
-      setIsNavigationMode(true);
-    } else if (editMode === 'end') {
-      setSelectedBuildingCode(editValue);
-      if (preserveStart) {
-        setCustomStartBuilding(preserveStart);
-      }
-      setIsNavigationMode(true);
     }
-  }
-}, [editMode, editValue, preserveEnd, preserveStart]);
+  }, [editMode, editValue, preserveEnd, preserveStart]);
 
   return (
     <View style={styles.container}>
@@ -434,7 +481,7 @@ useEffect(() => {
         <NavigationHeader
           startLocation={startLocationText}
           endLocation={
-            selectedBuildingDetails.data 
+            selectedBuildingDetails.data
               ? `${selectedBuildingDetails.data.code} - ${selectedBuildingDetails.data.long_name}`
               : selectedBuildingCode || "Unknown Building"
           }
@@ -466,7 +513,7 @@ useEffect(() => {
             buildingCode={selectedBuildingCode}
             onClose={() => {
               setSelectedBuildingCode(null);
-              setIsNavigationMode(false); 
+              setIsNavigationMode(false);
             }}
             onStartNavigation={handleStartNavigation}
             isNavigationMode={isNavigationMode}

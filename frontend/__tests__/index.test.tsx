@@ -2,9 +2,9 @@
  * Tests for index.tsx (HomeScreen)
  */
 
-import React from "react";
-import { render, fireEvent, waitFor } from "@testing-library/react-native";
 import HomeScreen from "@/app/index";
+import { fireEvent, render, waitFor } from "@testing-library/react-native";
+import React from "react";
 
 // Mock expo-router
 const mockPush = jest.fn();

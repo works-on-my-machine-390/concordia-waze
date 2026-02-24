@@ -2,9 +2,9 @@
  * Tests for CustomDrawer component
  */
 
-import React from "react";
-import { render, act, fireEvent } from "@testing-library/react-native";
 import CustomDrawer from "@/components/CustomDrawer";
+import { act, fireEvent, render } from "@testing-library/react-native";
+import React from "react";
 import { Toast } from "toastify-react-native";
 
 // Mock expo-router
@@ -99,9 +99,9 @@ jest.mock("@/app/constants", () => ({
   },
 }));
 
-import { useRouter } from "expo-router";
-import { useAuth } from "@/hooks/useAuth";
 import { useGetProfile } from "@/hooks/queries/userQueries";
+import { useAuth } from "@/hooks/useAuth";
+import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 describe("CustomDrawer", () => {

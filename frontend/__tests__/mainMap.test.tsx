@@ -2,12 +2,17 @@
  * Tests for Map screen
  */
 
-import { fireEvent, waitFor, act, cleanup } from "@testing-library/react-native";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  waitFor,
+} from "@testing-library/react-native";
 import { Alert } from "react-native";
 import { renderWithProviders } from "../test_utils/renderUtils";
 
-import MainMap from "../app/(drawer)/map";
 import * as Location from "expo-location";
+import MainMap from "../app/(drawer)/map";
 import { getDistance } from "../app/utils/mapUtils";
 
 /**
@@ -24,7 +29,7 @@ jest.mock("expo-location", () => ({
   requestForegroundPermissionsAsync: jest.fn(),
   getCurrentPositionAsync: jest.fn(),
   watchPositionAsync: jest.fn(),
-  reverseGeocodeAsync: jest.fn(), 
+  reverseGeocodeAsync: jest.fn(),
   Accuracy: { High: 6 },
 }));
 
@@ -120,8 +125,12 @@ jest.mock("react-native-maps", () => {
 // returns null because only want to test MainMap behavior (not the bottom sheet itself)
 let capturedOnStartNavigation: (() => void) | null = null;
 
-jest.mock('@/components/BuildingBottomSheet', () => {
-  return function MockBuildingBottomSheet({ onClose, buildingCode, onStartNavigation }: any) {
+jest.mock("@/components/BuildingBottomSheet", () => {
+  return function MockBuildingBottomSheet({
+    onClose,
+    buildingCode,
+    onStartNavigation,
+  }: any) {
     capturedBottomSheetOnClose = onClose;
     capturedOnStartNavigation = onStartNavigation;
     const { Button, View } = require("react-native");
@@ -140,7 +149,13 @@ let capturedOnEndLocationPress: (() => void) | null = null;
 
 // Mock NavigationHeader
 jest.mock("../components/NavigationHeader", () => ({
-  NavigationHeader: ({ startLocation, endLocation, onCancel, onStartLocationPress, onEndLocationPress }: any) => {
+  NavigationHeader: ({
+    startLocation,
+    endLocation,
+    onCancel,
+    onStartLocationPress,
+    onEndLocationPress,
+  }: any) => {
     capturedOnStartLocationPress = onStartLocationPress;
     capturedOnEndLocationPress = onEndLocationPress;
     const { View, Text, Button } = require("react-native");
@@ -176,8 +191,8 @@ jest.mock("@/hooks/queries/buildingQueries", () => ({
   useGetBuildingDetails: (code: string) => mockUseGetBuildingDetails(code),
   CampusCode: {
     SGW: "SGW",
-    LOY: "LOY"
-  }
+    LOY: "LOY",
+  },
 }));
 
 /**
@@ -206,13 +221,13 @@ describe("MainMap screen", () => {
     mockUseGetBuildings.mockReturnValue({
       data: undefined,
       isLoading: false,
-      error: null
+      error: null,
     });
-    
+
     mockUseGetBuildingDetails.mockReturnValue({
       data: null,
       isLoading: false,
-      error: null
+      error: null,
     });
   });
 
@@ -332,9 +347,7 @@ describe("MainMap screen", () => {
       },
     );
 
-    (getDistance as jest.Mock)
-      .mockReturnValueOnce(100)
-      .mockReturnValueOnce(10);
+    (getDistance as jest.Mock).mockReturnValueOnce(100).mockReturnValueOnce(10);
 
     renderWithProviders(<MainMap />);
 
@@ -381,8 +394,8 @@ describe("MainMap screen", () => {
         street: "De Maisonneuve Blvd W",
         city: "Montreal",
         region: "Quebec",
-        postalCode: "H3G 1M8"
-      }
+        postalCode: "H3G 1M8",
+      },
     ]);
 
     // Mock point in polygon to return false (user NOT in a building)
@@ -397,7 +410,7 @@ describe("MainMap screen", () => {
     await waitFor(() => {
       expect(Location.reverseGeocodeAsync).toHaveBeenCalledWith({
         latitude: 45.497,
-        longitude: -73.579
+        longitude: -73.579,
       });
     });
 
@@ -408,7 +421,7 @@ describe("MainMap screen", () => {
   test("handles reverse geocoding error gracefully", async () => {
     // Mock reverse geocoding to throw an error
     (Location.reverseGeocodeAsync as jest.Mock).mockRejectedValue(
-      new Error("Network error")
+      new Error("Network error"),
     );
 
     // Mock point in polygon to return false (user NOT in a building)
@@ -423,7 +436,7 @@ describe("MainMap screen", () => {
     await waitFor(() => {
       expect(Location.reverseGeocodeAsync).toHaveBeenCalledWith({
         latitude: 45.497,
-        longitude: -73.579
+        longitude: -73.579,
       });
     });
 
@@ -431,7 +444,7 @@ describe("MainMap screen", () => {
     await waitFor(() => {
       expect(console.error).toHaveBeenCalledWith(
         "Failed to get address",
-        expect.any(Error)
+        expect.any(Error),
       );
     });
   });
@@ -449,7 +462,10 @@ describe("MainMap screen", () => {
     expect(capturedLocationButtonProps.bottomPosition).toBe(80);
 
     // select a building
-    const lastCall = mockCampusBuildingPolygons.mock.calls[mockCampusBuildingPolygons.mock.calls.length - 1];
+    const lastCall =
+      mockCampusBuildingPolygons.mock.calls[
+        mockCampusBuildingPolygons.mock.calls.length - 1
+      ];
     const onBuildingPress = (lastCall[0] as any).onBuildingPress;
 
     await act(async () => {
@@ -471,7 +487,10 @@ describe("MainMap screen", () => {
       expect(mockCampusBuildingPolygons).toHaveBeenCalled();
     });
 
-    const lastCall = mockCampusBuildingPolygons.mock.calls[mockCampusBuildingPolygons.mock.calls.length - 1];
+    const lastCall =
+      mockCampusBuildingPolygons.mock.calls[
+        mockCampusBuildingPolygons.mock.calls.length - 1
+      ];
     const onBuildingPress = (lastCall[0] as any).onBuildingPress;
 
     await act(async () => {
@@ -499,7 +518,10 @@ describe("MainMap screen", () => {
       expect(mockCampusBuildingPolygons).toHaveBeenCalled();
     });
 
-    const lastCall = mockCampusBuildingPolygons.mock.calls[mockCampusBuildingPolygons.mock.calls.length - 1];
+    const lastCall =
+      mockCampusBuildingPolygons.mock.calls[
+        mockCampusBuildingPolygons.mock.calls.length - 1
+      ];
     const onBuildingPress = (lastCall[0] as any).onBuildingPress;
 
     await act(async () => {
@@ -537,7 +559,10 @@ describe("MainMap screen", () => {
       expect(mockCampusBuildingPolygons).toHaveBeenCalled();
     });
 
-    const lastCall = mockCampusBuildingPolygons.mock.calls[mockCampusBuildingPolygons.mock.calls.length - 1];
+    const lastCall =
+      mockCampusBuildingPolygons.mock.calls[
+        mockCampusBuildingPolygons.mock.calls.length - 1
+      ];
     const onBuildingPress = (lastCall[0] as any).onBuildingPress;
 
     await act(async () => {
@@ -566,9 +591,9 @@ describe("MainMap screen", () => {
 
   test("sets currentBuildingCode when user location is inside a building polygon", async () => {
     const { isPointInPolygon } = require("../app/utils/pointInPolygon");
-    
+
     isPointInPolygon.mockClear();
-    
+
     isPointInPolygon.mockReturnValue(true);
 
     mockUseGetBuildings.mockReturnValue({
@@ -578,21 +603,28 @@ describe("MainMap screen", () => {
           {
             code: "H",
             long_name: "Henry F. Hall Building",
-            polygon: [[45.497, -73.579], [45.498, -73.578], [45.497, -73.577]]
-          }
-        ]
+            polygon: [
+              [45.497, -73.579],
+              [45.498, -73.578],
+              [45.497, -73.577],
+            ],
+          },
+        ],
       },
       isLoading: false,
-      error: null
+      error: null,
     });
 
     mockGrantedWatchLocation(45.497, -73.579);
 
     renderWithProviders(<MainMap />);
 
-    await waitFor(() => {
-      expect(isPointInPolygon).toHaveBeenCalled();
-    }, { timeout: 3000 });
+    await waitFor(
+      () => {
+        expect(isPointInPolygon).toHaveBeenCalled();
+      },
+      { timeout: 3000 },
+    );
 
     await waitFor(() => {
       const calls = mockCampusBuildingPolygons.mock.calls;
@@ -602,12 +634,14 @@ describe("MainMap screen", () => {
   });
 
   test("goToMyLocation fetches current position when location is null but permission granted", async () => {
-    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
-      status: "granted",
-    });
+    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue(
+      {
+        status: "granted",
+      },
+    );
 
     (Location.getCurrentPositionAsync as jest.Mock).mockResolvedValue({
-      coords: { latitude: 45.555, longitude: -73.666 }
+      coords: { latitude: 45.555, longitude: -73.666 },
     });
 
     const { getByText } = renderWithProviders(<MainMap />);
@@ -628,18 +662,20 @@ describe("MainMap screen", () => {
           latitudeDelta: 0.005,
           longitudeDelta: 0.005,
         },
-        500
+        500,
       );
     });
   });
 
   test("goToMyLocation handles errors and shows toast message", async () => {
-    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
-      status: "granted",
-    });
+    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue(
+      {
+        status: "granted",
+      },
+    );
 
     (Location.getCurrentPositionAsync as jest.Mock).mockRejectedValue(
-      new Error("GPS signal lost")
+      new Error("GPS signal lost"),
     );
 
     const { Toast } = require("toastify-react-native");
@@ -653,13 +689,13 @@ describe("MainMap screen", () => {
     await waitFor(() => {
       expect(console.error).toHaveBeenCalledWith(
         "Failed to get to your location.",
-        expect.any(Error)
+        expect.any(Error),
       );
     });
 
     await waitFor(() => {
       expect(Toast.error).toHaveBeenCalledWith(
-        "Failed to get your location. Please try again."
+        "Failed to get your location. Please try again.",
       );
     });
   });
@@ -675,12 +711,16 @@ describe("MainMap screen", () => {
           {
             code: "H",
             long_name: "Henry F. Hall Building",
-            polygon: [[45.497, -73.579], [45.498, -73.578], [45.497, -73.577]]
-          }
-        ]
+            polygon: [
+              [45.497, -73.579],
+              [45.498, -73.578],
+              [45.497, -73.577],
+            ],
+          },
+        ],
       },
       isLoading: false,
-      error: null
+      error: null,
     });
 
     mockUseGetBuildingDetails.mockImplementation((code) => {
@@ -688,16 +728,16 @@ describe("MainMap screen", () => {
         return {
           data: {
             code: "H",
-            long_name: "Henry F. Hall Building"
+            long_name: "Henry F. Hall Building",
           },
           isLoading: false,
-          error: null
+          error: null,
         };
       }
       return {
         data: null,
         isLoading: false,
-        error: null
+        error: null,
       };
     });
 
@@ -713,7 +753,10 @@ describe("MainMap screen", () => {
       expect(mockCampusBuildingPolygons).toHaveBeenCalled();
     });
 
-    const lastCall = mockCampusBuildingPolygons.mock.calls[mockCampusBuildingPolygons.mock.calls.length - 1];
+    const lastCall =
+      mockCampusBuildingPolygons.mock.calls[
+        mockCampusBuildingPolygons.mock.calls.length - 1
+      ];
     const onBuildingPress = (lastCall[0] as any).onBuildingPress;
 
     await act(async () => {
@@ -732,13 +775,15 @@ describe("MainMap screen", () => {
   });
 
   test("initializes with campus parameter from URL and animates to coords", async () => {
-    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
-      status: "denied",
-    });
+    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue(
+      {
+        status: "denied",
+      },
+    );
 
     // Mock useLocalSearchParams to return campus
     jest.spyOn(require("expo-router"), "useLocalSearchParams").mockReturnValue({
-      campus: "LOY"
+      campus: "LOY",
     });
 
     renderWithProviders(<MainMap />);
@@ -771,16 +816,16 @@ describe("MainMap screen", () => {
             long_name: "Henry F. Hall Building",
             address: "1455 De Maisonneuve Blvd W",
             latitude: 45.497,
-            longitude: -73.579
+            longitude: -73.579,
           },
           isLoading: false,
-          error: null
+          error: null,
         };
       }
       return {
         data: null,
         isLoading: false,
-        error: null
+        error: null,
       };
     });
 
@@ -791,12 +836,16 @@ describe("MainMap screen", () => {
           {
             code: "H",
             long_name: "Henry F. Hall Building",
-            polygon: [[45.497, -73.579], [45.498, -73.578], [45.497, -73.577]]
-          }
-        ]
+            polygon: [
+              [45.497, -73.579],
+              [45.498, -73.578],
+              [45.497, -73.577],
+            ],
+          },
+        ],
       },
       isLoading: false,
-      error: null
+      error: null,
     });
 
     const { getAllByText } = renderWithProviders(<MainMap />);
@@ -805,7 +854,10 @@ describe("MainMap screen", () => {
       expect(mockCampusBuildingPolygons).toHaveBeenCalled();
     });
 
-    const lastCall = mockCampusBuildingPolygons.mock.calls[mockCampusBuildingPolygons.mock.calls.length - 1];
+    const lastCall =
+      mockCampusBuildingPolygons.mock.calls[
+        mockCampusBuildingPolygons.mock.calls.length - 1
+      ];
     const onBuildingPress = (lastCall[0] as any).onBuildingPress;
 
     await act(async () => {
@@ -835,7 +887,7 @@ describe("Edit Mode Navigation", () => {
       editMode: "start",
       editValue: "MB",
       preserveEnd: "H",
-      preserveStart: ""
+      preserveStart: "",
     });
 
     mockUseGetBuildingDetails.mockImplementation((code) => {
@@ -843,20 +895,20 @@ describe("Edit Mode Navigation", () => {
         return {
           data: {
             code: "MB",
-            long_name: "John Molson Building"
+            long_name: "John Molson Building",
           },
           isLoading: false,
-          error: null
+          error: null,
         };
       }
       if (code === "H") {
         return {
           data: {
             code: "H",
-            long_name: "Henry F. Hall Building"
+            long_name: "Henry F. Hall Building",
           },
           isLoading: false,
-          error: null
+          error: null,
         };
       }
       return { data: null, isLoading: false, error: null };
@@ -878,7 +930,7 @@ describe("Edit Mode Navigation", () => {
       editMode: "start",
       editValue: "MB",
       preserveEnd: "H",
-      preserveStart: ""
+      preserveStart: "",
     });
 
     mockUseGetBuildingDetails.mockImplementation((code) => {
@@ -886,14 +938,14 @@ describe("Edit Mode Navigation", () => {
         return {
           data: { code: "MB", long_name: "John Molson Building" },
           isLoading: false,
-          error: null
+          error: null,
         };
       }
       if (code === "H") {
         return {
           data: { code: "H", long_name: "Henry F. Hall Building" },
           isLoading: false,
-          error: null
+          error: null,
         };
       }
       return { data: null, isLoading: false, error: null };
@@ -915,7 +967,7 @@ describe("Edit Mode Navigation", () => {
       editMode: "end",
       editValue: "MB",
       preserveEnd: "",
-      preserveStart: "H"
+      preserveStart: "H",
     });
 
     mockUseGetBuildingDetails.mockImplementation((code) => {
@@ -923,14 +975,14 @@ describe("Edit Mode Navigation", () => {
         return {
           data: { code: "MB", long_name: "John Molson Building" },
           isLoading: false,
-          error: null
+          error: null,
         };
       }
       if (code === "H") {
         return {
           data: { code: "H", long_name: "Henry F. Hall Building" },
           isLoading: false,
-          error: null
+          error: null,
         };
       }
       return { data: null, isLoading: false, error: null };
@@ -948,7 +1000,7 @@ describe("Edit Mode Navigation", () => {
       editMode: "end",
       editValue: "MB",
       preserveEnd: "",
-      preserveStart: "H"
+      preserveStart: "H",
     });
 
     mockUseGetBuildingDetails.mockImplementation((code) => {
@@ -956,14 +1008,14 @@ describe("Edit Mode Navigation", () => {
         return {
           data: { code: "MB", long_name: "John Molson Building" },
           isLoading: false,
-          error: null
+          error: null,
         };
       }
       if (code === "H") {
         return {
           data: { code: "H", long_name: "Henry F. Hall Building" },
           isLoading: false,
-          error: null
+          error: null,
         };
       }
       return { data: null, isLoading: false, error: null };
@@ -985,7 +1037,7 @@ describe("Edit Mode Navigation", () => {
       editMode: "start",
       editValue: "MB",
       preserveEnd: "H",
-      preserveStart: ""
+      preserveStart: "",
     });
 
     const { getByText } = renderWithProviders(<MainMap />);
@@ -1000,7 +1052,7 @@ describe("Edit Mode Navigation", () => {
       editMode: "start",
       editValue: "MB",
       preserveEnd: undefined,
-      preserveStart: ""
+      preserveStart: "",
     });
 
     mockUseGetBuildingDetails.mockImplementation((code) => {
@@ -1008,7 +1060,7 @@ describe("Edit Mode Navigation", () => {
         return {
           data: { code: "MB", long_name: "John Molson Building" },
           isLoading: false,
-          error: null
+          error: null,
         };
       }
       return { data: null, isLoading: false, error: null };
@@ -1030,7 +1082,7 @@ describe("Edit Mode Navigation", () => {
       editMode: "end",
       editValue: "MB",
       preserveEnd: "",
-      preserveStart: undefined
+      preserveStart: undefined,
     });
 
     mockUseGetBuildingDetails.mockImplementation((code) => {
@@ -1038,7 +1090,7 @@ describe("Edit Mode Navigation", () => {
         return {
           data: { code: "MB", long_name: "John Molson Building" },
           isLoading: false,
-          error: null
+          error: null,
         };
       }
       return { data: null, isLoading: false, error: null };
@@ -1057,13 +1109,16 @@ describe("Edit Mode Navigation", () => {
   });
 
   test("handles both editMode branches independently", async () => {
-    const useLocalSearchParamsSpy = jest.spyOn(require("expo-router"), "useLocalSearchParams");
-    
+    const useLocalSearchParamsSpy = jest.spyOn(
+      require("expo-router"),
+      "useLocalSearchParams",
+    );
+
     useLocalSearchParamsSpy.mockReturnValue({
       editMode: "start",
       editValue: "MB",
       preserveEnd: "H",
-      preserveStart: ""
+      preserveStart: "",
     });
 
     mockUseGetBuildingDetails.mockImplementation((code) => {
@@ -1071,7 +1126,7 @@ describe("Edit Mode Navigation", () => {
         return {
           data: { code, long_name: `${code} Building` },
           isLoading: false,
-          error: null
+          error: null,
         };
       }
       return { data: null, isLoading: false, error: null };
@@ -1080,7 +1135,7 @@ describe("Edit Mode Navigation", () => {
     const { unmount, getByText } = renderWithProviders(<MainMap />);
 
     await waitFor(() => {
-      expect(getByText("MB - MB Building")).toBeTruthy(); 
+      expect(getByText("MB - MB Building")).toBeTruthy();
     });
 
     unmount();
@@ -1089,7 +1144,7 @@ describe("Edit Mode Navigation", () => {
       editMode: "end",
       editValue: "CC",
       preserveEnd: "",
-      preserveStart: "MB"
+      preserveStart: "MB",
     });
 
     mockUseGetBuildingDetails.mockImplementation((code) => {
@@ -1097,7 +1152,7 @@ describe("Edit Mode Navigation", () => {
         return {
           data: { code, long_name: `${code} Building` },
           isLoading: false,
-          error: null
+          error: null,
         };
       }
       return { data: null, isLoading: false, error: null };
@@ -1106,7 +1161,7 @@ describe("Edit Mode Navigation", () => {
     const result2 = renderWithProviders(<MainMap />);
 
     await waitFor(() => {
-      expect(result2.getByText("CC - CC Building")).toBeTruthy(); 
+      expect(result2.getByText("CC - CC Building")).toBeTruthy();
     });
   });
 });
@@ -1117,216 +1172,234 @@ describe("Navigation Header Location Press Handlers", () => {
   });
 
   test("handleStartLocationPress calls router.push with correct params", async () => {
-  const mockRouterPush = jest.fn();
-  
-  const routerMock = {
-    push: mockRouterPush,
-    replace: jest.fn(),
-    back: jest.fn()
-  };
-  
-  jest.spyOn(require("expo-router"), "useRouter").mockReturnValue(routerMock);
+    const mockRouterPush = jest.fn();
 
-  mockUseGetBuildingDetails.mockImplementation((code) => {
-    if (code === "H") {
-      return {
-        data: { code: "H", long_name: "Hall Building" },
-        isLoading: false,
-        error: null
-      };
-    }
-    return { data: null, isLoading: false, error: null };
+    const routerMock = {
+      push: mockRouterPush,
+      replace: jest.fn(),
+      back: jest.fn(),
+    };
+
+    jest.spyOn(require("expo-router"), "useRouter").mockReturnValue(routerMock);
+
+    mockUseGetBuildingDetails.mockImplementation((code) => {
+      if (code === "H") {
+        return {
+          data: { code: "H", long_name: "Hall Building" },
+          isLoading: false,
+          error: null,
+        };
+      }
+      return { data: null, isLoading: false, error: null };
+    });
+
+    mockUseGetBuildings.mockReturnValue({
+      data: {
+        campus: "SGW",
+        buildings: [
+          {
+            code: "H",
+            polygon: [
+              [45.497, -73.579],
+              [45.498, -73.578],
+            ],
+          },
+        ],
+      },
+      isLoading: false,
+      error: null,
+    });
+
+    const { getByText } = renderWithProviders(<MainMap />);
+
+    await waitFor(() => {
+      expect(mockCampusBuildingPolygons).toHaveBeenCalled();
+    });
+
+    const lastCall =
+      mockCampusBuildingPolygons.mock.calls[
+        mockCampusBuildingPolygons.mock.calls.length - 1
+      ];
+    const onBuildingPress = (lastCall[0] as any).onBuildingPress;
+
+    await act(async () => {
+      onBuildingPress("H");
+    });
+
+    await act(async () => {
+      if (capturedOnStartNavigation) {
+        capturedOnStartNavigation();
+      }
+    });
+
+    await waitFor(() => {
+      expect(getByText("Cancel Navigation")).toBeTruthy();
+    });
+
+    await act(async () => {
+      fireEvent.press(getByText("Edit Start"));
+    });
+
+    expect(mockRouterPush).toHaveBeenCalledWith({
+      pathname: "/search",
+      params: {
+        campus: "SGW",
+        editMode: "start",
+        preserveEnd: "H",
+        preserveStart: "",
+      },
+    });
   });
 
-  mockUseGetBuildings.mockReturnValue({
-    data: {
-      campus: "SGW",
-      buildings: [
-        { code: "H", polygon: [[45.497, -73.579], [45.498, -73.578]] }
-      ]
-    },
-    isLoading: false,
-    error: null
+  test("handleEndLocationPress calls router.push with correct params", async () => {
+    const mockRouterPush = jest.fn();
+
+    const routerMock = {
+      push: mockRouterPush,
+      replace: jest.fn(),
+      back: jest.fn(),
+    };
+
+    jest.spyOn(require("expo-router"), "useRouter").mockReturnValue(routerMock);
+
+    mockUseGetBuildingDetails.mockImplementation((code) => {
+      if (code === "H") {
+        return {
+          data: { code: "H", long_name: "Hall Building" },
+          isLoading: false,
+          error: null,
+        };
+      }
+      return { data: null, isLoading: false, error: null };
+    });
+
+    mockUseGetBuildings.mockReturnValue({
+      data: {
+        campus: "SGW",
+        buildings: [
+          {
+            code: "H",
+            polygon: [
+              [45.497, -73.579],
+              [45.498, -73.578],
+            ],
+          },
+        ],
+      },
+      isLoading: false,
+      error: null,
+    });
+
+    const { getByText } = renderWithProviders(<MainMap />);
+
+    await waitFor(() => {
+      expect(mockCampusBuildingPolygons).toHaveBeenCalled();
+    });
+
+    const lastCall =
+      mockCampusBuildingPolygons.mock.calls[
+        mockCampusBuildingPolygons.mock.calls.length - 1
+      ];
+    const onBuildingPress = (lastCall[0] as any).onBuildingPress;
+
+    await act(async () => {
+      onBuildingPress("H");
+    });
+
+    await act(async () => {
+      if (capturedOnStartNavigation) {
+        capturedOnStartNavigation();
+      }
+    });
+
+    await waitFor(() => {
+      expect(getByText("Cancel Navigation")).toBeTruthy();
+    });
+
+    await act(async () => {
+      fireEvent.press(getByText("Edit End"));
+    });
+
+    expect(mockRouterPush).toHaveBeenCalledWith({
+      pathname: "/search",
+      params: {
+        campus: "SGW",
+        editMode: "end",
+        preserveEnd: "H",
+        preserveStart: "",
+      },
+    });
   });
 
-  const { getByText } = renderWithProviders(<MainMap />);
+  test("handleStartLocationPress includes customStartBuilding in params", async () => {
+    const mockRouterPush = jest.fn();
 
-  await waitFor(() => {
-    expect(mockCampusBuildingPolygons).toHaveBeenCalled();
-  });
+    const routerMock = {
+      push: mockRouterPush,
+      replace: jest.fn(),
+      back: jest.fn(),
+    };
 
-  const lastCall = mockCampusBuildingPolygons.mock.calls[mockCampusBuildingPolygons.mock.calls.length - 1];
-  const onBuildingPress = (lastCall[0] as any).onBuildingPress;
+    jest.spyOn(require("expo-router"), "useRouter").mockReturnValue(routerMock);
 
-  await act(async () => {
-    onBuildingPress("H");
-  });
-
-  await act(async () => {
-    if (capturedOnStartNavigation) {
-      capturedOnStartNavigation();
-    }
-  });
-
-  await waitFor(() => {
-    expect(getByText("Cancel Navigation")).toBeTruthy();
-  });
-
-  await act(async () => {
-    fireEvent.press(getByText("Edit Start"));
-  });
-
-  expect(mockRouterPush).toHaveBeenCalledWith({
-    pathname: "/search",
-    params: {
-      campus: "SGW",
+    jest.spyOn(require("expo-router"), "useLocalSearchParams").mockReturnValue({
       editMode: "start",
+      editValue: "MB",
       preserveEnd: "H",
-      preserveStart: ""
-    }
+      preserveStart: "",
+    });
+
+    mockUseGetBuildingDetails.mockImplementation((code) => {
+      if (code === "MB") {
+        return {
+          data: { code: "MB", long_name: "John Molson Building" },
+          isLoading: false,
+          error: null,
+        };
+      }
+      if (code === "H") {
+        return {
+          data: { code: "H", long_name: "Hall Building" },
+          isLoading: false,
+          error: null,
+        };
+      }
+      return { data: null, isLoading: false, error: null };
+    });
+
+    mockUseGetBuildings.mockReturnValue({
+      data: {
+        campus: "SGW",
+        buildings: [
+          { code: "H", polygon: [] },
+          { code: "MB", polygon: [] },
+        ],
+      },
+      isLoading: false,
+      error: null,
+    });
+
+    const { getByText } = renderWithProviders(<MainMap />);
+
+    await waitFor(() => {
+      expect(getByText("Cancel Navigation")).toBeTruthy();
+    });
+
+    // Click the "Edit Start" button
+    await act(async () => {
+      fireEvent.press(getByText("Edit Start"));
+    });
+
+    expect(mockRouterPush).toHaveBeenCalledWith({
+      pathname: "/search",
+      params: {
+        campus: "SGW",
+        editMode: "start",
+        preserveEnd: "H",
+        preserveStart: "MB",
+      },
+    });
   });
-});
-
-test("handleEndLocationPress calls router.push with correct params", async () => {
-  const mockRouterPush = jest.fn();
-  
-  const routerMock = {
-    push: mockRouterPush,
-    replace: jest.fn(),
-    back: jest.fn()
-  };
-  
-  jest.spyOn(require("expo-router"), "useRouter").mockReturnValue(routerMock);
-
-  mockUseGetBuildingDetails.mockImplementation((code) => {
-    if (code === "H") {
-      return {
-        data: { code: "H", long_name: "Hall Building" },
-        isLoading: false,
-        error: null
-      };
-    }
-    return { data: null, isLoading: false, error: null };
-  });
-
-  mockUseGetBuildings.mockReturnValue({
-    data: {
-      campus: "SGW",
-      buildings: [
-        { code: "H", polygon: [[45.497, -73.579], [45.498, -73.578]] }
-      ]
-    },
-    isLoading: false,
-    error: null
-  });
-
-  const { getByText } = renderWithProviders(<MainMap />);
-
-  await waitFor(() => {
-    expect(mockCampusBuildingPolygons).toHaveBeenCalled();
-  });
-
-  const lastCall = mockCampusBuildingPolygons.mock.calls[mockCampusBuildingPolygons.mock.calls.length - 1];
-  const onBuildingPress = (lastCall[0] as any).onBuildingPress;
-
-  await act(async () => {
-    onBuildingPress("H");
-  });
-
-  await act(async () => {
-    if (capturedOnStartNavigation) {
-      capturedOnStartNavigation();
-    }
-  });
-
-  await waitFor(() => {
-    expect(getByText("Cancel Navigation")).toBeTruthy();
-  });
-
-  await act(async () => {
-    fireEvent.press(getByText("Edit End"));
-  });
-
-  expect(mockRouterPush).toHaveBeenCalledWith({
-    pathname: "/search",
-    params: {
-      campus: "SGW",
-      editMode: "end",
-      preserveEnd: "H",
-      preserveStart: ""
-    }
-  });
-});
-
-test("handleStartLocationPress includes customStartBuilding in params", async () => {
-  const mockRouterPush = jest.fn();
-  
-  const routerMock = {
-    push: mockRouterPush,
-    replace: jest.fn(),
-    back: jest.fn()
-  };
-  
-  jest.spyOn(require("expo-router"), "useRouter").mockReturnValue(routerMock);
-
-  jest.spyOn(require("expo-router"), "useLocalSearchParams").mockReturnValue({
-    editMode: "start",
-    editValue: "MB",
-    preserveEnd: "H",
-    preserveStart: ""
-  });
-
-  mockUseGetBuildingDetails.mockImplementation((code) => {
-    if (code === "MB") {
-      return {
-        data: { code: "MB", long_name: "John Molson Building" },
-        isLoading: false,
-        error: null
-      };
-    }
-    if (code === "H") {
-      return {
-        data: { code: "H", long_name: "Hall Building" },
-        isLoading: false,
-        error: null
-      };
-    }
-    return { data: null, isLoading: false, error: null };
-  });
-
-  mockUseGetBuildings.mockReturnValue({
-    data: {
-      campus: "SGW",
-      buildings: [
-        { code: "H", polygon: [] },
-        { code: "MB", polygon: [] }
-      ]
-    },
-    isLoading: false,
-    error: null
-  });
-
-  const { getByText } = renderWithProviders(<MainMap />);
-
-  await waitFor(() => {
-    expect(getByText("Cancel Navigation")).toBeTruthy();
-  });
-
-  // Click the "Edit Start" button
-  await act(async () => {
-    fireEvent.press(getByText("Edit Start"));
-  });
-
-  expect(mockRouterPush).toHaveBeenCalledWith({
-    pathname: "/search",
-    params: {
-      campus: "SGW",
-      editMode: "start",
-      preserveEnd: "H",
-      preserveStart: "MB"
-    }
-  });
-});
 });
 
 describe("Start Location Text with Custom Start Building", () => {
@@ -1335,7 +1408,7 @@ describe("Start Location Text with Custom Start Building", () => {
       editMode: "start",
       editValue: "MB",
       preserveEnd: "H",
-      preserveStart: ""
+      preserveStart: "",
     });
 
     mockUseGetBuildingDetails.mockImplementation((code) => {
@@ -1343,20 +1416,20 @@ describe("Start Location Text with Custom Start Building", () => {
         return {
           data: {
             code: "MB",
-            long_name: "John Molson Building"
+            long_name: "John Molson Building",
           },
           isLoading: false,
-          error: null
+          error: null,
         };
       }
       if (code === "H") {
         return {
           data: {
             code: "H",
-            long_name: "Hall Building"
+            long_name: "Hall Building",
           },
           isLoading: false,
-          error: null
+          error: null,
         };
       }
       return { data: null, isLoading: false, error: null };
@@ -1367,11 +1440,11 @@ describe("Start Location Text with Custom Start Building", () => {
         campus: "SGW",
         buildings: [
           { code: "MB", polygon: [] },
-          { code: "H", polygon: [] }
-        ]
+          { code: "H", polygon: [] },
+        ],
       },
       isLoading: false,
-      error: null
+      error: null,
     });
 
     const { getByText } = renderWithProviders(<MainMap />);
@@ -1393,7 +1466,7 @@ describe("Start Location Text with Custom Start Building", () => {
       editMode: "start",
       editValue: "MB",
       preserveEnd: "H",
-      preserveStart: ""
+      preserveStart: "",
     });
 
     mockUseGetBuildingDetails.mockImplementation((code) => {
@@ -1401,30 +1474,30 @@ describe("Start Location Text with Custom Start Building", () => {
         return {
           data: {
             code: "MB",
-            long_name: "John Molson Building"
+            long_name: "John Molson Building",
           },
           isLoading: false,
-          error: null
+          error: null,
         };
       }
       if (code === "H") {
         return {
           data: {
             code: "H",
-            long_name: "Hall Building"
+            long_name: "Hall Building",
           },
           isLoading: false,
-          error: null
+          error: null,
         };
       }
       if (code === "EV") {
         return {
           data: {
             code: "EV",
-            long_name: "EV Building"
+            long_name: "EV Building",
           },
           isLoading: false,
-          error: null
+          error: null,
         };
       }
       return { data: null, isLoading: false, error: null };
@@ -1436,11 +1509,11 @@ describe("Start Location Text with Custom Start Building", () => {
         buildings: [
           { code: "EV", polygon: [[45.495, -73.577]] },
           { code: "MB", polygon: [] },
-          { code: "H", polygon: [] }
-        ]
+          { code: "H", polygon: [] },
+        ],
       },
       isLoading: false,
-      error: null
+      error: null,
     });
 
     mockGrantedWatchLocation(45.495, -73.577);

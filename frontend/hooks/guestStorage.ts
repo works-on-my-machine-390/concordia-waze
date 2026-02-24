@@ -3,7 +3,7 @@ import {
   SavedAddress,
   ScheduleItem,
   SearchHistoryItem,
-  UserProfile
+  UserProfile,
 } from "./firebase/useFirestore";
 
 const STORAGE_PREFIX = "guest";
@@ -42,7 +42,9 @@ export const setGuestProfile = async (profile: UserProfile): Promise<void> => {
   await AsyncStorage.setItem(buildKey("profile"), JSON.stringify(profile));
 };
 
-export const addGuestSearchHistory = async (item: SearchHistoryItem): Promise<void> => {
+export const addGuestSearchHistory = async (
+  item: SearchHistoryItem,
+): Promise<void> => {
   const key = buildKey("searchHistory");
   const items = await readList<SearchHistoryItem>(key);
   items.unshift(item);
@@ -57,7 +59,9 @@ export const clearGuestSearchHistory = async (): Promise<void> => {
   await AsyncStorage.removeItem(buildKey("searchHistory"));
 };
 
-export const addGuestScheduleItem = async (item: ScheduleItem): Promise<void> => {
+export const addGuestScheduleItem = async (
+  item: ScheduleItem,
+): Promise<void> => {
   const key = buildKey("schedule");
   const items = await readList<ScheduleItem>(key);
   items.push(item);
@@ -68,11 +72,15 @@ export const getGuestSchedule = async (): Promise<ScheduleItem[]> => {
   return readList<ScheduleItem>(buildKey("schedule"));
 };
 
-export const setGuestSchedule = async (items: ScheduleItem[]): Promise<void> => {
+export const setGuestSchedule = async (
+  items: ScheduleItem[],
+): Promise<void> => {
   await writeList(buildKey("schedule"), items);
 };
 
-export const addGuestSavedAddress = async (item: SavedAddress): Promise<void> => {
+export const addGuestSavedAddress = async (
+  item: SavedAddress,
+): Promise<void> => {
   const key = buildKey("savedAddresses");
   const items = await readList<SavedAddress>(key);
   items.unshift(item);
@@ -83,7 +91,9 @@ export const getGuestSavedAddresses = async (): Promise<SavedAddress[]> => {
   return readList<SavedAddress>(buildKey("savedAddresses"));
 };
 
-export const setGuestSavedAddresses = async (items: SavedAddress[]): Promise<void> => {
+export const setGuestSavedAddresses = async (
+  items: SavedAddress[],
+): Promise<void> => {
   await writeList(buildKey("savedAddresses"), items);
 };
 
@@ -92,6 +102,6 @@ export const clearGuestData = async (): Promise<void> => {
     buildKey("profile"),
     buildKey("searchHistory"),
     buildKey("schedule"),
-    buildKey("savedAddresses")
+    buildKey("savedAddresses"),
   ]);
 };

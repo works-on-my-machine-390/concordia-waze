@@ -10,9 +10,12 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  BuildingListItem,
+  useGetAllBuildings,
+} from "../../hooks/queries/buildingQueries";
 import { COLORS } from "../constants";
 import { DirectoryIcon } from "../icons";
-import { useGetAllBuildings, BuildingListItem } from "../../hooks/queries/buildingQueries";
 
 export default function Directory() {
   const router = useRouter();
@@ -36,7 +39,7 @@ export default function Directory() {
         (building) =>
           building.name.toLowerCase().includes(query) ||
           building.long_name.toLowerCase().includes(query) ||
-          building.code.toLowerCase().includes(query)
+          building.code.toLowerCase().includes(query),
       );
 
     return {

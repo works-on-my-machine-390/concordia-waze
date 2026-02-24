@@ -12,14 +12,14 @@ describe("AuthInput", () => {
 
   test("renders the label when provided", () => {
     const { getByText } = render(
-      <AuthInput label={labelText} value="" onChange={() => {}} />
+      <AuthInput label={labelText} value="" onChange={() => {}} />,
     );
     getByText(labelText);
   });
 
   test("renders placeholder text", () => {
     const { getByPlaceholderText } = render(
-      <AuthInput placeholder={placeholderText} value="" onChange={() => {}} />
+      <AuthInput placeholder={placeholderText} value="" onChange={() => {}} />,
     );
     getByPlaceholderText(placeholderText);
   });
@@ -27,7 +27,11 @@ describe("AuthInput", () => {
   test("calls onChange when typing", () => {
     const mockOnChange = jest.fn();
     const { getByPlaceholderText } = render(
-      <AuthInput placeholder={placeholderText} value="" onChange={mockOnChange} />
+      <AuthInput
+        placeholder={placeholderText}
+        value=""
+        onChange={mockOnChange}
+      />,
     );
     const input = getByPlaceholderText(placeholderText);
 
@@ -38,7 +42,7 @@ describe("AuthInput", () => {
   test("renders an error message if provided", () => {
     const errorMessage = "Invalid email";
     const { getByText } = render(
-      <AuthInput value="" onChange={() => {}} error={errorMessage} />
+      <AuthInput value="" onChange={() => {}} error={errorMessage} />,
     );
     getByText(errorMessage);
   });
@@ -46,7 +50,7 @@ describe("AuthInput", () => {
   test("renders right element if provided", () => {
     const rightElement = <Text testID="right-element">Right</Text>;
     const { getByTestId } = render(
-      <AuthInput value="" onChange={() => {}} right={rightElement} />
+      <AuthInput value="" onChange={() => {}} right={rightElement} />,
     );
     getByTestId("right-element");
   });
@@ -58,7 +62,7 @@ describe("AuthInput", () => {
         value="password"
         onChange={() => {}}
         secureTextEntry
-      />
+      />,
     );
     const input = getByPlaceholderText(placeholderText);
     expect(input.props.secureTextEntry).toBe(true);

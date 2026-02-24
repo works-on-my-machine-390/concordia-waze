@@ -1,7 +1,7 @@
-import React from "react";
-import { render, act } from "@testing-library/react-native";
-import { useAuth } from "../hooks/useAuth";
+import { act, render } from "@testing-library/react-native";
 import * as SecureStore from "expo-secure-store";
+import React from "react";
+import { useAuth } from "../hooks/useAuth";
 
 // Helper component to expose hook functions to the test scope
 let loginFn: any;

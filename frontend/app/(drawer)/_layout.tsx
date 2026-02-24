@@ -1,8 +1,7 @@
 import CustomDrawer from "@/components/CustomDrawer";
 import { Drawer } from "expo-router/drawer";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { COLORS } from "../constants";
-import { MapIcon, DirectoryIcon, FavoritesIcon, CalendarIcon } from "../icons";
+import { CalendarIcon, DirectoryIcon, FavoritesIcon, MapIcon } from "../icons";
 
 const MapDrawerIcon = ({ color, size }: { color: string; size: number }) => (
   <MapIcon color={color} size={size} />

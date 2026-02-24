@@ -18,7 +18,11 @@ export function NavigationHeader({
   onEndLocationPress,
 }: NavigationHeaderProps) {
   return (
-    <View style={styles.container} testID="navigation-header" accessibilityLabel="Navigation header">
+    <View
+      style={styles.container}
+      testID="navigation-header"
+      accessibilityLabel="Navigation header"
+    >
       <View style={styles.card}>
         <View style={styles.locationsContainer}>
           {/* Start location */}
@@ -28,7 +32,13 @@ export function NavigationHeader({
             </View>
             <View style={styles.locationTextContainer}>
               <Text style={styles.locationLabel}>From</Text>
-              <Text style={styles.locationText} numberOfLines={1} ellipsizeMode="tail">{startLocation}</Text>
+              <Text
+                style={styles.locationText}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {startLocation}
+              </Text>
             </View>
           </Pressable>
 
@@ -49,7 +59,13 @@ export function NavigationHeader({
             </View>
             <View style={styles.locationTextContainer}>
               <Text style={styles.locationLabel}>To</Text>
-              <Text style={styles.locationText} numberOfLines={1} ellipsizeMode="tail">{endLocation}</Text>
+              <Text
+                style={styles.locationText}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {endLocation}
+              </Text>
             </View>
           </Pressable>
         </View>

@@ -2,14 +2,18 @@
  * Tests for SearchPage
  */
 
-import { fireEvent, waitFor } from "@testing-library/react-native";
-import { renderWithProviders } from "../test_utils/renderUtils";
-import SearchPage from "../app/search";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useGetBuildings } from "@/hooks/queries/buildingQueries";
 import * as guestStorage from "@/hooks/guestStorage";
-import { useGetUserHistory, useSaveToHistory, useClearUserHistory } from "@/hooks/queries/userHistoryQueries";
+import { useGetBuildings } from "@/hooks/queries/buildingQueries";
+import {
+  useClearUserHistory,
+  useGetUserHistory,
+  useSaveToHistory,
+} from "@/hooks/queries/userHistoryQueries";
 import { useGetProfile } from "@/hooks/queries/userQueries";
+import { fireEvent, waitFor } from "@testing-library/react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import SearchPage from "../app/search";
+import { renderWithProviders } from "../test_utils/renderUtils";
 
 // Mock expo-router
 jest.mock("expo-router", () => ({
@@ -68,7 +72,7 @@ describe("SearchPage", () => {
         code: "MB",
         polygon: [
           { latitude: 45.495, longitude: -73.579 },
-          { latitude: 45.496, longitude: -73.580 },
+          { latitude: 45.496, longitude: -73.58 },
         ],
       },
     ],
@@ -80,7 +84,7 @@ describe("SearchPage", () => {
       {
         code: "CC",
         polygon: [
-          { latitude: 45.458, longitude: -73.640 },
+          { latitude: 45.458, longitude: -73.64 },
           { latitude: 45.459, longitude: -73.641 },
         ],
       },
@@ -108,8 +112,12 @@ describe("SearchPage", () => {
 
     // Mock guest storage
     (guestStorage.getGuestSearchHistory as jest.Mock).mockResolvedValue([]);
-    (guestStorage.addGuestSearchHistory as jest.Mock).mockResolvedValue(undefined);
-    (guestStorage.clearGuestSearchHistory as jest.Mock).mockResolvedValue(undefined);
+    (guestStorage.addGuestSearchHistory as jest.Mock).mockResolvedValue(
+      undefined,
+    );
+    (guestStorage.clearGuestSearchHistory as jest.Mock).mockResolvedValue(
+      undefined,
+    );
 
     // Mock user profile (default: guest/unauthenticated)
     (useGetProfile as jest.Mock).mockReturnValue({
@@ -145,8 +153,10 @@ describe("SearchPage", () => {
     const utils = renderWithProviders(<SearchPage />);
     await waitFor(() => {
       // Wait for either guest storage or user history to be loaded
-      const guestStorageCalled = (guestStorage.getGuestSearchHistory as jest.Mock).mock.calls.length > 0;
-      const userHistoryCalled = (useGetUserHistory as jest.Mock).mock.calls.length > 0;
+      const guestStorageCalled =
+        (guestStorage.getGuestSearchHistory as jest.Mock).mock.calls.length > 0;
+      const userHistoryCalled =
+        (useGetUserHistory as jest.Mock).mock.calls.length > 0;
       expect(guestStorageCalled || userHistoryCalled).toBe(true);
     });
     return utils;
@@ -166,7 +176,7 @@ describe("SearchPage", () => {
   test("updates query state when typing", async () => {
     const { getByPlaceholderText } = await renderAndFlush();
     const input = getByPlaceholderText("Where to…");
-    
+
     fireEvent.changeText(input, "Hall");
     expect(input.props.value).toBe("Hall");
   });
@@ -178,7 +188,7 @@ describe("SearchPage", () => {
 
   test("shows 'No matches found' for invalid query", async () => {
     const { getByPlaceholderText, getByText } = await renderAndFlush();
-    
+
     const input = getByPlaceholderText("Where to…");
     fireEvent.changeText(input, "XYZ999NOTFOUND");
 
@@ -204,7 +214,8 @@ describe("SearchPage", () => {
     fireEvent.changeText(input, "C");
 
     await waitFor(() => {
-      const hasResult = queryByText(/^C/) || queryByText(/^H/) || queryByText(/^MB/);
+      const hasResult =
+        queryByText(/^C/) || queryByText(/^H/) || queryByText(/^MB/);
       expect(hasResult).toBeTruthy();
     });
   });
@@ -222,9 +233,12 @@ describe("SearchPage", () => {
       }
     });
 
-    await waitFor(() => {
-      expect(mockRouter.replace).toHaveBeenCalled();
-    }, { timeout: 1000 });
+    await waitFor(
+      () => {
+        expect(mockRouter.replace).toHaveBeenCalled();
+      },
+      { timeout: 1000 },
+    );
   });
 
   test("records search history on selection", async () => {
@@ -240,9 +254,12 @@ describe("SearchPage", () => {
       }
     });
 
-    await waitFor(() => {
-      expect(guestStorage.addGuestSearchHistory).toHaveBeenCalled();
-    }, { timeout: 1000 });
+    await waitFor(
+      () => {
+        expect(guestStorage.addGuestSearchHistory).toHaveBeenCalled();
+      },
+      { timeout: 1000 },
+    );
   });
 
   test("displays recent searches section", async () => {
@@ -299,9 +316,12 @@ describe("SearchPage", () => {
       }
     });
 
-    await waitFor(() => {
-      expect(mockRouter.replace).toHaveBeenCalled();
-    }, { timeout: 1000 });
+    await waitFor(
+      () => {
+        expect(mockRouter.replace).toHaveBeenCalled();
+      },
+      { timeout: 1000 },
+    );
   });
 
   test("navigates immediately for guest user on recent search click without waiting for history save", async () => {
@@ -314,7 +334,7 @@ describe("SearchPage", () => {
     ]);
     // Make addGuestSearchHistory take a long time
     (guestStorage.addGuestSearchHistory as jest.Mock).mockImplementation(
-      () => new Promise((resolve) => setTimeout(resolve, 1000))
+      () => new Promise((resolve) => setTimeout(resolve, 1000)),
     );
 
     const { queryByText } = await renderAndFlush();
@@ -342,7 +362,9 @@ describe("SearchPage", () => {
       timestamp: new Date(),
     }));
 
-    (guestStorage.getGuestSearchHistory as jest.Mock).mockResolvedValue(manySearches);
+    (guestStorage.getGuestSearchHistory as jest.Mock).mockResolvedValue(
+      manySearches,
+    );
 
     const { queryByText } = await renderAndFlush();
 
@@ -358,7 +380,7 @@ describe("SearchPage", () => {
   test("uses default campus SGW when no params", async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({});
     await renderAndFlush();
-    
+
     expect(useGetBuildings).toHaveBeenCalledWith("SGW");
   });
 
@@ -378,7 +400,7 @@ describe("SearchPage", () => {
     }));
 
     const { getByPlaceholderText, getByText } = await renderAndFlush();
-    
+
     const input = getByPlaceholderText("Where to…");
     fireEvent.changeText(input, "test");
 
@@ -490,9 +512,12 @@ describe("SearchPage", () => {
 
       // The mutation should be called when selecting a building
       // even if buildingDetails are not in cache (graceful fallback)
-      await waitFor(() => {
-        expect(mockRouter.replace).toHaveBeenCalled();
-      }, { timeout: 1000 });
+      await waitFor(
+        () => {
+          expect(mockRouter.replace).toHaveBeenCalled();
+        },
+        { timeout: 1000 },
+      );
 
       // Verify useSaveToHistory hook was set up with the authenticated user ID
       expect(useGetProfile).toHaveBeenCalled();
@@ -536,9 +561,12 @@ describe("SearchPage", () => {
         }
       });
 
-      await waitFor(() => {
-        expect(guestStorage.addGuestSearchHistory).not.toHaveBeenCalled();
-      }, { timeout: 1000 });
+      await waitFor(
+        () => {
+          expect(guestStorage.addGuestSearchHistory).not.toHaveBeenCalled();
+        },
+        { timeout: 1000 },
+      );
     });
 
     test("navigates when clicking recent search from authenticated user history", async () => {
@@ -560,9 +588,12 @@ describe("SearchPage", () => {
         }
       });
 
-      await waitFor(() => {
-        expect(mockRouter.replace).toHaveBeenCalled();
-      }, { timeout: 1000 });
+      await waitFor(
+        () => {
+          expect(mockRouter.replace).toHaveBeenCalled();
+        },
+        { timeout: 1000 },
+      );
     });
 
     test("limits authenticated user recent searches to 6 items", async () => {
@@ -749,12 +780,15 @@ describe("SearchPage", () => {
         }
       });
 
-      await waitFor(() => {
-        expect(mockRouter.replace).toHaveBeenCalledWith({
-          pathname: "/map",
-          params: { selected: "H", campus: "SGW" },
-        });
-      }, { timeout: 1000 });
+      await waitFor(
+        () => {
+          expect(mockRouter.replace).toHaveBeenCalledWith({
+            pathname: "/map",
+            params: { selected: "H", campus: "SGW" },
+          });
+        },
+        { timeout: 1000 },
+      );
     });
   });
 
@@ -818,7 +852,11 @@ describe("SearchPage", () => {
             isSuccess: true,
           };
         }
-        return { data: { campus: "LOY", buildings: [] }, isLoading: false, isSuccess: true };
+        return {
+          data: { campus: "LOY", buildings: [] },
+          isLoading: false,
+          isSuccess: true,
+        };
       });
 
       (guestStorage.getGuestSearchHistory as jest.Mock).mockResolvedValue([]);
@@ -847,7 +885,11 @@ describe("SearchPage", () => {
             isSuccess: true,
           };
         }
-        return { data: { campus: "LOY", buildings: [] }, isLoading: false, isSuccess: true };
+        return {
+          data: { campus: "LOY", buildings: [] },
+          isLoading: false,
+          isSuccess: true,
+        };
       });
 
       (guestStorage.getGuestSearchHistory as jest.Mock).mockResolvedValue([]);
@@ -933,12 +975,15 @@ describe("SearchPage", () => {
         }
       });
 
-      await waitFor(() => {
-        expect(mockRouter.replace).toHaveBeenCalledWith({
-          pathname: "/map",
-          params: { selected: "H", campus: "SGW" },
-        });
-      }, { timeout: 1000 });
+      await waitFor(
+        () => {
+          expect(mockRouter.replace).toHaveBeenCalledWith({
+            pathname: "/map",
+            params: { selected: "H", campus: "SGW" },
+          });
+        },
+        { timeout: 1000 },
+      );
     });
 
     test("navigates to first search result when exact match not found in pendingRecent", async () => {
@@ -955,14 +1000,17 @@ describe("SearchPage", () => {
       // Manually trigger pendingRecent logic by setting a pending recent search
       const recentItem = queryByText(/Hall/);
       expect(recentItem).toBeTruthy();
-      
+
       if (recentItem) {
         fireEvent.press(recentItem);
       }
 
-      await waitFor(() => {
-        expect(mockRouter.replace).toHaveBeenCalled();
-      }, { timeout: 1000 });
+      await waitFor(
+        () => {
+          expect(mockRouter.replace).toHaveBeenCalled();
+        },
+        { timeout: 1000 },
+      );
     });
   });
 
@@ -990,7 +1038,11 @@ describe("SearchPage", () => {
             isSuccess: true,
           };
         }
-        return { data: { campus: "LOY", buildings: [] }, isLoading: false, isSuccess: true };
+        return {
+          data: { campus: "LOY", buildings: [] },
+          isLoading: false,
+          isSuccess: true,
+        };
       });
 
       (guestStorage.getGuestSearchHistory as jest.Mock).mockResolvedValue([]);
@@ -1027,14 +1079,17 @@ describe("SearchPage", () => {
       });
 
       // Should still navigate even if building details aren't cached
-      await waitFor(() => {
-        expect(mockRouter.replace).toHaveBeenCalled();
-      }, { timeout: 1000 });
+      await waitFor(
+        () => {
+          expect(mockRouter.replace).toHaveBeenCalled();
+        },
+        { timeout: 1000 },
+      );
     });
 
     test("does not crash when recordRecentSearch encounters error", async () => {
       (guestStorage.addGuestSearchHistory as jest.Mock).mockRejectedValue(
-        new Error("Storage error")
+        new Error("Storage error"),
       );
 
       const { getByPlaceholderText, queryByText } = await renderAndFlush();
@@ -1050,9 +1105,12 @@ describe("SearchPage", () => {
       });
 
       // Navigation should still happen even if history save fails
-      await waitFor(() => {
-        expect(mockRouter.replace).toHaveBeenCalled();
-      }, { timeout: 1000 });
+      await waitFor(
+        () => {
+          expect(mockRouter.replace).toHaveBeenCalled();
+        },
+        { timeout: 1000 },
+      );
     });
 
     test("attempts extraction for recent search without code", async () => {
@@ -1074,9 +1132,12 @@ describe("SearchPage", () => {
       }
 
       // Should navigate because "MB" can be extracted from query
-      await waitFor(() => {
-        expect(mockRouter.replace).toHaveBeenCalled();
-      }, { timeout: 1000 });
+      await waitFor(
+        () => {
+          expect(mockRouter.replace).toHaveBeenCalled();
+        },
+        { timeout: 1000 },
+      );
     });
   });
 
@@ -1097,15 +1158,18 @@ describe("SearchPage", () => {
         }
       });
 
-      await waitFor(() => {
-        expect(mockRouter.replace).toHaveBeenCalledWith(
-          expect.objectContaining({
-            params: expect.objectContaining({
-              campus: "LOY",
+      await waitFor(
+        () => {
+          expect(mockRouter.replace).toHaveBeenCalledWith(
+            expect.objectContaining({
+              params: expect.objectContaining({
+                campus: "LOY",
+              }),
             }),
-          })
-        );
-      }, { timeout: 1000 });
+          );
+        },
+        { timeout: 1000 },
+      );
     });
 
     test("maintains campus context when navigating from recent search", async () => {
@@ -1127,12 +1191,15 @@ describe("SearchPage", () => {
         fireEvent.press(recentItem);
       }
 
-      await waitFor(() => {
-        expect(mockRouter.replace).toHaveBeenCalledWith({
-          pathname: "/map",
-          params: { selected: "CC", campus: "LOY" },
-        });
-      }, { timeout: 1000 });
+      await waitFor(
+        () => {
+          expect(mockRouter.replace).toHaveBeenCalledWith({
+            pathname: "/map",
+            params: { selected: "CC", campus: "LOY" },
+          });
+        },
+        { timeout: 1000 },
+      );
     });
   });
 
@@ -1199,15 +1266,18 @@ describe("SearchPage", () => {
         }
       });
 
-      await waitFor(() => {
-        expect(mockRouter.replace).toHaveBeenCalledWith(
-          expect.objectContaining({
-            params: expect.objectContaining({
-              selected: "H",
+      await waitFor(
+        () => {
+          expect(mockRouter.replace).toHaveBeenCalledWith(
+            expect.objectContaining({
+              params: expect.objectContaining({
+                selected: "H",
+              }),
             }),
-          })
-        );
-      }, { timeout: 1000 });
+          );
+        },
+        { timeout: 1000 },
+      );
     });
 
     test("falls back to first result when no exact name match found in pendingRecent", async () => {
@@ -1229,9 +1299,12 @@ describe("SearchPage", () => {
       }
 
       // Fallback to first result occurs in pendingRecent effect
-      await waitFor(() => {
-        expect(mockRouter.replace).toHaveBeenCalled();
-      }, { timeout: 1000 });
+      await waitFor(
+        () => {
+          expect(mockRouter.replace).toHaveBeenCalled();
+        },
+        { timeout: 1000 },
+      );
     });
 
     test("matches result by code and name format in results", async () => {
@@ -1266,9 +1339,12 @@ describe("SearchPage", () => {
         fireEvent.press(recentItem);
       }
 
-      await waitFor(() => {
-        expect(mockRouter.replace).toHaveBeenCalled();
-      }, { timeout: 1000 });
+      await waitFor(
+        () => {
+          expect(mockRouter.replace).toHaveBeenCalled();
+        },
+        { timeout: 1000 },
+      );
     });
 
     test("normalizes whitespace in queries for matching", async () => {
@@ -1290,12 +1366,15 @@ describe("SearchPage", () => {
         fireEvent.press(recentItem);
       }
 
-      await waitFor(() => {
-        expect(mockRouter.replace).toHaveBeenCalledWith({
-          pathname: "/map",
-          params: { selected: "H", campus: "SGW" },
-        });
-      }, { timeout: 1000 });
+      await waitFor(
+        () => {
+          expect(mockRouter.replace).toHaveBeenCalledWith({
+            pathname: "/map",
+            params: { selected: "H", campus: "SGW" },
+          });
+        },
+        { timeout: 1000 },
+      );
     });
 
     test("handles empty search results early exit in pendingRecent effect", async () => {
@@ -1346,108 +1425,311 @@ describe("SearchPage", () => {
       }
 
       // Should navigate with extracted/matched code
-      await waitFor(() => {
-        expect(mockRouter.replace).toHaveBeenCalledWith({
-          pathname: "/map",
-          params: { selected: "MB", campus: "SGW" },
-        });
-      }, { timeout: 1000 });
+      await waitFor(
+        () => {
+          expect(mockRouter.replace).toHaveBeenCalledWith({
+            pathname: "/map",
+            params: { selected: "MB", campus: "SGW" },
+          });
+        },
+        { timeout: 1000 },
+      );
     });
   });
 
   describe("Edit Mode Navigation", () => {
-  test("passes editMode and editValue params when in start edit mode", async () => {
-    (useLocalSearchParams as jest.Mock).mockReturnValue({
-      campus: "SGW",
-      editMode: "start",
-      preserveEnd: "MB",
-      preserveStart: "",
-    });
-
-    const { getByPlaceholderText, queryByText } = await renderAndFlush();
-
-    const input = getByPlaceholderText("Where to…");
-    fireEvent.changeText(input, "H");
-
-    await waitFor(() => {
-      const result = queryByText(/^H/);
-      if (result) {
-        fireEvent.press(result);
-      }
-    });
-
-    await waitFor(() => {
-      expect(mockRouter.replace).toHaveBeenCalledWith({
-        pathname: "/map",
-        params: {
-          selected: "H",
-          campus: "SGW",
-          editMode: "start",
-          editValue: "H",
-          preserveEnd: "MB",
-          preserveStart: "",
-        },
+    test("passes editMode and editValue params when in start edit mode", async () => {
+      (useLocalSearchParams as jest.Mock).mockReturnValue({
+        campus: "SGW",
+        editMode: "start",
+        preserveEnd: "MB",
+        preserveStart: "",
       });
-    }, { timeout: 1000 });
-  });
 
-  test("passes editMode and editValue params when in end edit mode", async () => {
-    (useLocalSearchParams as jest.Mock).mockReturnValue({
-      campus: "SGW",
-      editMode: "end",
-      preserveEnd: "",
-      preserveStart: "H",
-    });
+      const { getByPlaceholderText, queryByText } = await renderAndFlush();
 
-    const { getByPlaceholderText, queryByText } = await renderAndFlush();
+      const input = getByPlaceholderText("Where to…");
+      fireEvent.changeText(input, "H");
 
-    const input = getByPlaceholderText("Where to…");
-    fireEvent.changeText(input, "MB");
-
-    await waitFor(() => {
-      const result = queryByText(/^MB/);
-      if (result) {
-        fireEvent.press(result);
-      }
-    });
-
-    await waitFor(() => {
-      expect(mockRouter.replace).toHaveBeenCalledWith({
-        pathname: "/map",
-        params: {
-          selected: "MB",
-          campus: "SGW",
-          editMode: "end",
-          editValue: "MB",
-          preserveEnd: "",
-          preserveStart: "H",
-        },
+      await waitFor(() => {
+        const result = queryByText(/^H/);
+        if (result) {
+          fireEvent.press(result);
+        }
       });
-    }, { timeout: 1000 });
-  });
 
-  test("preserves both start and end locations when editing start", async () => {
-    (useLocalSearchParams as jest.Mock).mockReturnValue({
-      campus: "SGW",
-      editMode: "start",
-      preserveEnd: "MB",
-      preserveStart: "H",
+      await waitFor(
+        () => {
+          expect(mockRouter.replace).toHaveBeenCalledWith({
+            pathname: "/map",
+            params: {
+              selected: "H",
+              campus: "SGW",
+              editMode: "start",
+              editValue: "H",
+              preserveEnd: "MB",
+              preserveStart: "",
+            },
+          });
+        },
+        { timeout: 1000 },
+      );
     });
 
-    const { getByPlaceholderText, queryByText } = await renderAndFlush();
+    test("passes editMode and editValue params when in end edit mode", async () => {
+      (useLocalSearchParams as jest.Mock).mockReturnValue({
+        campus: "SGW",
+        editMode: "end",
+        preserveEnd: "",
+        preserveStart: "H",
+      });
 
-    const input = getByPlaceholderText("Where to…");
-    fireEvent.changeText(input, "CC");
+      const { getByPlaceholderText, queryByText } = await renderAndFlush();
 
-    await waitFor(() => {
-      const result = queryByText(/^CC/);
-      if (result) {
-        fireEvent.press(result);
+      const input = getByPlaceholderText("Where to…");
+      fireEvent.changeText(input, "MB");
+
+      await waitFor(() => {
+        const result = queryByText(/^MB/);
+        if (result) {
+          fireEvent.press(result);
+        }
+      });
+
+      await waitFor(
+        () => {
+          expect(mockRouter.replace).toHaveBeenCalledWith({
+            pathname: "/map",
+            params: {
+              selected: "MB",
+              campus: "SGW",
+              editMode: "end",
+              editValue: "MB",
+              preserveEnd: "",
+              preserveStart: "H",
+            },
+          });
+        },
+        { timeout: 1000 },
+      );
+    });
+
+    test("preserves both start and end locations when editing start", async () => {
+      (useLocalSearchParams as jest.Mock).mockReturnValue({
+        campus: "SGW",
+        editMode: "start",
+        preserveEnd: "MB",
+        preserveStart: "H",
+      });
+
+      const { getByPlaceholderText, queryByText } = await renderAndFlush();
+
+      const input = getByPlaceholderText("Where to…");
+      fireEvent.changeText(input, "CC");
+
+      await waitFor(() => {
+        const result = queryByText(/^CC/);
+        if (result) {
+          fireEvent.press(result);
+        }
+      });
+
+      await waitFor(
+        () => {
+          expect(mockRouter.replace).toHaveBeenCalledWith({
+            pathname: "/map",
+            params: {
+              selected: "CC",
+              campus: "LOY",
+              editMode: "start",
+              editValue: "CC",
+              preserveEnd: "MB",
+              preserveStart: "H",
+            },
+          });
+        },
+        { timeout: 1000 },
+      );
+    });
+
+    test("uses empty strings for preserve params when not provided in edit mode", async () => {
+      (useLocalSearchParams as jest.Mock).mockReturnValue({
+        campus: "SGW",
+        editMode: "start",
+      });
+
+      const { getByPlaceholderText, queryByText } = await renderAndFlush();
+
+      const input = getByPlaceholderText("Where to…");
+      fireEvent.changeText(input, "H");
+
+      await waitFor(() => {
+        const result = queryByText(/^H/);
+        if (result) {
+          fireEvent.press(result);
+        }
+      });
+
+      await waitFor(
+        () => {
+          expect(mockRouter.replace).toHaveBeenCalledWith({
+            pathname: "/map",
+            params: {
+              selected: "H",
+              campus: "SGW",
+              editMode: "start",
+              editValue: "H",
+              preserveEnd: "",
+              preserveStart: "",
+            },
+          });
+        },
+        { timeout: 1000 },
+      );
+    });
+
+    test("does not pass edit params when not in edit mode", async () => {
+      (useLocalSearchParams as jest.Mock).mockReturnValue({
+        campus: "SGW",
+      });
+
+      const { getByPlaceholderText, queryByText } = await renderAndFlush();
+
+      const input = getByPlaceholderText("Where to…");
+      fireEvent.changeText(input, "H");
+
+      await waitFor(() => {
+        const result = queryByText(/^H/);
+        if (result) {
+          fireEvent.press(result);
+        }
+      });
+
+      await waitFor(
+        () => {
+          expect(mockRouter.replace).toHaveBeenCalledWith({
+            pathname: "/map",
+            params: {
+              selected: "H",
+              campus: "SGW",
+            },
+          });
+        },
+        { timeout: 1000 },
+      );
+    });
+
+    test("navigates with edit mode from recent search selection", async () => {
+      (useLocalSearchParams as jest.Mock).mockReturnValue({
+        campus: "SGW",
+        editMode: "end",
+        preserveEnd: "MB",
+        preserveStart: "H",
+      });
+
+      (guestStorage.getGuestSearchHistory as jest.Mock).mockResolvedValue([
+        {
+          query: "CC",
+          locations: "Loyola Campus",
+          code: "CC",
+          timestamp: new Date(),
+        },
+      ]);
+
+      const { queryByText } = await renderAndFlush();
+
+      const recentItem = queryByText(/CC/);
+      expect(recentItem).toBeTruthy();
+
+      if (recentItem) {
+        fireEvent.press(recentItem);
       }
+
+      await waitFor(
+        () => {
+          expect(mockRouter.replace).toHaveBeenCalledWith({
+            pathname: "/map",
+            params: {
+              selected: "CC",
+              campus: "LOY",
+              editMode: "end",
+              editValue: "CC",
+              preserveEnd: "MB",
+              preserveStart: "H",
+            },
+          });
+        },
+        { timeout: 1000 },
+      );
     });
 
-    await waitFor(() => {
-      expect(mockRouter.replace).toHaveBeenCalledWith({
+    test("switches campus correctly when selecting cross-campus building in edit mode", async () => {
+      (useLocalSearchParams as jest.Mock).mockReturnValue({
+        campus: "SGW",
+        editMode: "start",
+        preserveEnd: "H",
+        preserveStart: "",
+      });
+
+      const { getByPlaceholderText, queryByText } = await renderAndFlush();
+
+      const input = getByPlaceholderText("Where to…");
+      // Select a Loyola campus building
+      fireEvent.changeText(input, "CC");
+
+      await waitFor(() => {
+        const result = queryByText(/^CC/);
+        if (result) {
+          fireEvent.press(result);
+        }
+      });
+
+      await waitFor(
+        () => {
+          expect(mockRouter.replace).toHaveBeenCalledWith({
+            pathname: "/map",
+            params: {
+              selected: "CC",
+              campus: "LOY",
+              editMode: "start",
+              editValue: "CC",
+              preserveEnd: "H",
+              preserveStart: "",
+            },
+          });
+        },
+        { timeout: 1000 },
+      );
+    });
+
+    test("calls router.replace with exact edit mode structure", async () => {
+      (useLocalSearchParams as jest.Mock).mockReturnValue({
+        campus: "SGW",
+        editMode: "start",
+        preserveEnd: "MB",
+        preserveStart: "H",
+      });
+
+      const { getByPlaceholderText, queryByText } = await renderAndFlush();
+
+      const input = getByPlaceholderText("Where to…");
+      fireEvent.changeText(input, "CC");
+
+      await waitFor(() => {
+        const result = queryByText(/^CC/);
+        expect(result).toBeTruthy();
+        fireEvent.press(result!);
+      });
+
+      await waitFor(
+        () => {
+          expect(mockRouter.replace).toHaveBeenCalledTimes(1);
+        },
+        { timeout: 1000 },
+      );
+
+      const replaceCall = mockRouter.replace.mock.calls[0][0];
+      expect(replaceCall).toEqual({
         pathname: "/map",
         params: {
           selected: "CC",
@@ -1458,182 +1740,6 @@ describe("SearchPage", () => {
           preserveStart: "H",
         },
       });
-    }, { timeout: 1000 });
-  });
-
-  test("uses empty strings for preserve params when not provided in edit mode", async () => {
-    (useLocalSearchParams as jest.Mock).mockReturnValue({
-      campus: "SGW",
-      editMode: "start",
     });
-
-    const { getByPlaceholderText, queryByText } = await renderAndFlush();
-
-    const input = getByPlaceholderText("Where to…");
-    fireEvent.changeText(input, "H");
-
-    await waitFor(() => {
-      const result = queryByText(/^H/);
-      if (result) {
-        fireEvent.press(result);
-      }
-    });
-
-    await waitFor(() => {
-      expect(mockRouter.replace).toHaveBeenCalledWith({
-        pathname: "/map",
-        params: {
-          selected: "H",
-          campus: "SGW",
-          editMode: "start",
-          editValue: "H",
-          preserveEnd: "",
-          preserveStart: "",
-        },
-      });
-    }, { timeout: 1000 });
   });
-
-  test("does not pass edit params when not in edit mode", async () => {
-    (useLocalSearchParams as jest.Mock).mockReturnValue({
-      campus: "SGW",
-    });
-
-    const { getByPlaceholderText, queryByText } = await renderAndFlush();
-
-    const input = getByPlaceholderText("Where to…");
-    fireEvent.changeText(input, "H");
-
-    await waitFor(() => {
-      const result = queryByText(/^H/);
-      if (result) {
-        fireEvent.press(result);
-      }
-    });
-
-    await waitFor(() => {
-      expect(mockRouter.replace).toHaveBeenCalledWith({
-        pathname: "/map",
-        params: {
-          selected: "H",
-          campus: "SGW",
-        },
-      });
-    }, { timeout: 1000 });
-  });
-
-  test("navigates with edit mode from recent search selection", async () => {
-    (useLocalSearchParams as jest.Mock).mockReturnValue({
-      campus: "SGW",
-      editMode: "end",
-      preserveEnd: "MB",
-      preserveStart: "H",
-    });
-
-    (guestStorage.getGuestSearchHistory as jest.Mock).mockResolvedValue([
-      {
-        query: "CC",
-        locations: "Loyola Campus",
-        code: "CC",
-        timestamp: new Date(),
-      },
-    ]);
-
-    const { queryByText } = await renderAndFlush();
-
-    const recentItem = queryByText(/CC/);
-    expect(recentItem).toBeTruthy();
-
-    if (recentItem) {
-      fireEvent.press(recentItem);
-    }
-
-    await waitFor(() => {
-      expect(mockRouter.replace).toHaveBeenCalledWith({
-        pathname: "/map",
-        params: {
-          selected: "CC",
-          campus: "LOY",
-          editMode: "end",
-          editValue: "CC",
-          preserveEnd: "MB",
-          preserveStart: "H",
-        },
-      });
-    }, { timeout: 1000 });
-  });
-
-  test("switches campus correctly when selecting cross-campus building in edit mode", async () => {
-    (useLocalSearchParams as jest.Mock).mockReturnValue({
-      campus: "SGW",
-      editMode: "start",
-      preserveEnd: "H",
-      preserveStart: "",
-    });
-
-    const { getByPlaceholderText, queryByText } = await renderAndFlush();
-
-    const input = getByPlaceholderText("Where to…");
-    // Select a Loyola campus building
-    fireEvent.changeText(input, "CC");
-
-    await waitFor(() => {
-      const result = queryByText(/^CC/);
-      if (result) {
-        fireEvent.press(result);
-      }
-    });
-
-    await waitFor(() => {
-      expect(mockRouter.replace).toHaveBeenCalledWith({
-        pathname: "/map",
-        params: {
-          selected: "CC",
-          campus: "LOY",
-          editMode: "start",
-          editValue: "CC",
-          preserveEnd: "H",
-          preserveStart: "",
-        },
-      });
-    }, { timeout: 1000 });
-  });
-
-  test("calls router.replace with exact edit mode structure", async () => {
-  (useLocalSearchParams as jest.Mock).mockReturnValue({
-    campus: "SGW",
-    editMode: "start",
-    preserveEnd: "MB",
-    preserveStart: "H",
-  });
-
-  const { getByPlaceholderText, queryByText } = await renderAndFlush();
-
-  const input = getByPlaceholderText("Where to…");
-  fireEvent.changeText(input, "CC");
-
-  await waitFor(() => {
-    const result = queryByText(/^CC/);
-    expect(result).toBeTruthy();
-    fireEvent.press(result!);
-  });
-
-  await waitFor(() => {
-    expect(mockRouter.replace).toHaveBeenCalledTimes(1);
-  }, { timeout: 1000 });
-
-  const replaceCall = mockRouter.replace.mock.calls[0][0];
-  expect(replaceCall).toEqual({
-    pathname: "/map",
-    params: {
-      selected: "CC",
-      campus: "LOY",
-      editMode: "start",
-      editValue: "CC",
-      preserveEnd: "MB",
-      preserveStart: "H",
-    },
-  });
-});
-});
 });
