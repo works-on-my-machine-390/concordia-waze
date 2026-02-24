@@ -1,16 +1,17 @@
 import { CampusCode } from "@/hooks/queries/buildingQueries";
 import { Ionicons } from "@expo/vector-icons";
 import { DrawerActions } from "@react-navigation/native";
-import { useNavigation, useRouter } from "expo-router";
+import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { colors, SHADOW } from "../app/styles/theme";
+import type { MapQueryParamsModel } from "../app/(drawer)/map";
 
 type Props = Readonly<{
   campus: CampusCode;
   onCampusChange: (campus: CampusCode) => void;
   onMenuPress?: () => void;
   searchText: string;
-  onSearchTextChange: (t: string) => void;
+  onSearchClear?: () => void;
 }>;
 
 export function MapHeader({
@@ -18,10 +19,12 @@ export function MapHeader({
   onCampusChange,
   onMenuPress,
   searchText,
-  onSearchTextChange,
+  onSearchClear,
 }: Props) {
   const navigation = useNavigation();
   const router = useRouter();
+
+  const params = useLocalSearchParams<MapQueryParamsModel>();
 
   const handleMenuButtonPress = () => {
     navigation.dispatch(DrawerActions.openDrawer());
@@ -29,9 +32,17 @@ export function MapHeader({
     onMenuPress?.();
   };
 
-  const buildingSearch = () => {
+  const openSearch = () => {
     // Navigate to dedicated search page
-    router.push({ pathname: "/search", params: { campus } });
+    router.push({
+      pathname: "/search",
+      params: {
+        campus,
+        camLat: params.camLat,
+        camLng: params.camLng,
+        query: searchText,
+      },
+    });
   };
 
   return (
@@ -45,19 +56,23 @@ export function MapHeader({
         {/* search section */}
         <Pressable
           style={styles.searchPill}
-          onPress={buildingSearch}
+          onPress={openSearch}
           testID="open-search"
         >
           <Ionicons name="search" size={26} color={colors.maroon} />
           <TextInput
             value={searchText}
-            onChangeText={onSearchTextChange}
             placeholder="Where to…"
             placeholderTextColor="#818181"
             style={styles.searchInput}
             pointerEvents="none"
             editable={false}
           />
+          {searchText.length > 0 && (
+            <Pressable onPress={onSearchClear}>
+              <Ionicons name="close-circle" size={20} color="#818181" />
+            </Pressable>
+          )}
         </Pressable>
       </View>
       {/* campus selection sections */}

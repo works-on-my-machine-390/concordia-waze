@@ -26,17 +26,26 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colors, SHADOW } from "./styles/theme";
+import SearchNearbyButton from "@/components/SearchNearbyButton";
+
+export type SearchQueryParamsModel = {
+  campus?: string;
+  editMode?: "start" | "end";
+  preserveStart?: string;
+  preserveEnd?: string;
+} & SearchPOIQueryParamsModel;
+
+export type SearchPOIQueryParamsModel = {
+  query?: string;
+  camLat?: string;
+  camLng?: string;
+};
 
 export default function SearchPage() {
   const router = useRouter();
-  const params = useLocalSearchParams<{
-    campus?: string;
-    editMode?: string;
-    preserveEnd?: string;
-    preserveStart?: string;
-  }>();
-  const campus = (params.campus) || CampusCode.SGW;
-  const editMode = params.editMode as "start" | "end" | undefined;
+  const params = useLocalSearchParams<SearchQueryParamsModel>();
+  const campus = params.campus || CampusCode.SGW;
+  const editMode = params.editMode;
   const { data: userProfile } = useGetProfile();
   const userId = userProfile?.id || "";
   const saveToHistory = useSaveToHistory(userId);
@@ -329,9 +338,25 @@ export default function SearchPage() {
       });
     } else {
       // Navigate immediately to avoid UI interruptions from state updates
+
+      // temporarily mimic zooming in on a building once it's pressed.
+      // this fails if the building details have never been fetched prior in the session
+      //TODO: add building center coordinates to backend response data, and use the /buildings/list endpoint here
+      const buildingDetails = queryClient.getQueryData<Building>([
+        "buildingDetails",
+        code,
+      ]);
+      const lat = buildingDetails?.latitude;
+      const lng = buildingDetails?.longitude;
+
       router.replace({
         pathname: "/map",
-        params: { selected: code, campus: resolvedCampus },
+        params: {
+          selected: code,
+          campus: resolvedCampus,
+          camLat: lat?.toString() ?? "",
+          camLng: lng?.toString() ?? "",
+        },
       });
     }
     // Record the search asynchronously (non-blocking)
@@ -408,8 +433,24 @@ export default function SearchPage() {
     return item.code;
   };
 
+  const handleSearchNearbyPressed = () => {
+    router.push({
+      pathname: "/map",
+      params: {
+        query: query.trim(),
+        campus: campus as CampusCode,
+        searchNearby: "true",
+        camLat: params.camLat,
+        camLng: params.camLng,
+      },
+    });
+  };
+
   const renderHeaderComponent = () => {
-    if (!showRecent) return null;
+    if (!showRecent)
+      return (
+        <SearchNearbyButton onPress={handleSearchNearbyPressed} query={query} />
+      );
 
     return (
       <View style={styles.section}>
@@ -475,6 +516,11 @@ export default function SearchPage() {
               placeholderTextColor="#818181"
               style={styles.searchInput}
             />
+            {query.length > 0 && (
+              <Pressable onPress={() => setQuery("")}>
+                <Ionicons name="close-circle" size={20} color="#818181" />
+              </Pressable>
+            )}
           </View>
         </View>
 
