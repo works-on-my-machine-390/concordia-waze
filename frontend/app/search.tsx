@@ -35,7 +35,7 @@ export default function SearchPage() {
     preserveEnd?: string;
     preserveStart?: string;
   }>();
-  const campus = (params.campus as string) || CampusCode.SGW;
+  const campus = (params.campus) || CampusCode.SGW;
   const editMode = params.editMode as "start" | "end" | undefined;
   const { data: userProfile } = useGetProfile();
   const userId = userProfile?.id || "";
@@ -57,6 +57,25 @@ export default function SearchPage() {
     locations: string;
   } | null>(null);
 
+  const fetchBuildingDetails = async (code: string): Promise<Building> => {
+    const client = await api();
+    return client.get(`/buildings/${code}`).json<Building>();
+  };
+
+  const prefetchBuildingDetails = async (
+    buildings: Array<{ code: string }>,
+  ): Promise<void> => {
+    await Promise.all(
+      buildings.map((building) =>
+        queryClient.prefetchQuery({
+          queryKey: ["buildingDetails", building.code],
+          queryFn: () => fetchBuildingDetails(building.code),
+          staleTime: Infinity,
+        }),
+      ),
+    );
+  };
+
   // Prefetch building details for both campuses so we can search by name/code/address
   useEffect(() => {
     const list = [
@@ -70,20 +89,11 @@ export default function SearchPage() {
       })),
     ];
     if (!detailsPrefetched && list.length > 0) {
-      (async () => {
-        const client = await api();
-        await Promise.all(
-          list.map((b) =>
-            queryClient.prefetchQuery({
-              queryKey: ["buildingDetails", b.code],
-              queryFn: async () =>
-                client.get(`/buildings/${b.code}`).json<Building>(),
-              staleTime: Infinity,
-            }),
-          ),
-        ).catch(() => void 0);
-        setDetailsPrefetched(true);
-      })();
+      void prefetchBuildingDetails(list)
+        .catch(() => void 0)
+        .finally(() => {
+          setDetailsPrefetched(true);
+        });
     }
   }, [
     detailsPrefetched,
@@ -147,14 +157,14 @@ export default function SearchPage() {
 
       const split = item.query.split("-");
       const candidateCode = split[0]?.trim() ?? "";
-      const normalizedCode =
-        item.code && lookup.has(item.code)
-          ? item.code
-          : lookup.has(candidateCode)
-            ? candidateCode
-            : lookup.has(item.query)
-              ? item.query
-              : "";
+      let normalizedCode = "";
+      if (item.code && lookup.has(item.code)) {
+        normalizedCode = item.code;
+      } else if (lookup.has(candidateCode)) {
+        normalizedCode = candidateCode;
+      } else if (lookup.has(item.query)) {
+        normalizedCode = item.query;
+      }
       const campus = normalizedCode ? lookup.get(normalizedCode) : undefined;
 
       items.push({
@@ -358,6 +368,92 @@ export default function SearchPage() {
 
   const showRecent = query.trim().length === 0 && recentItems.length > 0;
 
+  const handleRecentItemPress = (item: (typeof recentItems)[0]) => {
+    if (item.code) {
+      handleSelect(
+        item.code,
+        item.campus ?? (campus as CampusCode),
+        item.query,
+        item.locations,
+      );
+    } else {
+      const extracted = extractCodeFromQuery(item.query);
+      if (extracted) {
+        handleSelect(
+          extracted,
+          campus as CampusCode,
+          item.query,
+          item.locations,
+        );
+        return;
+      }
+      setPendingRecent({
+        query: item.query,
+        locations: item.locations,
+      });
+      setQuery(item.query);
+    }
+  };
+
+  const getRecentItemTitle = (item: (typeof recentItems)[0]): string => {
+    if (!item.code) return item.query;
+
+    const details = queryClient.getQueryData<Building>([
+      "buildingDetails",
+      item.code,
+    ]);
+    const name = details?.long_name ?? details?.name;
+    if (name) return `${item.code} - ${name}`;
+    if (item.query.includes(" - ")) return item.query;
+    return item.code;
+  };
+
+  const renderHeaderComponent = () => {
+    if (!showRecent) return null;
+
+    return (
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Recent searches</Text>
+          <Pressable onPress={handleClearRecent}>
+            <Text style={styles.clearText}>Clear</Text>
+          </Pressable>
+        </View>
+        {recentItems.map((item) => (
+          <Pressable
+            key={`${item.query}-${item.locations}`}
+            style={styles.resultItem}
+            onPress={() => handleRecentItemPress(item)}
+          >
+            <Text style={styles.resultTitle}>{getRecentItemTitle(item)}</Text>
+            {item.locations ? (
+              <Text style={styles.resultSubtitle}>{item.locations}</Text>
+            ) : null}
+          </Pressable>
+        ))}
+      </View>
+    );
+  };
+
+  const renderEmptyComponent = () => {
+    if (query.trim().length > 0)
+      return (
+        <View style={styles.empty}>
+          <Text style={styles.emptyText}>No matches found</Text>
+        </View>
+      );
+
+    if (showRecent) {
+      return null;
+    }
+
+    return (
+      <View style={styles.empty}>
+        <Text style={styles.emptyText}>Start typing to search</Text>
+      </View>
+    );
+  };
+
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
       <View style={styles.page}>
@@ -386,77 +482,7 @@ export default function SearchPage() {
           data={results}
           keyExtractor={(item) => item.code}
           contentContainerStyle={styles.listContainer}
-          ListHeaderComponent={
-            showRecent
-              ? () => (
-                  <View style={styles.section}>
-                    <View style={styles.sectionHeader}>
-                      <Text style={styles.sectionTitle}>Recent searches</Text>
-                      <Pressable onPress={handleClearRecent}>
-                        <Text style={styles.clearText}>Clear</Text>
-                      </Pressable>
-                    </View>
-                    {recentItems.map((item) => (
-                      <Pressable
-                        key={`${item.query}-${item.locations}`}
-                        style={styles.resultItem}
-                        onPress={() =>
-                          item.code
-                            ? handleSelect(
-                                item.code,
-                                item.campus ?? (campus as CampusCode),
-                                item.query,
-                                item.locations,
-                              )
-                            : (() => {
-                                const extracted = extractCodeFromQuery(
-                                  item.query,
-                                );
-                                if (extracted) {
-                                  handleSelect(
-                                    extracted,
-                                    campus as CampusCode,
-                                    item.query,
-                                    item.locations,
-                                  );
-                                  return;
-                                }
-                                setPendingRecent({
-                                  query: item.query,
-                                  locations: item.locations,
-                                });
-                                setQuery(item.query);
-                              })()
-                        }
-                      >
-                        <Text style={styles.resultTitle}>
-                          {item.code
-                            ? (() => {
-                                const details =
-                                  queryClient.getQueryData<Building>([
-                                    "buildingDetails",
-                                    item.code,
-                                  ]);
-                                const name =
-                                  details?.long_name ?? details?.name;
-                                if (name) return `${item.code} - ${name}`;
-                                if (item.query.includes(" - "))
-                                  return item.query;
-                                return item.code;
-                              })()
-                            : item.query}
-                        </Text>
-                        {item.locations ? (
-                          <Text style={styles.resultSubtitle}>
-                            {item.locations}
-                          </Text>
-                        ) : null}
-                      </Pressable>
-                    ))}
-                  </View>
-                )
-              : null
-          }
+          ListHeaderComponent={renderHeaderComponent()}
           renderItem={({ item }) => (
             <Pressable
               style={styles.resultItem}
@@ -481,23 +507,7 @@ export default function SearchPage() {
               ) : null}
             </Pressable>
           )}
-          ListEmptyComponent={() => {
-            if (query.trim()) {
-              return (
-                <View style={styles.empty}>
-                  <Text style={styles.emptyText}>No matches found</Text>
-                </View>
-              );
-            }
-            if (showRecent) {
-              return null;
-            }
-            return (
-              <View style={styles.empty}>
-                <Text style={styles.emptyText}>Start typing to search</Text>
-              </View>
-            );
-          }}
+          ListEmptyComponent={renderEmptyComponent()}
         />
       </View>
     </SafeAreaView>

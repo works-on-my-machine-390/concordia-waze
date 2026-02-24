@@ -1248,7 +1248,7 @@ describe("SearchPage", () => {
     });
   });
 
-  describe("PendingRecent Matching Logic (Lines 196-200)", () => {
+  describe("PendingRecent Matching Logic", () => {
     test("navigates when search result is found with matching query", async () => {
       (guestStorage.getGuestSearchHistory as jest.Mock).mockResolvedValue([]);
 
