@@ -1,6 +1,5 @@
-import React from "react";
-import { StyleSheet, View, TouchableOpacity } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 interface LocationButtonProps {
   onPress: () => void; // function to go to current location

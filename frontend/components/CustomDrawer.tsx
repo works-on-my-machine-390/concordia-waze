@@ -1,5 +1,6 @@
 import { COLORS } from "@/app/constants";
 import { AccountIcon } from "@/app/icons";
+import { useGetProfile } from "@/hooks/queries/userQueries";
 import { useAuth } from "@/hooks/useAuth";
 import {
   DrawerContentScrollView,
@@ -9,9 +10,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import AuthButton from "./AuthButton";
-import { useGetProfile } from "@/hooks/queries/userQueries";
 import { Toast } from "toastify-react-native";
+import AuthButton from "./AuthButton";
 
 export default function CustomDrawer(props: any) {
   const router = useRouter();

@@ -54,9 +54,7 @@ describe("BuildingGallery", () => {
       isSuccess: true,
     });
 
-    const { queryByTestId } = render(
-      <BuildingGallery buildingCode="MB" />,
-    );
+    const { queryByTestId } = render(<BuildingGallery buildingCode="MB" />);
 
     expect(queryByTestId("carousel")).toBeNull();
   });

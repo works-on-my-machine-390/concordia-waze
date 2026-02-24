@@ -2,10 +2,10 @@
  * Tests for AuthLayout component
  */
 
+import AuthLayout from "@/components/AuthLayout";
+import { render } from "@testing-library/react-native";
 import React from "react";
 import { Image, Text } from "react-native";
-import { render } from "@testing-library/react-native";
-import AuthLayout from "@/components/AuthLayout";
 
 // Mock BackHeader
 jest.mock("@/components/BackHeader", () => {

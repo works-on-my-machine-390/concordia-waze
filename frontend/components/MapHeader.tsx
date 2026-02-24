@@ -30,7 +30,7 @@ export function MapHeader({
   };
 
   const buildingSearch = () => {
-    // Navigate to dedicated search page 
+    // Navigate to dedicated search page
     router.push({ pathname: "/search", params: { campus } });
   };
 
@@ -43,7 +43,11 @@ export function MapHeader({
         </Pressable>
 
         {/* search section */}
-        <Pressable style={styles.searchPill} onPress={buildingSearch} testID="open-search">
+        <Pressable
+          style={styles.searchPill}
+          onPress={buildingSearch}
+          testID="open-search"
+        >
           <Ionicons name="search" size={26} color={colors.maroon} />
           <TextInput
             value={searchText}
@@ -51,7 +55,7 @@ export function MapHeader({
             placeholder="Where to…"
             placeholderTextColor="#818181"
             style={styles.searchInput}
-            pointerEvents = "none"
+            pointerEvents="none"
             editable={false}
           />
         </Pressable>
@@ -109,7 +113,7 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
     paddingHorizontal: 16,
     width: "100%",
-    top: 40, 
+    top: 40,
   },
 
   headerRow: {

@@ -1,8 +1,11 @@
-import React from "react";
-import { renderHook, waitFor } from "@testing-library/react-native";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useGetUserHistory, useSaveToHistory } from "../hooks/queries/userHistoryQueries";
+import { renderHook, waitFor } from "@testing-library/react-native";
+import React from "react";
 import { api } from "../hooks/api";
+import {
+  useGetUserHistory,
+  useSaveToHistory,
+} from "../hooks/queries/userHistoryQueries";
 
 // Mock the api module
 jest.mock("../hooks/api", () => ({
@@ -28,11 +31,15 @@ const createTestQueryClient = () =>
 // Wrapper component that provides QueryClient context
 const createWrapper = () => {
   const queryClient = createTestQueryClient();
-  return function WrapperComponent({ children }: { children: React.ReactNode }) {
+  return function WrapperComponent({
+    children,
+  }: {
+    children: React.ReactNode;
+  }) {
     return React.createElement(
       QueryClientProvider,
       { client: queryClient },
-      children
+      children,
     );
   };
 };
@@ -42,7 +49,7 @@ describe("userHistoryQueries", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     mockApiClient = {
       url: jest.fn().mockReturnThis(),
       get: jest.fn().mockReturnThis(),
@@ -125,9 +132,7 @@ describe("userHistoryQueries", () => {
     });
 
     test("returns loading state initially", () => {
-      mockApiClient.json.mockImplementationOnce(
-        () => new Promise(() => {}), 
-      );
+      mockApiClient.json.mockImplementationOnce(() => new Promise(() => {}));
 
       const { result } = renderHook(() => useGetUserHistory("user-123"), {
         wrapper: createWrapper(),
@@ -221,7 +226,7 @@ describe("userHistoryQueries", () => {
         return React.createElement(
           QueryClientProvider,
           { client: queryClient },
-          children
+          children,
         );
       }
 
@@ -246,33 +251,33 @@ describe("userHistoryQueries", () => {
     });
 
     test("returns loading state during mutation", async () => {
-        let resolveMutation: any;
-        const mutationPromise = new Promise((resolve) => {
-            resolveMutation = resolve;
-        });
+      let resolveMutation: any;
+      const mutationPromise = new Promise((resolve) => {
+        resolveMutation = resolve;
+      });
 
-        mockApiClient.json.mockReturnValueOnce(mutationPromise);
+      mockApiClient.json.mockReturnValueOnce(mutationPromise);
 
-        const { result } = renderHook(() => useSaveToHistory("user-123"), {
-            wrapper: createWrapper(),
-        });
+      const { result } = renderHook(() => useSaveToHistory("user-123"), {
+        wrapper: createWrapper(),
+      });
 
-        const newLocation = {
-            name: "Hall Building",
-            address: "1455 De Maisonneuve Blvd W",
-        };
+      const newLocation = {
+        name: "Hall Building",
+        address: "1455 De Maisonneuve Blvd W",
+      };
 
-        result.current.mutate(newLocation);
+      result.current.mutate(newLocation);
 
-        await waitFor(() => {
-            expect(result.current.isPending).toBe(true);
-        });
+      await waitFor(() => {
+        expect(result.current.isPending).toBe(true);
+      });
 
-        resolveMutation({ success: true });
+      resolveMutation({ success: true });
 
-        await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-        expect(result.current.isPending).toBe(false);
+      expect(result.current.isPending).toBe(false);
     });
 
     test("saves location with all fields", async () => {

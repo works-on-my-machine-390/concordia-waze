@@ -61,7 +61,7 @@ export const useGetBuildingDetails = (buildingCode: string) => {
       return apiClient.get(`/buildings/${buildingCode}`).json<Building>();
     },
     staleTime: Infinity,
-    enabled: !!buildingCode
+    enabled: !!buildingCode,
   });
 };
 

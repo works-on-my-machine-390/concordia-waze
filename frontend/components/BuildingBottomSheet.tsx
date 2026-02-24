@@ -1,8 +1,18 @@
 import type { Building } from "@/hooks/queries/buildingQueries";
-import { CampusCode, useGetBuildingDetails } from "@/hooks/queries/buildingQueries";
+import {
+  CampusCode,
+  useGetBuildingDetails,
+} from "@/hooks/queries/buildingQueries";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { COLORS } from "../app/constants";
 import {
   BikeIcon,
@@ -57,7 +67,7 @@ export const TransitMode = {
   TRAIN: "TRAIN",
   WALK: "WALK",
   BIKE: "BIKE",
-  SHUTTLE: "SHUTTLE"
+  SHUTTLE: "SHUTTLE",
 } as const;
 export type TransitMode = (typeof TransitMode)[keyof typeof TransitMode];
 
@@ -149,24 +159,53 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
   const isCrossCampus = useMemo(() => {
     if (!props.isNavigationMode) return false;
     if (!props.startCampus || !props.endCampus) return false;
-    
+
     return props.startCampus !== props.endCampus;
   }, [props.isNavigationMode, props.startCampus, props.endCampus]);
 
   // Reorder options (the shuttle is first if cross-campus)
   const transitOptions = useMemo(() => {
     const baseOptions = [
-      { mode: TransitMode.CAR,     Icon: CarIcon,        label: 'Drive',   duration: '5 min' },
-      { mode: TransitMode.TRAIN,   Icon: TrainIcon,      label: 'Transit', duration: '3 min' },
-      { mode: TransitMode.WALK,    Icon: WalkingIcon,    label: 'Walk',    duration: '3 min' },
-      { mode: TransitMode.BIKE,    Icon: BikeIcon,       label: 'Bike',    duration: '4 min' },
-      { mode: TransitMode.SHUTTLE, image: concordiaLogo, label: 'Shuttle', duration: '2 min' },
+      {
+        mode: TransitMode.CAR,
+        Icon: CarIcon,
+        label: "Drive",
+        duration: "5 min",
+      },
+      {
+        mode: TransitMode.TRAIN,
+        Icon: TrainIcon,
+        label: "Transit",
+        duration: "3 min",
+      },
+      {
+        mode: TransitMode.WALK,
+        Icon: WalkingIcon,
+        label: "Walk",
+        duration: "3 min",
+      },
+      {
+        mode: TransitMode.BIKE,
+        Icon: BikeIcon,
+        label: "Bike",
+        duration: "4 min",
+      },
+      {
+        mode: TransitMode.SHUTTLE,
+        image: concordiaLogo,
+        label: "Shuttle",
+        duration: "2 min",
+      },
     ];
 
     // if cross-campus, move shuttle to the front
     if (isCrossCampus) {
-      const shuttleOption = baseOptions.find(o => o.mode === TransitMode.SHUTTLE);
-      const otherOptions = baseOptions.filter(o => o.mode !== TransitMode.SHUTTLE);
+      const shuttleOption = baseOptions.find(
+        (o) => o.mode === TransitMode.SHUTTLE,
+      );
+      const otherOptions = baseOptions.filter(
+        (o) => o.mode !== TransitMode.SHUTTLE,
+      );
       return shuttleOption ? [shuttleOption, ...otherOptions] : baseOptions;
     }
     return baseOptions;
@@ -179,7 +218,8 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
     }
   }, [transitOptions, props.isNavigationMode]);
 
-  const selectedOption = transitOptions.find((o) => o.mode === transitMode) || transitOptions[0];
+  const selectedOption =
+    transitOptions.find((o) => o.mode === transitMode) || transitOptions[0];
 
   return (
     <BottomSheet
@@ -202,7 +242,10 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
           {/* Header */}
           <View style={styles.headerContainer}>
             {!props.isNavigationMode && sheetOpen && (
-              <TouchableOpacity onPress={() => props.onStartNavigation?.(building.code)} testID="start-navigation">
+              <TouchableOpacity
+                onPress={() => props.onStartNavigation?.(building.code)}
+                testID="start-navigation"
+              >
                 <View style={styles.floatingIcon}>
                   <GetDirectionsIcon size={90} color={COLORS.maroon} />
                 </View>
@@ -223,44 +266,63 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
               <View style={styles.navModeContainer}>
                 <View style={styles.navModeHeader}>
                   <Text style={styles.transitModeTitle}>
-                    {props.hasLocation ? selectedOption.label : "Please select a start location"}
+                    {props.hasLocation
+                      ? selectedOption.label
+                      : "Please select a start location"}
                   </Text>
-                  <TouchableOpacity onPress={handleCloseSheet} style={styles.closeIcon}   testID="close-navigation" accessibilityLabel="Close navigation" accessibilityRole="button">
+                  <TouchableOpacity
+                    onPress={handleCloseSheet}
+                    style={styles.closeIcon}
+                    testID="close-navigation"
+                    accessibilityLabel="Close navigation"
+                    accessibilityRole="button"
+                  >
                     <CloseIcon size={28} />
                   </TouchableOpacity>
                 </View>
 
                 {props.hasLocation && (
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.transitRow}
-                  nestedScrollEnabled={true}
-                >
-                  {transitOptions.map(({ mode, Icon, image, duration }) => {
-                    const selected = transitMode === mode;
-                    return (
-                      <TouchableOpacity
-                        key={mode}
-                        style={[styles.transitChip, selected && styles.transitChipSelected]}
-                        onPress={() => setTransitMode(mode)}
-                      >
-                        {Icon ? (
-                          <Icon size={18} color={selected ? '#fff' : COLORS.textPrimary} />
-                        ) : (
-                          <Image 
-                            source={image} 
-                            style={{ width: 18, height: 18 }}
-                            resizeMode="contain"
-                          />
-                        )}
-                        <Text style={[styles.transitChipText, selected && styles.transitChipTextSelected]}>
-                          {duration}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </ScrollView>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.transitRow}
+                    nestedScrollEnabled={true}
+                  >
+                    {transitOptions.map(({ mode, Icon, image, duration }) => {
+                      const selected = transitMode === mode;
+                      return (
+                        <TouchableOpacity
+                          key={mode}
+                          style={[
+                            styles.transitChip,
+                            selected && styles.transitChipSelected,
+                          ]}
+                          onPress={() => setTransitMode(mode)}
+                        >
+                          {Icon ? (
+                            <Icon
+                              size={18}
+                              color={selected ? "#fff" : COLORS.textPrimary}
+                            />
+                          ) : (
+                            <Image
+                              source={image}
+                              style={{ width: 18, height: 18 }}
+                              resizeMode="contain"
+                            />
+                          )}
+                          <Text
+                            style={[
+                              styles.transitChipText,
+                              selected && styles.transitChipTextSelected,
+                            ]}
+                          >
+                            {duration}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
                 )}
               </View>
             )}
@@ -273,7 +335,10 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
                 </View>
                 <View style={styles.accessibilityIconsContainer}>
                   <FavoriteEmptyIcon color={COLORS.maroon} />
-                  <TouchableOpacity onPress={handleCloseSheet} style={styles.closeIcon}>
+                  <TouchableOpacity
+                    onPress={handleCloseSheet}
+                    style={styles.closeIcon}
+                  >
                     <CloseIcon size={28} />
                   </TouchableOpacity>
                 </View>
@@ -311,7 +376,7 @@ const styles = StyleSheet.create({
   },
 
   fakeHandleContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     paddingVertical: 10,
     paddingTop: 8,
   },
@@ -319,7 +384,7 @@ const styles = StyleSheet.create({
   fakeHandleBar: {
     width: 40,
     height: 4,
-    backgroundColor: '#D1D1D6',
+    backgroundColor: "#D1D1D6",
     borderRadius: 2,
   },
 
@@ -379,31 +444,31 @@ const styles = StyleSheet.create({
   },
 
   navModeHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
 
   transitModeTitle: {
     fontSize: 20,
-    fontWeight: '600',
+    fontWeight: "600",
     color: COLORS.textPrimary,
   },
 
   transitRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 8,
     paddingBottom: 4,
   },
 
   transitChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 6,
     paddingVertical: 8,
     paddingHorizontal: 14,
     borderRadius: 20,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: "#f0f0f0",
   },
 
   transitChipSelected: {
@@ -416,7 +481,7 @@ const styles = StyleSheet.create({
   },
 
   transitChipTextSelected: {
-    color: '#fff',
+    color: "#fff",
   },
 
   scrollContent: {

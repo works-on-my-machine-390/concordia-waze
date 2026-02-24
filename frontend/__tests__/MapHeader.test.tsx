@@ -1,11 +1,9 @@
 /**
  * Tests for MapHeader component
  */
-import { render, fireEvent } from "@testing-library/react-native";
 import { MapHeader } from "@/components/MapHeader";
-import { Pressable } from "react-native";
+import { fireEvent, render } from "@testing-library/react-native";
 import * as expoRouter from "expo-router";
-import { DrawerActions } from "@react-navigation/native";
 
 // Mock expo-router
 jest.mock("expo-router", () => ({
