@@ -151,11 +151,13 @@ func (r *BuildingDataRepository) GetAllBuildingsByCampus() (map[string][]domain.
 		list := make([]domain.BuildingSummary, 0, len(buildings))
 		for _, b := range buildings {
 			list = append(list, domain.BuildingSummary{
-				Code:     b.Code,
-				Name:     b.Name,
-				LongName: b.LongName,
-				Address:  b.Address,
-				Campus:   campusKey,
+				Code:      b.Code,
+				Name:      b.Name,
+				LongName:  b.LongName,
+				Address:   b.Address,
+				Campus:    campusKey,
+				Latitude:  b.Latitude,
+				Longitude: b.Longitude,
 			})
 		}
 		out[campusKey] = list
