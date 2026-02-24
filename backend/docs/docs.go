@@ -1831,8 +1831,14 @@ const docTemplate = `{
                 "code": {
                     "type": "string"
                 },
+                "latitude": {
+                    "type": "number"
+                },
                 "long_name": {
                     "type": "string"
+                },
+                "longitude": {
+                    "type": "number"
                 },
                 "name": {
                     "type": "string"
