@@ -1,6 +1,12 @@
 import { COLORS } from "@/app/constants";
 import { CloseIcon } from "@/app/icons";
-import { Text, View, Pressable, TouchableOpacity, Animated } from "react-native";
+import {
+  Text,
+  View,
+  Pressable,
+  TouchableOpacity,
+  Animated,
+} from "react-native";
 import { BottomSheetStyles } from "../BuildingBottomSheet";
 import { poiMiscStyles } from "@/app/styles/poi/poiStyle";
 import { useEffect, useRef } from "react";
@@ -16,6 +22,8 @@ export default function PoiSearchBottomSheetHeader(
 ) {
   const updateButtonOpacity = useRef(new Animated.Value(0)).current;
 
+  // the animation will trigger every time the button appears
+  // it acts a cooldown and mimics the "search this area" button on google maps
   useEffect(() => {
     if (props.areParamsDifferent) {
       updateButtonOpacity.setValue(0);
@@ -56,7 +64,9 @@ export default function PoiSearchBottomSheetHeader(
               onPress={props.onUpdateParams}
               style={poiMiscStyles.updateButton}
             >
-              <Text style={{ color: COLORS.selectionBlue }}>Update results</Text>
+              <Text style={{ color: COLORS.selectionBlue }}>
+                Update results
+              </Text>
             </Pressable>
           </Animated.View>
         )}
