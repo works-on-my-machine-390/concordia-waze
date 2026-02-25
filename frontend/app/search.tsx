@@ -32,7 +32,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colors, SHADOW } from "./styles/theme";
-import SearchNearbyButton from "@/components/SearchNearbyButton";
+import SearchNearbyButton from "@/components/poi/SearchNearbyButton";
 
 export type SearchQueryParamsModel = {
   campus?: string;

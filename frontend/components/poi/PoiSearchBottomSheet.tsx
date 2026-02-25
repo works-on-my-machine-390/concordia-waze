@@ -6,17 +6,17 @@ import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useRef } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
-import { BottomSheetStyles } from "./BuildingBottomSheet";
+import { BottomSheetStyles } from "../BuildingBottomSheet";
 import PoiSearchResult from "./PoiSearchResult";
 import { MapPOIQueryParamsModel } from "@/app/(drawer)/map";
 import { CloseIcon } from "@/app/icons";
+import PoiSearchDistanceFilter from "./PoiSearchDistanceFilter";
+import PoiSearchRankPreferenceFilter from "./PoiSearchRankPreferenceFilter";
+import PoiSearchRefetchButton from "./PoiSearchRefetchButton";
 
 export type PoiSearchBottomSheetProps = {
   onClose?: () => void;
-  moveCamera?: (params: {
-    latitude: number;
-    longitude: number;
-  }) => void;
+  moveCamera?: (params: { latitude: number; longitude: number }) => void;
   onDirectionsPress: (result: PoiSearchResultModel) => void;
 };
 
@@ -95,6 +95,14 @@ export default function PoiSearchBottomSheet(
         >
           <CloseIcon size={28} />
         </TouchableOpacity>
+      </View>
+      {/*filters toolbar  */}
+      <View
+        style={{ display: "flex", flexDirection: "row", paddingHorizontal: 16 }}
+      >
+        <PoiSearchRankPreferenceFilter />
+        <PoiSearchDistanceFilter />
+        <PoiSearchRefetchButton />
       </View>
 
       <BottomSheetScrollView style={{ ...BottomSheetStyles.scrollContent }}>

@@ -1,5 +1,5 @@
 import BuildingBottomSheet from "@/components/BuildingBottomSheet";
-import PoiSearchBottomSheet from "@/components/PoiSearchBottomSheet";
+import PoiSearchBottomSheet from "@/components/poi/PoiSearchBottomSheet";
 import {
   CampusBuilding,
   CampusCode,
