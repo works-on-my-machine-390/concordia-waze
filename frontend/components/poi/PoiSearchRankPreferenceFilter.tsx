@@ -10,8 +10,12 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { poiFilterStyles } from "@/app/styles/poi/poiStyle";
 import { MapPOIQueryParamsModel } from "@/app/(drawer)/map";
 
+type Props = {
+  onChange: () => void;
+};
+
 // technically a sort but whatever
-export default function PoiSearchRankPreferenceFilter() {
+export default function PoiSearchRankPreferenceFilter(props: Readonly<Props>) {
   const params = useLocalSearchParams<MapPOIQueryParamsModel>(); // use params as source of truth
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
@@ -32,8 +36,12 @@ export default function PoiSearchRankPreferenceFilter() {
   ];
 
   const handleSelectPreference = (preference: TextSearchRankPreferenceType) => {
-    router.setParams({ rankPref: preference });
     setIsOpen(false);
+    if (preference === params.rankPref) {
+      return;
+    }
+    router.setParams({ rankPref: preference });
+    props.onChange();
   };
 
   return (

@@ -1,3 +1,4 @@
+import SearchNearbyButton from "@/components/poi/SearchNearbyButton";
 import {
   addGuestSearchHistory,
   clearGuestSearchHistory,
@@ -12,6 +13,7 @@ import {
   useGetAllBuildings,
   useGetBuildings,
 } from "@/hooks/queries/buildingQueries";
+import { POI_DEFAULT_RANK_PREFERENCE } from "@/hooks/queries/poiQueries";
 import {
   useClearUserHistory,
   useGetUserHistory,
@@ -32,7 +34,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colors, SHADOW } from "./styles/theme";
-import SearchNearbyButton from "@/components/poi/SearchNearbyButton";
+import { filterBuildingsByQuery } from "./utils/searchUtils";
 
 export type SearchQueryParamsModel = {
   campus?: string;
@@ -46,8 +48,6 @@ export type SearchPOIQueryParamsModel = {
   camLat?: string;
   camLng?: string;
 };
-import { filterBuildingsByQuery } from "./utils/searchUtils";
-import { DistanceFilterReferenceOptions, POI_DEFAULT_MAX_DISTANCE_IN_M, POI_DEFAULT_RANK_PREFERENCE } from "@/hooks/queries/poiQueries";
 
 export default function SearchPage() {
   const router = useRouter();
@@ -359,12 +359,11 @@ export default function SearchPage() {
       params: {
         query: query.trim(),
         campus: campus as CampusCode,
-        searchNearby: "true",
         poiLat: params.camLat,
         poiLng: params.camLng,
+        camLat: params.camLat,
+        camLng: params.camLng,
         rankPref: POI_DEFAULT_RANK_PREFERENCE,
-        maxDist: POI_DEFAULT_MAX_DISTANCE_IN_M.toString(),
-        distFilterReference: DistanceFilterReferenceOptions.CAMERA,
       },
     });
   };

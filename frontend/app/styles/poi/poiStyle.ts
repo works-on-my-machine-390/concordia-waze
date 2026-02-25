@@ -48,3 +48,19 @@ export const poiMiscStyles = StyleSheet.create({
     borderRadius: 8,
   },
 });
+
+export const poiMarkerStyles = StyleSheet.create({
+  marker: {
+    backgroundColor: COLORS.poiMarkerBlue,
+    padding: 4,
+    borderRadius: 32,
+    width: 32,
+    height: 32,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: COLORS.background,
+  },
+  markerLabel: {
+  }
+});

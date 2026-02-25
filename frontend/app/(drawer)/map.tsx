@@ -6,13 +6,14 @@ import {
   useGetBuildingDetails,
   useGetBuildings,
 } from "@/hooks/queries/buildingQueries";
+import { TextSearchRankPreferenceType } from "@/hooks/queries/poiQueries";
 import { useSaveToHistory } from "@/hooks/queries/userHistoryQueries";
 import { useGetProfile } from "@/hooks/queries/userQueries";
 import * as Location from "expo-location";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
-import MapView, { Circle, Marker, Region } from "react-native-maps";
+import MapView, { Region } from "react-native-maps";
 import { Toast } from "toastify-react-native";
 import { isPointInPolygon } from "~/app/utils/pointInPolygon";
 import CampusBuildingPolygons from "~/components/CampusBuildingPolygons";
@@ -20,16 +21,11 @@ import LocationButton from "~/components/LocationButton";
 import { MapHeader } from "~/components/MapHeader";
 import { NavigationHeader } from "~/components/NavigationHeader";
 import {
-  COLORS,
   DEFAULT_CAMERA_MOVE_DURATION_IN_MS,
   DEFAULT_MAP_DELTA,
 } from "../constants";
 import { getDistance } from "../utils/mapUtils";
-import {
-  DistanceFilterReferenceOptions,
-  POI_DEFAULT_MAX_DISTANCE_IN_M,
-  TextSearchRankPreferenceType,
-} from "@/hooks/queries/poiQueries";
+import PoiOutdoorMarkers from "@/components/poi/PoiOutdoorMarkers";
 
 export type MapQueryParamsModel = {
   selected?: string;
@@ -38,19 +34,15 @@ export type MapQueryParamsModel = {
   editValue?: string;
   preserveStart?: string;
   preserveEnd?: string;
-  camLat?: string;
-  camLng?: string;
+  camLat?: string; // latitude for the center of the map camera
+  camLng?: string; // longitude for the center of the map camera
 } & MapPOIQueryParamsModel;
 
-// the query parameters for camLat and camLng should be treated as source of truth,
-// rather than creating a new state.
 export type MapPOIQueryParamsModel = {
   query?: string;
-  poiLat?: string;
-  poiLng?: string;
+  poiLat?: string; // latitude for the center of the POI search
+  poiLng?: string; // longitude for the center of the POI search
   rankPref?: TextSearchRankPreferenceType; // "DISTANCE" or "RELEVANCE"
-  maxDist?: string;
-  distFilterReference?: DistanceFilterReferenceOptions; // "USER" or "CAMERA"
 };
 
 export default function MainMap() {
@@ -71,13 +63,13 @@ export default function MainMap() {
   const [buildingsByCampus, setBuildingsByCampus] = useState<
     Record<string, CampusBuilding[]>
   >({});
-
-  const [isNavigationMode, setIsNavigationMode] = useState(false);
-  const [isPoiMode, setIsPoiMode] = useState<boolean>(false);
-  const [nearbyMarkerCoordinates, setNearbyMarkerCoordinates] = useState<{
+  const [cameraCenter, setCameraCenter] = useState<{
     latitude: number;
     longitude: number;
   } | null>(null);
+
+  const [isNavigationMode, setIsNavigationMode] = useState(false);
+  const [isPoiMode, setIsPoiMode] = useState<boolean>(false);
 
   const [customStartBuilding, setCustomStartBuilding] = useState<string | null>(
     null,
@@ -104,6 +96,11 @@ export default function MainMap() {
     delta?: number;
     duration?: number;
   }) => {
+    setCameraCenter({
+      latitude: params.latitude,
+      longitude: params.longitude,
+    });
+
     if (mapRef.current) {
       mapRef.current.animateToRegion(
         {
@@ -137,38 +134,11 @@ export default function MainMap() {
   useEffect(() => {
     if (params.query) {
       setIsPoiMode(true);
-
-      const markerCoordinates =
-        Number.parseFloat(params.poiLat) && Number.parseFloat(params.poiLng)
-          ? {
-              latitude: Number.parseFloat(params.poiLat),
-              longitude: Number.parseFloat(params.poiLng),
-            }
-          : null;
-
-      setNearbyMarkerCoordinates(markerCoordinates);
       setSelectedBuildingCode(null);
     } else {
       setIsPoiMode(false);
-      setNearbyMarkerCoordinates(null);
     }
   }, [params.query]);
-
-  useEffect(() => {
-    console.log("Updating nearby marker coordinates based on params", {
-      poiLat: params.poiLat,
-      poiLng: params.poiLng,
-    });
-    setNearbyMarkerCoordinates(
-      params.poiLat && params.poiLng
-        ? {
-            latitude: Number.parseFloat(params.poiLat),
-            longitude: Number.parseFloat(params.poiLng),
-          }
-        : null,
-    );
-
-  }, [params.poiLat, params.poiLng]);
 
   // Initialize campus from navigation params, if present
   useEffect(() => {
@@ -293,6 +263,17 @@ export default function MainMap() {
           });
         }, 500);
       }
+    } else {
+      // default to campus center if no params, and set params to reflect that
+      const coords = CAMPUS_COORDS[campus];
+      router.setParams({
+        camLat: String(coords.latitude),
+        camLng: String(coords.longitude),
+      });
+      moveCamera({
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+      });
     }
   };
 
@@ -391,6 +372,7 @@ export default function MainMap() {
   // Handle map region changes to auto-switch campus
   const handleRegionChangeComplete = (region: Region) => {
     const { latitude, longitude } = region;
+    setCameraCenter({ latitude, longitude });
 
     router.setParams({
       query: params.query || "",
@@ -554,16 +536,6 @@ export default function MainMap() {
     setSelectedBuildingCode(buildingCode);
   };
 
-  const getNearbySearchRadius = () => {
-    let radius = POI_DEFAULT_MAX_DISTANCE_IN_M;
-    if (params.distFilterReference === DistanceFilterReferenceOptions.CAMERA) {
-      radius = params.maxDist
-        ? Number.parseInt(params.maxDist)
-        : POI_DEFAULT_MAX_DISTANCE_IN_M;
-    }
-    return radius;
-  };
-
   return (
     <View style={styles.container}>
       <MapView
@@ -588,21 +560,7 @@ export default function MainMap() {
           selectedCode={selectedBuildingCode}
           onBuildingPress={handlePolygonPress}
         />
-
-        {nearbyMarkerCoordinates && (
-          <>
-            <Marker
-              pinColor={COLORS.selectionBlue}
-              coordinate={nearbyMarkerCoordinates}
-            />
-            <Circle
-            strokeColor={COLORS.selectionBlue}
-            fillColor={COLORS.selectionBlueBg}
-              center={nearbyMarkerCoordinates}
-              radius={getNearbySearchRadius()}
-            />
-          </>
-        )}
+        {isPoiMode && <PoiOutdoorMarkers />}
       </MapView>
 
       {isNavigationMode ? (
@@ -628,6 +586,8 @@ export default function MainMap() {
           searchText={params.query || ""}
           onSearchClear={handleSearchBarClear}
           onMenuPress={() => {}}
+          camLat={String((cameraCenter || CAMPUS_COORDS[campus]).latitude)}
+          camLng={String((cameraCenter || CAMPUS_COORDS[campus]).longitude)}
         />
       )}
       <View style={styles.bottomSheetContainer}>
@@ -639,8 +599,15 @@ export default function MainMap() {
         {isPoiMode && (
           <PoiSearchBottomSheet
             moveCamera={moveCamera}
-            onClose={() => router.setParams({ query: "" })}
+            onClose={() =>
+              router.setParams({
+                query: "",
+                poiLat: undefined,
+                poiLng: undefined,
+              })
+            }
             onDirectionsPress={() => {}}
+            userLocation={location?.coords}
             // TODO: generalize directions for POI
           />
         )}

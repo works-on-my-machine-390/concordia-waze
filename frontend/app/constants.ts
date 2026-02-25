@@ -18,7 +18,8 @@ export const COLORS = {
   surface: "#fff",
   border: "#e0e0e0",
   selectionBlue: "#4180c0",
-  selectionBlueBg: "rgba(184, 219, 255, 0.10)"
+  selectionBlueBg: "rgba(184, 219, 255, 0.10)",
+  poiMarkerBlue: "#29b2fc",
 };
 
 // App Info

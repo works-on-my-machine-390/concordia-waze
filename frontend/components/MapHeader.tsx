@@ -1,10 +1,9 @@
 import { CampusCode } from "@/hooks/queries/buildingQueries";
 import { Ionicons } from "@expo/vector-icons";
 import { DrawerActions } from "@react-navigation/native";
-import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
+import { useNavigation, useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { colors, SHADOW } from "../app/styles/theme";
-import type { MapQueryParamsModel } from "../app/(drawer)/map";
 
 type Props = Readonly<{
   campus: CampusCode;
@@ -12,6 +11,8 @@ type Props = Readonly<{
   onMenuPress?: () => void;
   searchText: string;
   onSearchClear?: () => void;
+  camLat?: string;
+  camLng?: string;
 }>;
 
 export function MapHeader({
@@ -20,11 +21,11 @@ export function MapHeader({
   onMenuPress,
   searchText,
   onSearchClear,
+  camLat,
+  camLng,
 }: Props) {
   const navigation = useNavigation();
   const router = useRouter();
-
-  const params = useLocalSearchParams<MapQueryParamsModel>();
 
   const handleMenuButtonPress = () => {
     navigation.dispatch(DrawerActions.openDrawer());
@@ -33,13 +34,12 @@ export function MapHeader({
   };
 
   const openSearch = () => {
-    // Navigate to dedicated search page
     router.push({
       pathname: "/search",
       params: {
         campus,
-        camLat: params.camLat,
-        camLng: params.camLng,
+        camLat,
+        camLng,
         query: searchText,
       },
     });
