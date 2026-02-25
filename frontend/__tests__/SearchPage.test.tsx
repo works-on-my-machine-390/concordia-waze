@@ -3,7 +3,7 @@
  */
 
 import * as guestStorage from "@/hooks/guestStorage";
-import { useGetBuildings } from "@/hooks/queries/buildingQueries";
+import { useGetAllBuildings, useGetBuildings } from "@/hooks/queries/buildingQueries";
 import {
   useClearUserHistory,
   useGetUserHistory,
@@ -63,6 +63,7 @@ describe("SearchPage", () => {
     buildings: [
       {
         code: "H",
+        campus: "SGW",
         polygon: [
           { latitude: 45.497, longitude: -73.578 },
           { latitude: 45.498, longitude: -73.579 },
@@ -70,6 +71,7 @@ describe("SearchPage", () => {
       },
       {
         code: "MB",
+        campus: "SGW",
         polygon: [
           { latitude: 45.495, longitude: -73.579 },
           { latitude: 45.496, longitude: -73.58 },
@@ -83,6 +85,7 @@ describe("SearchPage", () => {
     buildings: [
       {
         code: "CC",
+        campus: "LOY",
         polygon: [
           { latitude: 45.458, longitude: -73.64 },
           { latitude: 45.459, longitude: -73.641 },
@@ -108,6 +111,18 @@ describe("SearchPage", () => {
         isLoading: false,
         isSuccess: true,
       };
+    });
+
+    // Mock all buildings query
+    (useGetAllBuildings as jest.Mock).mockReturnValue({
+      data: {
+        buildings: {
+          SGW: mockSGWBuildings.buildings,
+          LOY: mockLOYBuildings.buildings,
+        },
+      },
+      isLoading: false,
+      isSuccess: true,
     });
 
     // Mock guest storage

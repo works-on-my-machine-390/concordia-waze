@@ -1,11 +1,14 @@
-import { api } from "@/hooks/api";
 import {
   addGuestSearchHistory,
   clearGuestSearchHistory,
   getGuestSearchHistory,
 } from "@/hooks/guestStorage";
 import type { Building } from "@/hooks/queries/buildingQueries";
-import { CampusCode, useGetBuildings } from "@/hooks/queries/buildingQueries";
+import {
+  CampusCode,
+  useGetAllBuildings,
+  useGetBuildings,
+} from "@/hooks/queries/buildingQueries";
 import {
   useClearUserHistory,
   useGetUserHistory,
@@ -26,6 +29,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colors, SHADOW } from "./styles/theme";
+import { filterBuildingsByQuery } from "./utils/searchUtils";
 
 export default function SearchPage() {
   const router = useRouter();
@@ -48,7 +52,6 @@ export default function SearchPage() {
   const sgwBuildingsQuery = useGetBuildings(CampusCode.SGW);
   const loyBuildingsQuery = useGetBuildings(CampusCode.LOY);
   const queryClient = useQueryClient();
-  const [detailsPrefetched, setDetailsPrefetched] = useState(false);
   const [recentSearches, setRecentSearches] = useState<
     Array<{ query: string; locations: string; code?: string }>
   >([]);
@@ -57,40 +60,7 @@ export default function SearchPage() {
     locations: string;
   } | null>(null);
 
-  // Prefetch building details for both campuses so we can search by name/code/address
-  useEffect(() => {
-    const list = [
-      ...(sgwBuildingsQuery.data?.buildings ?? []).map((b) => ({
-        ...b,
-        campus: CampusCode.SGW,
-      })),
-      ...(loyBuildingsQuery.data?.buildings ?? []).map((b) => ({
-        ...b,
-        campus: CampusCode.LOY,
-      })),
-    ];
-    if (!detailsPrefetched && list.length > 0) {
-      (async () => {
-        const client = await api();
-        await Promise.all(
-          list.map((b) =>
-            queryClient.prefetchQuery({
-              queryKey: ["buildingDetails", b.code],
-              queryFn: async () =>
-                client.get(`/buildings/${b.code}`).json<Building>(),
-              staleTime: Infinity,
-            }),
-          ),
-        ).catch(() => void 0);
-        setDetailsPrefetched(true);
-      })();
-    }
-  }, [
-    detailsPrefetched,
-    sgwBuildingsQuery.data?.buildings,
-    loyBuildingsQuery.data?.buildings,
-    queryClient,
-  ]);
+  const allBuildingsQuery = useGetAllBuildings();
 
   useEffect(() => {
     let active = true;
@@ -172,68 +142,18 @@ export default function SearchPage() {
   ]);
 
   const results = useMemo(() => {
-    // Combine buildings from both campuses, then filter by code/name/address
-    const list = [
-      ...(sgwBuildingsQuery.data?.buildings ?? []).map((b) => ({
-        ...b,
-        campus: CampusCode.SGW,
-      })),
-      ...(loyBuildingsQuery.data?.buildings ?? []).map((b) => ({
-        ...b,
-        campus: CampusCode.LOY,
-      })),
-    ];
-    const qRaw = query.trim();
-    if (!qRaw) return [];
-    const q = qRaw.toLowerCase();
+    if (allBuildingsQuery.isLoading) {
+      return [];
+    }
 
-    return list
-      .map((b) => {
-        const details = queryClient.getQueryData<Building>([
-          "buildingDetails",
-          b.code,
-        ]);
-        const name = details?.name ?? undefined;
-        const longName = details?.long_name ?? undefined;
-        const address = details?.address ?? undefined;
-        const codeMatch = b.code.toLowerCase().includes(q);
-        const nameMatch = name ? name.toLowerCase().includes(q) : false;
-        const longMatch = longName ? longName.toLowerCase().includes(q) : false;
-        const addressMatch = address
-          ? address.toLowerCase().includes(q)
-          : false;
-        // Simple scoring: code matches are most relevant, then name, then address
-        const score =
-          (codeMatch ? 3 : 0) +
-          (nameMatch || longMatch ? 2 : 0) +
-          (addressMatch ? 1 : 0);
-        return {
-          code: b.code,
-          campus: (b as any).campus as CampusCode,
-          name,
-          longName,
-          address,
-          score,
-          codeMatch,
-          nameMatch,
-          longMatch,
-          addressMatch,
-        };
-      })
-      .filter(
-        (item) =>
-          item.codeMatch ||
-          item.nameMatch ||
-          item.longMatch ||
-          item.addressMatch,
-      )
-      .sort((a, b) => b.score - a.score);
-  }, [
-    sgwBuildingsQuery.data?.buildings,
-    loyBuildingsQuery.data?.buildings,
-    query,
-    queryClient,
-  ]);
+    const allBuildings = [
+      ...allBuildingsQuery.data.buildings.SGW,
+      ...allBuildingsQuery.data.buildings.LOY,
+    ];
+    const q = query.trim().toLowerCase();
+
+    return filterBuildingsByQuery(q, allBuildings);
+  }, [query, allBuildingsQuery.data]);
 
   const recordRecentSearch = async (
     code: string,
