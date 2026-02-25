@@ -14,6 +14,7 @@ export const COLORS = {
   textSecondary: "#666",
   textMuted: "#7a7a7a",
   background: "#FBFAFA",
+  bgDark: "#E8E3E3",
   surface: "#fff",
   border: "#e0e0e0",
 };

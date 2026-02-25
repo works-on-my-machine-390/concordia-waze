@@ -24,6 +24,7 @@ import {
   DEFAULT_MAP_DELTA,
 } from "../constants";
 import { getDistance } from "../utils/mapUtils";
+import { TextSearchRankPreferenceType } from "@/hooks/queries/poiQueries";
 
 export type MapQueryParamsModel = {
   selected?: string;
@@ -40,12 +41,13 @@ export type MapPOIQueryParamsModel = {
   query?: string;
   camLat?: string;
   camLng?: string;
+  rankPref?: TextSearchRankPreferenceType;
+  maxDist?: string;
 };
 
 export default function MainMap() {
   const router = useRouter();
   const params = useLocalSearchParams<MapQueryParamsModel>();
-
   const [campus, setCampus] = useState<CampusCode>(CampusCode.SGW);
   const [currentBuildingCode, setCurrentBuildingCode] = useState<string | null>(
     null,

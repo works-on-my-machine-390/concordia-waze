@@ -19,6 +19,11 @@ export interface PoiSearchResponse {
   data: PoiSearchResultModel[];
 }
 
+export const TextSearchRankPreferenceType = {DISTANCE: "DISTANCE", RELEVANCE: "RELEVANCE"} as const
+export type TextSearchRankPreferenceType = (typeof TextSearchRankPreferenceType)[keyof typeof TextSearchRankPreferenceType];
+
+export const DEFAULT_RANK_PREFERENCE = TextSearchRankPreferenceType.RELEVANCE;
+
 // TODO: experiment with grouping query keys by lat lng rounding
 export const useGetNearbyPoi = (query: string, lat: number, lng: number) => {
   const roundedLat = Math.round(lat * 1000) / 1000;
