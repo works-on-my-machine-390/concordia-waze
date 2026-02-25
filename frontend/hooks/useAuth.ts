@@ -49,7 +49,7 @@ export function useAuth() {
       console.log("AUTH_EXPIRED_EVENT received");
       Toast.error("Your session has expired. Please log in again.");
       await logout();
-      router.replace({ pathname: "/login", params: { prev: "Home Page" } });
+      router.replace({ pathname: "/login", params: { prev: "expired" } });
     });
 
     return () => sub.remove();
