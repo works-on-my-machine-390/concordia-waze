@@ -7,12 +7,14 @@ import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Image,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import {
+  ScrollView
+} from "react-native-gesture-handler";
 import { COLORS } from "../app/constants";
 import {
   BikeIcon,
