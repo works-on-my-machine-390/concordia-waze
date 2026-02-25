@@ -3,7 +3,7 @@
  */
 
 import * as guestStorage from "@/hooks/guestStorage";
-import { useGetBuildings } from "@/hooks/queries/buildingQueries";
+import { useGetAllBuildings, useGetBuildings } from "@/hooks/queries/buildingQueries";
 import {
   useClearUserHistory,
   useGetUserHistory,
@@ -108,6 +108,18 @@ describe("SearchPage", () => {
         isLoading: false,
         isSuccess: true,
       };
+    });
+
+    // Mock all buildings query
+    (useGetAllBuildings as jest.Mock).mockReturnValue({
+      data: {
+        buildings: {
+          SGW: mockSGWBuildings.buildings,
+          LOY: mockLOYBuildings.buildings,
+        },
+      },
+      isLoading: false,
+      isSuccess: true,
     });
 
     // Mock guest storage
