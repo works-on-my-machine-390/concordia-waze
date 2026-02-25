@@ -29,3 +29,8 @@ export const APP_INFO = {
 export const LOGO_IMAGE = require("../assets/images/icon.png");
 export const DIZZY_LOGO_IMAGE = require("../assets/images/icon-dizzy.png");
 export const LOGO_SIZE = { width: 86, height: 86 };
+
+
+// Map constants
+export const DEFAULT_MAP_DELTA = 0.005;
+export const DEFAULT_CAMERA_MOVE_DURATION_IN_MS = 500; 

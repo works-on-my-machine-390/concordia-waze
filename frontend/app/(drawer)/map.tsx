@@ -19,6 +19,7 @@ import LocationButton from "~/components/LocationButton";
 import { MapHeader } from "~/components/MapHeader";
 import { NavigationHeader } from "~/components/NavigationHeader";
 import { getDistance } from "../utils/mapUtils";
+import { DEFAULT_CAMERA_MOVE_DURATION_IN_MS, DEFAULT_MAP_DELTA } from "../constants";
 
 export type MapQueryParamsModel = {
   selected?: string;
@@ -81,17 +82,17 @@ export default function MainMap() {
     latitude: number;
     longitude: number;
     delta?: number;
-    delay?: number;
+    duration?: number;
   }) => {
     if (mapRef.current) {
       mapRef.current.animateToRegion(
         {
           latitude: params.latitude,
           longitude: params.longitude,
-          latitudeDelta: params.delta || 0.005,
-          longitudeDelta: params.delta || 0.005,
+          latitudeDelta: params.delta || DEFAULT_MAP_DELTA,
+          longitudeDelta: params.delta || DEFAULT_MAP_DELTA,
         },
-        params.delay || 500,
+        params.duration || DEFAULT_CAMERA_MOVE_DURATION_IN_MS,
       );
     }
   };
@@ -123,7 +124,6 @@ export default function MainMap() {
         moveCamera({
           latitude: coords.latitude,
           longitude: coords.longitude,
-          delta: 0.005,
         });
       }
     }
@@ -233,8 +233,7 @@ export default function MainMap() {
           moveCamera({
             latitude: lat,
             longitude: lng,
-            delta: 0.005,
-            delay: 100,
+            duration: 100,
           });
         }, 500);
       }
@@ -313,15 +312,10 @@ export default function MainMap() {
       }
 
       if (coords) {
-        mapRef.current?.animateToRegion(
-          {
-            latitude: coords.latitude,
-            longitude: coords.longitude,
-            latitudeDelta: 0.005,
-            longitudeDelta: 0.005,
-          },
-          500,
-        );
+        moveCamera({
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+        });
       }
     } catch (e) {
       console.error("Failed to get to your location.", e);
@@ -335,8 +329,6 @@ export default function MainMap() {
     moveCamera({
       latitude: coords.latitude,
       longitude: coords.longitude,
-      delta: 0.005,
-      delay: 500,
     });
   };
 
@@ -510,8 +502,8 @@ export default function MainMap() {
           // coordinates for SGW campus (default)
           latitude: CAMPUS_COORDS[CampusCode.SGW].latitude,
           longitude: CAMPUS_COORDS[CampusCode.SGW].longitude,
-          latitudeDelta: 0.005,
-          longitudeDelta: 0.005,
+          latitudeDelta: DEFAULT_MAP_DELTA,
+          longitudeDelta: DEFAULT_MAP_DELTA,
         }}
         onRegionChangeComplete={handleRegionChangeComplete}
       >
