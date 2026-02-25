@@ -257,7 +257,9 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
                 <Text style={BottomSheetStyles.name}>
                   {building.long_name} ({building.code})
                 </Text>
-                <Text style={BottomSheetStyles.address}>{building.address}</Text>
+                <Text style={BottomSheetStyles.address}>
+                  {building.address}
+                </Text>
               </View>
             )}
 
@@ -314,7 +316,8 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
                           <Text
                             style={[
                               BottomSheetStyles.transitChipText,
-                              selected && BottomSheetStyles.transitChipTextSelected,
+                              selected &&
+                                BottomSheetStyles.transitChipTextSelected,
                             ]}
                           >
                             {duration}
@@ -348,7 +351,9 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
 
           {/* Scrollable Content */}
           {!props.isNavigationMode && (
-            <BottomSheetScrollView contentContainerStyle={BottomSheetStyles.scrollContent}>
+            <BottomSheetScrollView
+              contentContainerStyle={BottomSheetStyles.scrollContent}
+            >
               <BuildingGallery buildingCode={building.code} />
               <ListSection title="Services" items={building.services} />
               <ListSection title="Departments" items={building.departments} />
@@ -357,7 +362,9 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
           )}
         </>
       ) : (
-        <BottomSheetScrollView contentContainerStyle={BottomSheetStyles.scrollContent}>
+        <BottomSheetScrollView
+          contentContainerStyle={BottomSheetStyles.scrollContent}
+        >
           <EmptyBuildingState />
         </BottomSheetScrollView>
       )}

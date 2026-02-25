@@ -1,4 +1,5 @@
 import BuildingBottomSheet from "@/components/BuildingBottomSheet";
+import PoiSearchBottomSheet from "@/components/PoiSearchBottomSheet";
 import {
   CampusBuilding,
   CampusCode,
@@ -10,7 +11,7 @@ import { useGetProfile } from "@/hooks/queries/userQueries";
 import * as Location from "expo-location";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import MapView, { Region } from "react-native-maps";
 import { Toast } from "toastify-react-native";
 import { isPointInPolygon } from "~/app/utils/pointInPolygon";
@@ -18,12 +19,11 @@ import CampusBuildingPolygons from "~/components/CampusBuildingPolygons";
 import LocationButton from "~/components/LocationButton";
 import { MapHeader } from "~/components/MapHeader";
 import { NavigationHeader } from "~/components/NavigationHeader";
-import { getDistance } from "../utils/mapUtils";
 import {
   DEFAULT_CAMERA_MOVE_DURATION_IN_MS,
   DEFAULT_MAP_DELTA,
 } from "../constants";
-import PoiSearchBottomSheet from "@/components/PoiSearchBottomSheet";
+import { getDistance } from "../utils/mapUtils";
 
 export type MapQueryParamsModel = {
   selected?: string;
@@ -571,7 +571,10 @@ export default function MainMap() {
 
         {isPoiMode && (
           <PoiSearchBottomSheet
+            moveCamera={moveCamera}
             onClose={() => router.setParams({ query: "" })}
+            onDirectionsPress={() => {}}
+            // TODO: generalize directions for POI
           />
         )}
 

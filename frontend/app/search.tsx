@@ -366,33 +366,38 @@ export default function SearchPage() {
   };
 
   const renderHeaderComponent = () => {
-    if (!showRecent)
+    // search nearby and recent searches are mutually exclusive, 
+    // so nearby gets priority when query is present
+    if (query.trim().length > 0) {
       return (
         <SearchNearbyButton onPress={handleSearchNearbyPressed} query={query} />
       );
+    }
 
-    return (
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Recent searches</Text>
-          <Pressable onPress={handleClearRecent}>
-            <Text style={styles.clearText}>Clear</Text>
-          </Pressable>
+    if (showRecent) {
+      return (
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Recent searches</Text>
+            <Pressable onPress={handleClearRecent}>
+              <Text style={styles.clearText}>Clear</Text>
+            </Pressable>
+          </View>
+          {recentItems.map((item) => (
+            <Pressable
+              key={`${item.query}-${item.locations}`}
+              style={styles.resultItem}
+              onPress={() => handleRecentItemPress(item)}
+            >
+              <Text style={styles.resultTitle}>{getRecentItemTitle(item)}</Text>
+              {item.locations ? (
+                <Text style={styles.resultSubtitle}>{item.locations}</Text>
+              ) : null}
+            </Pressable>
+          ))}
         </View>
-        {recentItems.map((item) => (
-          <Pressable
-            key={`${item.query}-${item.locations}`}
-            style={styles.resultItem}
-            onPress={() => handleRecentItemPress(item)}
-          >
-            <Text style={styles.resultTitle}>{getRecentItemTitle(item)}</Text>
-            {item.locations ? (
-              <Text style={styles.resultSubtitle}>{item.locations}</Text>
-            ) : null}
-          </Pressable>
-        ))}
-      </View>
-    );
+      );
+    }
   };
 
   const renderEmptyComponent = () => {
