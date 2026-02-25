@@ -93,7 +93,7 @@ export interface BuildingListItem {
   name: string;
   long_name: string;
   code: string;
-  campus: string;
+  campus: CampusCode;
   address: string;
   latitude: number;
   longitude: number;

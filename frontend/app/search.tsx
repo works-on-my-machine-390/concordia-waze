@@ -3,7 +3,10 @@ import {
   clearGuestSearchHistory,
   getGuestSearchHistory,
 } from "@/hooks/guestStorage";
-import type { Building } from "@/hooks/queries/buildingQueries";
+import type {
+  Building,
+  BuildingListItem,
+} from "@/hooks/queries/buildingQueries";
 import {
   CampusCode,
   useGetAllBuildings,
@@ -150,7 +153,7 @@ export default function SearchPage() {
     loyBuildingsQuery.data?.buildings,
   ]);
 
-  const results = useMemo(() => {
+  const results: BuildingListItem[] = useMemo(() => {
     if (allBuildingsQuery.isLoading) {
       return [];
     }
@@ -208,7 +211,7 @@ export default function SearchPage() {
     const normalized = pendingRecent.query.trim().toLowerCase();
     const match =
       results.find((item) => {
-        const name = item.longName ?? item.name ?? "";
+        const name = item.long_name ?? item.name ?? "";
         if (!name) return false;
         const label = `${item.code} - ${name}`.toLowerCase();
         return name.toLowerCase() === normalized || label === normalized;
@@ -217,10 +220,13 @@ export default function SearchPage() {
     handleSelect(
       match.code,
       match.campus,
-      match.longName || match.name
-        ? `${match.code} - ${match.longName ?? match.name}`
+      match.long_name || match.name
+        ? `${match.code} - ${match.long_name ?? match.name}`
         : match.code,
       match.address,
+      match.latitude && match.longitude
+        ? { latitude: match.latitude, longitude: match.longitude }
+        : undefined,
     );
     setPendingRecent(null);
   }, [pendingRecent, results]);
@@ -230,6 +236,7 @@ export default function SearchPage() {
     targetCampus?: CampusCode,
     label?: string,
     address?: string,
+    cameraPosition?: { latitude: number; longitude: number },
   ) => {
     const resolvedCampus = targetCampus ?? (campus as CampusCode);
 
@@ -249,15 +256,8 @@ export default function SearchPage() {
     } else {
       // Navigate immediately to avoid UI interruptions from state updates
 
-      // temporarily mimic zooming in on a building once it's pressed.
-      // this fails if the building details have never been fetched prior in the session
-      //TODO: add building center coordinates to backend response data, and use the /buildings/list endpoint here
-      const buildingDetails = queryClient.getQueryData<Building>([
-        "buildingDetails",
-        code,
-      ]);
-      const lat = buildingDetails?.latitude;
-      const lng = buildingDetails?.longitude;
+      const lat = cameraPosition?.latitude;
+      const lng = cameraPosition?.longitude;
 
       router.replace({
         pathname: "/map",
@@ -305,11 +305,20 @@ export default function SearchPage() {
 
   const handleRecentItemPress = (item: (typeof recentItems)[0]) => {
     if (item.code) {
+      const entryFromBuildingList =
+        allBuildingsQuery.data?.buildings[
+          item.campus ?? (campus as CampusCode)
+        ]?.find((b) => b.code === item.code) ?? null;
+
+      const latitude = entryFromBuildingList?.latitude;
+      const longitude = entryFromBuildingList?.longitude;
+
       handleSelect(
         item.code,
         item.campus ?? (campus as CampusCode),
         item.query,
         item.locations,
+        latitude && longitude ? { latitude, longitude } : undefined,
       );
     } else {
       const extracted = extractCodeFromQuery(item.query);
@@ -446,16 +455,17 @@ export default function SearchPage() {
                 handleSelect(
                   item.code,
                   item.campus,
-                  item.longName || item.name
-                    ? `${item.code} - ${item.longName ?? item.name}`
+                  item.long_name || item.name
+                    ? `${item.code} - ${item.long_name ?? item.name}`
                     : item.code,
                   item.address,
+                  { latitude: item.latitude, longitude: item.longitude },
                 )
               }
             >
               <Text style={styles.resultTitle}>
-                {item.longName || item.name
-                  ? `${item.code} - ${item.longName ?? item.name}`
+                {item.long_name || item.name
+                  ? `${item.code} - ${item.long_name ?? item.name}`
                   : item.code}
               </Text>
               {item.address ? (
