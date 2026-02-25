@@ -94,6 +94,9 @@ export interface BuildingListItem {
   long_name: string;
   code: string;
   campus: string;
+  address: string;
+  latitude: number;
+  longitude: number;
 }
 
 // Hook to fetch all buildings for Directory page
