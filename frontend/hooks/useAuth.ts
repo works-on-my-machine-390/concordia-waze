@@ -2,16 +2,28 @@
 React hook managing authentication state and API interactions: providing login and register functions 
 After need to change all API calls with real backend
 */
+import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
+import { DeviceEventEmitter } from "react-native";
+import { Toast } from "toastify-react-native";
 
 type AuthResult =
   | { success: true; data?: any }
   | { success: false; error: string };
 
-import { API_URL } from "./api";
+import { API_URL, AUTH_EXPIRED_EVENT } from "./api";
 const API_BASE = process.env.REACT_APP_API_BASE || API_URL;
 const REQUEST_TIMEOUT_MS = 6000;
+
+const isTokenExpired = (token: string): boolean => {
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return payload.exp * 1000 < Date.now();
+  } catch {
+    return true;
+  }
+};
 
 export function useAuth() {
   const [loading, setLoading] = useState(false);
@@ -19,16 +31,28 @@ export function useAuth() {
 
   const checkToken = async () => {
     const token = await SecureStore.getItemAsync("accessToken");
-    if (token) {
+    if (token && !isTokenExpired(token)) {
       setLoggedIn(true);
       return true;
     }
+    await SecureStore.deleteItemAsync("accessToken");
     setLoggedIn(false);
     return false;
   };
 
+  const router = useRouter();
+
   useEffect(() => {
     checkToken();
+
+    const sub = DeviceEventEmitter.addListener(AUTH_EXPIRED_EVENT, async () => {
+      console.log("AUTH_EXPIRED_EVENT received");
+      Toast.error("Your session has expired. Please log in again.");
+      await logout();
+      router.replace({ pathname: "/login", params: { prev: "Home Page" } });
+    });
+
+    return () => sub.remove();
   }, []);
 
   async function authenticate(

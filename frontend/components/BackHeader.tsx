@@ -38,7 +38,13 @@ const BackHeader = ({ title }: HeaderProps) => {
     <View style={styles.container}>
       <TouchableOpacity
         style={styles.backButtonTitle}
-        onPress={() => router.back()}
+        onPress={() => {
+          if (router.canGoBack()) {
+            router.back();
+          } else {
+            router.replace("/");
+          }
+        }}
       >
         <BackIcon size={24} />
         <Text style={styles.title}>{headerTitle}</Text>
