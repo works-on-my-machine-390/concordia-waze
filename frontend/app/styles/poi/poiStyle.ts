@@ -1,6 +1,5 @@
 import { COLORS } from "@/app/constants";
 import { StyleSheet } from "react-native";
-import { SHADOW } from "../theme";
 
 export const poiFilterStyles = StyleSheet.create({
   filterChip: {
@@ -61,6 +60,4 @@ export const poiMarkerStyles = StyleSheet.create({
     borderWidth: 2,
     borderColor: COLORS.background,
   },
-  markerLabel: {
-  }
 });

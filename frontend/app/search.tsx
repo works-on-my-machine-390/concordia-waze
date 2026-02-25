@@ -35,6 +35,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colors, SHADOW } from "./styles/theme";
 import { filterBuildingsByQuery } from "./utils/searchUtils";
+import SearchNearbySuggestions from "@/components/poi/SearchNearbySuggestions";
 
 export type SearchQueryParamsModel = {
   campus?: string;
@@ -353,11 +354,11 @@ export default function SearchPage() {
     return item.code;
   };
 
-  const handleSearchNearbyPressed = () => {
+  const handleSearchNearbyPressed = (label?: string) => {
     router.push({
       pathname: "/map",
       params: {
-        query: query.trim(),
+        query: label || query.trim(),
         campus: campus as CampusCode,
         poiLat: params.camLat,
         poiLng: params.camLng,
@@ -369,7 +370,7 @@ export default function SearchPage() {
   };
 
   const renderHeaderComponent = () => {
-    // search nearby and recent searches are mutually exclusive, 
+    // search nearby and recent searches are mutually exclusive,
     // so nearby gets priority when query is present
     if (query.trim().length > 0) {
       return (
@@ -425,30 +426,33 @@ export default function SearchPage() {
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
       <View style={styles.page}>
-        <View style={styles.header}>
-          <Pressable
-            style={styles.iconButton}
-            onPress={() => router.back()}
-            testID="back-button"
-          >
-            <Ionicons name="arrow-back" size={26} color={colors.maroon} />
-          </Pressable>
-          <View style={styles.searchPill}>
-            <Ionicons name="search" size={22} color={colors.maroon} />
-            <TextInput
-              autoFocus
-              value={query}
-              onChangeText={setQuery}
-              placeholder="Where to…"
-              placeholderTextColor="#818181"
-              style={styles.searchInput}
-            />
-            {query.length > 0 && (
-              <Pressable onPress={() => setQuery("")}>
-                <Ionicons name="close-circle" size={20} color="#818181" />
-              </Pressable>
-            )}
+        <View style={styles.headerContainer}>
+          <View style={styles.header}>
+            <Pressable
+              style={styles.iconButton}
+              onPress={() => router.back()}
+              testID="back-button"
+            >
+              <Ionicons name="arrow-back" size={26} color={colors.maroon} />
+            </Pressable>
+            <View style={styles.searchPill}>
+              <Ionicons name="search" size={22} color={colors.maroon} />
+              <TextInput
+                autoFocus
+                value={query}
+                onChangeText={setQuery}
+                placeholder="Where to…"
+                placeholderTextColor="#818181"
+                style={styles.searchInput}
+              />
+              {query.length > 0 && (
+                <Pressable onPress={() => setQuery("")}>
+                  <Ionicons name="close-circle" size={20} color="#818181" />
+                </Pressable>
+              )}
+            </View>
           </View>
+          <SearchNearbySuggestions onClick={handleSearchNearbyPressed} />
         </View>
 
         <FlatList
@@ -492,6 +496,9 @@ const styles = StyleSheet.create({
   page: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  headerContainer: {
+    flexDirection: "column",
   },
   header: {
     flexDirection: "row",
