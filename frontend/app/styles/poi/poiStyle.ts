@@ -1,5 +1,6 @@
 import { COLORS } from "@/app/constants";
 import { StyleSheet } from "react-native";
+import { SHADOW } from "../theme";
 
 export const poiFilterStyles = StyleSheet.create({
   filterChip: {
@@ -11,7 +12,7 @@ export const poiFilterStyles = StyleSheet.create({
     borderRadius: 16,
     zIndex: 60,
     flexDirection: "row",
-    gap: 10,
+    gap: 8,
     alignItems: "center",
   },
   backdrop: {
@@ -33,6 +34,17 @@ export const poiFilterStyles = StyleSheet.create({
     borderColor: COLORS.border,
     borderRadius: 12,
     overflow: "hidden",
-    zIndex: 50,
+    zIndex: 1000,
+    elevation: 1000,
+  },
+});
+
+export const poiMiscStyles = StyleSheet.create({
+  updateButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: COLORS.selectionBlue,
+    borderRadius: 8,
   },
 });

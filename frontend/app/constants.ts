@@ -17,6 +17,8 @@ export const COLORS = {
   bgDark: "#E8E3E3",
   surface: "#fff",
   border: "#e0e0e0",
+  selectionBlue: "#4180c0",
+  selectionBlueBg: "rgba(184, 219, 255, 0.10)"
 };
 
 // App Info

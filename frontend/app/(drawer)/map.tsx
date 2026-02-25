@@ -12,7 +12,7 @@ import * as Location from "expo-location";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
-import MapView, { Region } from "react-native-maps";
+import MapView, { Circle, Marker, Region } from "react-native-maps";
 import { Toast } from "toastify-react-native";
 import { isPointInPolygon } from "~/app/utils/pointInPolygon";
 import CampusBuildingPolygons from "~/components/CampusBuildingPolygons";
@@ -20,11 +20,16 @@ import LocationButton from "~/components/LocationButton";
 import { MapHeader } from "~/components/MapHeader";
 import { NavigationHeader } from "~/components/NavigationHeader";
 import {
+  COLORS,
   DEFAULT_CAMERA_MOVE_DURATION_IN_MS,
   DEFAULT_MAP_DELTA,
 } from "../constants";
 import { getDistance } from "../utils/mapUtils";
-import { TextSearchRankPreferenceType } from "@/hooks/queries/poiQueries";
+import {
+  DistanceFilterReferenceOptions,
+  POI_DEFAULT_MAX_DISTANCE_IN_M,
+  TextSearchRankPreferenceType,
+} from "@/hooks/queries/poiQueries";
 
 export type MapQueryParamsModel = {
   selected?: string;
@@ -33,16 +38,19 @@ export type MapQueryParamsModel = {
   editValue?: string;
   preserveStart?: string;
   preserveEnd?: string;
+  camLat?: string;
+  camLng?: string;
 } & MapPOIQueryParamsModel;
 
 // the query parameters for camLat and camLng should be treated as source of truth,
 // rather than creating a new state.
 export type MapPOIQueryParamsModel = {
   query?: string;
-  camLat?: string;
-  camLng?: string;
-  rankPref?: TextSearchRankPreferenceType;
+  poiLat?: string;
+  poiLng?: string;
+  rankPref?: TextSearchRankPreferenceType; // "DISTANCE" or "RELEVANCE"
   maxDist?: string;
+  distFilterReference?: DistanceFilterReferenceOptions; // "USER" or "CAMERA"
 };
 
 export default function MainMap() {
@@ -66,6 +74,11 @@ export default function MainMap() {
 
   const [isNavigationMode, setIsNavigationMode] = useState(false);
   const [isPoiMode, setIsPoiMode] = useState<boolean>(false);
+  const [nearbyMarkerCoordinates, setNearbyMarkerCoordinates] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
+
   const [customStartBuilding, setCustomStartBuilding] = useState<string | null>(
     null,
   );
@@ -124,11 +137,38 @@ export default function MainMap() {
   useEffect(() => {
     if (params.query) {
       setIsPoiMode(true);
+
+      const markerCoordinates =
+        Number.parseFloat(params.poiLat) && Number.parseFloat(params.poiLng)
+          ? {
+              latitude: Number.parseFloat(params.poiLat),
+              longitude: Number.parseFloat(params.poiLng),
+            }
+          : null;
+
+      setNearbyMarkerCoordinates(markerCoordinates);
       setSelectedBuildingCode(null);
     } else {
       setIsPoiMode(false);
+      setNearbyMarkerCoordinates(null);
     }
   }, [params.query]);
+
+  useEffect(() => {
+    console.log("Updating nearby marker coordinates based on params", {
+      poiLat: params.poiLat,
+      poiLng: params.poiLng,
+    });
+    setNearbyMarkerCoordinates(
+      params.poiLat && params.poiLng
+        ? {
+            latitude: Number.parseFloat(params.poiLat),
+            longitude: Number.parseFloat(params.poiLng),
+          }
+        : null,
+    );
+
+  }, [params.poiLat, params.poiLng]);
 
   // Initialize campus from navigation params, if present
   useEffect(() => {
@@ -514,6 +554,16 @@ export default function MainMap() {
     setSelectedBuildingCode(buildingCode);
   };
 
+  const getNearbySearchRadius = () => {
+    let radius = POI_DEFAULT_MAX_DISTANCE_IN_M;
+    if (params.distFilterReference === DistanceFilterReferenceOptions.CAMERA) {
+      radius = params.maxDist
+        ? Number.parseInt(params.maxDist)
+        : POI_DEFAULT_MAX_DISTANCE_IN_M;
+    }
+    return radius;
+  };
+
   return (
     <View style={styles.container}>
       <MapView
@@ -538,6 +588,21 @@ export default function MainMap() {
           selectedCode={selectedBuildingCode}
           onBuildingPress={handlePolygonPress}
         />
+
+        {nearbyMarkerCoordinates && (
+          <>
+            <Marker
+              pinColor={COLORS.selectionBlue}
+              coordinate={nearbyMarkerCoordinates}
+            />
+            <Circle
+            strokeColor={COLORS.selectionBlue}
+            fillColor={COLORS.selectionBlueBg}
+              center={nearbyMarkerCoordinates}
+              radius={getNearbySearchRadius()}
+            />
+          </>
+        )}
       </MapView>
 
       {isNavigationMode ? (

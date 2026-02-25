@@ -1,18 +1,22 @@
 import {
+  MapPOIQueryParamsModel,
+  MapQueryParamsModel,
+} from "@/app/(drawer)/map";
+import {
+  POI_LOCATION_CHANGE_THRESHOLD_IN_DEGREES,
   PoiSearchResultModel,
   useGetNearbyPoi,
 } from "@/hooks/queries/poiQueries";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useMemo, useRef } from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { useMemo, useRef, useState } from "react";
+import { View } from "react-native";
+import { ScrollView } from "react-native-gesture-handler";
 import { BottomSheetStyles } from "../BuildingBottomSheet";
-import PoiSearchResult from "./PoiSearchResult";
-import { MapPOIQueryParamsModel } from "@/app/(drawer)/map";
-import { CloseIcon } from "@/app/icons";
+import PoiSearchBottomSheetHeader from "./PoiSearchBottomSheetHeader";
 import PoiSearchDistanceFilter from "./PoiSearchDistanceFilter";
 import PoiSearchRankPreferenceFilter from "./PoiSearchRankPreferenceFilter";
-import PoiSearchRefetchButton from "./PoiSearchRefetchButton";
+import PoiSearchResult from "./PoiSearchResult";
 
 export type PoiSearchBottomSheetProps = {
   onClose?: () => void;
@@ -26,14 +30,51 @@ export default function PoiSearchBottomSheet(
   const bottomSheetRef = useRef<BottomSheet>(null);
   const snapPoints = ["20%", "70%"];
 
-  const params = useLocalSearchParams<MapPOIQueryParamsModel>();
+  const params = useLocalSearchParams<MapQueryParamsModel>();
   const router = useRouter();
 
   const poiSearchQuery = useGetNearbyPoi(
     params.query,
-    Number.parseFloat(params.camLat),
-    Number.parseFloat(params.camLng),
+    Number.parseFloat(params.poiLat),
+    Number.parseFloat(params.poiLng),
+    params.maxDist ? Number.parseInt(params.maxDist) : undefined,
+    params.rankPref,
   );
+
+  const [currentParams, setCurrentParams] =
+    useState<MapQueryParamsModel>(params);
+
+  const areParamsDifferent = useMemo(() => {
+
+    const roundedLatDiff = Math.abs(
+      Number.parseFloat(currentParams.poiLat) -
+        Number.parseFloat(params.camLat),
+    );
+    const roundedLngDiff = Math.abs(
+      Number.parseFloat(currentParams.poiLng) -
+        Number.parseFloat(params.camLng),
+    );
+    const isLocationDifferent =
+      roundedLatDiff > POI_LOCATION_CHANGE_THRESHOLD_IN_DEGREES ||
+      roundedLngDiff > POI_LOCATION_CHANGE_THRESHOLD_IN_DEGREES;
+
+    return (
+      currentParams.query !== params.query ||
+      isLocationDifferent ||
+      currentParams.maxDist !== params.maxDist ||
+      currentParams.rankPref !== params.rankPref
+    );
+  }, [params]);
+
+  const handleUpdateParams = () => {
+    if (!areParamsDifferent) return;
+    setCurrentParams({...params, poiLat: params.camLat, poiLng: params.camLng});
+    router.setParams({
+      poiLat: params.camLat,
+      poiLng: params.camLng,
+    });
+    poiSearchQuery.refetch();
+  };
 
   const results = useMemo(() => {
     if (poiSearchQuery.isLoading || !poiSearchQuery.data) {
@@ -75,38 +116,38 @@ export default function PoiSearchBottomSheet(
         <View style={BottomSheetStyles.fakeHandleBar} />
       </View>
 
-      <View
-        style={[
-          BottomSheetStyles.headerContainer,
-          {
+      <PoiSearchBottomSheetHeader
+        onClose={props.onClose}
+        areParamsDifferent={areParamsDifferent}
+        onUpdateParams={handleUpdateParams}
+      />
+
+      {/*filters toolbar  */}
+      <View style={{ zIndex: 1000, elevation: 1000 }}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          nestedScrollEnabled={true}
+          style={{ overflow: "visible" }}
+          contentContainerStyle={{
             display: "flex",
             flexDirection: "row",
-            justifyContent: "space-between",
-          },
-        ]}
-      >
-        <View style={BottomSheetStyles.textContainer}>
-          <Text style={BottomSheetStyles.name}>Nearby results</Text>
-        </View>
-
-        <TouchableOpacity
-          onPress={props.onClose}
-          style={BottomSheetStyles.closeIcon}
+            paddingHorizontal: 16,
+            gap: 10,
+            minHeight: 64,
+            paddingVertical: 8,
+            overflow: "visible",
+          }}
         >
-          <CloseIcon size={28} />
-        </TouchableOpacity>
-      </View>
-      {/*filters toolbar  */}
-      <View
-        style={{ display: "flex", flexDirection: "row", paddingHorizontal: 16 }}
-      >
-        <PoiSearchRankPreferenceFilter />
-        <PoiSearchDistanceFilter />
-        <PoiSearchRefetchButton />
+          <PoiSearchRankPreferenceFilter />
+          <PoiSearchDistanceFilter />
+        </ScrollView>
       </View>
 
-      <BottomSheetScrollView style={{ ...BottomSheetStyles.scrollContent }}>
-        {results.map((result) => (
+      <BottomSheetScrollView
+        style={{ ...BottomSheetStyles.scrollContent, zIndex: 1, elevation: 1 }}
+      >
+        {results?.map((result) => (
           <PoiSearchResult
             key={result.code}
             result={result}

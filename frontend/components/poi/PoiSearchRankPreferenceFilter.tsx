@@ -1,6 +1,6 @@
 import { COLORS } from "@/app/constants";
 import {
-  DEFAULT_RANK_PREFERENCE,
+  POI_DEFAULT_RANK_PREFERENCE,
   TextSearchRankPreferenceType,
 } from "@/hooks/queries/poiQueries";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -8,20 +8,21 @@ import { useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { poiFilterStyles } from "@/app/styles/poi/poiStyle";
+import { MapPOIQueryParamsModel } from "@/app/(drawer)/map";
 
 // technically a sort but whatever
 export default function PoiSearchRankPreferenceFilter() {
-  const params = useLocalSearchParams(); // use params as source of truth
+  const params = useLocalSearchParams<MapPOIQueryParamsModel>(); // use params as source of truth
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     if (!params.rankPref) {
-      router.setParams({ rankPref: DEFAULT_RANK_PREFERENCE });
+      router.setParams({ rankPref: POI_DEFAULT_RANK_PREFERENCE });
     }
   }, [params.rankPref, router]);
 
-  const displayText = (params?.rankPref as TextSearchRankPreferenceType)
+  const displayText = params?.rankPref
     ?.toLowerCase()
     .replace(/^./, (char) => char.toUpperCase());
 
@@ -36,7 +37,7 @@ export default function PoiSearchRankPreferenceFilter() {
   };
 
   return (
-    <View>
+    <View style={{ zIndex: isOpen ? 100 : 1 }}>
       {isOpen && (
         <Pressable
           onPress={() => setIsOpen(false)}

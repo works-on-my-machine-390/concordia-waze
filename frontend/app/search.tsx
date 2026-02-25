@@ -47,6 +47,7 @@ export type SearchPOIQueryParamsModel = {
   camLng?: string;
 };
 import { filterBuildingsByQuery } from "./utils/searchUtils";
+import { DistanceFilterReferenceOptions, POI_DEFAULT_MAX_DISTANCE_IN_M, POI_DEFAULT_RANK_PREFERENCE } from "@/hooks/queries/poiQueries";
 
 export default function SearchPage() {
   const router = useRouter();
@@ -359,8 +360,11 @@ export default function SearchPage() {
         query: query.trim(),
         campus: campus as CampusCode,
         searchNearby: "true",
-        camLat: params.camLat,
-        camLng: params.camLng,
+        poiLat: params.camLat,
+        poiLng: params.camLng,
+        rankPref: POI_DEFAULT_RANK_PREFERENCE,
+        maxDist: POI_DEFAULT_MAX_DISTANCE_IN_M.toString(),
+        distFilterReference: DistanceFilterReferenceOptions.CAMERA,
       },
     });
   };
