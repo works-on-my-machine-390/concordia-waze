@@ -10,7 +10,7 @@ import { useGetProfile } from "@/hooks/queries/userQueries";
 import * as Location from "expo-location";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import MapView, { Region } from "react-native-maps";
 import { Toast } from "toastify-react-native";
 import { isPointInPolygon } from "~/app/utils/pointInPolygon";
@@ -19,7 +19,11 @@ import LocationButton from "~/components/LocationButton";
 import { MapHeader } from "~/components/MapHeader";
 import { NavigationHeader } from "~/components/NavigationHeader";
 import { getDistance } from "../utils/mapUtils";
-import { DEFAULT_CAMERA_MOVE_DURATION_IN_MS, DEFAULT_MAP_DELTA } from "../constants";
+import {
+  DEFAULT_CAMERA_MOVE_DURATION_IN_MS,
+  DEFAULT_MAP_DELTA,
+} from "../constants";
+import PoiSearchBottomSheet from "@/components/PoiSearchBottomSheet";
 
 export type MapQueryParamsModel = {
   selected?: string;
@@ -59,6 +63,7 @@ export default function MainMap() {
   >({});
 
   const [isNavigationMode, setIsNavigationMode] = useState(false);
+  const [isPoiMode, setIsPoiMode] = useState<boolean>(false);
   const [customStartBuilding, setCustomStartBuilding] = useState<string | null>(
     null,
   );
@@ -113,6 +118,15 @@ export default function MainMap() {
       setSelectedBuildingCode(params.selected);
     }
   }, [params.selected]);
+
+  useEffect(() => {
+    if (params.query) {
+      setIsPoiMode(true);
+      setSelectedBuildingCode(null);
+    } else {
+      setIsPoiMode(false);
+    }
+  }, [params.query]);
 
   // Initialize campus from navigation params, if present
   useEffect(() => {
@@ -489,6 +503,15 @@ export default function MainMap() {
     });
   };
 
+  const handlePolygonPress = (buildingCode: string) => {
+    if (isPoiMode) {
+      router.setParams({
+        query: "",
+      });
+    }
+    setSelectedBuildingCode(buildingCode);
+  };
+
   return (
     <View style={styles.container}>
       <MapView
@@ -511,7 +534,7 @@ export default function MainMap() {
           buildings={buildingsToRender}
           highlightedCode={currentBuildingCode}
           selectedCode={selectedBuildingCode}
-          onBuildingPress={setSelectedBuildingCode}
+          onBuildingPress={handlePolygonPress}
         />
       </MapView>
 
@@ -545,6 +568,12 @@ export default function MainMap() {
           onPress={goToMyLocation}
           bottomPosition={locationButtonPosition}
         />
+
+        {isPoiMode && (
+          <PoiSearchBottomSheet
+            onClose={() => router.setParams({ query: "" })}
+          />
+        )}
 
         {!!selectedBuildingCode && (
           <BuildingBottomSheet
