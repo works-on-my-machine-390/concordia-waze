@@ -13,7 +13,7 @@ type BuildingReader interface {
 }
 
 type FloorReader interface {
-	GetBuildingFloors(code string) (map[string]domain.Floor, error)
+	GetBuildingFloors(code string) ([]domain.Floor, error)
 }
 
 type BuildingService struct {
@@ -89,6 +89,6 @@ func (s *BuildingService) GetAllBuildingsByCampus() (map[string][]domain.Buildin
 	return s.buildingRepo.GetAllBuildingsByCampus()
 }
 
-func (s *BuildingService) GetBuildingFloors(code string) (map[string]domain.Floor, error) {
+func (s *BuildingService) GetBuildingFloors(code string) ([]domain.Floor, error) {
 	return s.floorRepo.GetBuildingFloors(code)
 }

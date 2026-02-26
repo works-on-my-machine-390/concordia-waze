@@ -74,14 +74,15 @@ func (h *BuildingHandler) GetAllBuildingsByCampus(c *gin.Context) {
 // @Description
 // @Description {
 // @Description   "floors": {
-// @Description     "1":  { "name": "...", "imgPath": "...", "vertices": [...], "edge": [...], "poi": [...] },
-// @Description     "2": { ... }
+// @Description      { "name": "...", "imgPath": "...", "vertices": [...], "edge": [...], "poi": [...] },
+// @Description    { ... }
 // @Description   }
 // @Description }
-// @Tags        floors
+// @Tags        buildings
 // @Accept      json
 // @Produce     json
-// @Success     200 {object} map[string]map[string]
+// @Param       code path string true "Building code"
+// @Success     200 {object} map[string][]domain.Floor
 // @Failure     500 {object} map[string]string "internal server error"
 // @Router      /buildings/floor/{code} [get]
 func (h *BuildingHandler) GetFloorsByBuilding(c *gin.Context) {

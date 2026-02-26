@@ -82,11 +82,11 @@ func (f *fakePlacesClient) GetPhotoURLs(string) ([]string, error) {
 
 type fakeFloorRepo struct {
 	// keyed by normalized building code (uppercased, trimmed)
-	floors map[string]map[string]domain.Floor
+	floors map[string][]domain.Floor
 	err    error
 }
 
-func (f *fakeFloorRepo) GetBuildingFloors(code string) (map[string]domain.Floor, error) {
+func (f *fakeFloorRepo) GetBuildingFloors(code string) ([]domain.Floor, error) {
 	if f.err != nil {
 		return nil, f.err
 	}
@@ -437,10 +437,10 @@ func TestFetchOpeningHours_EmptyHours(t *testing.T) {
 // New tests for GetBuildingFloors
 func TestBuildingService_GetBuildingFloors_Success(t *testing.T) {
 	repo := &fakeBuildingRepo{}
-	floorMap := map[string]map[string]domain.Floor{
+	floorMap := map[string][]domain.Floor{
 		"MB": {
-			"1": {BuildingCode: "MB", FloorNumber: "1", ImgPath: "f1.png"},
-			"2": {BuildingCode: "MB", FloorNumber: "2", ImgPath: "f2.png"},
+			{FloorName: "floor2", FloorNumber: 2, ImgPath: "f1.png"},
+			{FloorName: "floor2", FloorNumber: 3, ImgPath: "f2.png"},
 		},
 	}
 	frepo := &fakeFloorRepo{floors: floorMap}
@@ -454,14 +454,14 @@ func TestBuildingService_GetBuildingFloors_Success(t *testing.T) {
 	if len(out) != 2 {
 		t.Fatalf("expected 2 floors, got %d", len(out))
 	}
-	if out["1"].ImgPath != "f1.png" {
-		t.Fatalf("unexpected floor 1 imgPath: %s", out["1"].ImgPath)
+	if out[0].ImgPath != "f1.png" {
+		t.Fatalf("unexpected floor 1 imgPath: %s", out[0].ImgPath)
 	}
 }
 
 func TestBuildingService_GetBuildingFloors_NotFound(t *testing.T) {
 	repo := &fakeBuildingRepo{}
-	frepo := &fakeFloorRepo{floors: map[string]map[string]domain.Floor{}}
+	frepo := &fakeFloorRepo{floors: map[string][]domain.Floor{}}
 
 	svc := NewBuildingService(repo, frepo, nil)
 

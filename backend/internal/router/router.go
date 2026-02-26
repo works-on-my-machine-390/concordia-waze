@@ -74,7 +74,7 @@ func SetupRouter() *gin.Engine {
 		buildingsGroup.GET("/list", buildingHandler.GetAllBuildingsByCampus)
 		buildingsGroup.GET("/:code", buildingHandler.GetBuilding)
 		buildingsGroup.GET("/:code/images", imageHandler.GetBuildingImages)
-		buildingsGroup.GET("/floor/:code", buildingHandler.GetBuilding)
+		buildingsGroup.GET("/floor/:code", buildingHandler.GetFloorsByBuilding)
 	}
 
 	// Directions endpoints (PUBLIC)

@@ -52,37 +52,39 @@ func (r *FloorRepository) ensureLoaded() error {
 			return
 		}
 
-		var parsed map[string][]rawFloor
-		if err := json.Unmarshal(bytes, &parsed); err != nil {
-			r.loadErr = fmt.Errorf("parse json: %w", err)
+		var parsedMap map[string][]rawFloor
+
+		var parsedArr []map[string][]rawFloor
+		if err2 := json.Unmarshal(bytes, &parsedArr); err2 != nil {
+			r.loadErr = fmt.Errorf("parse json: %w / %v", err, err2)
 			return
+		}
+		parsedMap = make(map[string][]rawFloor)
+		for _, m := range parsedArr {
+			for k, v := range m {
+				parsedMap[k] = append(parsedMap[k], v...)
+			}
 		}
 
 		r.byCode = make(map[string][]domain.Floor)
 
-		for buildingCode, floorsMap := range parsed {
+		for buildingCode, floorsMap := range parsedMap {
 
 			//making sure building code is in a consistent format (trimmed and uppercased)
 			bKey := strings.ToUpper(strings.TrimSpace(buildingCode))
 			if r.byCode[bKey] == nil {
-				r.byCode[bKey] = []domain.Floor
+				r.byCode[bKey] = make([]domain.Floor, 0)
 			}
 
-			for floorStr, rf := range floorsMap {
-				floorNum := strings.TrimSpace(floorStr)
-				if floorNum == "" {
-					continue
-				}
-
-				fKey := strings.ToUpper(strings.TrimSpace(floorNum))
+			for _, rf := range floorsMap {
 
 				f := domain.Floor{
-					BuildingCode: buildingCode,
-					FloorNumber:  floorNum,
-					ImgPath:      rf.ImgPath,
-					Vertices:     make([]domain.Coordinates, len(rf.Vertices)),
-					Edges:        make([]domain.Edge, 0, len(rf.Edges)),
-					POIs:         make([]domain.PointOfInterest, 0, len(rf.POI)),
+					FloorName:   rf.Name,
+					FloorNumber: rf.Number,
+					ImgPath:     rf.ImgPath,
+					Vertices:    make([]domain.Coordinates, len(rf.Vertices)),
+					Edges:       make([]domain.Edge, 0, len(rf.Edges)),
+					POIs:        make([]domain.PointOfInterest, 0, len(rf.POI)),
 				}
 
 				// map vertices (raw x,y -> domain Coordinates)
@@ -123,7 +125,7 @@ func (r *FloorRepository) ensureLoaded() error {
 					f.POIs = append(f.POIs, poi)
 				}
 
-				r.byCode[bKey][fKey] = f
+				r.byCode[bKey] = append(r.byCode[bKey], f)
 			}
 		}
 	})
@@ -131,7 +133,7 @@ func (r *FloorRepository) ensureLoaded() error {
 	return r.loadErr
 }
 
-func (r *FloorRepository) GetBuildingFloors(code string) (map[string]domain.Floor, error) {
+func (r *FloorRepository) GetBuildingFloors(code string) ([]domain.Floor, error) {
 	if err := r.ensureLoaded(); err != nil {
 		return nil, err
 	}

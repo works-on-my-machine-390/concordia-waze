@@ -27,7 +27,7 @@ type fakePlacesClient struct {
 }
 
 type fakeFloorRepo struct {
-	floors map[string]map[string]domain.Floor
+	floors map[string][]domain.Floor
 	err    error
 }
 
@@ -70,7 +70,7 @@ func (f *fakeBuildingRepo) GetAllBuildingsByCampus() (map[string][]domain.Buildi
 	return map[string][]domain.BuildingSummary{}, nil
 }
 
-func (f *fakeFloorRepo) GetBuildingFloors(code string) (map[string]domain.Floor, error) {
+func (f *fakeFloorRepo) GetBuildingFloors(code string) ([]domain.Floor, error) {
 	if f.err != nil {
 		return nil, f.err
 	}
@@ -230,9 +230,9 @@ func TestBuildingHandler_GetFloorsByBuilding_Success200(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	repo := &fakeBuildingRepo{}
-	floorMap := map[string]map[string]domain.Floor{
+	floorMap := map[string][]domain.Floor{
 		"MB": {
-			"1": {BuildingCode: "MB", FloorNumber: "1", ImgPath: "f1.png"},
+			{FloorName: "floor1", FloorNumber: 1, ImgPath: "f1.png"},
 		},
 	}
 	frepo := &fakeFloorRepo{floors: floorMap}
@@ -261,7 +261,7 @@ func TestBuildingHandler_GetFloorsByBuilding_NotFound500(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	repo := &fakeBuildingRepo{}
-	frepo := &fakeFloorRepo{floors: map[string]map[string]domain.Floor{}}
+	frepo := &fakeFloorRepo{floors: map[string][]domain.Floor{}}
 
 	svc := application.NewBuildingService(repo, frepo, nil)
 	h := NewBuildingHandler(svc)

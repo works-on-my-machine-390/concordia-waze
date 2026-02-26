@@ -21,7 +21,7 @@ const (
 	ShuttleDataFile = "shuttle_information.json"
 
 	// FloorDataFile is the filename for floor information data
-	FloorDataFile = "floor_information.json"
+	FloorDataFile = "../campusData/GeoJsonDataParser/Data/output.json"
 
 	// DefaultJWTDuration is the default duration for JWT tokens
 	DefaultJWTDuration = 24 * 7 // 7 days

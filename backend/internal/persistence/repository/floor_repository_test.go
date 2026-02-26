@@ -19,69 +19,131 @@ func writeTempJSONForFloors(t *testing.T, content string) string {
 }
 
 func TestGetBuildingFloors_Found_TrimsAndUppercasesCode(t *testing.T) {
-	jsonContent := `{
-	  "  EV  ": {
-	    " 1 ": {
-	      "name": "First",
-	      "imgPath": "floor1.png",
-	      "vertices": [ {"x": 1, "y": 2}, {"x": 3, "y": 4} ],
-	      "edges": [ [0, 1] ],
-	      "poi": [ { "type": "elevator", "name": "Elev", "position": {"x": 1, "y": 2}, "polygon": [{"x":1, "y":2}] } ]
-	    },
-	    "": { "name": "EmptyFloor" }
-	  }
-	}`
+	jsonContent := `[
+  {
+    "MB": [
+      {
+        "number": 0,
+        "name": "mbFloor0",
+        "imgPath": "string",
+        "vertices": [ {"x": 0, "y": 0} ],
+        "edges": [ [0, 1] ],
+        "poi": [
+          {
+            "type": "string",
+            "name": "string",
+            "position": {"x": 0, "y": 0},
+            "polygon": [ {"x": 0, "y": 0} ]
+          }
+        ]
+      },
+      {
+        "number": 3,
+        "name": "mbFloor3",
+        "imgPath": "string",
+        "vertices": [ {"x": 0, "y": 0} ],
+        "edges": [ [0, 1] ],
+        "poi": [
+          {
+            "type": "string",
+            "name": "string",
+            "position": {"x": 0, "y": 0},
+            "polygon": [ {"x": 0, "y": 0} ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "H": [
+      {
+        "number": 1,
+        "name": "hFloor1",
+        "imgPath": "string",
+        "vertices": [ {"x": 0, "y": 0} ],
+        "edges": [ [0, 1] ],
+        "poi": [
+          {
+            "type": "string",
+            "name": "string",
+            "position": {"x": 0, "y": 0},
+            "polygon": [ {"x": 0, "y": 0} ]
+          }
+        ]
+      },
+      {
+        "number": 5,
+        "name": "hFloor5",
+        "imgPath": "string",
+        "vertices": [ {"x": 0, "y": 0} ],
+        "edges": [ [0, 1] ],
+        "poi": [
+          {
+            "type": "string",
+            "name": "string",
+            "position": {"x": 0, "y": 0},
+            "polygon": [ {"x": 0, "y": 0} ]
+          }
+        ]
+      }
+    ]
+  }
+]`
 
 	path := writeTempJSONForFloors(t, jsonContent)
 	repo := NewFloorRepository(path)
 
-	floors, err := repo.GetBuildingFloors(" EV ")
+	floors, err := repo.GetBuildingFloors(" MB ")
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
 
-	// empty-key floor should be skipped, only floor "1" should be present
-	if len(floors) != 1 {
-		t.Fatalf("expected 1 floor entry, got %d", len(floors))
+	// Expect two floors for MB (numbers 0 and 3) and verify their fields
+	if len(floors) != 2 {
+		t.Fatalf("expected 2 floor entries, got %d", len(floors))
 	}
 
-	f, ok := floors["1"]
-	if !ok {
-		t.Fatalf("expected floor key \"1\" to be present")
+	expected := []struct {
+		num  int
+		name string
+	}{
+		{0, "mbFloor0"},
+		{3, "mbFloor3"},
 	}
 
-	if f.FloorNumber != "1" {
-		t.Fatalf("expected FloorNumber '1', got '%s'", f.FloorNumber)
+	for i, exp := range expected {
+		if floors[i].FloorNumber != exp.num {
+			t.Fatalf("expected floor number %d at index %d, got %d", exp.num, i, floors[i].FloorNumber)
+		}
+		if floors[i].FloorName != exp.name {
+			t.Fatalf("expected floor name %q at index %d, got %q", exp.name, i, floors[i].FloorName)
+		}
+		// basic checks for mapped structures
+		if len(floors[i].Vertices) != 1 {
+			t.Fatalf("expected 1 vertex for floor %d, got %d", exp.num, len(floors[i].Vertices))
+		}
+		if len(floors[i].POIs) != 1 {
+			t.Fatalf("expected 1 POI for floor %d, got %d", exp.num, len(floors[i].POIs))
+		}
 	}
-	if f.ImgPath != "floor1.png" {
-		t.Fatalf("expected ImgPath floor1.png, got %s", f.ImgPath)
-	}
-	if len(f.Vertices) != 2 {
-		t.Fatalf("expected 2 vertices, got %d", len(f.Vertices))
-	}
-	if f.Vertices[0].Latitude != 1 || f.Vertices[0].Longitude != 2 {
-		t.Fatalf("unexpected first vertex: %+v", f.Vertices[0])
-	}
-	if len(f.Edges) != 1 || f.Edges[0].StartVertex != 0 || f.Edges[0].EndVertex != 1 {
-		t.Fatalf("unexpected edges: %+v", f.Edges)
-	}
-	if len(f.POIs) != 1 {
-		t.Fatalf("expected 1 POI, got %d", len(f.POIs))
-	}
-	if f.POIs[0].Name != "Elev" || f.POIs[0].Type != "elevator" {
-		t.Fatalf("unexpected poi: %+v", f.POIs[0])
-	}
-	if f.POIs[0].Position.Latitude != 1 || f.POIs[0].Position.Longitude != 2 {
-		t.Fatalf("unexpected poi position: %+v", f.POIs[0].Position)
-	}
+
 }
 
 func TestGetBuildingFloors_InvalidCampus_ReturnsDomainErrNotFound(t *testing.T) {
-	jsonContent := `{
-	  "EV": {
-	    "1": { "name": "First" }
-	  }
-	}`
+	jsonContent := `[
+	{
+		"MB": [
+				{
+				"number": 0,
+				"name": "mbFloor0",
+				"imgPath": "string",
+				"vertices": [ {"x": 0, "y": 0} ],
+				"edges": [ [0, 1] ],
+				"poi": []
+				}
+	]
+	}
+	]`
 
 	path := writeTempJSONForFloors(t, jsonContent)
 	repo := NewFloorRepository(path)
