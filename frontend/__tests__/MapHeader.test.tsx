@@ -27,7 +27,7 @@ describe("MapHeader", () => {
         onCampusChange={jest.fn()}
         onMenuPress={jest.fn()}
         searchText=""
-        onSearchTextChange={jest.fn()}
+        onSearchClear={jest.fn()}
       />,
     );
 
@@ -52,7 +52,7 @@ describe("MapHeader", () => {
         onCampusChange={jest.fn()}
         onMenuPress={jest.fn()}
         searchText=""
-        onSearchTextChange={jest.fn()}
+        onSearchClear={jest.fn()}
       />,
     );
 
@@ -79,7 +79,7 @@ describe("MapHeader", () => {
         onCampusChange={mockOnCampusChange}
         onMenuPress={jest.fn()}
         searchText=""
-        onSearchTextChange={jest.fn()}
+        onSearchClear={jest.fn()}
       />,
     );
 
@@ -101,7 +101,7 @@ describe("MapHeader", () => {
         onCampusChange={jest.fn()}
         onMenuPress={undefined}
         searchText=""
-        onSearchTextChange={jest.fn()}
+        onSearchClear={jest.fn()}
       />,
     );
 
@@ -128,7 +128,7 @@ describe("MapHeader", () => {
         onCampusChange={jest.fn()}
         onMenuPress={jest.fn()}
         searchText=""
-        onSearchTextChange={jest.fn()}
+        onSearchClear={jest.fn()}
       />,
     );
 
@@ -158,7 +158,7 @@ describe("MapHeader", () => {
         onCampusChange={jest.fn()}
         onMenuPress={jest.fn()}
         searchText=""
-        onSearchTextChange={jest.fn()}
+        onSearchClear={jest.fn()}
       />,
     );
 
@@ -189,7 +189,7 @@ describe("MapHeader", () => {
         onCampusChange={jest.fn()}
         onMenuPress={jest.fn()}
         searchText=""
-        onSearchTextChange={jest.fn()}
+        onSearchClear={jest.fn()}
       />,
     );
 
@@ -202,7 +202,7 @@ describe("MapHeader", () => {
         onCampusChange={jest.fn()}
         onMenuPress={jest.fn()}
         searchText="Henry F. Hall"
-        onSearchTextChange={jest.fn()}
+        onSearchClear={jest.fn()}
       />,
     );
 
