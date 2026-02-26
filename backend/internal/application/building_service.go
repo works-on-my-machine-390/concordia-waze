@@ -12,17 +12,22 @@ type BuildingReader interface {
 	GetAllBuildingsByCampus() (map[string][]domain.BuildingSummary, error)
 }
 
-type BuildingService struct {
-	repo   BuildingReader
-	places google.PlacesClient
+type FloorReader interface {
+	GetBuildingFloors(code string) (map[string]domain.Floor, error)
 }
 
-func NewBuildingService(repo BuildingReader, places google.PlacesClient) *BuildingService {
-	return &BuildingService{repo: repo, places: places}
+type BuildingService struct {
+	buildingRepo BuildingReader
+	floorRepo    FloorReader
+	places       google.PlacesClient
+}
+
+func NewBuildingService(buildingRepo BuildingReader, floorRepo FloorReader, places google.PlacesClient) *BuildingService {
+	return &BuildingService{buildingRepo: buildingRepo, floorRepo: floorRepo, places: places}
 }
 
 func (s *BuildingService) GetBuilding(code string) (*domain.Building, error) {
-	b, err := s.repo.GetBuilding(code)
+	b, err := s.buildingRepo.GetBuilding(code)
 	if err != nil {
 		return nil, err
 	}
@@ -81,5 +86,9 @@ func campusFallback(lat, lng float64) (string, domain.LatLng, bool) {
 }
 
 func (s *BuildingService) GetAllBuildingsByCampus() (map[string][]domain.BuildingSummary, error) {
-	return s.repo.GetAllBuildingsByCampus()
+	return s.buildingRepo.GetAllBuildingsByCampus()
+}
+
+func (s *BuildingService) GetBuildingFloors(code string) (map[string]domain.Floor, error) {
+	return s.floorRepo.GetBuildingFloors(code)
 }

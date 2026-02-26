@@ -30,13 +30,14 @@ func SetupRouter() *gin.Engine {
 
 	buildingDataRepo := repository.NewBuildingDataRepository(constants.BuildingDataFile)
 	shuttleDataRepo := repository.NewShuttleDataRepository(constants.ShuttleDataFile)
+	floorDataRepo := repository.NewFloorRepository(constants.FloorDataFile)
 
 	jwtManager := application.NewJWTManager(os.Getenv("JWT_SECRET"), constants.DefaultJWTDuration*time.Hour)
 	userService := application.NewUserService(userRepo, jwtManager)
 
 	placesClient := google.NewGooglePlacesClient(os.Getenv("GOOGLE_PLACES_API_KEY"))
 
-	buildingService := application.NewBuildingService(buildingDataRepo, placesClient)
+	buildingService := application.NewBuildingService(buildingDataRepo, floorDataRepo, placesClient)
 	campusService := application.NewCampusService(buildingDataRepo)
 	imageService := application.NewImageService(buildingService, placesClient)
 	firebaseService := application.NewFirebaseService()
@@ -73,6 +74,7 @@ func SetupRouter() *gin.Engine {
 		buildingsGroup.GET("/list", buildingHandler.GetAllBuildingsByCampus)
 		buildingsGroup.GET("/:code", buildingHandler.GetBuilding)
 		buildingsGroup.GET("/:code/images", imageHandler.GetBuildingImages)
+		buildingsGroup.GET("/floor/:code", buildingHandler.GetBuilding)
 	}
 
 	// Directions endpoints (PUBLIC)
