@@ -170,7 +170,12 @@ describe("MapHeader", () => {
 
     expect(mockPush).toHaveBeenCalledWith({
       pathname: "/search",
-      params: { campus: "SGW" },
+      params: {
+        campus: "SGW",
+        camLat: undefined,
+        camLng: undefined,
+        query: "",
+      },
     });
 
     useRouterMock.mockRestore();

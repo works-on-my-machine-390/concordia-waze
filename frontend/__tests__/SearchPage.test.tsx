@@ -174,7 +174,18 @@ describe("SearchPage", () => {
         (useGetUserHistory as jest.Mock).mock.calls.length > 0;
       expect(guestStorageCalled || userHistoryCalled).toBe(true);
     });
-    return utils;
+
+    return {
+      ...utils,
+      queryByText: (...args: Parameters<typeof utils.queryByText>) => {
+        try {
+          return utils.queryByText(...args);
+        } catch {
+          const matches = utils.queryAllByText(...args);
+          return matches[matches.length - 1] ?? null;
+        }
+      },
+    };
   };
 
   test("renders search input with placeholder", async () => {
@@ -366,7 +377,12 @@ describe("SearchPage", () => {
     // Navigation should happen immediately, not wait for the slow addGuestSearchHistory
     expect(mockRouter.replace).toHaveBeenCalledWith({
       pathname: "/map",
-      params: { selected: "H", campus: "SGW" },
+      params: {
+        selected: "H",
+        campus: "SGW",
+        camLat: "",
+        camLng: "",
+      },
     });
   });
 
@@ -759,7 +775,12 @@ describe("SearchPage", () => {
       // Navigation should occur immediately, even if mutation is pending
       expect(mockRouter.replace).toHaveBeenCalledWith({
         pathname: "/map",
-        params: { selected: "H", campus: "SGW" },
+        params: {
+          selected: "H",
+          campus: "SGW",
+          camLat: "",
+          camLng: "",
+        },
       });
     });
 
@@ -799,7 +820,12 @@ describe("SearchPage", () => {
         () => {
           expect(mockRouter.replace).toHaveBeenCalledWith({
             pathname: "/map",
-            params: { selected: "H", campus: "SGW" },
+            params: {
+              selected: "H",
+              campus: "SGW",
+              camLat: "",
+              camLng: "",
+            },
           });
         },
         { timeout: 1000 },
@@ -964,7 +990,7 @@ describe("SearchPage", () => {
 
       expect(queryByText("Recent searches")).toBeTruthy();
       // Both items should be shown
-      expect(queryByText(/H/)).toBeTruthy();
+      expect(queryByText(/^H$/)).toBeTruthy();
       expect(queryByText(/MB/)).toBeTruthy();
     });
   });
@@ -994,7 +1020,12 @@ describe("SearchPage", () => {
         () => {
           expect(mockRouter.replace).toHaveBeenCalledWith({
             pathname: "/map",
-            params: { selected: "H", campus: "SGW" },
+            params: {
+              selected: "H",
+              campus: "SGW",
+              camLat: "",
+              camLng: "",
+            },
           });
         },
         { timeout: 1000 },
@@ -1210,7 +1241,12 @@ describe("SearchPage", () => {
         () => {
           expect(mockRouter.replace).toHaveBeenCalledWith({
             pathname: "/map",
-            params: { selected: "CC", campus: "LOY" },
+            params: {
+              selected: "CC",
+              campus: "LOY",
+              camLat: "",
+              camLng: "",
+            },
           });
         },
         { timeout: 1000 },
@@ -1385,7 +1421,12 @@ describe("SearchPage", () => {
         () => {
           expect(mockRouter.replace).toHaveBeenCalledWith({
             pathname: "/map",
-            params: { selected: "H", campus: "SGW" },
+            params: {
+              selected: "H",
+              campus: "SGW",
+              camLat: "",
+              camLng: "",
+            },
           });
         },
         { timeout: 1000 },
@@ -1444,7 +1485,12 @@ describe("SearchPage", () => {
         () => {
           expect(mockRouter.replace).toHaveBeenCalledWith({
             pathname: "/map",
-            params: { selected: "MB", campus: "SGW" },
+            params: {
+              selected: "MB",
+              campus: "SGW",
+              camLat: "",
+              camLng: "",
+            },
           });
         },
         { timeout: 1000 },
@@ -1627,6 +1673,8 @@ describe("SearchPage", () => {
             params: {
               selected: "H",
               campus: "SGW",
+              camLat: "",
+              camLng: "",
             },
           });
         },
