@@ -17,10 +17,10 @@ type PointOfInterest struct {
 	Polygon  []Coordinates `json:"polygon"`
 }
 type Floor struct {
-	BuildingCode string            `json:"buildingCode"`
-	FloorNumber  string            `json:"floorNumber"`
-	ImgPath      string            `json:"imgPath"`
-	Vertices     []Coordinates     `json:"vertices"`
-	Edges        []Edge            `json:"edges"`
-	POIs         []PointOfInterest `json:"pois"`
+	FloorName   string            `json:"name"`
+	FloorNumber int               `json:"number"`
+	ImgPath     string            `json:"imgPath"`
+	Vertices    []Coordinates     `json:"vertices"`
+	Edges       []Edge            `json:"edges"`
+	POIs        []PointOfInterest `json:"pois"`
 }

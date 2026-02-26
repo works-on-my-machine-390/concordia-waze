@@ -23,6 +23,7 @@ type rawPOI struct {
 }
 
 type rawFloor struct {
+	Number   int        `json:"number"`
 	Name     string     `json:"name"`
 	ImgPath  string     `json:"imgPath"`
 	Vertices []rawCoord `json:"vertices"`
@@ -34,7 +35,7 @@ type FloorRepository struct {
 
 	once    sync.Once
 	loadErr error
-	byCode  map[string]map[string]domain.Floor
+	byCode  map[string][]domain.Floor
 }
 
 func NewFloorRepository(path string) *FloorRepository {
@@ -51,20 +52,20 @@ func (r *FloorRepository) ensureLoaded() error {
 			return
 		}
 
-		var parsed map[string]map[string]rawFloor
+		var parsed map[string][]rawFloor
 		if err := json.Unmarshal(bytes, &parsed); err != nil {
 			r.loadErr = fmt.Errorf("parse json: %w", err)
 			return
 		}
 
-		r.byCode = make(map[string]map[string]domain.Floor)
+		r.byCode = make(map[string][]domain.Floor)
 
 		for buildingCode, floorsMap := range parsed {
 
 			//making sure building code is in a consistent format (trimmed and uppercased)
 			bKey := strings.ToUpper(strings.TrimSpace(buildingCode))
 			if r.byCode[bKey] == nil {
-				r.byCode[bKey] = make(map[string]domain.Floor)
+				r.byCode[bKey] = []domain.Floor
 			}
 
 			for floorStr, rf := range floorsMap {
