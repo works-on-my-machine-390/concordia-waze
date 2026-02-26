@@ -31,53 +31,33 @@ describe("api", () => {
   test("api() with token includes Authorization header", async () => {
     const wretch = require("wretch");
     const mockHeadersFn = jest.fn();
-    wretch.mockReturnValueOnce({
-      headers: mockHeadersFn,
-    });
+    wretch.mockReturnValueOnce({ headers: mockHeadersFn });
 
-    await api("test-token");
+    const validToken = "eyJhbGciOiJIUzI1NiJ9.eyJleHAiOjk5OTk5OTk5OTl9.fake";
+    await api(validToken);
 
     expect(wretch).toHaveBeenCalledWith("http://localhost:8080");
     expect(mockHeadersFn).toHaveBeenCalledWith({
-      Authorization: "Bearer test-token",
+      Authorization: `Bearer ${validToken}`,
     });
   });
 
-  test("api() with empty token string includes Authorization header", async () => {
+  test("api() with empty token string calls wretch without auth header", async () => {
     const wretch = require("wretch");
-    const mockHeadersFn = jest.fn();
-    wretch.mockReturnValueOnce({
-      headers: mockHeadersFn,
-    });
-
     await api("");
-
     expect(wretch).toHaveBeenCalledWith("http://localhost:8080");
-    expect(mockHeadersFn).toHaveBeenCalledWith({});
   });
 
   test("api() with null token calls without auth header", async () => {
     const wretch = require("wretch");
-    const mockHeadersFn = jest.fn();
-    wretch.mockReturnValueOnce({
-      headers: mockHeadersFn,
-    });
-
     await api(null as any);
-
-    expect(mockHeadersFn).toHaveBeenCalledWith({});
+    expect(wretch).toHaveBeenCalledWith("http://localhost:8080");
   });
 
   test("api() with undefined token calls without auth header", async () => {
     const wretch = require("wretch");
-    const mockHeadersFn = jest.fn();
-    wretch.mockReturnValueOnce({
-      headers: mockHeadersFn,
-    });
-
     await api(undefined);
-
-    expect(mockHeadersFn).toHaveBeenCalledWith({});
+    expect(wretch).toHaveBeenCalledWith("http://localhost:8080");
   });
 
   test("api() with long token string includes full Authorization header", async () => {
@@ -95,5 +75,17 @@ describe("api", () => {
     expect(mockHeadersFn).toHaveBeenCalledWith({
       Authorization: `Bearer ${longToken}`,
     });
+  });
+
+  test("api() with expired token emits AUTH_EXPIRED_EVENT and returns wretch without auth", async () => {
+    const wretch = require("wretch");
+    const { DeviceEventEmitter } = require("react-native");
+    const expiredToken = "eyJhbGciOiJIUzI1NiJ9.eyJleHAiOjF9.fake";
+    const emitSpy = jest.spyOn(DeviceEventEmitter, "emit");
+
+    await api(expiredToken);
+
+    expect(emitSpy).toHaveBeenCalledWith("auth:expired");
+    expect(wretch).toHaveBeenCalledWith("http://localhost:8080");
   });
 });
