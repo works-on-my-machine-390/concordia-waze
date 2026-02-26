@@ -13,7 +13,7 @@
             "properties": {
                 "fid": 1,
                 "floor": 1,
-                "roomNbr": "122"
+                "roomNbr": 122
             },
             "geometry": {
                 "type": "Polygon",
@@ -48,7 +48,7 @@
             "properties": {
                 "fid": 2,
                 "floor": 1,
-                "roomNbr": "119"
+                "roomNbr": 119
             },
             "geometry": {
                 "type": "Polygon",
@@ -83,7 +83,7 @@
             "properties": {
                 "fid": 3,
                 "floor": 1,
-                "roomNbr": "120"
+                "roomNbr": 120
             },
             "geometry": {
                 "type": "Polygon",
@@ -118,7 +118,7 @@
             "properties": {
                 "fid": 4,
                 "floor": 1,
-                "roomNbr": "117"
+                "roomNbr": 117
             },
             "geometry": {
                 "type": "Polygon",
@@ -153,7 +153,7 @@
             "properties": {
                 "fid": 5,
                 "floor": 1,
-                "roomNbr": "115"
+                "roomNbr": 115
             },
             "geometry": {
                 "type": "Polygon",
@@ -188,7 +188,7 @@
             "properties": {
                 "fid": 6,
                 "floor": 1,
-                "roomNbr": "111"
+                "roomNbr": 111
             },
             "geometry": {
                 "type": "Polygon",
@@ -223,7 +223,7 @@
             "properties": {
                 "fid": 7,
                 "floor": 1,
-                "roomNbr": "116"
+                "roomNbr": 116
             },
             "geometry": {
                 "type": "Polygon",
@@ -258,7 +258,7 @@
             "properties": {
                 "fid": 8,
                 "floor": 1,
-                "roomNbr": "112"
+                "roomNbr": 112
             },
             "geometry": {
                 "type": "Polygon",
@@ -293,7 +293,7 @@
             "properties": {
                 "fid": 9,
                 "floor": 1,
-                "roomNbr": "106"
+                "roomNbr": 106
             },
             "geometry": {
                 "type": "Polygon",
@@ -328,7 +328,7 @@
             "properties": {
                 "fid": 10,
                 "floor": 1,
-                "roomNbr": "107"
+                "roomNbr": 107
             },
             "geometry": {
                 "type": "Polygon",
@@ -363,7 +363,7 @@
             "properties": {
                 "fid": 11,
                 "floor": 1,
-                "roomNbr": "101"
+                "roomNbr": 101
             },
             "geometry": {
                 "type": "Polygon",
@@ -398,7 +398,7 @@
             "properties": {
                 "fid": 12,
                 "floor": 1,
-                "roomNbr": "109"
+                "roomNbr": 109
             },
             "geometry": {
                 "type": "Polygon",
@@ -441,7 +441,7 @@
             "properties": {
                 "fid": 13,
                 "floor": 1,
-                "roomNbr": "124"
+                "roomNbr": 124
             },
             "geometry": {
                 "type": "Polygon",
@@ -476,7 +476,7 @@
             "properties": {
                 "fid": 14,
                 "floor": 1,
-                "roomNbr": "104"
+                "roomNbr": 104
             },
             "geometry": {
                 "type": "Polygon",
