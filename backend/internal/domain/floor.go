@@ -1,8 +1,8 @@
 package domain
 
 type Coordinates struct {
-	Latitude  float64 `json:"latitude"`
-	Longitude float64 `json:"longitude"`
+	X float64 `json:"x"`
+	Y float64 `json:"y"`
 }
 
 type Edge struct {

@@ -90,8 +90,8 @@ func (r *FloorRepository) ensureLoaded() error {
 				// map vertices (raw x,y -> domain Coordinates)
 				for i, rc := range rf.Vertices {
 					f.Vertices[i] = domain.Coordinates{
-						Latitude:  rc.X,
-						Longitude: rc.Y,
+						X: rc.X,
+						Y: rc.Y,
 					}
 				}
 
@@ -111,15 +111,15 @@ func (r *FloorRepository) ensureLoaded() error {
 						Name: rp.Name,
 						Type: rp.Type,
 						Position: domain.Coordinates{
-							Latitude:  rp.Position.X,
-							Longitude: rp.Position.Y,
+							X: rp.Position.X,
+							Y: rp.Position.Y,
 						},
 						Polygon: make([]domain.Coordinates, len(rp.Polygon)),
 					}
 					for i, p := range rp.Polygon {
 						poi.Polygon[i] = domain.Coordinates{
-							Latitude:  p.X,
-							Longitude: p.Y,
+							X: p.X,
+							Y: p.Y,
 						}
 					}
 					f.POIs = append(f.POIs, poi)
