@@ -39,7 +39,6 @@ export const getPoiQueryKey = (
   return ["poi", "search", params.query, roundedLat, roundedLng, rankPreference];
 }
 
-// TODO: experiment with grouping query keys by lat lng rounding
 export const useGetNearbyPoi = (
   query: string,
   lat: number,
