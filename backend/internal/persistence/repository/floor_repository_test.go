@@ -18,6 +18,18 @@ func writeTempJSONForFloors(t *testing.T, content string) string {
 	return path
 }
 
+func TestGetBuildingFloors_FileReadError_ReturnsWrappedError(t *testing.T) {
+	repo := NewFloorRepository("/non/existent/path.json")
+
+	_, err := repo.GetBuildingFloors("MB")
+	if err == nil {
+		t.Fatalf("expected error, got nil")
+	}
+	if !os.IsNotExist(err) {
+		t.Fatalf("expected file not found error, got %v", err)
+	}
+}
+
 func TestGetBuildingFloors_Found_TrimsAndUppercasesCode(t *testing.T) {
 	jsonContent := `[
   {
