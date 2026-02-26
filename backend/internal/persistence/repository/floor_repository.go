@@ -43,94 +43,78 @@ func NewFloorRepository(path string) *FloorRepository {
 		path: path,
 	}
 }
-
 func (r *FloorRepository) ensureLoaded() error {
 	r.once.Do(func() {
 		bytes, err := os.ReadFile(r.path)
 		if err != nil {
-			r.loadErr = fmt.Errorf("read json: %w", err)
+			r.loadErr = fmt.Errorf("read file: %w", err)
 			return
 		}
 
-		var parsedMap map[string][]rawFloor
-
-		var parsedArr []map[string][]rawFloor
-		if err2 := json.Unmarshal(bytes, &parsedArr); err2 != nil {
-			r.loadErr = fmt.Errorf("parse json: %w / %v", err, err2)
+		// 1. Unmarshal into the raw shape
+		var rawData []map[string][]rawFloor
+		if err := json.Unmarshal(bytes, &rawData); err != nil {
+			r.loadErr = fmt.Errorf("parse json: %w", err)
 			return
 		}
-		parsedMap = make(map[string][]rawFloor)
-		for _, m := range parsedArr {
-			for k, v := range m {
-				parsedMap[k] = append(parsedMap[k], v...)
-			}
-		}
 
-		r.byCode = make(map[string][]domain.Floor)
-
-		for buildingCode, floorsMap := range parsedMap {
-
-			//making sure building code is in a consistent format (trimmed and uppercased)
-			bKey := strings.ToUpper(strings.TrimSpace(buildingCode))
-			if r.byCode[bKey] == nil {
-				r.byCode[bKey] = make([]domain.Floor, 0)
-			}
-
-			for _, rf := range floorsMap {
-
-				f := domain.Floor{
-					FloorName:   rf.Name,
-					FloorNumber: rf.Number,
-					ImgPath:     rf.ImgPath,
-					Vertices:    make([]domain.Coordinates, len(rf.Vertices)),
-					Edges:       make([]domain.Edge, 0, len(rf.Edges)),
-					POIs:        make([]domain.PointOfInterest, 0, len(rf.POI)),
-				}
-
-				// map vertices (raw x,y -> domain Coordinates)
-				for i, rc := range rf.Vertices {
-					f.Vertices[i] = domain.Coordinates{
-						X: rc.X,
-						Y: rc.Y,
-					}
-				}
-
-				// map edges
-				for _, e := range rf.Edges {
-					if len(e) >= 2 {
-						f.Edges = append(f.Edges, domain.Edge{
-							StartVertex: e[0],
-							EndVertex:   e[1],
-						})
-					}
-				}
-
-				// map POIs
-				for _, rp := range rf.POI {
-					poi := domain.PointOfInterest{
-						Name: rp.Name,
-						Type: rp.Type,
-						Position: domain.Coordinates{
-							X: rp.Position.X,
-							Y: rp.Position.Y,
-						},
-						Polygon: make([]domain.Coordinates, len(rp.Polygon)),
-					}
-					for i, p := range rp.Polygon {
-						poi.Polygon[i] = domain.Coordinates{
-							X: p.X,
-							Y: p.Y,
-						}
-					}
-					f.POIs = append(f.POIs, poi)
-				}
-
-				r.byCode[bKey] = append(r.byCode[bKey], f)
-			}
-		}
+		// 2. Map raw data to domain objects
+		r.byCode = r.mapToDomain(rawData)
 	})
-
 	return r.loadErr
+}
+
+// mapToDomain flattens the weird array-of-maps structure and converts types
+func (r *FloorRepository) mapToDomain(rawData []map[string][]rawFloor) map[string][]domain.Floor {
+	result := make(map[string][]domain.Floor)
+
+	for _, entry := range rawData {
+		for buildingCode, floors := range entry {
+			key := strings.ToUpper(strings.TrimSpace(buildingCode))
+
+			for _, rf := range floors {
+				result[key] = append(result[key], convertToDomain(rf))
+			}
+		}
+	}
+	return result
+}
+
+// convertToDomain handles the heavy lifting of translating a single floor
+func convertToDomain(rf rawFloor) domain.Floor {
+	f := domain.Floor{
+		FloorName:   rf.Name,
+		FloorNumber: rf.Number,
+		ImgPath:     rf.ImgPath,
+		Vertices:    mapCoords(rf.Vertices),
+		Edges:       make([]domain.Edge, 0, len(rf.Edges)),
+		POIs:        make([]domain.PointOfInterest, 0, len(rf.POI)),
+	}
+
+	for _, e := range rf.Edges {
+		if len(e) >= 2 {
+			f.Edges = append(f.Edges, domain.Edge{StartVertex: e[0], EndVertex: e[1]})
+		}
+	}
+
+	for _, rp := range rf.POI {
+		f.POIs = append(f.POIs, domain.PointOfInterest{
+			Name:     rp.Name,
+			Type:     rp.Type,
+			Position: domain.Coordinates{X: rp.Position.X, Y: rp.Position.Y},
+			Polygon:  mapCoords(rp.Polygon),
+		})
+	}
+	return f
+}
+
+// Helper to avoid repeating coordinate mapping logic
+func mapCoords(raw []rawCoord) []domain.Coordinates {
+	coords := make([]domain.Coordinates, len(raw))
+	for i, c := range raw {
+		coords[i] = domain.Coordinates{X: c.X, Y: c.Y}
+	}
+	return coords
 }
 
 func (r *FloorRepository) GetBuildingFloors(code string) ([]domain.Floor, error) {
