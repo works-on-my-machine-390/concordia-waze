@@ -7,23 +7,14 @@ import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
 import { DeviceEventEmitter } from "react-native";
 import { Toast } from "toastify-react-native";
+import { API_URL, AUTH_EXPIRED_EVENT, isTokenExpired } from "./api";
 
 type AuthResult =
   | { success: true; data?: any }
   | { success: false; error: string };
 
-import { API_URL, AUTH_EXPIRED_EVENT } from "./api";
 const API_BASE = process.env.REACT_APP_API_BASE || API_URL;
 const REQUEST_TIMEOUT_MS = 6000;
-
-const isTokenExpired = (token: string): boolean => {
-  try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    return payload.exp * 1000 < Date.now();
-  } catch {
-    return true;
-  }
-};
 
 export function useAuth() {
   const [loading, setLoading] = useState(false);
@@ -44,8 +35,10 @@ export function useAuth() {
 
   useEffect(() => {
     checkToken();
-
+    let isHandlingExpiry = false;
     const sub = DeviceEventEmitter.addListener(AUTH_EXPIRED_EVENT, async () => {
+      if (isHandlingExpiry) return;
+      isHandlingExpiry = true;
       console.log("AUTH_EXPIRED_EVENT received");
       Toast.error("Your session has expired. Please log in again.");
       await logout();
