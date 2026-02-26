@@ -346,4 +346,45 @@ describe("useAuth", () => {
 
     expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith("accessToken");
   });
+
+  test("checkToken returns false and clears storage when token is expired", async () => {
+    const expiredToken = "eyJhbGciOiJIUzI1NiJ9.eyJleHAiOjF9.fake";
+    (SecureStore.getItemAsync as jest.Mock).mockResolvedValueOnce(expiredToken);
+
+    render(React.createElement(HookProxy));
+
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+
+    expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith("accessToken");
+  });
+
+  test("checkToken returns true when token is valid", async () => {
+    const validToken = "eyJhbGciOiJIUzI1NiJ9.eyJleHAiOjk5OTk5OTk5OTl9.fake";
+    (SecureStore.getItemAsync as jest.Mock).mockResolvedValueOnce(validToken);
+
+    render(React.createElement(HookProxy));
+
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+
+    expect(SecureStore.deleteItemAsync).not.toHaveBeenCalled();
+  });
+
+  test("AUTH_EXPIRED_EVENT triggers logout", async () => {
+    const { DeviceEventEmitter } = require("react-native");
+    (SecureStore.getItemAsync as jest.Mock).mockResolvedValue(null);
+    (globalThis as any).fetch.mockResolvedValue({ ok: true });
+
+    render(React.createElement(HookProxy));
+
+    await act(async () => {
+      DeviceEventEmitter.emit("auth:expired");
+      await new Promise((r) => setTimeout(r, 0));
+    });
+
+    expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith("accessToken");
+  });
 });
