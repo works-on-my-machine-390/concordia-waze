@@ -17,9 +17,9 @@ export default function PoiSearchResult(props: Readonly<PoiSearchResultProps>) {
   const distance =
     props.isDistanceAvailable &&
     props.result.distanceFromUser > 0 &&
-    (props.result.distanceFromUser < 1
-      ? `${(props.result.distanceFromUser * 1000).toFixed(0)} m`
-      : `${props.result.distanceFromUser.toFixed(2)} km`);
+    (props.result.distanceFromUser < 1000
+      ? `${props.result.distanceFromUser.toFixed(0)} m` 
+      : `${(props.result.distanceFromUser / 1000).toFixed(1)} km`);
 
   return (
     <View
@@ -35,9 +35,16 @@ export default function PoiSearchResult(props: Readonly<PoiSearchResultProps>) {
         borderBottomWidth: 1,
       }}
     >
-      <TouchableOpacity style={{width: "80%"}} onPress={() => props.onPress(props.result)}>
+      <TouchableOpacity
+        style={{ width: "80%" }}
+        onPress={() => props.onPress(props.result)}
+      >
         <View style={{ display: "flex", flexDirection: "column" }}>
-          <Text style={{ fontSize: 16, fontWeight: "bold", maxWidth: "100%" }} ellipsizeMode="tail" numberOfLines={2}>
+          <Text
+            style={{ fontSize: 16, fontWeight: "bold", maxWidth: "100%" }}
+            ellipsizeMode="tail"
+            numberOfLines={2}
+          >
             {props.result.name}
           </Text>
           <Text style={{ marginTop: 10 }}>{simplifiedAddress}</Text>
@@ -49,7 +56,7 @@ export default function PoiSearchResult(props: Readonly<PoiSearchResultProps>) {
           flexDirection: "column",
         }}
       >
-        <Text style={{ textAlign: "center" , fontSize: 12}}>{distance}</Text>
+        <Text style={{ textAlign: "center", fontSize: 12 }}>{distance}</Text>
         <TouchableOpacity onPress={() => props.onDirectionsPress(props.result)}>
           <GetDirectionsIcon size={48} color={COLORS.conuRed} />
         </TouchableOpacity>

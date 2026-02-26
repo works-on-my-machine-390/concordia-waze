@@ -1,4 +1,6 @@
 import { MapQueryParamsModel } from "@/app/(drawer)/map";
+import { COLORS } from "@/app/constants";
+import { getDistanceInMeters } from "@/app/utils/mapUtils";
 import {
   PoiSearchResultModel,
   TextSearchRankPreferenceType,
@@ -7,14 +9,12 @@ import {
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useRef } from "react";
-import { ActivityIndicator, Text, View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
 import { BottomSheetStyles } from "../BuildingBottomSheet";
 import PoiSearchBottomSheetHeader from "./PoiSearchBottomSheetHeader";
 import PoiSearchRankPreferenceFilter from "./PoiSearchRankPreferenceFilter";
 import PoiSearchResult from "./PoiSearchResult";
-import { getDistance } from "@/app/utils/mapUtils";
-import { COLORS } from "@/app/constants";
 
 export type PoiSearchBottomSheetProps = {
   onClose?: () => void;
@@ -27,7 +27,7 @@ export type PoiSearchBottomSheetProps = {
 };
 
 export type ExtendedPoiSearchResultModel = {
-  distanceFromUser: number;
+  distanceFromUser: number; // in meters
 } & PoiSearchResultModel;
 
 export default function PoiSearchBottomSheet(
@@ -59,7 +59,7 @@ export default function PoiSearchBottomSheet(
         };
       }
 
-      const distance = getDistance(
+      const distance = getDistanceInMeters(
         { latitude: result.latitude, longitude: result.longitude },
         {
           latitude: props.userLocation?.latitude,
