@@ -20,6 +20,8 @@ export const COLORS = {
   selectionBlue: "#4180c0",
   selectionBlueBg: "rgba(184, 219, 255, 0.10)",
   poiMarkerBlue: "#29b2fc",
+  success: "#4CAF50",
+  warning: "#FF9800",
 };
 
 // App Info
