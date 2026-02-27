@@ -31,13 +31,19 @@ export const POI_DEFAULT_MAX_DISTANCE_IN_M = 1000; // different from the 1000 ba
 export const POI_DEFAULT_RANK_PREFERENCE =
   TextSearchRankPreferenceType.RELEVANCE;
 
-export const getPoiQueryKey = (
-  params: MapPOIQueryParamsModel ) => {
+export const getPoiQueryKey = (params: MapPOIQueryParamsModel) => {
   const roundedLat = Math.round(Number.parseFloat(params.poiLat) * 1000) / 1000;
   const roundedLng = Math.round(Number.parseFloat(params.poiLng) * 1000) / 1000;
   const rankPreference = params.rankPref || POI_DEFAULT_RANK_PREFERENCE;
-  return ["poi", "search", params.query, roundedLat, roundedLng, rankPreference];
-}
+  return [
+    "poi",
+    "search",
+    params.query,
+    roundedLat,
+    roundedLng,
+    rankPreference,
+  ];
+};
 
 export const useGetNearbyPoi = (
   query: string,
@@ -63,6 +69,6 @@ export const useGetNearbyPoi = (
         .json<PoiSearchResponse>();
     },
     staleTime: 1000 * 60 * 60 * 24, // 24 hours
+    enabled: !!query && !Number.isNaN(lat) && !Number.isNaN(lng),
   });
 };
-
