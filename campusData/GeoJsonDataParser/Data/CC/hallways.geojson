@@ -1,0 +1,10 @@
+{
+"type": "FeatureCollection",
+"name": "hallways",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:EPSG::32198" } },
+"features": [
+{ "type": "Feature", "properties": { "fid": 1, "floor": 1 }, "geometry": { "type": "LineString", "coordinates": [ [ -402198.970239298010711, 176974.833142132643843 ], [ -402183.302374545077328, 176964.676043603190919 ] ] } },
+{ "type": "Feature", "properties": { "fid": 2, "floor": 1 }, "geometry": { "type": "LineString", "coordinates": [ [ -402180.817127032554708, 176963.163284247741103 ], [ -402161.907635089417454, 176951.061209404142573 ] ] } },
+{ "type": "Feature", "properties": { "fid": 3, "floor": 1 }, "geometry": { "type": "LineString", "coordinates": [ [ -402160.178767254634295, 176949.872612767707324 ], [ -402144.510902501759119, 176939.7155142382544 ] ] } }
+]
+}
