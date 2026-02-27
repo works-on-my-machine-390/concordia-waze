@@ -30,6 +30,7 @@ import {
 import BuildingGallery from "./BuildingGallery";
 import MetroAccessibleChip from "./MetroAccessibleChip";
 import ListSection from "./BottomSheetListSection";
+import OpeningHours from "./OpeningHours";
 
 const concordiaLogo = require("../assets/images/concordia_logo.png");
 
@@ -354,6 +355,7 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
             <BottomSheetScrollView
               contentContainerStyle={BottomSheetStyles.scrollContent}
             >
+              <OpeningHours openingHours={building.opening_hours} />
               <BuildingGallery buildingCode={building.code} />
               <ListSection title="Services" items={building.services} />
               <ListSection title="Departments" items={building.departments} />
