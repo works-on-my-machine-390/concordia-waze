@@ -27,6 +27,8 @@ import {
 import { getDistance } from "../utils/mapUtils";
 import PoiOutdoorMarkers from "@/components/poi/PoiOutdoorMarkers";
 import ShuttleBusMarkers from "@/components/ShuttleBusMarkers";
+import MapSettingsBottomSheet from "@/components/MapSettingsBottomSheet";
+import MapSettingsButton from "@/components/MapSettingsButton";
 
 export type MapQueryParamsModel = {
   selected?: string;
@@ -71,6 +73,7 @@ export default function MainMap() {
 
   const [isNavigationMode, setIsNavigationMode] = useState(false);
   const [isPoiMode, setIsPoiMode] = useState<boolean>(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const [customStartBuilding, setCustomStartBuilding] = useState<string | null>(
     null,
@@ -534,7 +537,19 @@ export default function MainMap() {
         query: "",
       });
     }
+    if (isSettingsOpen) {
+      setIsSettingsOpen(false);
+    }
     setSelectedBuildingCode(buildingCode);
+  };
+
+  const handleMapSettingsButtonPress = () => {
+    if (selectedBuildingCode) {
+      // close other bottom sheets
+      setSelectedBuildingCode(null);
+       
+    }
+    setIsSettingsOpen(!isSettingsOpen);
   };
 
   return (
@@ -593,6 +608,14 @@ export default function MainMap() {
         />
       )}
       <View style={styles.bottomSheetContainer}>
+        
+        {!isPoiMode && (
+          <MapSettingsButton
+            onPress={handleMapSettingsButtonPress}
+            bottomPositionPercentage={locationButtonPosition + 7}
+          />
+        )}
+
         <LocationButton
           onPress={goToMyLocation}
           bottomPosition={locationButtonPosition}
@@ -627,6 +650,10 @@ export default function MainMap() {
             endCampus={endCampus}
             hasLocation={!!location || !!customStartBuilding}
           />
+        )}
+
+        {isSettingsOpen && (
+          <MapSettingsBottomSheet onClose={() => setIsSettingsOpen(false)} />
         )}
       </View>
     </View>
