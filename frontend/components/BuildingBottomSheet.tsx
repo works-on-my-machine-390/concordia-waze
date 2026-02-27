@@ -22,22 +22,10 @@ import {
 } from "../app/icons";
 import BuildingGallery from "./BuildingGallery";
 import MetroAccessibleChip from "./MetroAccessibleChip";
+import ListSection from "./BottomSheetListSection";
 
 const concordiaLogo = require("../assets/images/concordia_logo.png");
 
-// Reusable list section
-function ListSection({ title, items }: { title: string; items: string[] }) {
-  return (
-    <View style={BottomSheetStyles.listContainer}>
-      <Text style={BottomSheetStyles.listTitle}>{title}</Text>
-      {items.map((item) => (
-        <Text key={item} style={BottomSheetStyles.listItem}>
-          {item}
-        </Text>
-      ))}
-    </View>
-  );
-}
 
 type Props = {
   buildingCode: string | null;
