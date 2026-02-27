@@ -90,6 +90,7 @@ func SetupRouter() *gin.Engine {
 	{
 		shuttleGroup.GET("", shuttleHandler.GetDepartureData)
 		shuttleGroup.GET("/:day/:campus_code", shuttleHandler.GetCampusDaySchedule)
+		shuttleGroup.GET("/markers", shuttleHandler.GetShuttleMarkerPositions)
 	}
 
 	router.GET("/campuses/:campus/buildings", campusHandler.GetCampusBuildings)
