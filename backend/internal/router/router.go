@@ -156,7 +156,6 @@ func findIndoorDataDir() (string, error) {
 		if stat, err := os.Stat(candidate); err == nil && stat.IsDir() {
 			return candidate, nil
 		}
-
 		parent := filepath.Dir(cur)
 		if parent == cur {
 			break // reached filesystem root
