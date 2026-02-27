@@ -2,6 +2,7 @@ package router
 
 import (
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -42,6 +43,13 @@ func SetupRouter() *gin.Engine {
 	firebaseService := application.NewFirebaseService()
 	shuttleService := application.NewShuttleService(shuttleDataRepo)
 	pointOfInterestService := application.NewPointOfInterestService(placesClient)
+	dataDir, err := findIndoorDataDir()
+	if err != nil {
+		// fail fast with a clear message
+		panic("could not find campusData/GeoJsonDataParser/Data from working dir: " + err.Error())
+	}
+	indoorPOIRepo := repository.NewIndoorPOIRepository(dataDir)
+	indoorPOIService := application.NewIndoorPointOfInterestService(indoorPOIRepo)
 
 	// ---- Directions wiring (FIXED: inject shuttle schedule repo) ----
 	directionsClient := google.NewGoogleDirectionsClient(os.Getenv("GOOGLE_DIRECTIONS_API_KEY"))
@@ -56,7 +64,7 @@ func SetupRouter() *gin.Engine {
 	imageHandler := handler.NewImageHandler(imageService)
 	firebaseHandler := handler.NewFirebaseHandler(firebaseService)
 	shuttleHandler := handler.NewShuttleHandler(shuttleService)
-	pointOfInterestHandler := handler.NewPointOfInterestHandler(pointOfInterestService)
+	pointOfInterestHandler := handler.NewPointOfInterestHandler(pointOfInterestService, indoorPOIService)
 
 	router.Use(middleware.AuthMiddleware(jwtManager))
 
@@ -97,6 +105,7 @@ func SetupRouter() *gin.Engine {
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	router.GET("/pointofinterest", pointOfInterestHandler.GetNearbyPointsOfInterest)
+	router.GET("/pointofinterest/indoor", pointOfInterestHandler.GetNearbyIndoorPOIs)
 
 	// =========================
 	// PROTECTED ROUTES (auth)
@@ -129,4 +138,27 @@ func SetupRouter() *gin.Engine {
 func SetupTestRouter() *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	return SetupRouter()
+}
+
+func findIndoorDataDir() (string, error) {
+	wd, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+
+	// Walk up at most 5 levels: ., .., ../.., ...
+	cur := wd
+	for i := 0; i < 5; i++ {
+		candidate := filepath.Join(cur, "campusData", "GeoJsonDataParser", "Data")
+		if stat, err := os.Stat(candidate); err == nil && stat.IsDir() {
+			return candidate, nil
+		}
+		parent := filepath.Dir(cur)
+		if parent == cur {
+			break
+		}
+		cur = parent
+	}
+
+	return "", os.ErrNotExist
 }
