@@ -150,16 +150,16 @@ func findIndoorDataDir() (string, error) {
 		return "", err
 	}
 
-	// Walk up at most 5 levels: ., .., ../.., ...
 	cur := wd
-	for i := 0; i < 5; i++ {
+	for {
 		candidate := filepath.Join(cur, "campusData", "GeoJsonDataParser", "Data")
 		if stat, err := os.Stat(candidate); err == nil && stat.IsDir() {
 			return candidate, nil
 		}
+
 		parent := filepath.Dir(cur)
 		if parent == cur {
-			break
+			break // reached filesystem root
 		}
 		cur = parent
 	}
