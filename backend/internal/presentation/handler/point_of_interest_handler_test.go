@@ -35,7 +35,7 @@ func (f *fakePointService) GetNearbyPointsOfInterest(input string, lat, lng floa
 	return f.Return, f.Err
 }
 
-func TestGetNearbyPointsOfInterest_BadRequest(t *testing.T) {
+func TestGetNearbyPointsOfInterestBadRequest(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	svc := &fakePointService{}
@@ -54,7 +54,7 @@ func TestGetNearbyPointsOfInterest_BadRequest(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "Missing or invalid parameters")
 }
 
-func TestGetNearbyPointsOfInterest_Success(t *testing.T) {
+func TestGetNearbyPointsOfInterestSuccess(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	expected := []domain.Building{{Code: "B1", Name: "Place 1"}}
@@ -85,7 +85,7 @@ func TestGetNearbyPointsOfInterest_Success(t *testing.T) {
 	assert.Equal(t, "RELEVANCE", fake.RankPreference)
 }
 
-func TestGetNearbyPointsOfInterest_ServiceError(t *testing.T) {
+func TestGetNearbyPointsOfInterestServiceError(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	fake := &fakePointService{Err: errors.New("service failure")}

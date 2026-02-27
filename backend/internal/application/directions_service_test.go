@@ -9,6 +9,8 @@ import (
 	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
 )
 
+const duration = "2 mins"
+
 // --- Fakes ---
 
 type fakeDirectionsClient struct {
@@ -76,7 +78,7 @@ func contains(s, sub string) bool {
 
 // --- Tests ---
 
-func TestDirectionsService_DefaultModeWalking(t *testing.T) {
+func TestDirectionsServiceDefaultModeWalking(t *testing.T) {
 	f := &fakeDirectionsClient{resp: domain.DirectionsResponse{Mode: "walking"}}
 	s := NewDirectionsService(f)
 
@@ -85,7 +87,7 @@ func TestDirectionsService_DefaultModeWalking(t *testing.T) {
 	assert.Equal(t, "walking", f.lastMode)
 }
 
-func TestDirectionsService_RejectsInvalidMode(t *testing.T) {
+func TestDirectionsServiceRejectsInvalidMode(t *testing.T) {
 	f := &fakeDirectionsClient{}
 	s := NewDirectionsService(f)
 
@@ -94,7 +96,7 @@ func TestDirectionsService_RejectsInvalidMode(t *testing.T) {
 	assert.Equal(t, "invalid mode", err.Error())
 }
 
-func TestDirectionsService_PassesValidModeAndNormalizes(t *testing.T) {
+func TestDirectionsServicePassesValidModeAndNormalizes(t *testing.T) {
 	f := &fakeDirectionsClient{resp: domain.DirectionsResponse{Mode: "transit"}}
 	s := NewDirectionsService(f)
 
@@ -103,7 +105,7 @@ func TestDirectionsService_PassesValidModeAndNormalizes(t *testing.T) {
 	assert.Equal(t, "transit", f.lastMode)
 }
 
-func TestDirectionsService_PropagatesClientError(t *testing.T) {
+func TestDirectionsServicePropagatesClientError(t *testing.T) {
 	f := &fakeDirectionsClient{err: errors.New("boom")}
 	s := NewDirectionsService(f)
 
@@ -112,7 +114,7 @@ func TestDirectionsService_PropagatesClientError(t *testing.T) {
 	assert.Equal(t, "boom", err.Error())
 }
 
-func TestDirectionsService_ShuttleMode_ComposesWalkingLegsAndShuttleStep(t *testing.T) {
+func TestDirectionsServiceShuttleModeComposesWalkingLegsAndShuttleStep(t *testing.T) {
 	f := &fakeDirectionsClient{
 		resp: domain.DirectionsResponse{
 			Mode: "walking",
@@ -161,12 +163,12 @@ func TestDirectionsService_ShuttleMode_ComposesWalkingLegsAndShuttleStep(t *test
 	assert.NotEmpty(t, shuttleRepo.lastCampus)
 }
 
-func TestDirectionsService_ShuttleMode_StillWorksWhenRepoMissingOrErrors(t *testing.T) {
+func TestDirectionsServiceShuttleModeStillWorksWhenRepoMissingOrErrors(t *testing.T) {
 	f := &fakeDirectionsClient{
 		resp: domain.DirectionsResponse{
 			Mode: "walking",
 			Steps: []domain.DirectionStep{
-				{Instruction: "Walk segment", Distance: "0.2 km", Duration: "2 mins"},
+				{Instruction: "Walk segment", Distance: "0.2 km", Duration: duration},
 			},
 		},
 	}
@@ -180,7 +182,7 @@ func TestDirectionsService_ShuttleMode_StillWorksWhenRepoMissingOrErrors(t *test
 	assert.NotEmpty(t, resp.Steps)
 }
 
-func TestDirectionsService_GetDirectionsWithSchedule_NonShuttleWithUserTime(t *testing.T) {
+func TestDirectionsServiceGetDirectionsWithScheduleNonShuttleWithUserTime(t *testing.T) {
 	f := &fakeDirectionsClient{resp: domain.DirectionsResponse{Mode: "walking"}}
 	s := NewDirectionsService(f)
 
@@ -189,7 +191,7 @@ func TestDirectionsService_GetDirectionsWithSchedule_NonShuttleWithUserTime(t *t
 	assert.Contains(t, resp.DepartureMessage, "Depart at")
 }
 
-func TestParseOptionalDayTime_InvalidDayOrTime(t *testing.T) {
+func TestParseOptionalDayTimeInvalidDayOrTime(t *testing.T) {
 	_, _, err := parseOptionalDayTime("funday", "")
 	assert.Error(t, err)
 	assert.Equal(t, "invalid day", err.Error())
@@ -199,7 +201,7 @@ func TestParseOptionalDayTime_InvalidDayOrTime(t *testing.T) {
 	assert.Equal(t, "invalid time", err.Error())
 }
 
-func TestDirectionsService_GetShuttleDirectionsManual_InvalidInput(t *testing.T) {
+func TestDirectionsServiceGetShuttleDirectionsManualInvalidInput(t *testing.T) {
 	f := &fakeDirectionsClient{}
 	s := NewDirectionsService(f).WithShuttleRepo(&fakeShuttleRepo{
 		times: []string{"10:00"},
@@ -215,7 +217,7 @@ func TestDirectionsService_GetShuttleDirectionsManual_InvalidInput(t *testing.T)
 	assert.Error(t, err)
 }
 
-func TestPickNextDeparture_CoversBranches(t *testing.T) {
+func TestPickNextDepartureCoversBranches(t *testing.T) {
 	now := time.Date(2026, 2, 18, 0, 20, 0, 0, time.UTC) // 00:20
 
 	departures := []string{"00:24", "00:54", "01:24"} // your schedule
@@ -225,12 +227,12 @@ func TestPickNextDeparture_CoversBranches(t *testing.T) {
 	assert.Equal(t, "00:24", next)
 }
 
-func TestParseGoogleDuration_CoversVariants(t *testing.T) {
+func TestParseGoogleDurationCoversVariants(t *testing.T) {
 	tests := []struct {
 		input string
 		want  time.Duration
 	}{
-		{"2 mins", 2 * time.Minute},
+		{duration, 2 * time.Minute},
 		{"1 min", 1 * time.Minute},
 		{"1 hour", 1 * time.Hour},
 		{"1 hour 5 mins", time.Hour + 5*time.Minute},
@@ -245,7 +247,7 @@ func TestParseGoogleDuration_CoversVariants(t *testing.T) {
 	}
 }
 
-func TestParseOptionalDayTime_ValidInputs(t *testing.T) {
+func TestParseOptionalDayTimeValidInputs(t *testing.T) {
 	ref, day, err := parseOptionalDayTime("monday", "10:15")
 	assert.NoError(t, err)
 	assert.Equal(t, "monday", day)
@@ -280,7 +282,7 @@ func TestHaversineKm(t *testing.T) {
 	assert.Greater(t, dist, 0.0)
 }
 
-func TestPickNextDeparture_NoMatch(t *testing.T) {
+func TestPickNextDepartureNoMatch(t *testing.T) {
 	now := time.Date(2026, 2, 18, 23, 59, 0, 0, time.UTC)
 	departures := []string{"00:10", "00:20"}
 
@@ -288,7 +290,7 @@ func TestPickNextDeparture_NoMatch(t *testing.T) {
 	assert.Equal(t, "", next)
 }
 
-func TestNonShuttle_InvalidTimeInput(t *testing.T) {
+func TestNonShuttleInvalidTimeInput(t *testing.T) {
 	f := &fakeDirectionsClient{resp: domain.DirectionsResponse{Mode: "walking"}}
 	s := NewDirectionsService(f)
 
@@ -297,7 +299,7 @@ func TestNonShuttle_InvalidTimeInput(t *testing.T) {
 	assert.Equal(t, "invalid time", err.Error())
 }
 
-func TestManualShuttle_NoRepo(t *testing.T) {
+func TestManualShuttleNoRepo(t *testing.T) {
 	f := &fakeDirectionsClient{}
 	s := NewDirectionsService(f)
 

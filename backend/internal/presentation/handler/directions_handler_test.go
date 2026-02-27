@@ -116,7 +116,7 @@ func TestInvalidEndLng(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "invalid end_lng")
 }
 
-func TestManualShuttle_Success(t *testing.T) {
+func TestManualShuttleSuccess(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	fetcher := &fakeDirectionsFetcher{
@@ -140,7 +140,7 @@ func TestManualShuttle_Success(t *testing.T) {
 	assert.Equal(t, 200, w.Code)
 }
 
-func TestManualShuttle_MissingTime(t *testing.T) {
+func TestManualShuttleMissingTime(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	h := setupHandler(&fakeDirectionsFetcher{})
 	r := gin.New()
@@ -156,7 +156,7 @@ func TestManualShuttle_MissingTime(t *testing.T) {
 	assert.Equal(t, 400, w.Code)
 }
 
-func TestManualShuttle_InvalidMode(t *testing.T) {
+func TestManualShuttleInvalidMode(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	h := setupHandler(&fakeDirectionsFetcher{})
 	r := gin.New()
@@ -172,7 +172,7 @@ func TestManualShuttle_InvalidMode(t *testing.T) {
 	assert.Equal(t, 400, w.Code)
 }
 
-func TestManualShuttle_ConflictWithAutoParams(t *testing.T) {
+func TestManualShuttleConflictWithAutoParams(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	h := setupHandler(&fakeDirectionsFetcher{})
 	r := gin.New()
@@ -188,7 +188,7 @@ func TestManualShuttle_ConflictWithAutoParams(t *testing.T) {
 	assert.Equal(t, 400, w.Code)
 }
 
-func TestWriteDirectionsError_Internal500(t *testing.T) {
+func TestWriteDirectionsErrorInternal500(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	fetcher := &fakeDirectionsFetcher{
@@ -209,7 +209,7 @@ func TestWriteDirectionsError_Internal500(t *testing.T) {
 	assert.Equal(t, 500, w.Code)
 }
 
-func TestWriteDirectionsError_ShuttleSpecialCase(t *testing.T) {
+func TestWriteDirectionsErrorShuttleSpecialCase(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	// Automatic shuttle: no ShuttleScheduleProvider injected
@@ -288,7 +288,7 @@ func TestInvalidMode(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "invalid mode")
 }
 
-func TestGetDirectionsByBuildings_Success(t *testing.T) {
+func TestGetDirectionsByBuildingsSuccess(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	fetcher := &fakeDirectionsFetcher{
@@ -308,7 +308,7 @@ func TestGetDirectionsByBuildings_Success(t *testing.T) {
 	assert.Equal(t, 200, w.Code)
 }
 
-func TestGetDirectionsByBuildings_InvalidStartCode(t *testing.T) {
+func TestGetDirectionsByBuildingsInvalidStartCode(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	h := setupHandler(&fakeDirectionsFetcher{})
 	r := gin.New()
@@ -323,7 +323,7 @@ func TestGetDirectionsByBuildings_InvalidStartCode(t *testing.T) {
 	assert.Equal(t, 400, w.Code)
 }
 
-func TestGetDirectionsByBuildings_InvalidEndCode(t *testing.T) {
+func TestGetDirectionsByBuildingsInvalidEndCode(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	h := setupHandler(&fakeDirectionsFetcher{})
 	r := gin.New()

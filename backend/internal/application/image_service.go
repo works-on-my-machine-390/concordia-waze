@@ -11,7 +11,7 @@ type BuildingGetter interface {
 	GetBuilding(code string) (*domain.Building, error)
 }
 
-type ImageService interface {
+type ImageServiceGetter interface {
 	GetBuildingImages(code string) ([]string, error)
 }
 
@@ -23,7 +23,7 @@ type imageService struct {
 func NewImageService(
 	buildingService BuildingGetter,
 	placesClient google.PlacesClient,
-) ImageService {
+) ImageServiceGetter {
 	return &imageService{
 		buildingService: buildingService,
 		placesClient:    placesClient,

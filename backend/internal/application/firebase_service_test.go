@@ -26,6 +26,9 @@ var (
 	initErr  error
 )
 
+const HallBuilding = "Hall Building"
+const UpdatedClass = "Updated Class"
+
 func setupTestService(t *testing.T) *application.FirebaseService {
 	// Initialize Firebase once for all tests
 	initOnce.Do(func() {
@@ -118,7 +121,7 @@ func TestAddAndGetSchedule(t *testing.T) {
 	// Add schedule item
 	item := application.ScheduleItem{
 		Name:       "SOEN 390 Lecture",
-		Building:   "Hall Building",
+		Building:   HallBuilding,
 		Room:       "H-929",
 		StartTime:  "17:45",
 		EndTime:    "20:15",
@@ -138,7 +141,7 @@ func TestAddAndGetSchedule(t *testing.T) {
 	for _, s := range schedule {
 		if s.Name == "SOEN 390 Lecture" {
 			found = true
-			assert.Equal(t, "Hall Building", s.Building)
+			assert.Equal(t, HallBuilding, s.Building)
 			assert.Equal(t, "H-929", s.Room)
 			assert.Equal(t, "17:45", s.StartTime)
 			assert.Equal(t, "20:15", s.EndTime)
@@ -178,7 +181,7 @@ func TestUpdateScheduleItem(t *testing.T) {
 
 	// Update schedule item
 	updates := map[string]interface{}{
-		"name":      "Updated Class",
+		"name":      UpdatedClass,
 		"startTime": "14:00",
 		"endTime":   "15:30",
 	}
@@ -193,7 +196,7 @@ func TestUpdateScheduleItem(t *testing.T) {
 	for _, s := range schedule {
 		if s.ScheduleID == scheduleID {
 			found = true
-			assert.Equal(t, "Updated Class", s.Name)
+			assert.Equal(t, UpdatedClass, s.Name)
 			assert.Equal(t, "14:00", s.StartTime)
 			assert.Equal(t, "15:30", s.EndTime)
 			break
@@ -503,7 +506,7 @@ func TestUpdateScheduleItemMultipleFields(t *testing.T) {
 
 	// Update multiple fields
 	updates := map[string]interface{}{
-		"name":       "Updated Class",
+		"name":       UpdatedClass,
 		"building":   "EV Building",
 		"room":       "EV-001",
 		"daysOfWeek": []string{"Monday", "Wednesday", "Friday"},
@@ -519,7 +522,7 @@ func TestUpdateScheduleItemMultipleFields(t *testing.T) {
 	for _, s := range schedule {
 		if s.ScheduleID == scheduleID {
 			found = true
-			assert.Equal(t, "Updated Class", s.Name)
+			assert.Equal(t, UpdatedClass, s.Name)
 			assert.Equal(t, "EV Building", s.Building)
 			assert.Equal(t, "EV-001", s.Room)
 			assert.Equal(t, []string{"Monday", "Wednesday", "Friday"}, s.DaysOfWeek)
@@ -573,7 +576,7 @@ func TestAddAndGetDestinationHistory(t *testing.T) {
 	require.NoError(t, service.CreateUserProfile(ctx, userID, profile))
 
 	item := application.DestinationHistoryItem{
-		Name:            "Hall Building",
+		Name:            HallBuilding,
 		Address:         "1455 De Maisonneuve Blvd W",
 		BuildingCode:    "H",
 		DestinationType: "building",
@@ -588,7 +591,7 @@ func TestAddAndGetDestinationHistory(t *testing.T) {
 
 	found := false
 	for _, h := range history {
-		if h.Name == "Hall Building" {
+		if h.Name == HallBuilding {
 			found = true
 			assert.Equal(t, "H", h.BuildingCode)
 			assert.Equal(t, "building", h.DestinationType)
@@ -599,7 +602,7 @@ func TestAddAndGetDestinationHistory(t *testing.T) {
 	assert.True(t, found, "Destination history item not found")
 }
 
-func TestGetDestinationHistory_Limit(t *testing.T) {
+func TestGetDestinationHistoryLimit(t *testing.T) {
 	service := setupTestService(t)
 	ctx := context.Background()
 	userID := "test-user-history-limit-" + time.Now().Format("20060102150405")

@@ -457,7 +457,7 @@ func TestDeleteSavedAddressSuccess(t *testing.T) {
 	require.Equal(t, http.StatusOK, response.Code)
 }
 
-func TestAddDestinationHistorySuccess_WithOptionalFields(t *testing.T) {
+func TestAddDestinationHistorySuccessWithOptionalFields(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	service := &fakeFirebaseService{
@@ -503,7 +503,7 @@ func TestAddDestinationHistorySuccess_WithOptionalFields(t *testing.T) {
 	require.Equal(t, "history_123", out["historyId"])
 }
 
-func TestAddDestinationHistoryBadRequest_InvalidJSON(t *testing.T) {
+func TestAddDestinationHistoryBadRequestInvalidJSON(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	service := &fakeFirebaseService{}
@@ -521,7 +521,7 @@ func TestAddDestinationHistoryBadRequest_InvalidJSON(t *testing.T) {
 	require.Equal(t, http.StatusBadRequest, res.Code)
 }
 
-func TestGetDestinationHistory_ParsesLimitQueryParam(t *testing.T) {
+func TestGetDestinationHistoryParsesLimitQueryParam(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	service := &fakeFirebaseService{
@@ -605,7 +605,7 @@ func TestClearDestinationHistoryError(t *testing.T) {
 	require.Equal(t, http.StatusInternalServerError, res.Code)
 }
 
-func TestAddDestinationHistoryBadRequest_InvalidDestinationType(t *testing.T) {
+func TestAddDestinationHistoryBadRequestInvalidDestinationType(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	called := false

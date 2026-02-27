@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	userSearchHistoryPath = "/:userId/search-history"
+	userHistoryPath = "/:userId/history"
 )
 
 func SetupRouter() *gin.Engine {
@@ -118,9 +118,9 @@ func SetupRouter() *gin.Engine {
 		usersGroup.PUT("/:userId/savedAddresses/:addressId", firebaseHandler.UpdateSavedAddress)
 		usersGroup.DELETE("/:userId/savedAddresses/:addressId", firebaseHandler.DeleteSavedAddress)
 
-		usersGroup.POST("/:userId/history", firebaseHandler.AddDestinationHistory)
-		usersGroup.GET("/:userId/history", firebaseHandler.GetDestinationHistory)
-		usersGroup.DELETE("/:userId/history", firebaseHandler.ClearDestinationHistory)
+		usersGroup.POST(userHistoryPath, firebaseHandler.AddDestinationHistory)
+		usersGroup.GET(userHistoryPath, firebaseHandler.GetDestinationHistory)
+		usersGroup.DELETE(userHistoryPath, firebaseHandler.ClearDestinationHistory)
 	}
 
 	return router

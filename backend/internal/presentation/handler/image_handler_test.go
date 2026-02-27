@@ -19,7 +19,7 @@ func (f *fakeImageService) GetBuildingImages(code string) ([]string, error) {
 	return f.images, f.err
 }
 
-func TestGetBuildingImages_OK(t *testing.T) {
+func TestGetBuildingImagesOK(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	service := &fakeImageService{
@@ -40,7 +40,7 @@ func TestGetBuildingImages_OK(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "img1")
 }
 
-func TestGetBuildingImages_Error(t *testing.T) {
+func TestGetBuildingImagesError(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	service := &fakeImageService{

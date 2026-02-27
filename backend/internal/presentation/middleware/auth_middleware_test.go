@@ -12,7 +12,7 @@ import (
 	"github.com/works-on-my-machine-390/concordia-waze/internal/presentation/middleware"
 )
 
-func TestAuthMiddleware_WithValidToken(t *testing.T) {
+func TestAuthMiddlewareWithValidToken(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	jwtManager := application.NewJWTManager("test-secret", time.Hour)
@@ -51,7 +51,7 @@ func TestAuthMiddleware_WithValidToken(t *testing.T) {
 	}
 }
 
-func TestAuthMiddleware_WithoutToken(t *testing.T) {
+func TestAuthMiddlewareWithoutToken(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	jwtManager := application.NewJWTManager("test-secret", time.Hour)
@@ -77,7 +77,7 @@ func TestAuthMiddleware_WithoutToken(t *testing.T) {
 	}
 }
 
-func TestAuthMiddleware_WithInvalidToken(t *testing.T) {
+func TestAuthMiddlewareWithInvalidToken(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	jwtManager := application.NewJWTManager("test-secret", time.Hour)
@@ -99,7 +99,7 @@ func TestAuthMiddleware_WithInvalidToken(t *testing.T) {
 	}
 }
 
-func TestAuthMiddleware_InvalidHeaderFormat(t *testing.T) {
+func TestAuthMiddlewareInvalidHeaderFormat(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	jwtManager := application.NewJWTManager("test-secret", time.Hour)
@@ -122,7 +122,7 @@ func TestAuthMiddleware_InvalidHeaderFormat(t *testing.T) {
 	}
 }
 
-func TestRequireAuth_WithAuthentication(t *testing.T) {
+func TestRequireAuthWithAuthentication(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	jwtManager := application.NewJWTManager("test-secret", time.Hour)
@@ -153,7 +153,7 @@ func TestRequireAuth_WithAuthentication(t *testing.T) {
 	}
 }
 
-func TestRequireAuth_WithoutAuthentication(t *testing.T) {
+func TestRequireAuthWithoutAuthentication(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	jwtManager := application.NewJWTManager("test-secret", time.Hour)
@@ -174,7 +174,7 @@ func TestRequireAuth_WithoutAuthentication(t *testing.T) {
 	}
 }
 
-func TestGetUserFromContext_WithClaims(t *testing.T) {
+func TestGetUserFromContextWithClaims(t *testing.T) {
 	jwtManager := application.NewJWTManager("test-secret", time.Hour)
 	user := &domain.User{
 		ID:    "user-123",
@@ -212,7 +212,7 @@ func TestGetUserFromContext_WithClaims(t *testing.T) {
 	}
 }
 
-func TestGetUserFromContext_NoClaims(t *testing.T) {
+func TestGetUserFromContextNoClaims(t *testing.T) {
 	jwtManager := application.NewJWTManager("test-secret", time.Hour)
 
 	gin.SetMode(gin.TestMode)

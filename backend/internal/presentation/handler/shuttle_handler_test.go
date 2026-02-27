@@ -53,7 +53,7 @@ func osWriteFile(path string, data []byte) error {
 	return os.WriteFile(path, data, 0o644)
 }
 
-func TestGetCampusDaySchedule_OK(t *testing.T) {
+func TestGetCampusDayScheduleOK(t *testing.T) {
 	t.Parallel()
 	gin.SetMode(gin.TestMode)
 
@@ -99,7 +99,7 @@ func TestGetCampusDaySchedule_OK(t *testing.T) {
 	}
 }
 
-func TestGetCampusDaySchedule_NotFound(t *testing.T) {
+func TestGetCampusDayScheduleNotFound(t *testing.T) {
 	t.Parallel()
 	gin.SetMode(gin.TestMode)
 
@@ -133,7 +133,7 @@ func TestGetCampusDaySchedule_NotFound(t *testing.T) {
 	}
 }
 
-func TestGetDepartureData_OK(t *testing.T) {
+func TestGetDepartureDataOK(t *testing.T) {
 	t.Parallel()
 	gin.SetMode(gin.TestMode)
 

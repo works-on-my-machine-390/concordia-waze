@@ -176,7 +176,7 @@ func (fs *FirebaseService) GetDestinationHistory(ctx context.Context, userID str
 			continue
 		}
 		var item DestinationHistoryItem
-		if err := doc.DataTo(&item); err != nil {
+		if doc.DataTo(&item) != nil {
 			continue
 		}
 		item.HistoryID = doc.Ref.ID

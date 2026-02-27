@@ -12,6 +12,9 @@ import (
 	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
 )
 
+const shuttleDuration = "25 mins"
+const noShuttleMessage = "no shuttle available"
+
 type DirectionsFetcher interface {
 	GetDirections(start, end domain.LatLng, mode string) (domain.DirectionsResponse, error)
 }
@@ -132,7 +135,7 @@ func (s *DirectionsService) getShuttleDirectionsAt(start, end domain.LatLng, ref
 		shuttleStep = domain.DirectionStep{
 			Instruction: "Take the Concordia Shuttle Bus from SGW to LOY",
 			Distance:    formatKm(haversineKm(sgwShuttleStop, loyShuttleStop)),
-			Duration:    "25 mins",
+			Duration:    shuttleDuration,
 			Start:       sgwShuttleStop,
 			End:         loyShuttleStop,
 		}
@@ -187,20 +190,20 @@ func (s *DirectionsService) buildShuttleStepAt(ref time.Time, day string) (domai
 	distKm := haversineKm(sgwShuttleStop, loyShuttleStop)
 	distStr := formatKm(distKm)
 
-	durationStr := "25 mins"
+	durationStr := shuttleDuration
 
 	if s.shuttleRepo == nil {
-		return domain.DirectionStep{}, "", errors.New("no shuttle available")
+		return domain.DirectionStep{}, "", errors.New(noShuttleMessage)
 	}
 
 	times, err := s.shuttleRepo.GetDepartures(day, "SGW")
 	if err != nil || len(times) == 0 {
-		return domain.DirectionStep{}, "", errors.New("no shuttle available")
+		return domain.DirectionStep{}, "", errors.New(noShuttleMessage)
 	}
 
 	next := pickNextDepartureAt(ref, times)
 	if next == "" {
-		return domain.DirectionStep{}, "", errors.New("no shuttle available")
+		return domain.DirectionStep{}, "", errors.New(noShuttleMessage)
 	}
 
 	step := domain.DirectionStep{
@@ -261,12 +264,12 @@ func (s *DirectionsService) GetShuttleDirectionsManual(start, end domain.LatLng,
 	}
 
 	if s.shuttleRepo == nil {
-		return domain.DirectionsResponse{}, errors.New("no shuttle available")
+		return domain.DirectionsResponse{}, errors.New(noShuttleMessage)
 	}
 
 	times, err := s.shuttleRepo.GetDepartures(d, "SGW")
 	if err != nil || len(times) == 0 {
-		return domain.DirectionsResponse{}, errors.New("no shuttle available")
+		return domain.DirectionsResponse{}, errors.New(noShuttleMessage)
 	}
 
 	// validate the departure exists exactly in schedule
@@ -311,7 +314,7 @@ func (s *DirectionsService) GetShuttleDirectionsManual(start, end domain.LatLng,
 	shuttleStep := domain.DirectionStep{
 		Instruction: fmt.Sprintf("Take the Concordia Shuttle Bus from SGW to LOY (day: %s, departure: %s)", d, depParsed.Format("15:04")),
 		Distance:    formatKm(haversineKm(sgwShuttleStop, loyShuttleStop)),
-		Duration:    "25 mins",
+		Duration:    shuttleDuration,
 		Start:       sgwShuttleStop,
 		End:         loyShuttleStop,
 	}

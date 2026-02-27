@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestSetupRouter_RegistersRoutes(t *testing.T) {
+func TestSetupRouterRegistersRoutes(t *testing.T) {
 	os.Setenv("JWT_SECRET", "testsecret")
 	defer os.Unsetenv("JWT_SECRET")
 
@@ -32,7 +32,7 @@ func TestSetupRouter_RegistersRoutes(t *testing.T) {
 	}
 }
 
-func TestSetupTestRouter_ReturnsRouter(t *testing.T) {
+func TestSetupTestRouterReturnsRouter(t *testing.T) {
 	os.Setenv("JWT_SECRET", "testsecret")
 	defer os.Unsetenv("JWT_SECRET")
 

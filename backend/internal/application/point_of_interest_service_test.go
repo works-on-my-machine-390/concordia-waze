@@ -46,7 +46,7 @@ func (f *fakePlacesClientPOI) TextSearchPlaces(input string, lat, lng float64, m
 	return f.Places, f.Err
 }
 
-func TestGetNearbyPointsOfInterest_EmptyInput(t *testing.T) {
+func TestGetNearbyPointsOfInterestEmptyInput(t *testing.T) {
 	svc := NewPointOfInterestService(&fakePlacesClientPOI{})
 
 	_, err := svc.GetNearbyPointsOfInterest("", 45.0, -73.0, 500, "RELEVANCE")
@@ -54,7 +54,7 @@ func TestGetNearbyPointsOfInterest_EmptyInput(t *testing.T) {
 	assert.Contains(t, err.Error(), "input cannot be empty")
 }
 
-func TestGetNearbyPointsOfInterest_Defaults(t *testing.T) {
+func TestGetNearbyPointsOfInterestDefaults(t *testing.T) {
 	fake := &fakePlacesClientPOI{
 		Places: []domain.Building{{Code: "1", Name: "A"}},
 	}
@@ -68,7 +68,7 @@ func TestGetNearbyPointsOfInterest_Defaults(t *testing.T) {
 	assert.Equal(t, "DISTANCE", fake.RankPreference, "expected default rank preference to be DISTANCE")
 }
 
-func TestGetNearbyPointsOfInterest_Success(t *testing.T) {
+func TestGetNearbyPointsOfInterestSuccess(t *testing.T) {
 	expected := []domain.Building{
 		{Code: "P1", Name: "Place 1", Address: "Addr 1", Latitude: 45.0, Longitude: -73.0},
 		{Code: "P2", Name: "Place 2", Address: "Addr 2", Latitude: 45.1, Longitude: -73.1},
@@ -85,7 +85,7 @@ func TestGetNearbyPointsOfInterest_Success(t *testing.T) {
 	assert.Equal(t, "RELEVANCE", fake.RankPreference)
 }
 
-func TestGetNearbyPointsOfInterest_PlacesError(t *testing.T) {
+func TestGetNearbyPointsOfInterestPlacesError(t *testing.T) {
 	fake := &fakePlacesClientPOI{Err: errors.New("google error")}
 	svc := NewPointOfInterestService(fake)
 

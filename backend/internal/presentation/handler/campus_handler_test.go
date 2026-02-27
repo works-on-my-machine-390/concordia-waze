@@ -24,7 +24,7 @@ func (f *fakeCampusRepo) GetCampusPolygons(campus string) ([]domain.BuildingPoly
 	return f.polys, nil
 }
 
-func TestCampusHandler_GetCampusBuildings_Success200(t *testing.T) {
+func TestCampusHandlerGetCampusBuildingsSuccess200(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	repo := &fakeCampusRepo{
@@ -63,7 +63,7 @@ func TestCampusHandler_GetCampusBuildings_Success200(t *testing.T) {
 	}
 }
 
-func TestCampusHandler_GetCampusBuildings_InvalidCampus404(t *testing.T) {
+func TestCampusHandlerGetCampusBuildingsInvalidCampus404(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	repo := &fakeCampusRepo{err: domain.ErrNotFound}
@@ -87,7 +87,7 @@ func TestCampusHandler_GetCampusBuildings_InvalidCampus404(t *testing.T) {
 	}
 }
 
-func TestCampusHandler_GetCampusBuildings_InternalError500(t *testing.T) {
+func TestCampusHandlerGetCampusBuildingsInternalError500(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	repo := &fakeCampusRepo{err: errors.New("boom")}

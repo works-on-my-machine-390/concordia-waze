@@ -30,8 +30,13 @@ import BuildingGallery from "./BuildingGallery";
 
 const concordiaLogo = require("../assets/images/concordia_logo.png");
 
+type ListSectionProps = Readonly<{
+  title: string;
+  items: readonly string[];
+}>;
+
 // Reusable list section
-function ListSection({ title, items }: { title: string; items: string[] }) {
+function ListSection({ title, items }: ListSectionProps) {
   return (
     <View style={styles.listContainer}>
       <Text style={styles.listTitle}>{title}</Text>

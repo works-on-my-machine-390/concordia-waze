@@ -78,7 +78,7 @@ func (f *fakePlacesClient) GetPhotoURLs(string) ([]string, error) {
 	return f.images, f.err
 }
 
-func TestBuildingService_GetBuilding_Success(t *testing.T) {
+func TestBuildingServiceGetBuildingSuccess(t *testing.T) {
 	repo := &fakeBuildingRepo{
 		b: &domain.Building{
 			Code:     "MB",
@@ -115,7 +115,7 @@ func TestBuildingService_GetBuilding_Success(t *testing.T) {
 	}
 }
 
-func TestBuildingService_GetBuilding_PlacesErrorNonFatal(t *testing.T) {
+func TestBuildingServiceGetBuildingPlacesErrorNonFatal(t *testing.T) {
 	repo := &fakeBuildingRepo{
 		b: &domain.Building{
 			Code:     "MB",
@@ -142,7 +142,7 @@ func TestBuildingService_GetBuilding_PlacesErrorNonFatal(t *testing.T) {
 	}
 }
 
-func TestBuildingService_GetBuilding_NotFound(t *testing.T) {
+func TestBuildingServiceGetBuildingNotFound(t *testing.T) {
 	repo := &fakeBuildingRepo{err: domain.ErrNotFound}
 	// places client may be nil because repo returns error before places are used
 	svc := NewBuildingService(repo, nil)
@@ -156,7 +156,7 @@ func TestBuildingService_GetBuilding_NotFound(t *testing.T) {
 	}
 }
 
-func TestCampusService_GetCampusBuildings_Success(t *testing.T) {
+func TestCampusServiceGetCampusBuildingsSuccess(t *testing.T) {
 	repo := &fakeCampusRepo{
 		polys: []domain.BuildingPolygon{
 			{Code: "MB", Polygon: []domain.LatLng{{Lat: 45.0, Lng: -73.0}}},
@@ -173,7 +173,7 @@ func TestCampusService_GetCampusBuildings_Success(t *testing.T) {
 	}
 }
 
-func TestCampusService_GetCampusBuildings_NotFound(t *testing.T) {
+func TestCampusServiceGetCampusBuildingsNotFound(t *testing.T) {
 	repo := &fakeCampusRepo{err: domain.ErrNotFound}
 	svc := NewCampusService(repo)
 
@@ -186,7 +186,7 @@ func TestCampusService_GetCampusBuildings_NotFound(t *testing.T) {
 	}
 }
 
-func TestBuildingService_GetAllBuildingsByCampus_Success(t *testing.T) {
+func TestBuildingServiceGetAllBuildingsByCampusSuccess(t *testing.T) {
 	repo := &fakeBuildingRepo{
 		allMap: map[string][]domain.BuildingSummary{
 			"SGW": {
@@ -288,7 +288,7 @@ func TestImageServiceGetBuildingImagesPlacesError(t *testing.T) {
 	assert.Nil(t, images)
 }
 
-func TestFetchOpeningHours_Success(t *testing.T) {
+func TestFetchOpeningHoursSuccess(t *testing.T) {
 	repo := &fakeBuildingRepo{
 		b: &domain.Building{
 			Code:      "LS",
@@ -324,7 +324,7 @@ func TestFetchOpeningHours_Success(t *testing.T) {
 	assert.Nil(t, repo.b.OpeningHours)
 }
 
-func TestFetchOpeningHours_GetBuildingError(t *testing.T) {
+func TestFetchOpeningHoursGetBuildingError(t *testing.T) {
 	repo := &fakeBuildingRepo{
 		err: errors.New("not found"),
 	}
@@ -337,7 +337,7 @@ func TestFetchOpeningHours_GetBuildingError(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestFetchOpeningHours_FindPlaceIDError(t *testing.T) {
+func TestFetchOpeningHoursFindPlaceIDError(t *testing.T) {
 	repo := &fakeBuildingRepo{
 		b: &domain.Building{
 			Code:      "LS",
@@ -360,7 +360,7 @@ func TestFetchOpeningHours_FindPlaceIDError(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestFetchOpeningHours_GetOpeningHoursError(t *testing.T) {
+func TestFetchOpeningHoursGetOpeningHoursError(t *testing.T) {
 	repo := &fakeBuildingRepo{
 		b: &domain.Building{
 			Code:      "LS",
@@ -384,7 +384,7 @@ func TestFetchOpeningHours_GetOpeningHoursError(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestFetchOpeningHours_EmptyHours(t *testing.T) {
+func TestFetchOpeningHoursEmptyHours(t *testing.T) {
 	repo := &fakeBuildingRepo{
 		b: &domain.Building{
 			Code:      "LS",

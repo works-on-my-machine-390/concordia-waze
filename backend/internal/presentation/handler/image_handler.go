@@ -8,10 +8,10 @@ import (
 )
 
 type ImageHandler struct {
-	service application.ImageService
+	service application.ImageServiceGetter
 }
 
-func NewImageHandler(service application.ImageService) *ImageHandler {
+func NewImageHandler(service application.ImageServiceGetter) *ImageHandler {
 	return &ImageHandler{service: service}
 }
 
