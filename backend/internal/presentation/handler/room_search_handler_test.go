@@ -76,3 +76,19 @@ func TestRoomSearchHandler_Success(t *testing.T) {
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	assert.Equal(t, expected, resp.Data)
 }
+
+func TestRoomSearchHandler_InternalServerError(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	h := NewRoomSearchHandler(&fakeRoomSearchService{Err: errors.New("db down")})
+
+	r := gin.New()
+	r.GET("/rooms/search", h.SearchRoom)
+
+	req := httptest.NewRequest(http.MethodGet, "/rooms/search?building=MB&room=S2.285", nil)
+	w := httptest.NewRecorder()
+
+	r.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	assert.Contains(t, w.Body.String(), "db down")
+}
