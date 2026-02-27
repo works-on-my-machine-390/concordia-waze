@@ -2,6 +2,15 @@ import { COLORS } from "@/app/constants";
 import { StyleSheet } from "react-native";
 
 export const poiFilterStyles = StyleSheet.create({
+  filterScrollView: {
+    display: "flex",
+    flexDirection: "row",
+    paddingHorizontal: 16,
+    gap: 10,
+    minHeight: 52,
+    paddingVertical: 4,
+    overflow: "visible",
+  },
   filterChip: {
     backgroundColor: COLORS.bgDark,
     paddingHorizontal: 12,
@@ -59,5 +68,19 @@ export const poiMarkerStyles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 2,
     borderColor: COLORS.background,
+  },
+});
+
+export const poiListStyles = StyleSheet.create({
+  itemContainer: {
+    paddingTop: 8,
+    paddingBottom: 16,
+    display: "flex",
+    marginTop: 8,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    borderBottomColor: COLORS.border,
+    borderBottomWidth: 1,
   },
 });

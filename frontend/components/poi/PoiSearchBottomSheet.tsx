@@ -15,6 +15,7 @@ import { BottomSheetStyles } from "../BuildingBottomSheet";
 import PoiSearchBottomSheetHeader from "./PoiSearchBottomSheetHeader";
 import PoiSearchRankPreferenceFilter from "./PoiSearchRankPreferenceFilter";
 import PoiSearchResult from "./PoiSearchResult";
+import { poiFilterStyles } from "@/app/styles/poi/poiStyle";
 
 export type PoiSearchBottomSheetProps = {
   onClose?: () => void;
@@ -27,7 +28,7 @@ export type PoiSearchBottomSheetProps = {
 };
 
 export type ExtendedPoiSearchResultModel = {
-  distanceFromUser: number; // in meters
+  distanceFromUserInMeters: number; // in meters
 } & PoiSearchResultModel;
 
 export default function PoiSearchBottomSheet(
@@ -55,7 +56,7 @@ export default function PoiSearchBottomSheet(
       if (!props.userLocation) {
         return {
           ...result,
-          distanceFromUser: 0,
+          distanceFromUserInMeters: 0,
         };
       }
 
@@ -68,13 +69,15 @@ export default function PoiSearchBottomSheet(
       );
       return {
         ...result,
-        distanceFromUser: distance,
+        distanceFromUserInMeters: distance,
       };
     });
     if (params.rankPref === TextSearchRankPreferenceType.RELEVANCE) {
       return resultsWithDistances;
     }
-    const sortedResults = resultsWithDistances.sort((a, b) => a.distanceFromUser - b.distanceFromUser);
+    const sortedResults = [...resultsWithDistances].sort(
+      (a, b) => a.distanceFromUserInMeters - b.distanceFromUserInMeters,
+    );
     return sortedResults;
   }, [poiSearchQuery.data, poiSearchQuery.isLoading, props.userLocation]);
 
@@ -122,15 +125,7 @@ export default function PoiSearchBottomSheet(
           showsHorizontalScrollIndicator={false}
           nestedScrollEnabled={true}
           style={{ overflow: "visible" }}
-          contentContainerStyle={{
-            display: "flex",
-            flexDirection: "row",
-            paddingHorizontal: 16,
-            gap: 10,
-            minHeight: 52,
-            paddingVertical: 4,
-            overflow: "visible",
-          }}
+          contentContainerStyle={poiFilterStyles.filterScrollView}
         >
           <PoiSearchRankPreferenceFilter onChange={performRefetch} />
         </ScrollView>
