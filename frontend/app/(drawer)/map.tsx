@@ -26,6 +26,7 @@ import {
 } from "../constants";
 import { getDistance } from "../utils/mapUtils";
 import PoiOutdoorMarkers from "@/components/poi/PoiOutdoorMarkers";
+import ShuttleBusMarkers from "@/components/ShuttleBusMarkers";
 
 export type MapQueryParamsModel = {
   selected?: string;
@@ -561,6 +562,7 @@ export default function MainMap() {
           onBuildingPress={handlePolygonPress}
         />
         {isPoiMode && <PoiOutdoorMarkers />}
+        <ShuttleBusMarkers />
       </MapView>
 
       {isNavigationMode ? (
