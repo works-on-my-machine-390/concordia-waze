@@ -26,7 +26,6 @@ import ListSection from "./BottomSheetListSection";
 
 const concordiaLogo = require("../assets/images/concordia_logo.png");
 
-
 type Props = {
   buildingCode: string | null;
   onClose?: () => void;
@@ -481,27 +480,6 @@ export const BottomSheetStyles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 16,
     paddingBottom: 20,
-  },
-
-  listContainer: {
-    marginBottom: 20,
-    backgroundColor: "#f2f2f2",
-    padding: 10,
-    width: "100%",
-    borderRadius: 8,
-  },
-
-  listTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 6,
-    color: COLORS.textPrimary,
-  },
-
-  listItem: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    marginBottom: 4,
   },
 
   gallerySkeleton: {
