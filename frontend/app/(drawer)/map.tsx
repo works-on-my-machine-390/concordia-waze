@@ -1,10 +1,12 @@
 import BuildingBottomSheet from "@/components/BuildingBottomSheet";
+import PoiSearchBottomSheet from "@/components/poi/PoiSearchBottomSheet";
 import {
   CampusBuilding,
   CampusCode,
   useGetBuildingDetails,
   useGetBuildings,
 } from "@/hooks/queries/buildingQueries";
+import { TextSearchRankPreferenceType } from "@/hooks/queries/poiQueries";
 import { useSaveToHistory } from "@/hooks/queries/userHistoryQueries";
 import { useGetProfile } from "@/hooks/queries/userQueries";
 import * as Location from "expo-location";
@@ -18,27 +20,35 @@ import CampusBuildingPolygons from "~/components/CampusBuildingPolygons";
 import LocationButton from "~/components/LocationButton";
 import { MapHeader } from "~/components/MapHeader";
 import { NavigationHeader } from "~/components/NavigationHeader";
+import {
+  DEFAULT_CAMERA_MOVE_DURATION_IN_MS,
+  DEFAULT_MAP_DELTA,
+} from "../constants";
 import { getDistance } from "../utils/mapUtils";
+import PoiOutdoorMarkers from "@/components/poi/PoiOutdoorMarkers";
+
+export type MapQueryParamsModel = {
+  selected?: string;
+  campus?: string;
+  editMode?: "start" | "end";
+  editValue?: string;
+  preserveStart?: string;
+  preserveEnd?: string;
+  camLat?: string; // latitude for the center of the map camera
+  camLng?: string; // longitude for the center of the map camera
+} & MapPOIQueryParamsModel;
+
+export type MapPOIQueryParamsModel = {
+  query?: string;
+  poiLat?: string; // latitude for the center of the POI search
+  poiLng?: string; // longitude for the center of the POI search
+  rankPref?: TextSearchRankPreferenceType; // "DISTANCE" or "RELEVANCE"
+};
 
 export default function MainMap() {
   const router = useRouter();
-  const {
-    selected,
-    campus: campusParam,
-    editMode,
-    editValue,
-    preserveEnd,
-    preserveStart,
-  } = useLocalSearchParams<{
-    selected?: string;
-    campus?: string;
-    editMode?: string;
-    editValue?: string;
-    preserveEnd?: string;
-    preserveStart?: string;
-  }>();
+  const params = useLocalSearchParams<MapQueryParamsModel>();
   const [campus, setCampus] = useState<CampusCode>(CampusCode.SGW);
-  const [searchText, setSearchText] = useState("");
   const [currentBuildingCode, setCurrentBuildingCode] = useState<string | null>(
     null,
   );
@@ -53,8 +63,14 @@ export default function MainMap() {
   const [buildingsByCampus, setBuildingsByCampus] = useState<
     Record<string, CampusBuilding[]>
   >({});
+  const [cameraCenter, setCameraCenter] = useState<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
 
   const [isNavigationMode, setIsNavigationMode] = useState(false);
+  const [isPoiMode, setIsPoiMode] = useState<boolean>(false);
+
   const [customStartBuilding, setCustomStartBuilding] = useState<string | null>(
     null,
   );
@@ -74,6 +90,30 @@ export default function MainMap() {
 
   const buildingListQuery = useGetBuildings(campus);
 
+  const moveCamera = (params: {
+    latitude: number;
+    longitude: number;
+    delta?: number;
+    duration?: number;
+  }) => {
+    setCameraCenter({
+      latitude: params.latitude,
+      longitude: params.longitude,
+    });
+
+    if (mapRef.current) {
+      mapRef.current.animateToRegion(
+        {
+          latitude: params.latitude,
+          longitude: params.longitude,
+          latitudeDelta: params.delta || DEFAULT_MAP_DELTA,
+          longitudeDelta: params.delta || DEFAULT_MAP_DELTA,
+        },
+        params.duration || DEFAULT_CAMERA_MOVE_DURATION_IN_MS,
+      );
+    }
+  };
+
   useEffect(() => {
     if (buildingListQuery.data) {
       setBuildingsByCampus((prev) => ({
@@ -85,31 +125,35 @@ export default function MainMap() {
 
   // Initialize building selection from search params, if present
   useEffect(() => {
-    if (editMode) return;
-    if (typeof selected === "string" && selected.length > 0) {
-      setSelectedBuildingCode(selected);
+    if (params.editMode) return;
+    if (typeof params.selected === "string" && params.selected.length > 0) {
+      setSelectedBuildingCode(params.selected);
     }
-  }, [selected]);
+  }, [params.selected]);
+
+  useEffect(() => {
+    if (params.query) {
+      setIsPoiMode(true);
+      setSelectedBuildingCode(null);
+    } else {
+      setIsPoiMode(false);
+    }
+  }, [params.query]);
 
   // Initialize campus from navigation params, if present
   useEffect(() => {
-    if (typeof campusParam === "string") {
-      const normalized = campusParam.toUpperCase();
+    if (typeof params.campus === "string") {
+      const normalized = params.campus.toUpperCase();
       if (normalized === CampusCode.SGW || normalized === CampusCode.LOY) {
         setCampus(normalized as CampusCode);
         const coords = CAMPUS_COORDS[normalized as CampusCode];
-        mapRef.current?.animateToRegion(
-          {
-            latitude: coords.latitude,
-            longitude: coords.longitude,
-            latitudeDelta: 0.005,
-            longitudeDelta: 0.005,
-          },
-          500,
-        );
+        moveCamera({
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+        });
       }
     }
-  }, [campusParam]);
+  }, [params.campus]);
 
   const buildingsToRender = useMemo(() => {
     return buildingsByCampus[campus] || [];
@@ -206,7 +250,36 @@ export default function MainMap() {
     [CampusCode.LOY]: { latitude: 45.4589, longitude: -73.64 }, // Loyola campus
   };
 
+  const initializeCameraCenterFromParams = () => {
+    if (params.camLat && params.camLng) {
+      const lat = Number.parseFloat(params.camLat);
+      const lng = Number.parseFloat(params.camLng);
+      if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
+        setTimeout(() => {
+          moveCamera({
+            latitude: lat,
+            longitude: lng,
+            duration: 100,
+          });
+        }, 500);
+      }
+    } else {
+      // default to campus center if no params, and set params to reflect that
+      const coords = CAMPUS_COORDS[campus];
+      router.setParams({
+        camLat: String(coords.latitude),
+        camLng: String(coords.longitude),
+      });
+      moveCamera({
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+      });
+    }
+  };
+
   useEffect(() => {
+    initializeCameraCenterFromParams();
+
     let sub: Location.LocationSubscription | null = null;
 
     const startWatching = async () => {
@@ -276,15 +349,10 @@ export default function MainMap() {
       }
 
       if (coords) {
-        mapRef.current?.animateToRegion(
-          {
-            latitude: coords.latitude,
-            longitude: coords.longitude,
-            latitudeDelta: 0.005,
-            longitudeDelta: 0.005,
-          },
-          500,
-        );
+        moveCamera({
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+        });
       }
     } catch (e) {
       console.error("Failed to get to your location.", e);
@@ -295,20 +363,22 @@ export default function MainMap() {
   const handleCampusChange = (nextCampus: CampusCode) => {
     setCampus(nextCampus);
     const coords = CAMPUS_COORDS[nextCampus];
-    mapRef.current?.animateToRegion(
-      {
-        latitude: coords.latitude,
-        longitude: coords.longitude,
-        latitudeDelta: 0.005,
-        longitudeDelta: 0.005,
-      },
-      500,
-    );
+    moveCamera({
+      latitude: coords.latitude,
+      longitude: coords.longitude,
+    });
   };
 
   // Handle map region changes to auto-switch campus
   const handleRegionChangeComplete = (region: Region) => {
     const { latitude, longitude } = region;
+    setCameraCenter({ latitude, longitude });
+
+    router.setParams({
+      query: params.query || "",
+      camLat: String(latitude),
+      camLng: String(longitude),
+    });
 
     // Calculate distance to each campus
     const distanceToSGW = getDistance(
@@ -434,22 +504,37 @@ export default function MainMap() {
   }, [selectedBuildingCode, isNavigationMode]);
 
   useEffect(() => {
-    if (editMode && editValue) {
-      if (editMode === "start") {
-        setCustomStartBuilding(editValue);
-        if (preserveEnd) {
-          setSelectedBuildingCode(preserveEnd);
+    if (params.editMode && params.editValue) {
+      if (params.editMode === "start") {
+        setCustomStartBuilding(params.editValue);
+        if (params.preserveEnd) {
+          setSelectedBuildingCode(params.preserveEnd);
         }
         setIsNavigationMode(true);
-      } else if (editMode === "end") {
-        setSelectedBuildingCode(editValue);
-        if (preserveStart) {
-          setCustomStartBuilding(preserveStart);
+      } else if (params.editMode === "end") {
+        setSelectedBuildingCode(params.editValue);
+        if (params.preserveStart) {
+          setCustomStartBuilding(params.preserveStart);
         }
         setIsNavigationMode(true);
       }
     }
-  }, [editMode, editValue, preserveEnd, preserveStart]);
+  }, [params]);
+
+  const handleSearchBarClear = () => {
+    router.setParams({
+      query: "",
+    });
+  };
+
+  const handlePolygonPress = (buildingCode: string) => {
+    if (isPoiMode) {
+      router.setParams({
+        query: "",
+      });
+    }
+    setSelectedBuildingCode(buildingCode);
+  };
 
   return (
     <View style={styles.container}>
@@ -464,8 +549,8 @@ export default function MainMap() {
           // coordinates for SGW campus (default)
           latitude: CAMPUS_COORDS[CampusCode.SGW].latitude,
           longitude: CAMPUS_COORDS[CampusCode.SGW].longitude,
-          latitudeDelta: 0.005,
-          longitudeDelta: 0.005,
+          latitudeDelta: DEFAULT_MAP_DELTA,
+          longitudeDelta: DEFAULT_MAP_DELTA,
         }}
         onRegionChangeComplete={handleRegionChangeComplete}
       >
@@ -473,8 +558,9 @@ export default function MainMap() {
           buildings={buildingsToRender}
           highlightedCode={currentBuildingCode}
           selectedCode={selectedBuildingCode}
-          onBuildingPress={setSelectedBuildingCode}
+          onBuildingPress={handlePolygonPress}
         />
+        {isPoiMode && <PoiOutdoorMarkers />}
       </MapView>
 
       {isNavigationMode ? (
@@ -497,9 +583,11 @@ export default function MainMap() {
         <MapHeader
           campus={campus}
           onCampusChange={handleCampusChange}
-          searchText={searchText}
-          onSearchTextChange={setSearchText}
+          searchText={params.query || ""}
+          onSearchClear={handleSearchBarClear}
           onMenuPress={() => {}}
+          camLat={String((cameraCenter || CAMPUS_COORDS[campus]).latitude)}
+          camLng={String((cameraCenter || CAMPUS_COORDS[campus]).longitude)}
         />
       )}
       <View style={styles.bottomSheetContainer}>
@@ -507,6 +595,22 @@ export default function MainMap() {
           onPress={goToMyLocation}
           bottomPosition={locationButtonPosition}
         />
+
+        {isPoiMode && (
+          <PoiSearchBottomSheet
+            moveCamera={moveCamera}
+            onClose={() =>
+              router.setParams({
+                query: "",
+                poiLat: undefined,
+                poiLng: undefined,
+              })
+            }
+            onDirectionsPress={() => {}}
+            userLocation={location?.coords}
+            // TODO: generalize directions for POI
+          />
+        )}
 
         {!!selectedBuildingCode && (
           <BuildingBottomSheet

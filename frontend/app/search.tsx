@@ -1,14 +1,19 @@
+import SearchNearbyButton from "@/components/poi/SearchNearbyButton";
 import {
   addGuestSearchHistory,
   clearGuestSearchHistory,
   getGuestSearchHistory,
 } from "@/hooks/guestStorage";
-import type { Building } from "@/hooks/queries/buildingQueries";
+import type {
+  Building,
+  BuildingListItem,
+} from "@/hooks/queries/buildingQueries";
 import {
   CampusCode,
   useGetAllBuildings,
   useGetBuildings,
 } from "@/hooks/queries/buildingQueries";
+import { POI_DEFAULT_RANK_PREFERENCE } from "@/hooks/queries/poiQueries";
 import {
   useClearUserHistory,
   useGetUserHistory,
@@ -30,17 +35,26 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colors, SHADOW } from "./styles/theme";
 import { filterBuildingsByQuery } from "./utils/searchUtils";
+import SearchNearbySuggestions from "@/components/poi/SearchNearbySuggestions";
+
+export type SearchQueryParamsModel = {
+  campus?: string;
+  editMode?: "start" | "end";
+  preserveStart?: string;
+  preserveEnd?: string;
+} & SearchPOIQueryParamsModel;
+
+export type SearchPOIQueryParamsModel = {
+  query?: string;
+  camLat?: string;
+  camLng?: string;
+};
 
 export default function SearchPage() {
   const router = useRouter();
-  const params = useLocalSearchParams<{
-    campus?: string;
-    editMode?: string;
-    preserveEnd?: string;
-    preserveStart?: string;
-  }>();
-  const campus = (params.campus as string) || CampusCode.SGW;
-  const editMode = params.editMode as "start" | "end" | undefined;
+  const params = useLocalSearchParams<SearchQueryParamsModel>();
+  const campus = params.campus || CampusCode.SGW;
+  const editMode = params.editMode;
   const { data: userProfile } = useGetProfile();
   const userId = userProfile?.id || "";
   const saveToHistory = useSaveToHistory(userId);
@@ -117,14 +131,14 @@ export default function SearchPage() {
 
       const split = item.query.split("-");
       const candidateCode = split[0]?.trim() ?? "";
-      const normalizedCode =
-        item.code && lookup.has(item.code)
-          ? item.code
-          : lookup.has(candidateCode)
-            ? candidateCode
-            : lookup.has(item.query)
-              ? item.query
-              : "";
+      let normalizedCode = "";
+      if (item.code && lookup.has(item.code)) {
+        normalizedCode = item.code;
+      } else if (lookup.has(candidateCode)) {
+        normalizedCode = candidateCode;
+      } else if (lookup.has(item.query)) {
+        normalizedCode = item.query;
+      }
       const campus = normalizedCode ? lookup.get(normalizedCode) : undefined;
 
       items.push({
@@ -141,7 +155,7 @@ export default function SearchPage() {
     loyBuildingsQuery.data?.buildings,
   ]);
 
-  const results = useMemo(() => {
+  const results: BuildingListItem[] = useMemo(() => {
     if (allBuildingsQuery.isLoading) {
       return [];
     }
@@ -199,7 +213,7 @@ export default function SearchPage() {
     const normalized = pendingRecent.query.trim().toLowerCase();
     const match =
       results.find((item) => {
-        const name = item.longName ?? item.name ?? "";
+        const name = item.long_name ?? item.name ?? "";
         if (!name) return false;
         const label = `${item.code} - ${name}`.toLowerCase();
         return name.toLowerCase() === normalized || label === normalized;
@@ -208,10 +222,13 @@ export default function SearchPage() {
     handleSelect(
       match.code,
       match.campus,
-      match.longName || match.name
-        ? `${match.code} - ${match.longName ?? match.name}`
+      match.long_name || match.name
+        ? `${match.code} - ${match.long_name ?? match.name}`
         : match.code,
       match.address,
+      match.latitude && match.longitude
+        ? { latitude: match.latitude, longitude: match.longitude }
+        : undefined,
     );
     setPendingRecent(null);
   }, [pendingRecent, results]);
@@ -221,6 +238,7 @@ export default function SearchPage() {
     targetCampus?: CampusCode,
     label?: string,
     address?: string,
+    cameraPosition?: { latitude: number; longitude: number },
   ) => {
     const resolvedCampus = targetCampus ?? (campus as CampusCode);
 
@@ -239,9 +257,18 @@ export default function SearchPage() {
       });
     } else {
       // Navigate immediately to avoid UI interruptions from state updates
+
+      const lat = cameraPosition?.latitude;
+      const lng = cameraPosition?.longitude;
+
       router.replace({
         pathname: "/map",
-        params: { selected: code, campus: resolvedCampus },
+        params: {
+          selected: code,
+          campus: resolvedCampus,
+          camLat: lat?.toString() ?? "",
+          camLng: lng?.toString() ?? "",
+        },
       });
     }
     // Record the search asynchronously (non-blocking)
@@ -278,105 +305,161 @@ export default function SearchPage() {
 
   const showRecent = query.trim().length === 0 && recentItems.length > 0;
 
+  const handleRecentItemPress = (item: (typeof recentItems)[0]) => {
+    if (item.code) {
+      const entryFromBuildingList =
+        allBuildingsQuery.data?.buildings[
+          item.campus ?? (campus as CampusCode)
+        ]?.find((b) => b.code === item.code) ?? null;
+
+      const latitude = entryFromBuildingList?.latitude;
+      const longitude = entryFromBuildingList?.longitude;
+
+      handleSelect(
+        item.code,
+        item.campus ?? (campus as CampusCode),
+        item.query,
+        item.locations,
+        latitude && longitude ? { latitude, longitude } : undefined,
+      );
+    } else {
+      const extracted = extractCodeFromQuery(item.query);
+      if (extracted) {
+        handleSelect(
+          extracted,
+          campus as CampusCode,
+          item.query,
+          item.locations,
+        );
+        return;
+      }
+      setPendingRecent({
+        query: item.query,
+        locations: item.locations,
+      });
+      setQuery(item.query);
+    }
+  };
+
+  const getRecentItemTitle = (item: (typeof recentItems)[0]): string => {
+    if (!item.code) return item.query;
+
+    const details = queryClient.getQueryData<Building>([
+      "buildingDetails",
+      item.code,
+    ]);
+    const name = details?.long_name ?? details?.name;
+    if (name) return `${item.code} - ${name}`;
+    if (item.query.includes(" - ")) return item.query;
+    return item.code;
+  };
+
+  const handleSearchNearbyPressed = (label?: string) => {
+    router.push({
+      pathname: "/map",
+      params: {
+        query: label || query.trim(),
+        campus: campus as CampusCode,
+        poiLat: params.camLat,
+        poiLng: params.camLng,
+        camLat: params.camLat,
+        camLng: params.camLng,
+        rankPref: POI_DEFAULT_RANK_PREFERENCE,
+      },
+    });
+  };
+
+  const renderHeaderComponent = () => {
+    // search nearby and recent searches are mutually exclusive,
+    // so nearby gets priority when query is present
+    if (query.trim().length > 0) {
+      return (
+        <SearchNearbyButton onPress={handleSearchNearbyPressed} query={query} />
+      );
+    }
+
+    if (showRecent) {
+      return (
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Recent searches</Text>
+            <Pressable onPress={handleClearRecent}>
+              <Text style={styles.clearText}>Clear</Text>
+            </Pressable>
+          </View>
+          {recentItems.map((item) => (
+            <Pressable
+              key={`${item.query}-${item.locations}`}
+              style={styles.resultItem}
+              onPress={() => handleRecentItemPress(item)}
+            >
+              <Text style={styles.resultTitle}>{getRecentItemTitle(item)}</Text>
+              {item.locations ? (
+                <Text style={styles.resultSubtitle}>{item.locations}</Text>
+              ) : null}
+            </Pressable>
+          ))}
+        </View>
+      );
+    }
+  };
+
+  const renderEmptyComponent = () => {
+    if (query.trim().length > 0)
+      return (
+        <View style={styles.empty}>
+          <Text style={styles.emptyText}>No matches found</Text>
+        </View>
+      );
+
+    if (showRecent) {
+      return null;
+    }
+
+    return (
+      <View style={styles.empty}>
+        <Text style={styles.emptyText}>Start typing to search</Text>
+      </View>
+    );
+  };
+
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
       <View style={styles.page}>
-        <View style={styles.header}>
-          <Pressable
-            style={styles.iconButton}
-            onPress={() => router.back()}
-            testID="back-button"
-          >
-            <Ionicons name="arrow-back" size={26} color={colors.maroon} />
-          </Pressable>
-          <View style={styles.searchPill}>
-            <Ionicons name="search" size={22} color={colors.maroon} />
-            <TextInput
-              autoFocus
-              value={query}
-              onChangeText={setQuery}
-              placeholder="Where to…"
-              placeholderTextColor="#818181"
-              style={styles.searchInput}
-            />
+        <View style={styles.headerContainer}>
+          <View style={styles.header}>
+            <Pressable
+              style={styles.iconButton}
+              onPress={() => router.back()}
+              testID="back-button"
+            >
+              <Ionicons name="arrow-back" size={26} color={colors.maroon} />
+            </Pressable>
+            <View style={styles.searchPill}>
+              <Ionicons name="search" size={22} color={colors.maroon} />
+              <TextInput
+                autoFocus
+                value={query}
+                onChangeText={setQuery}
+                placeholder="Where to…"
+                placeholderTextColor="#818181"
+                style={styles.searchInput}
+              />
+              {query.length > 0 && (
+                <Pressable onPress={() => setQuery("")}>
+                  <Ionicons name="close-circle" size={20} color="#818181" />
+                </Pressable>
+              )}
+            </View>
           </View>
+          <SearchNearbySuggestions onClick={handleSearchNearbyPressed} />
         </View>
 
         <FlatList
           data={results}
           keyExtractor={(item) => item.code}
           contentContainerStyle={styles.listContainer}
-          ListHeaderComponent={
-            showRecent
-              ? () => (
-                  <View style={styles.section}>
-                    <View style={styles.sectionHeader}>
-                      <Text style={styles.sectionTitle}>Recent searches</Text>
-                      <Pressable onPress={handleClearRecent}>
-                        <Text style={styles.clearText}>Clear</Text>
-                      </Pressable>
-                    </View>
-                    {recentItems.map((item) => (
-                      <Pressable
-                        key={`${item.query}-${item.locations}`}
-                        style={styles.resultItem}
-                        onPress={() =>
-                          item.code
-                            ? handleSelect(
-                                item.code,
-                                item.campus ?? (campus as CampusCode),
-                                item.query,
-                                item.locations,
-                              )
-                            : (() => {
-                                const extracted = extractCodeFromQuery(
-                                  item.query,
-                                );
-                                if (extracted) {
-                                  handleSelect(
-                                    extracted,
-                                    campus as CampusCode,
-                                    item.query,
-                                    item.locations,
-                                  );
-                                  return;
-                                }
-                                setPendingRecent({
-                                  query: item.query,
-                                  locations: item.locations,
-                                });
-                                setQuery(item.query);
-                              })()
-                        }
-                      >
-                        <Text style={styles.resultTitle}>
-                          {item.code
-                            ? (() => {
-                                const details =
-                                  queryClient.getQueryData<Building>([
-                                    "buildingDetails",
-                                    item.code,
-                                  ]);
-                                const name =
-                                  details?.long_name ?? details?.name;
-                                if (name) return `${item.code} - ${name}`;
-                                if (item.query.includes(" - "))
-                                  return item.query;
-                                return item.code;
-                              })()
-                            : item.query}
-                        </Text>
-                        {item.locations ? (
-                          <Text style={styles.resultSubtitle}>
-                            {item.locations}
-                          </Text>
-                        ) : null}
-                      </Pressable>
-                    ))}
-                  </View>
-                )
-              : null
-          }
+          ListHeaderComponent={renderHeaderComponent()}
           renderItem={({ item }) => (
             <Pressable
               style={styles.resultItem}
@@ -384,16 +467,17 @@ export default function SearchPage() {
                 handleSelect(
                   item.code,
                   item.campus,
-                  item.longName || item.name
-                    ? `${item.code} - ${item.longName ?? item.name}`
+                  item.long_name || item.name
+                    ? `${item.code} - ${item.long_name ?? item.name}`
                     : item.code,
                   item.address,
+                  { latitude: item.latitude, longitude: item.longitude },
                 )
               }
             >
               <Text style={styles.resultTitle}>
-                {item.longName || item.name
-                  ? `${item.code} - ${item.longName ?? item.name}`
+                {item.long_name || item.name
+                  ? `${item.code} - ${item.long_name ?? item.name}`
                   : item.code}
               </Text>
               {item.address ? (
@@ -401,23 +485,7 @@ export default function SearchPage() {
               ) : null}
             </Pressable>
           )}
-          ListEmptyComponent={() => {
-            if (query.trim()) {
-              return (
-                <View style={styles.empty}>
-                  <Text style={styles.emptyText}>No matches found</Text>
-                </View>
-              );
-            }
-            if (showRecent) {
-              return null;
-            }
-            return (
-              <View style={styles.empty}>
-                <Text style={styles.emptyText}>Start typing to search</Text>
-              </View>
-            );
-          }}
+          ListEmptyComponent={renderEmptyComponent()}
         />
       </View>
     </SafeAreaView>
@@ -428,6 +496,9 @@ const styles = StyleSheet.create({
   page: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  headerContainer: {
+    flexDirection: "column",
   },
   header: {
     flexDirection: "row",
