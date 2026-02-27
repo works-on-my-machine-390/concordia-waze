@@ -641,6 +641,93 @@
                 }
             }
         },
+        "/pointofinterest/indoor": {
+            "get": {
+                "description": "Returns indoor POIs near a given indoor position (projected coords).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "point of interest"
+                ],
+                "summary": "Get nearby indoor POIs",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Building code (e.g., MB, LB, CC, VL)",
+                        "name": "building",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Floor number",
+                        "name": "floor",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "number",
+                        "description": "Indoor X coordinate (EPSG:32198 meters)",
+                        "name": "x",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "number",
+                        "description": "Indoor Y coordinate (EPSG:32198 meters)",
+                        "name": "y",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Radius in meters (default: 40)",
+                        "name": "radius",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Filter to same floor (default: true)",
+                        "name": "sameFloor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Max results (default: 30)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "bad request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/shuttle": {
             "get": {
                 "description": "Returns the entire shuttle schedule as a mapping: day -\u003e campus -\u003e list of times.",

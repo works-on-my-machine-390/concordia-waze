@@ -654,6 +654,65 @@ paths:
       summary: Get nearby points of interest
       tags:
       - point of interest
+  /pointofinterest/indoor:
+    get:
+      description: Returns indoor POIs near a given indoor position (projected coords).
+      parameters:
+      - description: Building code (e.g., MB, LB, CC, VL)
+        in: query
+        name: building
+        required: true
+        type: string
+      - description: Floor number
+        in: query
+        name: floor
+        required: true
+        type: integer
+      - description: Indoor X coordinate (EPSG:32198 meters)
+        in: query
+        name: x
+        required: true
+        type: number
+      - description: Indoor Y coordinate (EPSG:32198 meters)
+        in: query
+        name: "y"
+        required: true
+        type: number
+      - description: 'Radius in meters (default: 40)'
+        in: query
+        name: radius
+        type: integer
+      - description: 'Filter to same floor (default: true)'
+        in: query
+        name: sameFloor
+        type: boolean
+      - description: 'Max results (default: 30)'
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get nearby indoor POIs
+      tags:
+      - point of interest
   /shuttle:
     get:
       consumes:
