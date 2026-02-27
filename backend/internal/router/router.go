@@ -51,6 +51,9 @@ func SetupRouter() *gin.Engine {
 	}
 	indoorPOIRepo := repository.NewIndoorPOIRepository(dataDir)
 	indoorPOIService := application.NewIndoorPointOfInterestService(indoorPOIRepo)
+	indoorRoomRepo := repository.NewIndoorRoomRepository(dataDir) // reuse same base dir you used for POIs
+	roomSearchService := application.NewRoomSearchService(indoorRoomRepo)
+	roomSearchHandler := handler.NewRoomSearchHandler(roomSearchService)
 
 	// ---- Directions wiring (FIXED: inject shuttle schedule repo) ----
 	directionsClient := google.NewGoogleDirectionsClient(os.Getenv("GOOGLE_DIRECTIONS_API_KEY"))
@@ -111,6 +114,7 @@ func SetupRouter() *gin.Engine {
 
 	router.GET("/pointofinterest", pointOfInterestHandler.GetNearbyPointsOfInterest)
 	router.GET("/pointofinterest/indoor", pointOfInterestHandler.GetNearbyIndoorPOIs)
+	router.GET("/rooms/search", roomSearchHandler.SearchRoom)
 
 	// =========================
 	// PROTECTED ROUTES (auth)
@@ -151,16 +155,15 @@ func findIndoorDataDir() (string, error) {
 		return "", err
 	}
 
-	// Walk up at most 5 levels: ., .., ../.., ...
 	cur := wd
-	for i := 0; i < 5; i++ {
+	for {
 		candidate := filepath.Join(cur, "campusData", "GeoJsonDataParser", "Data")
 		if stat, err := os.Stat(candidate); err == nil && stat.IsDir() {
 			return candidate, nil
 		}
 		parent := filepath.Dir(cur)
 		if parent == cur {
-			break
+			break // reached filesystem root
 		}
 		cur = parent
 	}

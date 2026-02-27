@@ -822,6 +822,53 @@ paths:
       summary: Get nearby indoor POIs
       tags:
       - point of interest
+  /rooms/search:
+    get:
+      description: Returns room centroid coordinates by room number (EPSG:32198)
+      parameters:
+      - description: Building code (MB, LB, CC, VL)
+        in: query
+        name: building
+        required: true
+        type: string
+      - description: Room name/number (e.g., S2.285)
+        in: query
+        name: room
+        required: true
+        type: string
+      - description: Floor (optional; if provided, only searches that floor)
+        in: query
+        name: floor
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Search a room by number
+      tags:
+      - rooms
   /shuttle:
     get:
       consumes:
