@@ -31,7 +31,7 @@ export type NavigationBottomSheetProps = {};
 export default function NavigationBottomSheet(
   props: Readonly<NavigationBottomSheetProps>,
 ) {
-  const mapState = useMapStore();
+  const closeSheet = useMapStore((state) => state.closeSheet);
 
   const navigationState = useNavigationStore();
   const [transitMode, setTransitMode] = useState<TransitMode | null>(null);
@@ -103,9 +103,9 @@ export default function NavigationBottomSheet(
     transitOptions[0];
 
   const snapPoints = useMemo(() => {
-    if (!mapState.userLocation) return ["14%"];
+    if (!navigationState.startLocation) return ["14%"];
     return ["20%"];
-  }, [mapState.userLocation]);
+  }, [navigationState.startLocation]);
 
   return (
     <BottomSheet
@@ -126,12 +126,12 @@ export default function NavigationBottomSheet(
           <View style={NavigationBottomSheetStyles.navModeContainer}>
             <View style={NavigationBottomSheetStyles.navModeHeader}>
               <Text style={NavigationBottomSheetStyles.transitModeTitle}>
-                {mapState.userLocation
+                {navigationState.startLocation
                   ? selectedOption.label
                   : "Please select a start location"}
               </Text>
               <TouchableOpacity
-                onPress={mapState.closeSheet}
+                onPress={closeSheet}
                 style={NavigationBottomSheetStyles.closeIcon}
                 testID="close-navigation"
                 accessibilityLabel="Close navigation"
@@ -141,7 +141,7 @@ export default function NavigationBottomSheet(
               </TouchableOpacity>
             </View>
 
-            {!!mapState.userLocation && (
+            {!!navigationState.startLocation && (
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}

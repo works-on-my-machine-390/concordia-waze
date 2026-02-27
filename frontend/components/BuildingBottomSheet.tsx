@@ -134,6 +134,31 @@ export default function BuildingBottomSheet(
       startAddress = await getAddressFromLocation(mapState.userLocation);
     }
 
+    navigationState.setEndLocation({
+      code: building.code,
+      name: building.long_name,
+      latitude: building.latitude,
+      longitude: building.longitude,
+      address: building.address,
+    });
+    mapState.setCurrentMode(MapMode.NAVIGATION);
+
+    if (userProfileQuery.data?.id) {
+      saveToHistory.mutate({
+        name: building.long_name,
+        address: building.address,
+        lat: building.latitude,
+        lng: building.longitude,
+        building_code: building.code,
+        destinationType: "building",
+      });
+    }
+
+    if (!currentLocationDetails && !mapState.userLocation) {
+      navigationState.setStartLocation(null);
+      return;
+    }
+
     navigationState.setStartLocation({
       name: currentLocationDetails?.long_name || startAddress,
       latitude:
@@ -147,26 +172,6 @@ export default function BuildingBottomSheet(
       code: currentLocationDetails?.code,
       address: currentLocationDetails?.address || startAddress,
     });
-
-    if (userProfileQuery.data?.id) {
-      saveToHistory.mutate({
-        name: building.long_name,
-        address: building.address,
-        lat: building.latitude,
-        lng: building.longitude,
-        building_code: building.code,
-        destinationType: "building",
-      });
-    }
-
-    navigationState.setEndLocation({
-      code: building.code,
-      name: building.long_name,
-      latitude: building.latitude,
-      longitude: building.longitude,
-      address: building.address,
-    });
-    mapState.setCurrentMode(MapMode.NAVIGATION);
   };
 
   return (
