@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -56,7 +55,6 @@ func (h *ImageHandler) GetStaticImage(c *gin.Context) {
 	rel := c.Param("path")
 	rel = strings.TrimPrefix(rel, "/")
 
-	fmt.Println(rel)
 	data, ct, err := h.service.LoadImage("./resource", rel)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
