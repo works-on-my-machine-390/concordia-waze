@@ -101,45 +101,45 @@ func (h *DirectionsHandler) writeDirectionsError(c *gin.Context, err error) {
 }
 
 func (h *DirectionsHandler) buildRouteOptions(
-    c *gin.Context,
-    start domain.LatLng,
-    end domain.LatLng,
+	c *gin.Context,
+	start domain.LatLng,
+	end domain.LatLng,
 ) (routeOptions, bool) {
-    mode, valid := normalizeMode(c.Query("mode"))
-    if !valid {
-        c.JSON(http.StatusBadRequest, gin.H{"error": invalidMessage})
-        return routeOptions{}, false
-    }
+	mode, valid := normalizeMode(c.Query("mode"))
+	if !valid {
+		c.JSON(http.StatusBadRequest, gin.H{"error": invalidMessage})
+		return routeOptions{}, false
+	}
 
-    return routeOptions{
-        start:       start,
-        end:         end,
-        mode:        mode,
-        day:         c.Query("day"),
-        at:          c.Query("time"),
-        shuttleDay:  c.Query("shuttle_day"),
-        shuttleTime: c.Query("shuttle_time"),
-    }, true
+	return routeOptions{
+		start:       start,
+		end:         end,
+		mode:        mode,
+		day:         c.Query("day"),
+		at:          c.Query("time"),
+		shuttleDay:  c.Query("shuttle_day"),
+		shuttleTime: c.Query("shuttle_time"),
+	}, true
 }
 
 func (h *DirectionsHandler) executeRoute(c *gin.Context, opts routeOptions) {
-    if h.handleShuttleRouting(c, opts) {
-        return
-    }
+	if h.handleShuttleRouting(c, opts) {
+		return
+	}
 
-    resp, err := h.directions.GetDirectionsWithSchedule(
-        opts.start,
-        opts.end,
-        opts.mode,
-        opts.day,
-        opts.at,
-    )
-    if err != nil {
-        h.writeDirectionsError(c, err)
-        return
-    }
+	resp, err := h.directions.GetDirectionsWithSchedule(
+		opts.start,
+		opts.end,
+		opts.mode,
+		opts.day,
+		opts.at,
+	)
+	if err != nil {
+		h.writeDirectionsError(c, err)
+		return
+	}
 
-    c.JSON(http.StatusOK, resp)
+	c.JSON(http.StatusOK, resp)
 }
 
 // GetDirections godoc
@@ -161,36 +161,36 @@ func (h *DirectionsHandler) executeRoute(c *gin.Context, opts routeOptions) {
 // @Failure      500 {object} map[string]string
 // @Router       /directions [get]
 func (h *DirectionsHandler) GetDirections(c *gin.Context) {
-    startLat, ok := parseFloatQuery(c, "start_lat")
-    if !ok {
-        c.JSON(http.StatusBadRequest, gin.H{"error": "invalid start_lat"})
-        return
-    }
-    startLng, ok := parseFloatQuery(c, "start_lng")
-    if !ok {
-        c.JSON(http.StatusBadRequest, gin.H{"error": "invalid start_lng"})
-        return
-    }
-    endLat, ok := parseFloatQuery(c, "end_lat")
-    if !ok {
-        c.JSON(http.StatusBadRequest, gin.H{"error": "invalid end_lat"})
-        return
-    }
-    endLng, ok := parseFloatQuery(c, "end_lng")
-    if !ok {
-        c.JSON(http.StatusBadRequest, gin.H{"error": "invalid end_lng"})
-        return
-    }
+	startLat, ok := parseFloatQuery(c, "start_lat")
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid start_lat"})
+		return
+	}
+	startLng, ok := parseFloatQuery(c, "start_lng")
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid start_lng"})
+		return
+	}
+	endLat, ok := parseFloatQuery(c, "end_lat")
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid end_lat"})
+		return
+	}
+	endLng, ok := parseFloatQuery(c, "end_lng")
+	if !ok {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid end_lng"})
+		return
+	}
 
-    start := domain.LatLng{Lat: startLat, Lng: startLng}
-    end := domain.LatLng{Lat: endLat, Lng: endLng}
+	start := domain.LatLng{Lat: startLat, Lng: startLng}
+	end := domain.LatLng{Lat: endLat, Lng: endLng}
 
-    opts, ok := h.buildRouteOptions(c, start, end)
-    if !ok {
-        return
-    }
+	opts, ok := h.buildRouteOptions(c, start, end)
+	if !ok {
+		return
+	}
 
-    h.executeRoute(c, opts)
+	h.executeRoute(c, opts)
 }
 
 // GetDirectionsByBuildings godoc
@@ -210,37 +210,37 @@ func (h *DirectionsHandler) GetDirections(c *gin.Context) {
 // @Failure      500 {object} map[string]string
 // @Router       /directions/buildings [get]
 func (h *DirectionsHandler) GetDirectionsByBuildings(c *gin.Context) {
-    startCode := strings.TrimSpace(c.Query("start_code"))
-    endCode := strings.TrimSpace(c.Query("end_code"))
-    if startCode == "" {
-        c.JSON(http.StatusBadRequest, gin.H{"error": "invalid start_code"})
-        return
-    }
-    if endCode == "" {
-        c.JSON(http.StatusBadRequest, gin.H{"error": "invalid end_code"})
-        return
-    }
+	startCode := strings.TrimSpace(c.Query("start_code"))
+	endCode := strings.TrimSpace(c.Query("end_code"))
+	if startCode == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid start_code"})
+		return
+	}
+	if endCode == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid end_code"})
+		return
+	}
 
-    startB, err := h.buildings.GetBuilding(startCode)
-    if err != nil || startB == nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": "invalid start_code"})
-        return
-    }
-    endB, err := h.buildings.GetBuilding(endCode)
-    if err != nil || endB == nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": "invalid end_code"})
-        return
-    }
+	startB, err := h.buildings.GetBuilding(startCode)
+	if err != nil || startB == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid start_code"})
+		return
+	}
+	endB, err := h.buildings.GetBuilding(endCode)
+	if err != nil || endB == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid end_code"})
+		return
+	}
 
-    start := domain.LatLng{Lat: startB.Latitude, Lng: startB.Longitude}
-    end := domain.LatLng{Lat: endB.Latitude, Lng: endB.Longitude}
+	start := domain.LatLng{Lat: startB.Latitude, Lng: startB.Longitude}
+	end := domain.LatLng{Lat: endB.Latitude, Lng: endB.Longitude}
 
-    opts, ok := h.buildRouteOptions(c, start, end)
-    if !ok {
-        return
-    }
+	opts, ok := h.buildRouteOptions(c, start, end)
+	if !ok {
+		return
+	}
 
-    h.executeRoute(c, opts)
+	h.executeRoute(c, opts)
 }
 
 // tiny local error type so we can create errors without importing "errors"
