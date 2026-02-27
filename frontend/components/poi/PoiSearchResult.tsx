@@ -1,9 +1,10 @@
 import { COLORS } from "@/app/constants";
 import { GetDirectionsIcon } from "@/app/icons";
-import { getSimplifiedAddress } from "@/app/utils/stringUtils";
+import { getDistanceDisplayText, getSimplifiedAddress } from "@/app/utils/stringUtils";
 import { PoiSearchResultModel } from "@/hooks/queries/poiQueries";
 import { Text, TouchableOpacity, View } from "react-native";
 import { ExtendedPoiSearchResultModel } from "./PoiSearchBottomSheet";
+import { poiListStyles } from "@/app/styles/poi/poiStyle";
 
 export type PoiSearchResultProps = {
   isDistanceAvailable?: boolean;
@@ -14,26 +15,13 @@ export type PoiSearchResultProps = {
 
 export default function PoiSearchResult(props: Readonly<PoiSearchResultProps>) {
   const simplifiedAddress = getSimplifiedAddress(props.result.address);
-  const distance =
-    props.isDistanceAvailable &&
-    props.result.distanceFromUser > 0 &&
-    (props.result.distanceFromUser < 1000
-      ? `${props.result.distanceFromUser.toFixed(0)} m` 
-      : `${(props.result.distanceFromUser / 1000).toFixed(1)} km`);
+  const distance = props.isDistanceAvailable
+    ? getDistanceDisplayText(props.result.distanceFromUserInMeters)
+    : "";
 
   return (
     <View
-      style={{
-        paddingTop: 8,
-        paddingBottom: 16,
-        display: "flex",
-        marginTop: 8,
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "flex-start",
-        borderBottomColor: COLORS.border,
-        borderBottomWidth: 1,
-      }}
+      style={poiListStyles.itemContainer}
     >
       <TouchableOpacity
         style={{ width: "80%" }}
