@@ -68,3 +68,31 @@ func (h *BuildingHandler) GetAllBuildingsByCampus(c *gin.Context) {
 	// Ensure keys are exactly "SGW" and "LOY" if present in result; handler just returns what service gives.
 	c.JSON(http.StatusOK, gin.H{"buildings": result})
 }
+
+// GetFloors godoc
+// @Summary     return all building floors for a specific building code
+// @Description
+// @Description {
+// @Description   "floors": {
+// @Description      { "name": "...", "imgPath": "...", "vertices": [...], "edge": [...], "poi": [...] },
+// @Description    { ... }
+// @Description   }
+// @Description }
+// @Tags        buildings
+// @Accept      json
+// @Produce     json
+// @Param       code path string true "Building code"
+// @Success     200 {object} map[string][]domain.Floor
+// @Failure     500 {object} map[string]string "internal server error"
+// @Router      /buildings/floor/{code} [get]
+func (h *BuildingHandler) GetFloorsByBuilding(c *gin.Context) {
+	code := c.Param("code")
+
+	result, err := h.service.GetBuildingFloors(code)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"floors": result})
+}

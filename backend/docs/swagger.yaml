@@ -120,6 +120,13 @@ definitions:
       campus:
         type: string
     type: object
+  domain.Coordinates:
+    properties:
+      x:
+        type: number
+      "y":
+        type: number
+    type: object
   domain.DayHours:
     properties:
       close:
@@ -155,6 +162,34 @@ definitions:
           $ref: '#/definitions/domain.DirectionStep'
         type: array
     type: object
+  domain.Edge:
+    properties:
+      endVertex:
+        type: integer
+      startVertex:
+        type: integer
+    type: object
+  domain.Floor:
+    properties:
+      edges:
+        items:
+          $ref: '#/definitions/domain.Edge'
+        type: array
+      imgPath:
+        type: string
+      name:
+        type: string
+      number:
+        type: integer
+      pois:
+        items:
+          $ref: '#/definitions/domain.PointOfInterest'
+        type: array
+      vertices:
+        items:
+          $ref: '#/definitions/domain.Coordinates'
+        type: array
+    type: object
   domain.LatLng:
     properties:
       latitude:
@@ -165,6 +200,19 @@ definitions:
   domain.OpeningHours:
     additionalProperties:
       $ref: '#/definitions/domain.DayHours'
+    type: object
+  domain.PointOfInterest:
+    properties:
+      name:
+        type: string
+      polygon:
+        items:
+          $ref: '#/definitions/domain.Coordinates'
+        type: array
+      position:
+        $ref: '#/definitions/domain.Coordinates'
+      type:
+        type: string
     type: object
   domain.User:
     properties:
@@ -409,6 +457,43 @@ paths:
       summary: Get building images
       tags:
       - buildings
+  /buildings/floor/{code}:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        {
+        "floors": {
+        { "name": "...", "imgPath": "...", "vertices": [...], "edge": [...], "poi": [...] },
+        { ... }
+        }
+        }
+      parameters:
+      - description: Building code
+        in: path
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              items:
+                $ref: '#/definitions/domain.Floor'
+              type: array
+            type: object
+        "500":
+          description: internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: return all building floors for a specific building code
+      tags:
+      - buildings
   /buildings/list:
     get:
       consumes:
@@ -599,6 +684,30 @@ paths:
       summary: Get directions by building codes
       tags:
       - directions
+  /images/{path}:
+    get:
+      consumes:
+      - application/json
+      description: SWAGGER DOES NOT WORK SINCE THE PATH HAS '/' . Get images for a
+        path from the backend resource directory
+      parameters:
+      - description: Image path
+        in: path
+        name: path
+        required: true
+        type: string
+      produces:
+      - image/png
+      responses:
+        "404":
+          description: path not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get image from path
+      tags:
+      - utilityd
   /pointofinterest:
     get:
       consumes:

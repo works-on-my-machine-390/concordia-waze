@@ -205,6 +205,53 @@ const docTemplate = `{
                 }
             }
         },
+        "/buildings/floor/{code}": {
+            "get": {
+                "description": "{\n\"floors\": {\n{ \"name\": \"...\", \"imgPath\": \"...\", \"vertices\": [...], \"edge\": [...], \"poi\": [...] },\n{ ... }\n}\n}",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "buildings"
+                ],
+                "summary": "return all building floors for a specific building code",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Building code",
+                        "name": "code",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/definitions/domain.Floor"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/buildings/list": {
             "get": {
                 "description": "Return all building codes, names and long names grouped by campus. Response shape:\n{\n\"buildings\": {\n\"SGW\": [ { \"code\": \"...\", \"name\": \"...\", \"long_name\": \"...\", \"campus\": \"SGW\" }, ... ],\n\"LOY\": [ ... ]\n}\n}",
@@ -559,6 +606,41 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/images/{path}": {
+            "get": {
+                "description": "SWAGGER DOES NOT WORK SINCE THE PATH HAS '/' . Get images for a path from the backend resource directory",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "image/png"
+                ],
+                "tags": [
+                    "utilityd"
+                ],
+                "summary": "Get image from path",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Image path",
+                        "name": "path",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "404": {
+                        "description": "path not found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -2016,6 +2098,17 @@ const docTemplate = `{
                 }
             }
         },
+        "domain.Coordinates": {
+            "type": "object",
+            "properties": {
+                "x": {
+                    "type": "number"
+                },
+                "y": {
+                    "type": "number"
+                }
+            }
+        },
         "domain.DayHours": {
             "type": "object",
             "properties": {
@@ -2070,6 +2163,49 @@ const docTemplate = `{
                 }
             }
         },
+        "domain.Edge": {
+            "type": "object",
+            "properties": {
+                "endVertex": {
+                    "type": "integer"
+                },
+                "startVertex": {
+                    "type": "integer"
+                }
+            }
+        },
+        "domain.Floor": {
+            "type": "object",
+            "properties": {
+                "edges": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.Edge"
+                    }
+                },
+                "imgPath": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "number": {
+                    "type": "integer"
+                },
+                "pois": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.PointOfInterest"
+                    }
+                },
+                "vertices": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.Coordinates"
+                    }
+                }
+            }
+        },
         "domain.LatLng": {
             "type": "object",
             "properties": {
@@ -2085,6 +2221,26 @@ const docTemplate = `{
             "type": "object",
             "additionalProperties": {
                 "$ref": "#/definitions/domain.DayHours"
+            }
+        },
+        "domain.PointOfInterest": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "polygon": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.Coordinates"
+                    }
+                },
+                "position": {
+                    "$ref": "#/definitions/domain.Coordinates"
+                },
+                "type": {
+                    "type": "string"
+                }
             }
         },
         "domain.User": {
