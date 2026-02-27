@@ -1,22 +1,21 @@
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
-import { CampusCode } from "@/hooks/queries/buildingQueries";
 import { useGetShuttlePositions } from "@/hooks/queries/shuttleQueries";
-// import useMapSettings from "@/hooks/useMapSettings";
+import useMapSettings from "@/hooks/useMapSettings";
 import { Marker } from "react-native-maps";
 import { StyleSheet, View } from "react-native";
 import { COLORS } from "@/app/constants";
 
 type Props = {};
 
-export default function ShuttleBusMarkers({}: Readonly<Props>) {
-  //   const { mapSettings } = useMapSettings();
+export default function ShuttleBusMarkers(props: Readonly<Props>) {
+    const { mapSettings } = useMapSettings();
 
   const shuttleMarkerQuery = useGetShuttlePositions();
 
   const shuttlePositions = shuttleMarkerQuery.data;
 
   if (
-    // !mapSettings.showShuttleStops ||
+    !mapSettings.showShuttleStops ||
     shuttleMarkerQuery.isLoading ||
     !shuttlePositions
   ) {
