@@ -307,3 +307,86 @@ func TestManualShuttleNoRepo(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, "no shuttle available", err.Error())
 }
+
+type sequenceDirectionsClient struct {
+    resps []domain.DirectionsResponse
+    errs  []error
+    i     int
+}
+
+func (f *sequenceDirectionsClient) GetDirections(start, end domain.LatLng, mode string) (domain.DirectionsResponse, error) {
+    idx := f.i
+    f.i++
+
+    var resp domain.DirectionsResponse
+    var err error
+
+    if idx < len(f.resps) {
+        resp = f.resps[idx]
+    }
+    if idx < len(f.errs) {
+        err = f.errs[idx]
+    }
+    return resp, err
+}
+func TestGetShuttleDirectionsManualSuccessCoversReturnBlock(t *testing.T) {
+    walkResp := domain.DirectionsResponse{
+        Mode: "walking",
+        Steps: []domain.DirectionStep{
+            {Instruction: "Walk", Distance: "0.3 km", Duration: "7 mins"},
+        },
+        Polyline: []domain.LatLng{
+            {Lat: 45.50, Lng: -73.58},
+            {Lat: 45.49, Lng: -73.57},
+        },
+    }
+
+    f := &sequenceDirectionsClient{
+        resps: []domain.DirectionsResponse{walkResp, walkResp}, // to-stop, from-stop
+    }
+    repo := &fakeShuttleRepo{times: []string{"10:00", "11:00"}}
+    s := NewDirectionsService(f).WithShuttleRepo(repo)
+
+    resp, err := s.GetShuttleDirectionsManual(
+        domain.LatLng{Lat: 45.497, Lng: -73.579},
+        domain.LatLng{Lat: 45.459, Lng: -73.640},
+        "monday",
+        "10:00",
+    )
+
+    assert.NoError(t, err)
+    assert.Equal(t, "shuttle", resp.Mode)
+    assert.Contains(t, resp.DepartureMessage, "to catch the 10:00 shuttle")
+    assert.GreaterOrEqual(t, len(resp.Steps), 3)
+    assert.Contains(t, resp.Steps[1].Instruction, "departure: 10:00")
+    assert.NotEmpty(t, resp.Polyline)
+}
+
+func TestGetShuttleDirectionsManualWalkToStopError(t *testing.T) {
+    f := &sequenceDirectionsClient{
+        errs: []error{errors.New("walk fail")},
+    }
+    repo := &fakeShuttleRepo{times: []string{"10:00"}}
+    s := NewDirectionsService(f).WithShuttleRepo(repo)
+
+    _, err := s.GetShuttleDirectionsManual(domain.LatLng{}, domain.LatLng{}, "monday", "10:00")
+    assert.Error(t, err)
+    assert.Contains(t, err.Error(), "walking to shuttle stop")
+}
+
+func TestGetShuttleDirectionsManualWalkFromStopError(t *testing.T) {
+    walkResp := domain.DirectionsResponse{
+        Mode: "walking",
+        Steps: []domain.DirectionStep{{Duration: "2 mins"}},
+    }
+    f := &sequenceDirectionsClient{
+        resps: []domain.DirectionsResponse{walkResp},
+        errs:  []error{nil, errors.New("walk fail 2")},
+    }
+    repo := &fakeShuttleRepo{times: []string{"10:00"}}
+    s := NewDirectionsService(f).WithShuttleRepo(repo)
+
+    _, err := s.GetShuttleDirectionsManual(domain.LatLng{}, domain.LatLng{}, "monday", "10:00")
+    assert.Error(t, err)
+    assert.Contains(t, err.Error(), "walking from shuttle stop")
+}
