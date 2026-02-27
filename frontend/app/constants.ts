@@ -2,6 +2,8 @@
 Central repository for app-wide constants including brand colors
 */
 
+import { CampusCode } from "@/hooks/queries/buildingQueries";
+
 // Brand Colors
 export const COLORS = {
   maroon: "#7f2730",
@@ -36,7 +38,11 @@ export const LOGO_IMAGE = require("../assets/images/icon.png");
 export const DIZZY_LOGO_IMAGE = require("../assets/images/icon-dizzy.png");
 export const LOGO_SIZE = { width: 86, height: 86 };
 
-
 // Map constants
 export const DEFAULT_MAP_DELTA = 0.005;
-export const DEFAULT_CAMERA_MOVE_DURATION_IN_MS = 500; 
+export const DEFAULT_CAMERA_MOVE_DURATION_IN_MS = 500;
+
+export const CAMPUS_COORDS = {
+  [CampusCode.SGW]: { latitude: 45.4972, longitude: -73.5791 }, // SGW campus
+  [CampusCode.LOY]: { latitude: 45.4589, longitude: -73.64 }, // Loyola campus
+};

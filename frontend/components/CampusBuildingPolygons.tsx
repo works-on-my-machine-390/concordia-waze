@@ -1,24 +1,32 @@
 import { SELECTED_BUILDING_STYLE } from "@/app/styles/buildingPolygons/selectedBuildingStyle";
 import { CampusBuilding } from "@/hooks/queries/buildingQueries";
+import useMapSettings from "@/hooks/useMapSettings";
+import { MapMode, useMapStore } from "@/hooks/useMapStore";
 import { Polygon } from "react-native-maps";
 import { CAMPUS_BUILDING_STYLE } from "../app/styles/buildingPolygons/campusBuildingStyle";
 import { CURRENT_BUILDING_STYLE } from "../app/styles/buildingPolygons/currentBuildingStyle";
-import useMapSettings from "@/hooks/useMapSettings";
 
 export type CampusBuildingPolygonsProps = {
-  highlightedCode?: string | null;
-  selectedCode?: string | null;
   buildings: CampusBuilding[];
-  onBuildingPress?: (buildingCode: string) => void;
 };
 
 export default function CampusBuildingPolygons({
-  highlightedCode = null,
-  selectedCode = null,
   buildings,
-  onBuildingPress,
 }: Readonly<CampusBuildingPolygonsProps>) {
   const { mapSettings } = useMapSettings();
+
+  const {
+    currentBuildingCode,
+    selectedBuildingCode,
+    setSelectedBuildingCode,
+    setCurrentMode,
+  } = useMapStore();
+
+  const handlePolygonPress = (buildingCode: string) => {
+    setSelectedBuildingCode(buildingCode);
+    setCurrentMode(MapMode.BUILDING);
+  };
+
   if (!mapSettings.showBuildingPolygons) {
     return null;
   }
@@ -26,8 +34,8 @@ export default function CampusBuildingPolygons({
   return (
     <>
       {buildings.map((b: CampusBuilding) => {
-        const isCurrent = b.code === highlightedCode;
-        const isSelected = b.code === selectedCode;
+        const isCurrent = b.code === currentBuildingCode;
+        const isSelected = b.code === selectedBuildingCode;
 
         let style = CAMPUS_BUILDING_STYLE;
 
@@ -46,7 +54,7 @@ export default function CampusBuildingPolygons({
             strokeWidth={style.strokeWidth}
             zIndex={style.zIndex}
             tappable
-            onPress={() => onBuildingPress?.(b.code)}
+            onPress={() => handlePolygonPress(b.code)}
           />
         );
       })}

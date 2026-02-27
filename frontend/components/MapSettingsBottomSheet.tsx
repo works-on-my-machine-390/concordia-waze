@@ -1,17 +1,17 @@
 import useMapSettings from "@/hooks/useMapSettings";
+import { useMapStore } from "@/hooks/useMapStore";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { useRef } from "react";
 import { Text, View } from "react-native";
 import { BottomSheetStyles } from "./BuildingBottomSheet";
 import SettingListItem from "./MapSettingsListItem";
 
-type MapSettingsBottomSheetProps = {
-  onClose?: () => void;
-};
+export type MapSettingsBottomSheetProps = {};
 
 export default function MapSettingsBottomSheet(
   props: Readonly<MapSettingsBottomSheetProps>,
 ) {
+  const { closeSheet } = useMapStore();
   const bottomSheetRef = useRef<BottomSheet>(null);
 
   const snapPoints = ["20%", "70%"];
@@ -25,7 +25,7 @@ export default function MapSettingsBottomSheet(
       index={0}
       snapPoints={snapPoints}
       enablePanDownToClose
-      onClose={props.onClose}
+      onClose={closeSheet}
       enableContentPanningGesture
       enableDynamicSizing={false}
       detached

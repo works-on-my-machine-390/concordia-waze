@@ -1,11 +1,13 @@
 import { MapQueryParamsModel } from "@/app/(drawer)/map";
 import { COLORS } from "@/app/constants";
+import { poiFilterStyles } from "@/app/styles/poi/poiStyle";
 import { getDistanceInMeters } from "@/app/utils/mapUtils";
 import {
   PoiSearchResultModel,
   TextSearchRankPreferenceType,
   useGetNearbyPoi,
 } from "@/hooks/queries/poiQueries";
+import { useMapStore } from "@/hooks/useMapStore";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useRef } from "react";
@@ -15,16 +17,10 @@ import { BottomSheetStyles } from "../BuildingBottomSheet";
 import PoiSearchBottomSheetHeader from "./PoiSearchBottomSheetHeader";
 import PoiSearchRankPreferenceFilter from "./PoiSearchRankPreferenceFilter";
 import PoiSearchResult from "./PoiSearchResult";
-import { poiFilterStyles } from "@/app/styles/poi/poiStyle";
 
 export type PoiSearchBottomSheetProps = {
-  onClose?: () => void;
   moveCamera?: (params: { latitude: number; longitude: number }) => void;
   onDirectionsPress: (result: PoiSearchResultModel) => void;
-  userLocation?: {
-    latitude: number;
-    longitude: number;
-  };
 };
 
 export type ExtendedPoiSearchResultModel = {
@@ -34,6 +30,7 @@ export type ExtendedPoiSearchResultModel = {
 export default function PoiSearchBottomSheet(
   props: Readonly<PoiSearchBottomSheetProps>,
 ) {
+  const { closeSheet, userLocation } = useMapStore();
   const bottomSheetRef = useRef<BottomSheet>(null);
   const snapPoints = ["20%", "70%"];
 
@@ -53,7 +50,7 @@ export default function PoiSearchBottomSheet(
     }
 
     const resultsWithDistances = poiSearchQuery.data.data.map((result) => {
-      if (!props.userLocation) {
+      if (!userLocation) {
         return {
           ...result,
           distanceFromUserInMeters: 0,
@@ -63,8 +60,8 @@ export default function PoiSearchBottomSheet(
       const distance = getDistanceInMeters(
         { latitude: result.latitude, longitude: result.longitude },
         {
-          latitude: props.userLocation?.latitude,
-          longitude: props.userLocation?.longitude,
+          latitude: userLocation?.coords?.latitude,
+          longitude: userLocation?.coords?.longitude,
         },
       );
       return {
@@ -79,7 +76,7 @@ export default function PoiSearchBottomSheet(
       (a, b) => a.distanceFromUserInMeters - b.distanceFromUserInMeters,
     );
     return sortedResults;
-  }, [poiSearchQuery.data, poiSearchQuery.isLoading, props.userLocation]);
+  }, [poiSearchQuery.data, poiSearchQuery.isLoading, userLocation]);
 
   const handleResultPressed = (result: PoiSearchResultModel) => {
     router.setParams({
@@ -106,7 +103,6 @@ export default function PoiSearchBottomSheet(
       ref={bottomSheetRef}
       index={0}
       snapPoints={snapPoints}
-      onClose={props.onClose}
       enableContentPanningGesture
       enableDynamicSizing={false}
       detached
@@ -117,7 +113,16 @@ export default function PoiSearchBottomSheet(
         <View style={BottomSheetStyles.fakeHandleBar} />
       </View>
 
-      <PoiSearchBottomSheetHeader onClose={props.onClose} />
+      <PoiSearchBottomSheetHeader
+        onClose={() => {
+          router.setParams({
+            query: "",
+            poiLat: undefined,
+            poiLng: undefined,
+          });
+          closeSheet();
+        }}
+      />
 
       <View style={{ zIndex: 1000, elevation: 1000 }}>
         <ScrollView
@@ -141,7 +146,7 @@ export default function PoiSearchBottomSheet(
         )}
         {results?.map((result) => (
           <PoiSearchResult
-            isDistanceAvailable={!!props.userLocation}
+            isDistanceAvailable={!!userLocation}
             key={result.code}
             result={result}
             onPress={handleResultPressed}
