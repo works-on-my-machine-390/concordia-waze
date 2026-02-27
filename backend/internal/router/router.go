@@ -77,6 +77,9 @@ func SetupRouter() *gin.Engine {
 		buildingsGroup.GET("/floor/:code", buildingHandler.GetFloorsByBuilding)
 	}
 
+	// image utility endpoint (PUBLIC)
+	router.GET("/images/*path", imageHandler.GetStaticImage)
+
 	// Directions endpoints (PUBLIC)
 	// 1) Lat/Lng version:
 	// GET /directions?start_lat=...&start_lng=...&end_lat=...&end_lng=...&mode=walking|transit|driving|shuttle

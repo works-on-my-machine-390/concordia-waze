@@ -1,7 +1,9 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/application"
@@ -39,6 +41,28 @@ func (h *ImageHandler) GetBuildingImages(c *gin.Context) {
 		"building_code": code,
 		"images":        images,
 	})
+}
+
+// @Summary     Get image from path
+// @Description SWAGGER DOES NOT WORK SINCE THE PATH HAS '/' . Get images for a path from the backend resource directory
+// @Tags        utilityd
+// @Accept      json
+// @Produce     image/png
+// @Param       path  path      string  true  "Image path"
+// @Success     404   {file}    binary  "Successfully returned binary data"
+// @Failure     404   {object}  map[string]string "path not found"
+// @Router      /images/{path} [get]
+func (h *ImageHandler) GetStaticImage(c *gin.Context) {
+	rel := c.Param("path")
+	rel = strings.TrimPrefix(rel, "/")
+
+	fmt.Println(rel)
+	data, ct, err := h.service.LoadImage("./resource", rel)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+	c.Data(http.StatusOK, ct, data)
 }
 
 type BuildingImagesResponse struct {

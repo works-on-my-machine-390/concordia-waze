@@ -122,9 +122,9 @@ definitions:
     type: object
   domain.Coordinates:
     properties:
-      latitude:
+      x:
         type: number
-      longitude:
+      "y":
         type: number
     type: object
   domain.DayHours:
@@ -684,6 +684,30 @@ paths:
       summary: Get directions by building codes
       tags:
       - directions
+  /images/{path}:
+    get:
+      consumes:
+      - application/json
+      description: SWAGGER DOES NOT WORK SINCE THE PATH HAS '/' . Get images for a
+        path from the backend resource directory
+      parameters:
+      - description: Image path
+        in: path
+        name: path
+        required: true
+        type: string
+      produces:
+      - image/png
+      responses:
+        "404":
+          description: path not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get image from path
+      tags:
+      - utilityd
   /pointofinterest:
     get:
       consumes:

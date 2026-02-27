@@ -616,6 +616,41 @@ const docTemplate = `{
                 }
             }
         },
+        "/images/{path}": {
+            "get": {
+                "description": "SWAGGER DOES NOT WORK SINCE THE PATH HAS '/' . Get images for a path from the backend resource directory",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "image/png"
+                ],
+                "tags": [
+                    "utilityd"
+                ],
+                "summary": "Get image from path",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Image path",
+                        "name": "path",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "404": {
+                        "description": "path not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/pointofinterest": {
             "get": {
                 "description": "Get nearby points of interest via text search from Google Places API",
@@ -1909,10 +1944,10 @@ const docTemplate = `{
         "domain.Coordinates": {
             "type": "object",
             "properties": {
-                "latitude": {
+                "x": {
                     "type": "number"
                 },
-                "longitude": {
+                "y": {
                     "type": "number"
                 }
             }
