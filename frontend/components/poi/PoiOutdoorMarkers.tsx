@@ -5,7 +5,7 @@ import { useGetNearbyPoi } from "@/hooks/queries/poiQueries";
 import Ionicons from "@expo/vector-icons/build/Ionicons";
 import { useLocalSearchParams } from "expo-router";
 import { useMemo } from "react";
-import { Text, View } from "react-native";
+import { View } from "react-native";
 import { Marker } from "react-native-maps";
 
 export default function PoiOutdoorMarkers() {
@@ -54,7 +54,6 @@ export default function PoiOutdoorMarkers() {
             <View style={poiMarkerStyles.marker}>
               <Ionicons name="location" size={18} color={COLORS.background} />
             </View>
-            {/* <Text style={{ color: COLORS.textPrimary }}>{poi.name}</Text> */}
           </View>
         </Marker>
       ))}
