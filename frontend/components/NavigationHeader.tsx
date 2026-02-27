@@ -16,7 +16,7 @@ export function NavigationHeader({
   onCancel,
   onStartLocationPress,
   onEndLocationPress,
-}: NavigationHeaderProps) {
+}: Readonly<NavigationHeaderProps>) {
   return (
     <View
       style={styles.container}

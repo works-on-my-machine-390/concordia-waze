@@ -31,6 +31,132 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { colors, SHADOW } from "./styles/theme";
 import { filterBuildingsByQuery } from "./utils/searchUtils";
 
+type RecentItem = {
+  query: string;
+  locations: string;
+  code?: string;
+  campus?: CampusCode;
+};
+
+type SearchResult = {
+  code: string;
+  campus: CampusCode;
+  longName?: string;
+  name?: string;
+  address?: string;
+};
+
+type RecentDisplayItem = RecentItem & { title: string };
+
+const getCampusFromParam = (campus?: string): CampusCode => {
+  if (campus === CampusCode.LOY) return CampusCode.LOY;
+  return CampusCode.SGW;
+};
+
+const getResultLabel = (code: string, longName?: string, name?: string) => {
+  const resolvedName = longName ?? name;
+  if (!resolvedName) return code;
+  return `${code} - ${resolvedName}`;
+};
+
+const getNormalizedRecentCode = (
+  item: { query: string; code?: string },
+  lookup: Map<string, CampusCode>,
+): string => {
+  if (item.code && lookup.has(item.code)) {
+    return item.code;
+  }
+
+  const candidateCode = item.query.split("-")[0]?.trim() ?? "";
+  if (lookup.has(candidateCode)) {
+    return candidateCode;
+  }
+
+  if (lookup.has(item.query)) {
+    return item.query;
+  }
+
+  return "";
+};
+
+function RecentSearchesSection({
+  items,
+  onClear,
+  onPressItem,
+}: Readonly<{
+  items: RecentDisplayItem[];
+  onClear: () => void;
+  onPressItem: (item: RecentDisplayItem) => void;
+}>) {
+  return (
+    <View style={styles.section}>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Recent searches</Text>
+        <Pressable onPress={onClear}>
+          <Text style={styles.clearText}>Clear</Text>
+        </Pressable>
+      </View>
+      {items.map((item) => (
+        <Pressable
+          key={`${item.query}-${item.locations}`}
+          style={styles.resultItem}
+          onPress={() => onPressItem(item)}
+        >
+          <Text style={styles.resultTitle}>{item.title}</Text>
+          {item.locations ? (
+            <Text style={styles.resultSubtitle}>{item.locations}</Text>
+          ) : null}
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
+function SearchResultRow({
+  item,
+  onPressItem,
+}: Readonly<{
+  item: SearchResult;
+  onPressItem: (item: SearchResult) => void;
+}>) {
+  return (
+    <Pressable style={styles.resultItem} onPress={() => onPressItem(item)}>
+      <Text style={styles.resultTitle}>
+        {getResultLabel(item.code, item.longName, item.name)}
+      </Text>
+      {item.address ? (
+        <Text style={styles.resultSubtitle}>{item.address}</Text>
+      ) : null}
+    </Pressable>
+  );
+}
+
+function EmptyState({
+  query,
+  showRecent,
+}: Readonly<{
+  query: string;
+  showRecent: boolean;
+}>) {
+  if (query.trim()) {
+    return (
+      <View style={styles.empty}>
+        <Text style={styles.emptyText}>No matches found</Text>
+      </View>
+    );
+  }
+
+  if (showRecent) {
+    return null;
+  }
+
+  return (
+    <View style={styles.empty}>
+      <Text style={styles.emptyText}>Start typing to search</Text>
+    </View>
+  );
+}
+
 export default function SearchPage() {
   const router = useRouter();
   const params = useLocalSearchParams<{
@@ -39,8 +165,10 @@ export default function SearchPage() {
     preserveEnd?: string;
     preserveStart?: string;
   }>();
-  const campus = (params.campus as string) || CampusCode.SGW;
+
+  const campus = getCampusFromParam(params.campus);
   const editMode = params.editMode as "start" | "end" | undefined;
+
   const { data: userProfile } = useGetProfile();
   const userId = userProfile?.id || "";
   const saveToHistory = useSaveToHistory(userId);
@@ -48,10 +176,10 @@ export default function SearchPage() {
   const userHistoryQuery = useGetUserHistory(userId);
 
   const [query, setQuery] = useState("");
-  // Fetch building lists for both campuses to support cross-campus search
   const sgwBuildingsQuery = useGetBuildings(CampusCode.SGW);
   const loyBuildingsQuery = useGetBuildings(CampusCode.LOY);
   const queryClient = useQueryClient();
+
   const [recentSearches, setRecentSearches] = useState<
     Array<{ query: string; locations: string; code?: string }>
   >([]);
@@ -64,32 +192,33 @@ export default function SearchPage() {
 
   useEffect(() => {
     let active = true;
+
     (async () => {
       if (userId) {
-        // For authenticated users, use data from the query
         const entries = userHistoryQuery.data ?? [];
-        if (active) {
-          setRecentSearches(
-            entries.map((item) => ({
-              query: item.name,
-              locations: item.address,
-              code: item.building_code || undefined,
-            })),
-          );
-        }
-      } else if (!userId) {
-        // For guests, load recent searches from local storage
-        const items = await getGuestSearchHistory();
-        if (active) {
-          setRecentSearches(
-            items.map((item) => ({
-              query: item.query,
-              locations: item.locations,
-            })),
-          );
-        }
+        if (!active) return;
+
+        setRecentSearches(
+          entries.map((item) => ({
+            query: item.name,
+            locations: item.address,
+            code: item.building_code || undefined,
+          })),
+        );
+        return;
       }
+
+      const items = await getGuestSearchHistory();
+      if (!active) return;
+
+      setRecentSearches(
+        items.map((item) => ({
+          query: item.query,
+          locations: item.locations,
+        })),
+      );
     })();
+
     return () => {
       active = false;
     };
@@ -97,6 +226,7 @@ export default function SearchPage() {
 
   const recentItems = useMemo(() => {
     const lookup = new Map<string, CampusCode>();
+
     for (const building of sgwBuildingsQuery.data?.buildings ?? []) {
       lookup.set(building.code, CampusCode.SGW);
     }
@@ -105,35 +235,26 @@ export default function SearchPage() {
     }
 
     const seen = new Set<string>();
-    const items: Array<{
-      query: string;
-      locations: string;
-      code?: string;
-      campus?: CampusCode;
-    }> = [];
+    const items: RecentItem[] = [];
+
     for (const item of recentSearches) {
       if (seen.has(item.query)) continue;
       seen.add(item.query);
 
-      const split = item.query.split("-");
-      const candidateCode = split[0]?.trim() ?? "";
-      const normalizedCode =
-        item.code && lookup.has(item.code)
-          ? item.code
-          : lookup.has(candidateCode)
-            ? candidateCode
-            : lookup.has(item.query)
-              ? item.query
-              : "";
-      const campus = normalizedCode ? lookup.get(normalizedCode) : undefined;
+      const normalizedCode = getNormalizedRecentCode(item, lookup);
+      const resolvedCampus = normalizedCode
+        ? lookup.get(normalizedCode)
+        : undefined;
 
       items.push({
         ...item,
         code: normalizedCode || undefined,
-        campus,
+        campus: resolvedCampus,
       });
+
       if (items.length >= 6) break;
     }
+
     return items;
   }, [
     recentSearches,
@@ -141,8 +262,8 @@ export default function SearchPage() {
     loyBuildingsQuery.data?.buildings,
   ]);
 
-  const results = useMemo(() => {
-    if (allBuildingsQuery.isLoading) {
+  const results = useMemo<SearchResult[]>(() => {
+    if (allBuildingsQuery.isLoading || !allBuildingsQuery.data) {
       return [];
     }
 
@@ -153,7 +274,7 @@ export default function SearchPage() {
     const q = query.trim().toLowerCase();
 
     return filterBuildingsByQuery(q, allBuildings);
-  }, [query, allBuildingsQuery.data]);
+  }, [query, allBuildingsQuery.data, allBuildingsQuery.isLoading]);
 
   const recordRecentSearch = async (
     code: string,
@@ -162,11 +283,11 @@ export default function SearchPage() {
   ) => {
     try {
       if (userProfile?.id) {
-        // For authenticated users, save to backend
         const buildingDetails = queryClient.getQueryData<Building>([
           "buildingDetails",
           code,
         ]);
+
         if (buildingDetails) {
           saveToHistory.mutate({
             name: buildingDetails.long_name,
@@ -177,44 +298,24 @@ export default function SearchPage() {
             destinationType: "building",
           });
         }
-      } else {
-        // For guests, persist to local storage
-        await addGuestSearchHistory({
-          query: label,
-          locations: address,
-          timestamp: new Date(),
-        });
-        setRecentSearches((prev) => [
-          { query: label, locations: address },
-          ...prev.filter((entry) => entry.query !== label),
-        ]);
+
+        return;
       }
+
+      await addGuestSearchHistory({
+        query: label,
+        locations: address,
+        timestamp: new Date(),
+      });
+
+      setRecentSearches((prev) => [
+        { query: label, locations: address },
+        ...prev.filter((entry) => entry.query !== label),
+      ]);
     } catch {
-      // Best effort only; search should still navigate even if persistence fails.
+      // Best effort only.
     }
   };
-
-  useEffect(() => {
-    if (!pendingRecent || results.length === 0) return;
-    const normalized = pendingRecent.query.trim().toLowerCase();
-    const match =
-      results.find((item) => {
-        const name = item.longName ?? item.name ?? "";
-        if (!name) return false;
-        const label = `${item.code} - ${name}`.toLowerCase();
-        return name.toLowerCase() === normalized || label === normalized;
-      }) ?? results[0];
-
-    handleSelect(
-      match.code,
-      match.campus,
-      match.longName || match.name
-        ? `${match.code} - ${match.longName ?? match.name}`
-        : match.code,
-      match.address,
-    );
-    setPendingRecent(null);
-  }, [pendingRecent, results]);
 
   const handleSelect = (
     code: string,
@@ -222,29 +323,27 @@ export default function SearchPage() {
     label?: string,
     address?: string,
   ) => {
-    const resolvedCampus = targetCampus ?? (campus as CampusCode);
+    const resolvedCampus = targetCampus ?? campus;
 
-    // if user in edit mode, pass the edit info back to map
     if (editMode) {
       router.replace({
         pathname: "/map",
         params: {
           selected: code,
           campus: resolvedCampus,
-          editMode: editMode,
+          editMode,
           editValue: code,
           preserveEnd: params.preserveEnd || "",
           preserveStart: params.preserveStart || "",
         },
       });
     } else {
-      // Navigate immediately to avoid UI interruptions from state updates
       router.replace({
         pathname: "/map",
         params: { selected: code, campus: resolvedCampus },
       });
     }
-    // Record the search asynchronously (non-blocking)
+
     void recordRecentSearch(code, label ?? code, address ?? "");
   };
 
@@ -259,13 +358,8 @@ export default function SearchPage() {
     try {
       if (userId) {
         clearUserHistory.mutate(undefined, {
-          onSuccess: () => {
-            setRecentSearches([]);
-          },
-          onError: () => {
-            // optional: still clear UI even if backend fails
-            setRecentSearches([]);
-          },
+          onSuccess: () => setRecentSearches([]),
+          onError: () => setRecentSearches([]),
         });
         return;
       }
@@ -276,7 +370,85 @@ export default function SearchPage() {
     }
   };
 
-  const showRecent = query.trim().length === 0 && recentItems.length > 0;
+  const handleSearchResultPress = (item: SearchResult) => {
+    handleSelect(
+      item.code,
+      item.campus,
+      getResultLabel(item.code, item.longName, item.name),
+      item.address,
+    );
+  };
+
+  const handleRecentItemPress = (item: RecentDisplayItem) => {
+    if (item.code) {
+      handleSelect(
+        item.code,
+        item.campus ?? campus,
+        item.query,
+        item.locations,
+      );
+      return;
+    }
+
+    const extracted = extractCodeFromQuery(item.query);
+    if (extracted) {
+      handleSelect(extracted, campus, item.query, item.locations);
+      return;
+    }
+
+    setPendingRecent({
+      query: item.query,
+      locations: item.locations,
+    });
+    setQuery(item.query);
+  };
+
+  useEffect(() => {
+    if (!pendingRecent || results.length === 0) return;
+
+    const normalized = pendingRecent.query.trim().toLowerCase();
+    const match =
+      results.find((item) => {
+        const name = item.longName ?? item.name ?? "";
+        if (!name) return false;
+
+        const label = `${item.code} - ${name}`.toLowerCase();
+        return name.toLowerCase() === normalized || label === normalized;
+      }) ?? results[0];
+
+    handleSelect(
+      match.code,
+      match.campus,
+      getResultLabel(match.code, match.longName, match.name),
+      match.address,
+    );
+    setPendingRecent(null);
+  }, [pendingRecent, results]);
+
+  const recentDisplayItems = useMemo<RecentDisplayItem[]>(() => {
+    return recentItems.map((item) => {
+      if (!item.code) {
+        return { ...item, title: item.query };
+      }
+
+      const details = queryClient.getQueryData<Building>([
+        "buildingDetails",
+        item.code,
+      ]);
+      const name = details?.long_name ?? details?.name;
+
+      let title = item.code;
+      if (name) {
+        title = `${item.code} - ${name}`;
+      } else if (item.query.includes(" - ")) {
+        title = item.query;
+      }
+
+      return { ...item, title };
+    });
+  }, [recentItems, queryClient]);
+
+  const showRecent = query.trim().length === 0 && recentDisplayItems.length > 0;
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
@@ -302,122 +474,28 @@ export default function SearchPage() {
           </View>
         </View>
 
-        <FlatList
+        <FlatList<SearchResult>
           data={results}
           keyExtractor={(item) => item.code}
           contentContainerStyle={styles.listContainer}
           ListHeaderComponent={
-            showRecent
-              ? () => (
-                  <View style={styles.section}>
-                    <View style={styles.sectionHeader}>
-                      <Text style={styles.sectionTitle}>Recent searches</Text>
-                      <Pressable onPress={handleClearRecent}>
-                        <Text style={styles.clearText}>Clear</Text>
-                      </Pressable>
-                    </View>
-                    {recentItems.map((item) => (
-                      <Pressable
-                        key={`${item.query}-${item.locations}`}
-                        style={styles.resultItem}
-                        onPress={() =>
-                          item.code
-                            ? handleSelect(
-                                item.code,
-                                item.campus ?? (campus as CampusCode),
-                                item.query,
-                                item.locations,
-                              )
-                            : (() => {
-                                const extracted = extractCodeFromQuery(
-                                  item.query,
-                                );
-                                if (extracted) {
-                                  handleSelect(
-                                    extracted,
-                                    campus as CampusCode,
-                                    item.query,
-                                    item.locations,
-                                  );
-                                  return;
-                                }
-                                setPendingRecent({
-                                  query: item.query,
-                                  locations: item.locations,
-                                });
-                                setQuery(item.query);
-                              })()
-                        }
-                      >
-                        <Text style={styles.resultTitle}>
-                          {item.code
-                            ? (() => {
-                                const details =
-                                  queryClient.getQueryData<Building>([
-                                    "buildingDetails",
-                                    item.code,
-                                  ]);
-                                const name =
-                                  details?.long_name ?? details?.name;
-                                if (name) return `${item.code} - ${name}`;
-                                if (item.query.includes(" - "))
-                                  return item.query;
-                                return item.code;
-                              })()
-                            : item.query}
-                        </Text>
-                        {item.locations ? (
-                          <Text style={styles.resultSubtitle}>
-                            {item.locations}
-                          </Text>
-                        ) : null}
-                      </Pressable>
-                    ))}
-                  </View>
-                )
-              : null
+            showRecent ? (
+              <RecentSearchesSection
+                items={recentDisplayItems}
+                onClear={handleClearRecent}
+                onPressItem={handleRecentItemPress}
+              />
+            ) : null
           }
           renderItem={({ item }) => (
-            <Pressable
-              style={styles.resultItem}
-              onPress={() =>
-                handleSelect(
-                  item.code,
-                  item.campus,
-                  item.longName || item.name
-                    ? `${item.code} - ${item.longName ?? item.name}`
-                    : item.code,
-                  item.address,
-                )
-              }
-            >
-              <Text style={styles.resultTitle}>
-                {item.longName || item.name
-                  ? `${item.code} - ${item.longName ?? item.name}`
-                  : item.code}
-              </Text>
-              {item.address ? (
-                <Text style={styles.resultSubtitle}>{item.address}</Text>
-              ) : null}
-            </Pressable>
+            <SearchResultRow
+              item={item}
+              onPressItem={handleSearchResultPress}
+            />
           )}
-          ListEmptyComponent={() => {
-            if (query.trim()) {
-              return (
-                <View style={styles.empty}>
-                  <Text style={styles.emptyText}>No matches found</Text>
-                </View>
-              );
-            }
-            if (showRecent) {
-              return null;
-            }
-            return (
-              <View style={styles.empty}>
-                <Text style={styles.emptyText}>Start typing to search</Text>
-              </View>
-            );
-          }}
+          ListEmptyComponent={
+            <EmptyState query={query} showRecent={showRecent} />
+          }
         />
       </View>
     </SafeAreaView>
