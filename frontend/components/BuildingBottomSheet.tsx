@@ -5,16 +5,8 @@ import {
 } from "@/hooks/queries/buildingQueries";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  Image,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import {
-  ScrollView
-} from "react-native-gesture-handler";
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView } from "react-native-gesture-handler";
 import { COLORS } from "../app/constants";
 import {
   BikeIcon,
@@ -29,6 +21,7 @@ import {
   WheelchairIcon,
 } from "../app/icons";
 import BuildingGallery from "./BuildingGallery";
+import MetroAccessibleChip from "./MetroAccessibleChip";
 
 const concordiaLogo = require("../assets/images/concordia_logo.png");
 
@@ -108,23 +101,26 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
   const getBuildingQuery = useGetBuildingDetails(props.buildingCode || "");
 
   const building: BottomSheetBuildingModel = useMemo(() => {
-    if (
-      getBuildingQuery.data &&
-      getBuildingQuery.isSuccess &&
-      getBuildingQuery.data.accessibility
-    ) {
+    if (getBuildingQuery.data && getBuildingQuery.isSuccess) {
+      const isAccessibilityDataAvailable =
+        getBuildingQuery.data.accessibility?.length > 0;
+
+      const accessbilityMapping = isAccessibilityDataAvailable
+        ? {
+            wheelchair: getBuildingQuery.data.accessibility.includes(
+              "Accessible entrance",
+            ),
+            elevator: getBuildingQuery.data.accessibility.includes(
+              "Accessible building elevator",
+            ),
+            ramp: getBuildingQuery.data.accessibility.includes(
+              "Accessibility ramp",
+            ),
+          }
+        : { wheelchair: false, elevator: false, ramp: false };
+
       return {
-        accessibilityMapping: {
-          wheelchair: getBuildingQuery.data.accessibility.includes(
-            "Accessible entrance",
-          ),
-          elevator: getBuildingQuery.data.accessibility.includes(
-            "Accessible building elevator",
-          ),
-          ramp: getBuildingQuery.data.accessibility.includes(
-            "Accessibility ramp",
-          ),
-        },
+        accessibilityMapping: accessbilityMapping,
         ...getBuildingQuery.data,
       };
     }
@@ -152,6 +148,7 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
       building.accessibilityMapping.ramp && (
         <SlopeUpIcon key="ramp" color="#0E4C92" size={30} />
       ),
+      building.metro_accessible && <MetroAccessibleChip key={"metro-access"} />,
     ].filter(Boolean);
   }, [building?.accessibilityMapping]);
 
