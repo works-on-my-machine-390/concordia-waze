@@ -5,7 +5,14 @@ import {
 } from "@/hooks/queries/buildingQueries";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
 import { COLORS } from "../app/constants";
 import {
@@ -139,6 +146,7 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
     ].filter(Boolean);
   }, [building?.accessibilityMapping]);
 
+  const isLoading = getBuildingQuery.isLoading;
   const hasBuildingData = !!building && getBuildingQuery.isSuccess;
 
   // Check if route is cross-campus
@@ -220,7 +228,13 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
       backgroundStyle={BottomSheetStyles.bottomSheet}
       containerStyle={{ overflow: "visible" }}
     >
-      {hasBuildingData ? (
+      {isLoading && (
+        <View style={{ marginTop: 16 }}>
+          <ActivityIndicator size="large" color={COLORS.maroon} />
+        </View>
+      )}
+
+      {!isLoading && hasBuildingData && (
         <>
           <View style={BottomSheetStyles.fakeHandleContainer}>
             <View style={BottomSheetStyles.fakeHandleBar} />
@@ -347,7 +361,8 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
             </BottomSheetScrollView>
           )}
         </>
-      ) : (
+      )}
+      {!isLoading && !hasBuildingData && (
         <BottomSheetScrollView
           contentContainerStyle={BottomSheetStyles.scrollContent}
         >
