@@ -2,15 +2,14 @@
  * Tests for Directory
  */
 
-import React from "react";
 import {
-  fireEvent,
-  waitFor,
   act,
   cleanup,
+  fireEvent,
+  waitFor,
 } from "@testing-library/react-native";
-import { renderWithProviders } from "../test_utils/renderUtils";
 import Directory from "../app/(drawer)/directory";
+import { renderWithProviders } from "../test_utils/renderUtils";
 
 const mockPush = jest.fn();
 jest.mock("expo-router", () => ({
