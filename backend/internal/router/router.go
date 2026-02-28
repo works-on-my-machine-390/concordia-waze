@@ -2,6 +2,7 @@ package router
 
 import (
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -30,18 +31,29 @@ func SetupRouter() *gin.Engine {
 
 	buildingDataRepo := repository.NewBuildingDataRepository(constants.BuildingDataFile)
 	shuttleDataRepo := repository.NewShuttleDataRepository(constants.ShuttleDataFile)
+	floorDataRepo := repository.NewFloorRepository(constants.FloorDataFile)
 
 	jwtManager := application.NewJWTManager(os.Getenv("JWT_SECRET"), constants.DefaultJWTDuration*time.Hour)
 	userService := application.NewUserService(userRepo, jwtManager)
 
 	placesClient := google.NewGooglePlacesClient(os.Getenv("GOOGLE_PLACES_API_KEY"))
 
-	buildingService := application.NewBuildingService(buildingDataRepo, placesClient)
+	buildingService := application.NewBuildingService(buildingDataRepo, floorDataRepo, placesClient)
 	campusService := application.NewCampusService(buildingDataRepo)
 	imageService := application.NewImageService(buildingService, placesClient)
 	firebaseService := application.NewFirebaseService()
 	shuttleService := application.NewShuttleService(shuttleDataRepo)
 	pointOfInterestService := application.NewPointOfInterestService(placesClient)
+	dataDir, err := findIndoorDataDir()
+	if err != nil {
+		// fail fast with a clear message
+		panic("could not find campusData/GeoJsonDataParser/Data from working dir: " + err.Error())
+	}
+	indoorPOIRepo := repository.NewIndoorPOIRepository(dataDir)
+	indoorPOIService := application.NewIndoorPointOfInterestService(indoorPOIRepo)
+	indoorRoomRepo := repository.NewIndoorRoomRepository(dataDir) // reuse same base dir you used for POIs
+	roomSearchService := application.NewRoomSearchService(indoorRoomRepo)
+	roomSearchHandler := handler.NewRoomSearchHandler(roomSearchService)
 
 	// ---- Directions wiring (FIXED: inject shuttle schedule repo) ----
 	directionsClient := google.NewGoogleDirectionsClient(os.Getenv("GOOGLE_DIRECTIONS_API_KEY"))
@@ -56,7 +68,7 @@ func SetupRouter() *gin.Engine {
 	imageHandler := handler.NewImageHandler(imageService)
 	firebaseHandler := handler.NewFirebaseHandler(firebaseService)
 	shuttleHandler := handler.NewShuttleHandler(shuttleService)
-	pointOfInterestHandler := handler.NewPointOfInterestHandler(pointOfInterestService)
+	pointOfInterestHandler := handler.NewPointOfInterestHandler(pointOfInterestService, indoorPOIService)
 
 	router.Use(middleware.AuthMiddleware(jwtManager))
 
@@ -73,7 +85,11 @@ func SetupRouter() *gin.Engine {
 		buildingsGroup.GET("/list", buildingHandler.GetAllBuildingsByCampus)
 		buildingsGroup.GET("/:code", buildingHandler.GetBuilding)
 		buildingsGroup.GET("/:code/images", imageHandler.GetBuildingImages)
+		buildingsGroup.GET("/floor/:code", buildingHandler.GetFloorsByBuilding)
 	}
+
+	// image utility endpoint (PUBLIC)
+	router.GET("/images/*path", imageHandler.GetStaticImage)
 
 	// Directions endpoints (PUBLIC)
 	// 1) Lat/Lng version:
@@ -98,6 +114,8 @@ func SetupRouter() *gin.Engine {
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	router.GET("/pointofinterest", pointOfInterestHandler.GetNearbyPointsOfInterest)
+	router.GET("/pointofinterest/indoor", pointOfInterestHandler.GetNearbyIndoorPOIs)
+	router.GET("/rooms/search", roomSearchHandler.SearchRoom)
 
 	// =========================
 	// PROTECTED ROUTES (auth)
@@ -130,4 +148,26 @@ func SetupRouter() *gin.Engine {
 func SetupTestRouter() *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	return SetupRouter()
+}
+
+func findIndoorDataDir() (string, error) {
+	wd, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+
+	cur := wd
+	for {
+		candidate := filepath.Join(cur, "campusData", "GeoJsonDataParser", "Data")
+		if stat, err := os.Stat(candidate); err == nil && stat.IsDir() {
+			return candidate, nil
+		}
+		parent := filepath.Dir(cur)
+		if parent == cur {
+			break // reached filesystem root
+		}
+		cur = parent
+	}
+
+	return "", os.ErrNotExist
 }
