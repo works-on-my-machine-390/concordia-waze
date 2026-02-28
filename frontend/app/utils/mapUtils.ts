@@ -1,3 +1,8 @@
+import { CampusCode } from "@/hooks/queries/buildingQueries";
+import * as Location from "expo-location";
+import { LocationObject } from "expo-location";
+import { CAMPUS_COORDS } from "../constants";
+
 // Haversine formula
 export function getDistance(
   point1: { latitude: number; longitude: number },
@@ -26,3 +31,80 @@ export function getDistanceInMeters(
 ) {
   return getDistance(point1, point2) * 1000;
 }
+
+/**
+ * Given two locations (latitude and longitude), determine if they are on different campuses.
+ * This is done by calculating the distance of each location to the known coordinates of each campus.
+ * If one location is closer to SGW and the other is closer to LOY, we can infer that the path between them is cross-campus.
+ * @param startLocation
+ * @param endLocation
+ */
+export function getIsCrossCampus(
+  startLocation: { latitude: number; longitude: number },
+  endLocation: { latitude: number; longitude: number },
+) {
+  if (!startLocation || !endLocation) return false;
+  if (!startLocation.latitude || !startLocation.longitude) return false;
+  if (!endLocation.latitude || !endLocation.longitude) return false;
+
+  const startDistanceFromSGW = getDistance(
+    startLocation,
+    CAMPUS_COORDS[CampusCode.SGW],
+  );
+  const startDistanceFromLOY = getDistance(
+    startLocation,
+    CAMPUS_COORDS[CampusCode.LOY],
+  );
+  const endDistanceFromSGW = getDistance(
+    endLocation,
+    CAMPUS_COORDS[CampusCode.SGW],
+  );
+  const endDistanceFromLOY = getDistance(
+    endLocation,
+    CAMPUS_COORDS[CampusCode.LOY],
+  );
+
+  // If start is closer to SGW and end is closer to LOY, or vice versa, it's cross-campus
+  return (
+    (startDistanceFromSGW < startDistanceFromLOY &&
+      endDistanceFromLOY < endDistanceFromSGW) ||
+    (startDistanceFromLOY < startDistanceFromSGW &&
+      endDistanceFromSGW < endDistanceFromLOY)
+  );
+}
+
+export const getAddressFromLocation = async (location: LocationObject) => {
+  if (location?.coords) {
+    try {
+      const addresses = await Location.reverseGeocodeAsync({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      });
+
+      if (addresses && addresses.length > 0) {
+        const addr = addresses[0];
+
+        // street adress
+        const street = [addr.streetNumber, addr.street]
+          .filter(Boolean)
+          .join(" ");
+
+        // adding city, region and postal code to it
+        const formattedAddress = [
+          street,
+          addr.city,
+          addr.region,
+          addr.postalCode,
+        ]
+          .filter(Boolean)
+          .join(", ");
+
+        return formattedAddress || "Current Location";
+      }
+    } catch (e) {
+      console.error("Error reverse geocoding location:", e);
+      return "Current Location";
+    }
+  }
+  return "";
+};

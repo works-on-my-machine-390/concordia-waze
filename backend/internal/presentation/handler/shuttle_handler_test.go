@@ -11,6 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/application"
+	"github.com/works-on-my-machine-390/concordia-waze/internal/constants"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/persistence/repository"
 )
 
@@ -177,5 +178,48 @@ func TestGetDepartureData_OK(t *testing.T) {
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("unexpected departure data:\n got=%#v\nwant=%#v", got, want)
+	}
+}
+func TestGetStopPositionOK(t *testing.T) {
+	t.Parallel()
+	gin.SetMode(gin.TestMode)
+
+	// not accessed in this test, but required to construct the handler
+	tmpDir := t.TempDir()
+	file := writeTempFile(t, tmpDir, "shuttle.json", sampleJSON)
+
+	repo := repository.NewShuttleDataRepository(file)
+	if err := repo.Load(); err != nil {
+		t.Fatalf("failed to load repository: %v", err)
+	}
+	// end
+
+	appSvc := application.NewShuttleService(repo)
+	h := NewShuttleHandler(appSvc)
+
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+
+	h.GetShuttleMarkerPositions(c)
+	resp := w.Result()
+	defer resp.Body.Close()
+
+	var got map[string]map[string]float64
+	if err := json.NewDecoder(resp.Body).Decode(&got); err != nil {
+		t.Fatalf("failed to decode response JSON: %v", err)
+	}
+
+	want := map[string]map[string]float64{
+		"SGW": {
+			"lat": constants.SGWShuttleStopPosition.Lat,
+			"lng": constants.SGWShuttleStopPosition.Lng,
+		},
+		"LOY": {
+			"lat": constants.LOYShuttleStopPosition.Lat,
+			"lng": constants.LOYShuttleStopPosition.Lng,
+		},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("unexpected stop location data:\n got=%#v\nwant=%#v", got, want)
 	}
 }

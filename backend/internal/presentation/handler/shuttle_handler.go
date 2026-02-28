@@ -58,3 +58,17 @@ func (h *ShuttleHandler) GetDepartureData(c *gin.Context) {
 
 	c.JSON(http.StatusOK, data)
 }
+
+// GetShuttleMarkerPositions godoc
+// @Summary     Get shuttle marker positions
+// @Description Returns the latitude and longitude for shuttle stop markers at both campuses.
+// @Tags        shuttle
+// @Accept      json
+// @Produce     json
+// @Success     200 {object} map[string]map[string]float64
+// @Failure     500 {object} map[string]string "internal server error"
+// @Router      /shuttle/markers [get]
+func (h *ShuttleHandler) GetShuttleMarkerPositions(c *gin.Context) {
+	positions := h.service.GetShuttleMarkerPositions()
+	c.JSON(http.StatusOK, positions)
+}

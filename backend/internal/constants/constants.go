@@ -12,6 +12,13 @@ var (
 	LOYCampusPosition = domain.LatLng{
 		Lat: 45.458410340417004, Lng: -73.63684612372252,
 	}
+
+	SGWShuttleStopPosition = domain.LatLng{
+		Lat: 45.497163, Lng: -73.578535}
+
+	LOYShuttleStopPosition = domain.LatLng{
+		Lat: 45.458424, Lng: -73.638369,
+	}
 )
 
 const (

@@ -1,22 +1,19 @@
+import { useNavigationStore } from "@/hooks/useNavigationStore";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { COLORS } from "../app/constants";
 import { CircleIcon, LocationIcon } from "../app/icons";
 
 type NavigationHeaderProps = {
-  startLocation: string;
-  endLocation: string;
-  onCancel: () => void;
   onStartLocationPress?: () => void;
   onEndLocationPress?: () => void;
 };
 
 export function NavigationHeader({
-  startLocation,
-  endLocation,
-  onCancel,
   onStartLocationPress,
   onEndLocationPress,
-}: NavigationHeaderProps) {
+}: Readonly<NavigationHeaderProps>) {
+  const navigationState = useNavigationStore();
+
   return (
     <View
       style={styles.container}
@@ -37,7 +34,7 @@ export function NavigationHeader({
                 numberOfLines={1}
                 ellipsizeMode="tail"
               >
-                {startLocation}
+                {navigationState.startLocation?.name || "Select start"}
               </Text>
             </View>
           </Pressable>
@@ -64,7 +61,7 @@ export function NavigationHeader({
                 numberOfLines={1}
                 ellipsizeMode="tail"
               >
-                {endLocation}
+                {navigationState.endLocation?.name || "Select destination"}
               </Text>
             </View>
           </Pressable>

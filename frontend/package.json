@@ -57,7 +57,8 @@
     "react-native-web": "~0.21.0",
     "react-native-worklets": "0.5.1",
     "toastify-react-native": "^7.2.3",
-    "wretch": "^3.0.6"
+    "wretch": "^3.0.6",
+    "zustand": "^5.0.11"
   },
   "devDependencies": {
     "@testing-library/jest-native": "^5.4.3",

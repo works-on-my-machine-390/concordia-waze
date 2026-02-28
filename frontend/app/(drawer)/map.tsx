@@ -1,5 +1,6 @@
-import BuildingBottomSheet from "@/components/BuildingBottomSheet";
-import PoiSearchBottomSheet from "@/components/poi/PoiSearchBottomSheet";
+import MapBottomSection from "@/components/MapBottomSection";
+import PoiOutdoorMarkers from "@/components/poi/PoiOutdoorMarkers";
+import ShuttleBusMarkers from "@/components/ShuttleBusMarkers";
 import {
   CampusBuilding,
   CampusCode,
@@ -7,33 +8,29 @@ import {
   useGetBuildings,
 } from "@/hooks/queries/buildingQueries";
 import { TextSearchRankPreferenceType } from "@/hooks/queries/poiQueries";
-import { useSaveToHistory } from "@/hooks/queries/userHistoryQueries";
-import { useGetProfile } from "@/hooks/queries/userQueries";
+import { MapMode, useMapStore } from "@/hooks/useMapStore";
+import { useNavigationStore } from "@/hooks/useNavigationStore";
 import * as Location from "expo-location";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import MapView, { Region } from "react-native-maps";
 import { Toast } from "toastify-react-native";
 import { isPointInPolygon } from "~/app/utils/pointInPolygon";
 import CampusBuildingPolygons from "~/components/CampusBuildingPolygons";
-import LocationButton from "~/components/LocationButton";
 import { MapHeader } from "~/components/MapHeader";
 import { NavigationHeader } from "~/components/NavigationHeader";
 import {
+  CAMPUS_COORDS,
   DEFAULT_CAMERA_MOVE_DURATION_IN_MS,
   DEFAULT_MAP_DELTA,
 } from "../constants";
 import { getDistance } from "../utils/mapUtils";
-import PoiOutdoorMarkers from "@/components/poi/PoiOutdoorMarkers";
 
 export type MapQueryParamsModel = {
   selected?: string;
   campus?: string;
   editMode?: "start" | "end";
-  editValue?: string;
-  preserveStart?: string;
-  preserveEnd?: string;
   camLat?: string; // latitude for the center of the map camera
   camLng?: string; // longitude for the center of the map camera
 } & MapPOIQueryParamsModel;
@@ -49,16 +46,13 @@ export default function MainMap() {
   const router = useRouter();
   const params = useLocalSearchParams<MapQueryParamsModel>();
   const [campus, setCampus] = useState<CampusCode>(CampusCode.SGW);
-  const [currentBuildingCode, setCurrentBuildingCode] = useState<string | null>(
-    null,
-  );
-  const [selectedBuildingCode, setSelectedBuildingCode] = useState<
-    string | null
-  >(null);
 
   const [location, setLocation] = useState<Location.LocationObject | null>(
     null,
   );
+
+  const mapState = useMapStore();
+  const navigationState = useNavigationStore();
 
   const [buildingsByCampus, setBuildingsByCampus] = useState<
     Record<string, CampusBuilding[]>
@@ -68,25 +62,12 @@ export default function MainMap() {
     longitude: number;
   } | null>(null);
 
-  const [isNavigationMode, setIsNavigationMode] = useState(false);
-  const [isPoiMode, setIsPoiMode] = useState<boolean>(false);
+  // queried, but not acccessed here. the data is cached for when the user begins navigation
+  useGetBuildingDetails(mapState.currentBuildingCode || undefined);
+  useGetBuildingDetails(navigationState.startLocation?.code || undefined);
 
-  const [customStartBuilding, setCustomStartBuilding] = useState<string | null>(
-    null,
-  );
-
-  const { data: userProfile } = useGetProfile();
-  const saveToHistory = useSaveToHistory(userProfile?.id || "");
-
-  const selectedBuildingDetails = useGetBuildingDetails(
-    selectedBuildingCode || undefined,
-  );
-  const currentBuildingDetails = useGetBuildingDetails(
-    currentBuildingCode || undefined,
-  );
-  const customStartBuildingDetails = useGetBuildingDetails(
-    customStartBuilding || undefined,
-  );
+  // may be the same as building details - but if the user manually selects
+  // a different start building, then they will be different
 
   const buildingListQuery = useGetBuildings(campus);
 
@@ -125,18 +106,17 @@ export default function MainMap() {
 
   // Initialize building selection from search params, if present
   useEffect(() => {
-    if (params.editMode) return;
     if (typeof params.selected === "string" && params.selected.length > 0) {
-      setSelectedBuildingCode(params.selected);
+      mapState.setSelectedBuildingCode(params.selected);
+      if (params.editMode) return;
+      mapState.setCurrentMode(MapMode.BUILDING);
     }
   }, [params.selected]);
 
   useEffect(() => {
     if (params.query) {
-      setIsPoiMode(true);
-      setSelectedBuildingCode(null);
-    } else {
-      setIsPoiMode(false);
+      mapState.setCurrentMode(MapMode.POI);
+      mapState.setSelectedBuildingCode(null);
     }
   }, [params.query]);
 
@@ -146,7 +126,22 @@ export default function MainMap() {
       const normalized = params.campus.toUpperCase();
       if (normalized === CampusCode.SGW || normalized === CampusCode.LOY) {
         setCampus(normalized as CampusCode);
-        const coords = CAMPUS_COORDS[normalized as CampusCode];
+
+        // prioritize camLat and camLng if present, otherwise default to campus center
+        let coords = CAMPUS_COORDS[normalized as CampusCode];
+
+        if (
+          params.camLat &&
+          params.camLng &&
+          !Number.isNaN(Number(params.camLat)) &&
+          !Number.isNaN(Number(params.camLng))
+        ) {
+          coords = {
+            latitude: Number(params.camLat),
+            longitude: Number(params.camLng),
+          };
+        }
+
         moveCamera({
           latitude: coords.latitude,
           longitude: coords.longitude,
@@ -159,83 +154,6 @@ export default function MainMap() {
     return buildingsByCampus[campus] || [];
   }, [campus, buildingsByCampus]);
 
-  const [startAddress, setStartAddress] = useState<string | null>(null);
-
-  // reverse geocoding to get address given coordinates
-  useEffect(() => {
-    const getAddress = async () => {
-      if (location?.coords && !currentBuildingCode) {
-        try {
-          const addresses = await Location.reverseGeocodeAsync({
-            latitude: location.coords.latitude,
-            longitude: location.coords.longitude,
-          });
-
-          if (addresses && addresses.length > 0) {
-            const addr = addresses[0];
-
-            // street adress
-            const street = [addr.streetNumber, addr.street]
-              .filter(Boolean)
-              .join(" ");
-
-            // adding city, region and postal code to it
-            const formattedAddress = [
-              street,
-              addr.city,
-              addr.region,
-              addr.postalCode,
-            ]
-              .filter(Boolean)
-              .join(", ");
-
-            setStartAddress(formattedAddress || "Current Location");
-          }
-        } catch (e) {
-          console.error("Failed to get address", e);
-          setStartAddress(null);
-        }
-      } else {
-        setStartAddress(null);
-      }
-    };
-
-    getAddress();
-  }, [
-    location?.coords?.latitude,
-    location?.coords?.longitude,
-    currentBuildingCode,
-  ]);
-
-  const startLocationText = useMemo(() => {
-    // if user edits
-    if (customStartBuilding && customStartBuildingDetails.data) {
-      return `${customStartBuildingDetails.data.code} - ${customStartBuildingDetails.data.long_name}`;
-    }
-    // if user has location and is in a building
-    if (currentBuildingCode && currentBuildingDetails.data) {
-      return `${currentBuildingDetails.data.code} - ${currentBuildingDetails.data.long_name}`;
-    }
-
-    // if user has location but not in a building
-    if (location?.coords) {
-      return (
-        startAddress ||
-        `${location.coords.latitude.toFixed(5)}, ${location.coords.longitude.toFixed(5)}`
-      );
-    }
-
-    // if no location available
-    return "Select a start location";
-  }, [
-    customStartBuilding,
-    customStartBuildingDetails.data,
-    currentBuildingCode,
-    currentBuildingDetails.data,
-    location?.coords,
-    startAddress,
-  ]);
-
   const mapStyle = [
     {
       featureType: "poi",
@@ -244,11 +162,6 @@ export default function MainMap() {
     },
   ];
   const mapRef = useRef<MapView>(null);
-
-  const CAMPUS_COORDS = {
-    [CampusCode.SGW]: { latitude: 45.4972, longitude: -73.5791 }, // SGW campus
-    [CampusCode.LOY]: { latitude: 45.4589, longitude: -73.64 }, // Loyola campus
-  };
 
   const initializeCameraCenterFromParams = () => {
     if (params.camLat && params.camLng) {
@@ -297,6 +210,7 @@ export default function MainMap() {
           },
           (loc) => {
             setLocation(loc);
+            mapState.setUserLocation(loc);
           },
         );
       } catch (e) {
@@ -328,7 +242,7 @@ export default function MainMap() {
       }
     }
 
-    setCurrentBuildingCode(found);
+    mapState.setCurrentBuildingCode(found);
   }, [
     location?.coords?.latitude,
     location?.coords?.longitude,
@@ -345,6 +259,7 @@ export default function MainMap() {
         }
         const current = await Location.getCurrentPositionAsync({});
         setLocation(current);
+        mapState.setUserLocation(current);
         coords = current.coords;
       }
 
@@ -400,86 +315,12 @@ export default function MainMap() {
     }
   };
 
-  const handleStartNavigation = () => {
-    setCustomStartBuilding(null);
-    setIsNavigationMode(true);
-
-    // Save the destination building to history
-    if (userProfile?.id && selectedBuildingDetails.data) {
-      saveToHistory.mutate({
-        name: selectedBuildingDetails.data.long_name,
-        address: selectedBuildingDetails.data.address,
-        lat: selectedBuildingDetails.data.latitude,
-        lng: selectedBuildingDetails.data.longitude,
-        building_code: selectedBuildingDetails.data.code,
-        destinationType: "building",
-      });
-    }
-  };
-
-  const getCampusForBuilding = useCallback(
-    (buildingCode: string | null): CampusCode | undefined => {
-      if (!buildingCode) return undefined;
-
-      for (const [campusCode, buildings] of Object.entries(buildingsByCampus)) {
-        if (buildings.some((b) => b.code === buildingCode)) {
-          return campusCode as CampusCode;
-        }
-      }
-      return undefined;
-    },
-    [buildingsByCampus],
-  );
-
-  const startCampus = useMemo(() => {
-    // custom start building
-    if (customStartBuilding) {
-      return getCampusForBuilding(customStartBuilding);
-    }
-
-    // current building (user is inside a building)
-    if (currentBuildingCode) {
-      return getCampusForBuilding(currentBuildingCode);
-    }
-
-    // user's location but not in building (determine campus from coordinates)
-    if (location?.coords) {
-      const distanceToSGW = getDistance(
-        {
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
-        },
-        CAMPUS_COORDS[CampusCode.SGW],
-      );
-      const distanceToLOY = getDistance(
-        {
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
-        },
-        CAMPUS_COORDS[CampusCode.LOY],
-      );
-
-      return distanceToSGW < distanceToLOY ? CampusCode.SGW : CampusCode.LOY;
-    }
-
-    return undefined;
-  }, [
-    customStartBuilding,
-    currentBuildingCode,
-    location?.coords,
-    getCampusForBuilding,
-  ]);
-
-  const endCampus = getCampusForBuilding(selectedBuildingCode);
-
   const handleStartLocationPress = () => {
     router.push({
       pathname: "/search",
       params: {
         campus,
         editMode: "start",
-        preserveEnd: selectedBuildingCode || "",
-        preserveStart: customStartBuilding || "",
       },
     });
   };
@@ -490,50 +331,15 @@ export default function MainMap() {
       params: {
         campus,
         editMode: "end",
-        preserveEnd: selectedBuildingCode || "",
-        preserveStart: customStartBuilding || "",
       },
     });
   };
 
-  const locationButtonPosition = useMemo(() => {
-    if (!selectedBuildingCode) {
-      return 80;
-    }
-    return isNavigationMode ? 150 : 220;
-  }, [selectedBuildingCode, isNavigationMode]);
-
-  useEffect(() => {
-    if (params.editMode && params.editValue) {
-      if (params.editMode === "start") {
-        setCustomStartBuilding(params.editValue);
-        if (params.preserveEnd) {
-          setSelectedBuildingCode(params.preserveEnd);
-        }
-        setIsNavigationMode(true);
-      } else if (params.editMode === "end") {
-        setSelectedBuildingCode(params.editValue);
-        if (params.preserveStart) {
-          setCustomStartBuilding(params.preserveStart);
-        }
-        setIsNavigationMode(true);
-      }
-    }
-  }, [params]);
-
   const handleSearchBarClear = () => {
+    mapState.setCurrentMode(MapMode.NONE);
     router.setParams({
       query: "",
     });
-  };
-
-  const handlePolygonPress = (buildingCode: string) => {
-    if (isPoiMode) {
-      router.setParams({
-        query: "",
-      });
-    }
-    setSelectedBuildingCode(buildingCode);
   };
 
   return (
@@ -554,28 +360,13 @@ export default function MainMap() {
         }}
         onRegionChangeComplete={handleRegionChangeComplete}
       >
-        <CampusBuildingPolygons
-          buildings={buildingsToRender}
-          highlightedCode={currentBuildingCode}
-          selectedCode={selectedBuildingCode}
-          onBuildingPress={handlePolygonPress}
-        />
-        {isPoiMode && <PoiOutdoorMarkers />}
+        <CampusBuildingPolygons buildings={buildingsToRender} />
+        {mapState.currentMode === MapMode.POI && <PoiOutdoorMarkers />}
+        <ShuttleBusMarkers />
       </MapView>
 
-      {isNavigationMode ? (
+      {mapState.currentMode === MapMode.NAVIGATION ? (
         <NavigationHeader
-          startLocation={startLocationText}
-          endLocation={
-            selectedBuildingDetails.data
-              ? `${selectedBuildingDetails.data.code} - ${selectedBuildingDetails.data.long_name}`
-              : selectedBuildingCode || "Unknown Building"
-          }
-          onCancel={() => {
-            setIsNavigationMode(false);
-            setSelectedBuildingCode(null);
-            setCustomStartBuilding(null);
-          }}
           onStartLocationPress={handleStartLocationPress}
           onEndLocationPress={handleEndLocationPress}
         />
@@ -590,43 +381,11 @@ export default function MainMap() {
           camLng={String((cameraCenter || CAMPUS_COORDS[campus]).longitude)}
         />
       )}
-      <View style={styles.bottomSheetContainer}>
-        <LocationButton
-          onPress={goToMyLocation}
-          bottomPosition={locationButtonPosition}
-        />
-
-        {isPoiMode && (
-          <PoiSearchBottomSheet
-            moveCamera={moveCamera}
-            onClose={() =>
-              router.setParams({
-                query: "",
-                poiLat: undefined,
-                poiLng: undefined,
-              })
-            }
-            onDirectionsPress={() => {}}
-            userLocation={location?.coords}
-            // TODO: generalize directions for POI
-          />
-        )}
-
-        {!!selectedBuildingCode && (
-          <BuildingBottomSheet
-            buildingCode={selectedBuildingCode}
-            onClose={() => {
-              setSelectedBuildingCode(null);
-              setIsNavigationMode(false);
-            }}
-            onStartNavigation={handleStartNavigation}
-            isNavigationMode={isNavigationMode}
-            startCampus={startCampus}
-            endCampus={endCampus}
-            hasLocation={!!location || !!customStartBuilding}
-          />
-        )}
-      </View>
+      <MapBottomSection
+        goToMyLocation={goToMyLocation}
+        moveCamera={moveCamera}
+        userLocation={location?.coords}
+      />
     </View>
   );
 }
@@ -637,12 +396,5 @@ const styles = StyleSheet.create({
   },
   map: {
     flex: 1,
-  },
-  bottomSheetContainer: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
   },
 });

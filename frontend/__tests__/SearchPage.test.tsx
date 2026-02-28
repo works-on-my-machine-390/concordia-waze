@@ -1509,7 +1509,7 @@ describe("SearchPage", () => {
 
       const { getByPlaceholderText, queryByText } = await renderAndFlush();
 
-      const input = getByPlaceholderText("Where to…");
+      const input = getByPlaceholderText("Search for start location");
       fireEvent.changeText(input, "H");
 
       await waitFor(() => {
@@ -1528,8 +1528,6 @@ describe("SearchPage", () => {
               campus: "SGW",
               editMode: "start",
               editValue: "H",
-              preserveEnd: "MB",
-              preserveStart: "",
             },
           });
         },
@@ -1547,7 +1545,7 @@ describe("SearchPage", () => {
 
       const { getByPlaceholderText, queryByText } = await renderAndFlush();
 
-      const input = getByPlaceholderText("Where to…");
+      const input = getByPlaceholderText("Search for destination");
       fireEvent.changeText(input, "MB");
 
       await waitFor(() => {
@@ -1566,8 +1564,6 @@ describe("SearchPage", () => {
               campus: "SGW",
               editMode: "end",
               editValue: "MB",
-              preserveEnd: "",
-              preserveStart: "H",
             },
           });
         },
@@ -1585,7 +1581,7 @@ describe("SearchPage", () => {
 
       const { getByPlaceholderText, queryByText } = await renderAndFlush();
 
-      const input = getByPlaceholderText("Where to…");
+      const input = getByPlaceholderText("Search for start location");
       fireEvent.changeText(input, "CC");
 
       await waitFor(() => {
@@ -1604,8 +1600,6 @@ describe("SearchPage", () => {
               campus: "LOY",
               editMode: "start",
               editValue: "CC",
-              preserveEnd: "MB",
-              preserveStart: "H",
             },
           });
         },
@@ -1621,7 +1615,7 @@ describe("SearchPage", () => {
 
       const { getByPlaceholderText, queryByText } = await renderAndFlush();
 
-      const input = getByPlaceholderText("Where to…");
+      const input = getByPlaceholderText("Search for start location");
       fireEvent.changeText(input, "H");
 
       await waitFor(() => {
@@ -1640,8 +1634,6 @@ describe("SearchPage", () => {
               campus: "SGW",
               editMode: "start",
               editValue: "H",
-              preserveEnd: "",
-              preserveStart: "",
             },
           });
         },
@@ -1717,8 +1709,6 @@ describe("SearchPage", () => {
               campus: "LOY",
               editMode: "end",
               editValue: "CC",
-              preserveEnd: "MB",
-              preserveStart: "H",
             },
           });
         },
@@ -1736,7 +1726,7 @@ describe("SearchPage", () => {
 
       const { getByPlaceholderText, queryByText } = await renderAndFlush();
 
-      const input = getByPlaceholderText("Where to…");
+      const input = getByPlaceholderText("Search for start location");
       // Select a Loyola campus building
       fireEvent.changeText(input, "CC");
 
@@ -1756,8 +1746,6 @@ describe("SearchPage", () => {
               campus: "LOY",
               editMode: "start",
               editValue: "CC",
-              preserveEnd: "H",
-              preserveStart: "",
             },
           });
         },
@@ -1775,7 +1763,7 @@ describe("SearchPage", () => {
 
       const { getByPlaceholderText, queryByText } = await renderAndFlush();
 
-      const input = getByPlaceholderText("Where to…");
+      const input = getByPlaceholderText("Search for start location");
       fireEvent.changeText(input, "CC");
 
       await waitFor(() => {
@@ -1799,8 +1787,6 @@ describe("SearchPage", () => {
           campus: "LOY",
           editMode: "start",
           editValue: "CC",
-          preserveEnd: "MB",
-          preserveStart: "H",
         },
       });
     });

@@ -3,7 +3,7 @@
  */
 
 import BackHeader from "@/components/BackHeader";
-import { fireEvent, render } from "@testing-library/react-native";
+import { act, fireEvent, render } from "@testing-library/react-native";
 import { useLocalSearchParams } from "expo-router";
 
 // Mock router
@@ -57,7 +57,9 @@ describe("BackHeader", () => {
     const { getByText } = render(<BackHeader />);
     const title = getByText("Log In");
 
-    fireEvent.press(title);
+    act(() => {
+      fireEvent.press(title);
+    });
     expect(mockBack).toHaveBeenCalled();
   });
 });
