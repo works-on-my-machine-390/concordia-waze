@@ -32,7 +32,7 @@
             7
           ]
         ],
-        "imgPath": "floormaps/VL_1.png",
+        "imgPath": "floormaps/VL_1.svg",
         "name": "VLFloor1",
         "number": 1,
         "poi": [
@@ -322,7 +322,7 @@
             5
           ]
         ],
-        "imgPath": "floormaps/VL_2.png",
+        "imgPath": "floormaps/VL_2.svg",
         "name": "VLFloor2",
         "number": 2,
         "poi": [
@@ -503,7 +503,7 @@
             14
           ]
         ],
-        "imgPath": "floormaps/VL_3.png",
+        "imgPath": "floormaps/VL_3.svg",
         "name": "VLFloor3",
         "number": 3,
         "poi": [
@@ -1159,7 +1159,7 @@
             28
           ]
         ],
-        "imgPath": "floormaps/LB_2.png",
+        "imgPath": "floormaps/LB_2.svg",
         "name": "LBFloor2",
         "number": 2,
         "poi": [
@@ -1984,7 +1984,7 @@
             28
           ]
         ],
-        "imgPath": "floormaps/LB_3.png",
+        "imgPath": "floormaps/LB_3.svg",
         "name": "LBFloor3",
         "number": 3,
         "poi": [
@@ -2846,7 +2846,7 @@
             19
           ]
         ],
-        "imgPath": "floormaps/LB_4.png",
+        "imgPath": "floormaps/LB_4.svg",
         "name": "LBFloor4",
         "number": 4,
         "poi": [
@@ -3334,7 +3334,7 @@
             9
           ]
         ],
-        "imgPath": "floormaps/LB_5.png",
+        "imgPath": "floormaps/LB_5.svg",
         "name": "LBFloor5",
         "number": 5,
         "poi": [
@@ -3952,7 +3952,7 @@
             5
           ]
         ],
-        "imgPath": "floormaps/CC_1.png",
+        "imgPath": "floormaps/CC_1.svg",
         "name": "CCFloor1",
         "number": 1,
         "poi": [
@@ -4571,7 +4571,7 @@
             16
           ]
         ],
-        "imgPath": "floormaps/MB_S2.png",
+        "imgPath": "floormaps/MB_S2.svg",
         "name": "MBFloorS2",
         "number": -2,
         "poi": [
@@ -5340,7 +5340,7 @@
             33
           ]
         ],
-        "imgPath": "floormaps/MB_1.png",
+        "imgPath": "floormaps/MB_1.svg",
         "name": "MBFloor1",
         "number": 1,
         "poi": [

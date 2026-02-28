@@ -72,12 +72,12 @@ func TestGetStaticImage_OK(t *testing.T) {
 
 	// possible locations for the test asset; try them until one exists
 	expectedPaths := []string{
-		"./resource/floormaps/MB_1.png",
-		"resource/floormaps/MB_1.png",
-		"backend/resource/floormaps/MB_1.png",
-		"../resource/floormaps/MB_1.png",
-		"../../resource/floormaps/MB_1.png",
-		"../../../resource/floormaps/MB_1.png",
+		"./resource/floormaps/MB_1.svg",
+		"resource/floormaps/MB_1.svg",
+		"backend/resource/floormaps/MB_1.svg",
+		"../resource/floormaps/MB_1.svg",
+		"../../resource/floormaps/MB_1.svg",
+		"../../../resource/floormaps/MB_1.svg",
 	}
 
 	var expected []byte
@@ -98,7 +98,7 @@ func TestGetStaticImage_OK(t *testing.T) {
 	r := gin.New()
 	r.GET("/*path", handler.GetStaticImage)
 
-	req := httptest.NewRequest("GET", "/floormaps/MB_1.png", nil)
+	req := httptest.NewRequest("GET", "/floormaps/MB_1.svg", nil)
 	w := httptest.NewRecorder()
 
 	r.ServeHTTP(w, req)
@@ -119,7 +119,7 @@ func TestGetStaticImage_NotFound(t *testing.T) {
 	r := gin.New()
 	r.GET("/*path", handler.GetStaticImage)
 
-	req := httptest.NewRequest("GET", "/floormaps/does_not_exist.png", nil)
+	req := httptest.NewRequest("GET", "/floormaps/does_not_exist.svg", nil)
 	w := httptest.NewRecorder()
 
 	r.ServeHTTP(w, req)
