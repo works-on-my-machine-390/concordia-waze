@@ -1,15 +1,15 @@
+import { Ionicons } from "@expo/vector-icons";
 import { DrawerActions, useNavigation } from "@react-navigation/native";
-import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useState } from "react";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useGetShuttleSchedule } from "../../hooks/queries/shuttleQueries";
 import { COLORS } from "../constants";
 
-const API = "http://localhost:8080";
 const C = COLORS, M = C.maroon;
 
 type Day = "monday"|"tuesday"|"wednesday"|"thursday"|"friday";
 type Row = { loy: string; sgw: string };
-type SD  = Record<string, Record<string, string[]>>;
 
 const DAYS = [
   ["monday","Mon","Monday"], ["tuesday","Tue","Tuesday"], ["wednesday","Wed","Wednesday"],
@@ -21,30 +21,17 @@ const zip = (a: string[], b: string[]): Row[] =>
 
 export default function ShuttleSchedule() {
   const nav = useNavigation();
-  const [tab, setTab]   = useState<Day>("monday");
-  const [data, setData] = useState<SD | null>(null);
-  const [load, setLoad] = useState(true);
-  const [err, setErr]   = useState<string | null>(null);
-
-  const fetch_ = useCallback(() => {
-    setLoad(true); setErr(null);
-    fetch(`${API}/shuttle`)
-      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
-      .then((d: SD) => { const n: SD = {}; for (const [k, v] of Object.entries(d)) n[k.toLowerCase()] = v; setData(n); setLoad(false); })
-      .catch((e: Error) => { setErr(e.message); setLoad(false); });
-  }, []);
-
-  useEffect(() => { fetch_(); }, [fetch_]);
-
+  const [tab, setTab] = useState<Day>("monday");
+  const { data, isLoading, error, refetch } = useGetShuttleSchedule();
   const rows: Row[] = data?.[tab] ? zip(data[tab].LOY ?? [], data[tab].SGW ?? []) : [];
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.background }}>
 
       <View style={s.hdr}>
-        <TouchableOpacity style={s.burger} onPress={() => nav.dispatch(DrawerActions.openDrawer())}>
-          <View style={s.ln} /><View style={[s.ln, { width: 13, alignSelf: "flex-start", marginLeft: 1 }]} /><View style={s.ln} />
-        </TouchableOpacity>
+        <Pressable style={s.menuBtn} onPress={() => nav.dispatch(DrawerActions.openDrawer())}>
+          <Ionicons name="menu" size={26} color={M} />
+        </Pressable>
         <Text style={s.title}>Shuttle Bus</Text>
       </View>
 
@@ -56,12 +43,12 @@ export default function ShuttleSchedule() {
         ))}
       </View>
 
-      {load ? (
+      {isLoading ? (
         <ActivityIndicator style={{ marginTop: 40 }} size="large" color={M} />
-      ) : err ? (
+      ) : error ? (
         <View style={{ padding: 24, gap: 8 }}>
-          <Text>Could not load schedule — {err}</Text>
-          <TouchableOpacity onPress={fetch_}><Text style={{ color: M }}>Try Again</Text></TouchableOpacity>
+          <Text>Could not load schedule — {(error as Error).message}</Text>
+          <TouchableOpacity onPress={() => refetch()}><Text style={{ color: M }}>Try Again</Text></TouchableOpacity>
         </View>
       ) : (
         <ScrollView contentContainerStyle={{ padding: 14, paddingBottom: 44 }} showsVerticalScrollIndicator={false}>
@@ -105,8 +92,7 @@ export default function ShuttleSchedule() {
 const s = StyleSheet.create({
   table:     { borderRadius: 8, overflow: "hidden", borderWidth: 1, borderColor: C.border },
   hdr:       { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, paddingVertical: 12, backgroundColor: C.surface, borderBottomWidth: 1, borderBottomColor: C.border },
-  burger:    { width: 36, height: 36, justifyContent: "center", alignItems: "center", borderRadius: 8, backgroundColor: C.background, borderWidth: 1, borderColor: C.border, gap: 4 },
-  ln:        { width: 20, height: 2, borderRadius: 2, backgroundColor: C.textPrimary },
+  menuBtn:   { width: 44, height: 44, borderRadius: 26, backgroundColor: "white", alignItems: "center", justifyContent: "center", shadowColor: "#000", shadowOpacity: 0.18, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 6 },
   title:     { fontSize: 22, fontWeight: "800", color: C.textPrimary },
   tabs:      { flexDirection: "row", backgroundColor: C.surface, paddingHorizontal: 12, paddingVertical: 10, gap: 7, borderBottomWidth: 1, borderBottomColor: C.border },
   pill:      { flex: 1, paddingVertical: 7, borderRadius: 20, alignItems: "center", backgroundColor: C.background, borderWidth: 1.5, borderColor: C.border },
