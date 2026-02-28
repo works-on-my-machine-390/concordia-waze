@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   BuildingListItem,
+  CampusCode,
   useGetAllBuildings,
 } from "../../hooks/queries/buildingQueries";
 import { COLORS } from "../constants";
@@ -48,8 +49,21 @@ export default function Directory() {
     };
   }, [buildingsData, searchQuery]);
 
-  const handleBuildingPress = (buildingCode: string) => {
-    router.push(`/map?selected=${buildingCode}`);
+  const handleBuildingPress = (
+    buildingCode: string,
+    coordinates?: { latitude: number; longitude: number },
+    campus?: CampusCode,
+  ) => {
+    console.log(coordinates);
+    router.replace({
+      pathname: "/map",
+      params: {
+        selected: buildingCode,
+        camLat: coordinates?.latitude,
+        camLng: coordinates?.longitude,
+        campus: campus, // will trigger the useEffect in map.tsx on params.campus to recenter camera on building
+      },
+    });
   };
 
   const renderBuilding = ({ item }: { item: BuildingListItem }) => (
@@ -58,7 +72,16 @@ export default function Directory() {
         styles.buildingItem,
         pressed && styles.buildingItemPressed,
       ]}
-      onPress={() => handleBuildingPress(item.code)}
+      onPress={() =>
+        handleBuildingPress(
+          item.code,
+          {
+            latitude: item.latitude,
+            longitude: item.longitude,
+          },
+          item.campus,
+        )
+      }
     >
       <View style={styles.buildingCodeContainer}>
         <Text style={styles.buildingCode}>{item.code}</Text>

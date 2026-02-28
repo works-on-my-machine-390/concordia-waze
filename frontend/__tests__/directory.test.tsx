@@ -12,10 +12,11 @@ import Directory from "../app/(drawer)/directory";
 import { renderWithProviders } from "../test_utils/renderUtils";
 
 const mockPush = jest.fn();
+const mockReplace = jest.fn();
 jest.mock("expo-router", () => ({
   useRouter: () => ({
     push: mockPush,
-    replace: jest.fn(),
+    replace: mockReplace,
     back: jest.fn(),
   }),
   useLocalSearchParams: () => ({}),
@@ -43,18 +44,24 @@ const SGW_BUILDINGS = [
     name: "Hall",
     long_name: "Henry F. Hall Building",
     campus: "SGW",
+    latitude: 45.4971,
+    longitude: -73.5788,
   },
   {
     code: "MB",
     name: "John Molson",
     long_name: "John Molson Building",
     campus: "SGW",
+    latitude: 45.4956,
+    longitude: -73.5784,
   },
   {
     code: "EV",
     name: "EV Building",
     long_name: "Engineering & Visual Arts",
     campus: "SGW",
+    latitude: 45.4947,
+    longitude: -73.579,
   },
 ];
 const LOY_BUILDINGS = [
@@ -63,12 +70,16 @@ const LOY_BUILDINGS = [
     name: "Admin",
     long_name: "Administration Building",
     campus: "LOY",
+    latitude: 45.4584,
+    longitude: -73.6404,
   },
   {
     code: "CC",
     name: "Comm Center",
     long_name: "Communication Centre",
     campus: "LOY",
+    latitude: 45.4587,
+    longitude: -73.6398,
   },
 ];
 const ALL = { buildings: { SGW: SGW_BUILDINGS, LOY: LOY_BUILDINGS } };
@@ -317,31 +328,55 @@ describe("Directory screen", () => {
     });
   });
 
-  test("pressing a building navigates to /map?selectedBuilding=<code>", async () => {
+  test("pressing a building navigates with selected building and camera params", async () => {
     mockLoaded();
     const { getByText } = renderWithProviders(<Directory />);
     await act(async () => {
       fireEvent.press(getByText("Henry F. Hall Building"));
     });
-    expect(mockPush).toHaveBeenCalledWith("/map?selectedBuilding=H");
+    expect(mockReplace).toHaveBeenCalledWith({
+      pathname: "/map",
+      params: {
+        selected: "H",
+        camLat: 45.4971,
+        camLng: -73.5788,
+        campus: "SGW",
+      },
+    });
   });
 
-  test("pressing a LOY building uses its code", async () => {
+  test("pressing a LOY building uses its own params", async () => {
     mockLoaded();
     const { getByText } = renderWithProviders(<Directory />);
     await act(async () => {
       fireEvent.press(getByText("Administration Building"));
     });
-    expect(mockPush).toHaveBeenCalledWith("/map?selectedBuilding=AD");
+    expect(mockReplace).toHaveBeenCalledWith({
+      pathname: "/map",
+      params: {
+        selected: "AD",
+        camLat: 45.4584,
+        camLng: -73.6404,
+        campus: "LOY",
+      },
+    });
   });
 
-  test("pressing short name (same Pressable) also navigates", async () => {
+  test("pressing short name (same Pressable) also navigates with params", async () => {
     mockLoaded();
     const { getByText } = renderWithProviders(<Directory />);
     await act(async () => {
       fireEvent.press(getByText("Comm Center"));
     });
-    expect(mockPush).toHaveBeenCalledWith("/map?selectedBuilding=CC");
+    expect(mockReplace).toHaveBeenCalledWith({
+      pathname: "/map",
+      params: {
+        selected: "CC",
+        camLat: 45.4587,
+        camLng: -73.6398,
+        campus: "LOY",
+      },
+    });
   });
 
   test("renders without crash when both arrays are empty", () => {

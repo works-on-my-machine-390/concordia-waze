@@ -126,7 +126,22 @@ export default function MainMap() {
       const normalized = params.campus.toUpperCase();
       if (normalized === CampusCode.SGW || normalized === CampusCode.LOY) {
         setCampus(normalized as CampusCode);
-        const coords = CAMPUS_COORDS[normalized as CampusCode];
+
+        // prioritize camLat and camLng if present, otherwise default to campus center
+        let coords = CAMPUS_COORDS[normalized as CampusCode];
+
+        if (
+          params.camLat &&
+          params.camLng &&
+          !Number.isNaN(Number(params.camLat)) &&
+          !Number.isNaN(Number(params.camLng))
+        ) {
+          coords = {
+            latitude: Number(params.camLat),
+            longitude: Number(params.camLng),
+          };
+        }
+
         moveCamera({
           latitude: coords.latitude,
           longitude: coords.longitude,
