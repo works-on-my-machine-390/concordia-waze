@@ -19,3 +19,10 @@ export function getDistance(
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
+
+export function getDistanceInMeters(
+  point1: { latitude: number; longitude: number },
+  point2: { latitude: number; longitude: number },
+) {
+  return getDistance(point1, point2) * 1000;
+}

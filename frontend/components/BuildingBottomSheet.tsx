@@ -7,12 +7,14 @@ import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Image,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import {
+  ScrollView
+} from "react-native-gesture-handler";
 import { COLORS } from "../app/constants";
 import {
   BikeIcon,
@@ -33,10 +35,10 @@ const concordiaLogo = require("../assets/images/concordia_logo.png");
 // Reusable list section
 function ListSection({ title, items }: { title: string; items: string[] }) {
   return (
-    <View style={styles.listContainer}>
-      <Text style={styles.listTitle}>{title}</Text>
+    <View style={BottomSheetStyles.listContainer}>
+      <Text style={BottomSheetStyles.listTitle}>{title}</Text>
       {items.map((item) => (
-        <Text key={item} style={styles.listItem}>
+        <Text key={item} style={BottomSheetStyles.listItem}>
           {item}
         </Text>
       ))}
@@ -73,13 +75,13 @@ export type TransitMode = (typeof TransitMode)[keyof typeof TransitMode];
 
 function EmptyBuildingState() {
   return (
-    <View style={styles.emptyStateContainer}>
+    <View style={BottomSheetStyles.emptyStateContainer}>
       <Image
         source={require("../assets/images/icon-dizzy.png")}
-        style={styles.emptyStateImage}
+        style={BottomSheetStyles.emptyStateImage}
         resizeMode="contain"
       />
-      <Text style={styles.emptyStateText}>
+      <Text style={BottomSheetStyles.emptyStateText}>
         No information available for this building
       </Text>
     </View>
@@ -231,48 +233,50 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
       enableContentPanningGesture
       enableDynamicSizing={false}
       detached
-      backgroundStyle={styles.bottomSheet}
+      backgroundStyle={BottomSheetStyles.bottomSheet}
       containerStyle={{ overflow: "visible" }}
     >
       {hasBuildingData ? (
         <>
-          <View style={styles.fakeHandleContainer}>
-            <View style={styles.fakeHandleBar} />
+          <View style={BottomSheetStyles.fakeHandleContainer}>
+            <View style={BottomSheetStyles.fakeHandleBar} />
           </View>
           {/* Header */}
-          <View style={styles.headerContainer}>
+          <View style={BottomSheetStyles.headerContainer}>
             {!props.isNavigationMode && sheetOpen && (
               <TouchableOpacity
                 onPress={() => props.onStartNavigation?.(building.code)}
                 testID="start-navigation"
               >
-                <View style={styles.floatingIcon}>
+                <View style={BottomSheetStyles.floatingIcon}>
                   <GetDirectionsIcon size={90} color={COLORS.maroon} />
                 </View>
               </TouchableOpacity>
             )}
 
             {!props.isNavigationMode && (
-              <View style={styles.textContainer}>
-                <Text style={styles.name}>
+              <View style={BottomSheetStyles.textContainer}>
+                <Text style={BottomSheetStyles.name}>
                   {building.long_name} ({building.code})
                 </Text>
-                <Text style={styles.address}>{building.address}</Text>
+                <Text style={BottomSheetStyles.address}>
+                  {building.address}
+                </Text>
               </View>
             )}
 
             {/* Navigation mode: title + transit selector */}
             {props.isNavigationMode && (
-              <View style={styles.navModeContainer}>
-                <View style={styles.navModeHeader}>
-                  <Text style={styles.transitModeTitle}>
+              <View style={BottomSheetStyles.navModeContainer}>
+                <View style={BottomSheetStyles.navModeHeader}>
+                  <Text style={BottomSheetStyles.transitModeTitle}>
                     {props.hasLocation
                       ? selectedOption.label
                       : "Please select a start location"}
                   </Text>
                   <TouchableOpacity
                     onPress={handleCloseSheet}
-                    style={styles.closeIcon}
+                    style={BottomSheetStyles.closeIcon}
                     testID="close-navigation"
                     accessibilityLabel="Close navigation"
                     accessibilityRole="button"
@@ -285,7 +289,7 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
                   <ScrollView
                     horizontal
                     showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.transitRow}
+                    contentContainerStyle={BottomSheetStyles.transitRow}
                     nestedScrollEnabled={true}
                   >
                     {transitOptions.map(({ mode, Icon, image, duration }) => {
@@ -294,8 +298,8 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
                         <TouchableOpacity
                           key={mode}
                           style={[
-                            styles.transitChip,
-                            selected && styles.transitChipSelected,
+                            BottomSheetStyles.transitChip,
+                            selected && BottomSheetStyles.transitChipSelected,
                           ]}
                           onPress={() => setTransitMode(mode)}
                         >
@@ -313,8 +317,9 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
                           )}
                           <Text
                             style={[
-                              styles.transitChipText,
-                              selected && styles.transitChipTextSelected,
+                              BottomSheetStyles.transitChipText,
+                              selected &&
+                                BottomSheetStyles.transitChipTextSelected,
                             ]}
                           >
                             {duration}
@@ -329,15 +334,15 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
 
             {/* Normal mode: accessibility + favorite + close */}
             {!props.isNavigationMode && (
-              <View style={styles.iconsContainer}>
-                <View style={styles.accessibilityIconsContainer}>
+              <View style={BottomSheetStyles.iconsContainer}>
+                <View style={BottomSheetStyles.accessibilityIconsContainer}>
                   {accessibilityIcons}
                 </View>
-                <View style={styles.accessibilityIconsContainer}>
+                <View style={BottomSheetStyles.accessibilityIconsContainer}>
                   <FavoriteEmptyIcon color={COLORS.maroon} />
                   <TouchableOpacity
                     onPress={handleCloseSheet}
-                    style={styles.closeIcon}
+                    style={BottomSheetStyles.closeIcon}
                   >
                     <CloseIcon size={28} />
                   </TouchableOpacity>
@@ -348,7 +353,9 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
 
           {/* Scrollable Content */}
           {!props.isNavigationMode && (
-            <BottomSheetScrollView contentContainerStyle={styles.scrollContent}>
+            <BottomSheetScrollView
+              contentContainerStyle={BottomSheetStyles.scrollContent}
+            >
               <BuildingGallery buildingCode={building.code} />
               <ListSection title="Services" items={building.services} />
               <ListSection title="Departments" items={building.departments} />
@@ -357,7 +364,9 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
           )}
         </>
       ) : (
-        <BottomSheetScrollView contentContainerStyle={styles.scrollContent}>
+        <BottomSheetScrollView
+          contentContainerStyle={BottomSheetStyles.scrollContent}
+        >
           <EmptyBuildingState />
         </BottomSheetScrollView>
       )}
@@ -365,7 +374,7 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
   );
 }
 
-const styles = StyleSheet.create({
+export const BottomSheetStyles = StyleSheet.create({
   bottomSheet: {
     backgroundColor: COLORS.background,
     shadowColor: "#000",
