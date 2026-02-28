@@ -6,8 +6,8 @@ import {
   DirectoryIcon,
   FavoritesIcon,
   MapIcon,
+  ShuttleIcon,
 } from "../icons";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
 const MapDrawerIcon = ({ color, size }: { color: string; size: number }) => (
   <MapIcon color={color} size={size} />
@@ -43,9 +43,7 @@ const ShuttleDrawerIcon = ({
 }: {
   color: string;
   size: number;
-}) => (
-  <MaterialCommunityIcons name="bus-clock" size={size} color={color} />
-);
+}) => <ShuttleIcon color={color} size={size} />;
 
 export default function DrawerLayout() {
   const getDrawerScreenOptions = (label: string) => ({
