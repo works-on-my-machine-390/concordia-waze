@@ -1,4 +1,4 @@
-import type { OpeningHours } from "@/hooks/queries/buildingQueries";
+import type { OpeningHoursModel } from "@/hooks/queries/buildingQueries";
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { ListSectionStyles } from "./BottomSheetListSection";
@@ -12,7 +12,7 @@ import {
 export default function OpeningHours({
   openingHours,
 }: {
-  readonly openingHours: OpeningHours;
+  readonly openingHours: OpeningHoursModel;
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
 

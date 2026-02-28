@@ -1,4 +1,4 @@
-import type { OpeningHours } from "@/hooks/queries/buildingQueries";
+import type { OpeningHoursModel } from "@/hooks/queries/buildingQueries";
 import { COLORS } from "../constants";
 
 export const daysOfWeek = [
@@ -23,7 +23,7 @@ export type OpenStatusType =
 
 export const SOON_THRESHOLD_IN_MINUTES = 60;
 
-export const getIsOpen247 = (openingHours: OpeningHours) => {
+export const getIsOpen247 = (openingHours: OpeningHoursModel) => {
   if (
     openingHours["sunday"]?.open === "00:00" &&
     !openingHours["sunday"]?.close
@@ -32,7 +32,7 @@ export const getIsOpen247 = (openingHours: OpeningHours) => {
   }
 };
 
-export const getOpenStatus = (openingHours: OpeningHours) => {
+export const getOpenStatus = (openingHours: OpeningHoursModel) => {
   // it's open 24 hours a day, every day of the week
   if (getIsOpen247(openingHours)) {
     return OpenStatusTypes.OPEN_24H;

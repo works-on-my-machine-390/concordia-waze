@@ -40,7 +40,7 @@ export const useGetBuildings = (campus: string) => {
   return query;
 };
 
-export type OpeningHours = {
+export type OpeningHoursModel = {
   [day: string]: {
     open: string;
     close: string;
@@ -59,7 +59,7 @@ export type Building = {
   venues: string[];
   accessibility: string[];
   metro_accessible: boolean;
-  opening_hours: OpeningHours;
+  opening_hours: OpeningHoursModel;
 };
 
 export const useGetBuildingDetails = (buildingCode: string) => {
