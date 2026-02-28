@@ -232,7 +232,7 @@ func TestBuildingHandler_GetFloorsByBuilding_Success200(t *testing.T) {
 	repo := &fakeBuildingRepo{}
 	floorMap := map[string][]domain.Floor{
 		"MB": {
-			{FloorName: "floor1", FloorNumber: 1, ImgPath: "f1.png"},
+			{FloorName: "floor1", FloorNumber: 1, ImgPath: "f1.svg"},
 		},
 	}
 	frepo := &fakeFloorRepo{floors: floorMap}
@@ -252,7 +252,7 @@ func TestBuildingHandler_GetFloorsByBuilding_Success200(t *testing.T) {
 		t.Fatalf("expected status 200, got %d, body=%s", w.Code, w.Body.String())
 	}
 	body := w.Body.String()
-	if !strings.Contains(body, `"floors"`) || !strings.Contains(body, `"imgPath":"f1.png"`) {
+	if !strings.Contains(body, `"floors"`) || !strings.Contains(body, `"imgPath":"f1.svg"`) {
 		t.Fatalf("unexpected body: %s", body)
 	}
 }
