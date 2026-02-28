@@ -351,7 +351,7 @@
               "x": 0.5823429541602279,
               "y": 0.25100401606440415
             },
-            "type": "fireescape"
+            "type": "fire_escape"
           },
           {
             "name": "poi_15",
@@ -559,7 +559,7 @@
               "x": 0.5910652920963004,
               "y": 0.2574257425740695
             },
-            "type": "fireescape"
+            "type": "fire_escape"
           },
           {
             "name": "poi_29",
@@ -3453,7 +3453,7 @@
               "x": 0.40972222222145405,
               "y": 0.2412974683550326
             },
-            "type": "fireescape"
+            "type": "fire_escape"
           },
           {
             "name": "Dissertation Writer's Room",
