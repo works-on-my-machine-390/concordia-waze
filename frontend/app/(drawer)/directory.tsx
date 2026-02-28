@@ -49,7 +49,7 @@ export default function Directory() {
   }, [buildingsData, searchQuery]);
 
   const handleBuildingPress = (buildingCode: string) => {
-    router.push(`/map?selectedBuilding=${buildingCode}`);
+    router.push(`/map?selected=${buildingCode}`);
   };
 
   const renderBuilding = ({ item }: { item: BuildingListItem }) => (
