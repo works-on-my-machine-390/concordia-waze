@@ -120,6 +120,13 @@ definitions:
       campus:
         type: string
     type: object
+  domain.Coordinates:
+    properties:
+      x:
+        type: number
+      "y":
+        type: number
+    type: object
   domain.DayHours:
     properties:
       close:
@@ -155,6 +162,34 @@ definitions:
           $ref: '#/definitions/domain.DirectionStep'
         type: array
     type: object
+  domain.Edge:
+    properties:
+      endVertex:
+        type: integer
+      startVertex:
+        type: integer
+    type: object
+  domain.Floor:
+    properties:
+      edges:
+        items:
+          $ref: '#/definitions/domain.Edge'
+        type: array
+      imgPath:
+        type: string
+      name:
+        type: string
+      number:
+        type: integer
+      pois:
+        items:
+          $ref: '#/definitions/domain.PointOfInterest'
+        type: array
+      vertices:
+        items:
+          $ref: '#/definitions/domain.Coordinates'
+        type: array
+    type: object
   domain.LatLng:
     properties:
       latitude:
@@ -165,6 +200,19 @@ definitions:
   domain.OpeningHours:
     additionalProperties:
       $ref: '#/definitions/domain.DayHours'
+    type: object
+  domain.PointOfInterest:
+    properties:
+      name:
+        type: string
+      polygon:
+        items:
+          $ref: '#/definitions/domain.Coordinates'
+        type: array
+      position:
+        $ref: '#/definitions/domain.Coordinates'
+      type:
+        type: string
     type: object
   domain.User:
     properties:
@@ -409,6 +457,43 @@ paths:
       summary: Get building images
       tags:
       - buildings
+  /buildings/floor/{code}:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        {
+        "floors": {
+        { "name": "...", "imgPath": "...", "vertices": [...], "edge": [...], "poi": [...] },
+        { ... }
+        }
+        }
+      parameters:
+      - description: Building code
+        in: path
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              items:
+                $ref: '#/definitions/domain.Floor'
+              type: array
+            type: object
+        "500":
+          description: internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: return all building floors for a specific building code
+      tags:
+      - buildings
   /buildings/list:
     get:
       consumes:
@@ -599,6 +684,30 @@ paths:
       summary: Get directions by building codes
       tags:
       - directions
+  /images/{path}:
+    get:
+      consumes:
+      - application/json
+      description: SWAGGER DOES NOT WORK SINCE THE PATH HAS '/' . Get images for a
+        path from the backend resource directory
+      parameters:
+      - description: Image path
+        in: path
+        name: path
+        required: true
+        type: string
+      produces:
+      - image/png
+      responses:
+        "404":
+          description: path not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get image from path
+      tags:
+      - utilityd
   /pointofinterest:
     get:
       consumes:
@@ -654,6 +763,112 @@ paths:
       summary: Get nearby points of interest
       tags:
       - point of interest
+  /pointofinterest/indoor:
+    get:
+      description: Returns indoor POIs near a given indoor position (projected coords).
+      parameters:
+      - description: Building code (e.g., MB, LB, CC, VL)
+        in: query
+        name: building
+        required: true
+        type: string
+      - description: Floor number
+        in: query
+        name: floor
+        required: true
+        type: integer
+      - description: Indoor X coordinate (EPSG:32198 meters)
+        in: query
+        name: x
+        required: true
+        type: number
+      - description: Indoor Y coordinate (EPSG:32198 meters)
+        in: query
+        name: "y"
+        required: true
+        type: number
+      - description: 'Radius in meters (default: 40)'
+        in: query
+        name: radius
+        type: integer
+      - description: 'Filter to same floor (default: true)'
+        in: query
+        name: sameFloor
+        type: boolean
+      - description: 'Max results (default: 30)'
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get nearby indoor POIs
+      tags:
+      - point of interest
+  /rooms/search:
+    get:
+      description: Returns room centroid coordinates by room number (EPSG:32198)
+      parameters:
+      - description: Building code (MB, LB, CC, VL)
+        in: query
+        name: building
+        required: true
+        type: string
+      - description: Room name/number (e.g., S2.285)
+        in: query
+        name: room
+        required: true
+        type: string
+      - description: Floor (optional; if provided, only searches that floor)
+        in: query
+        name: floor
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Search a room by number
+      tags:
+      - rooms
   /shuttle:
     get:
       consumes:

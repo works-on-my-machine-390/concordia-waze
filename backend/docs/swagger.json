@@ -198,6 +198,53 @@
                 }
             }
         },
+        "/buildings/floor/{code}": {
+            "get": {
+                "description": "{\n\"floors\": {\n{ \"name\": \"...\", \"imgPath\": \"...\", \"vertices\": [...], \"edge\": [...], \"poi\": [...] },\n{ ... }\n}\n}",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "buildings"
+                ],
+                "summary": "return all building floors for a specific building code",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Building code",
+                        "name": "code",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/definitions/domain.Floor"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/buildings/list": {
             "get": {
                 "description": "Return all building codes, names and long names grouped by campus. Response shape:\n{\n\"buildings\": {\n\"SGW\": [ { \"code\": \"...\", \"name\": \"...\", \"long_name\": \"...\", \"campus\": \"SGW\" }, ... ],\n\"LOY\": [ ... ]\n}\n}",
@@ -562,6 +609,41 @@
                 }
             }
         },
+        "/images/{path}": {
+            "get": {
+                "description": "SWAGGER DOES NOT WORK SINCE THE PATH HAS '/' . Get images for a path from the backend resource directory",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "image/png"
+                ],
+                "tags": [
+                    "utilityd"
+                ],
+                "summary": "Get image from path",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Image path",
+                        "name": "path",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "404": {
+                        "description": "path not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/pointofinterest": {
             "get": {
                 "description": "Get nearby points of interest via text search from Google Places API",
@@ -631,6 +713,163 @@
                     },
                     "500": {
                         "description": "internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/pointofinterest/indoor": {
+            "get": {
+                "description": "Returns indoor POIs near a given indoor position (projected coords).",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "point of interest"
+                ],
+                "summary": "Get nearby indoor POIs",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Building code (e.g., MB, LB, CC, VL)",
+                        "name": "building",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Floor number",
+                        "name": "floor",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "number",
+                        "description": "Indoor X coordinate (EPSG:32198 meters)",
+                        "name": "x",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "number",
+                        "description": "Indoor Y coordinate (EPSG:32198 meters)",
+                        "name": "y",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Radius in meters (default: 40)",
+                        "name": "radius",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Filter to same floor (default: true)",
+                        "name": "sameFloor",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Max results (default: 30)",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "bad request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/rooms/search": {
+            "get": {
+                "description": "Returns room centroid coordinates by room number (EPSG:32198)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "rooms"
+                ],
+                "summary": "Search a room by number",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Building code (MB, LB, CC, VL)",
+                        "name": "building",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Room name/number (e.g., S2.285)",
+                        "name": "room",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Floor (optional; if provided, only searches that floor)",
+                        "name": "floor",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1891,6 +2130,17 @@
                 }
             }
         },
+        "domain.Coordinates": {
+            "type": "object",
+            "properties": {
+                "x": {
+                    "type": "number"
+                },
+                "y": {
+                    "type": "number"
+                }
+            }
+        },
         "domain.DayHours": {
             "type": "object",
             "properties": {
@@ -1945,6 +2195,49 @@
                 }
             }
         },
+        "domain.Edge": {
+            "type": "object",
+            "properties": {
+                "endVertex": {
+                    "type": "integer"
+                },
+                "startVertex": {
+                    "type": "integer"
+                }
+            }
+        },
+        "domain.Floor": {
+            "type": "object",
+            "properties": {
+                "edges": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.Edge"
+                    }
+                },
+                "imgPath": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "number": {
+                    "type": "integer"
+                },
+                "pois": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.PointOfInterest"
+                    }
+                },
+                "vertices": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.Coordinates"
+                    }
+                }
+            }
+        },
         "domain.LatLng": {
             "type": "object",
             "properties": {
@@ -1960,6 +2253,26 @@
             "type": "object",
             "additionalProperties": {
                 "$ref": "#/definitions/domain.DayHours"
+            }
+        },
+        "domain.PointOfInterest": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "polygon": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.Coordinates"
+                    }
+                },
+                "position": {
+                    "$ref": "#/definitions/domain.Coordinates"
+                },
+                "type": {
+                    "type": "string"
+                }
             }
         },
         "domain.User": {

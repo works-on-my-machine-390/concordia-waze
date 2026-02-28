@@ -79,7 +79,7 @@ func setupHandler(fetcher *fakeDirectionsFetcher) *DirectionsHandler {
 		},
 	}
 
-	bSvc := application.NewBuildingService(buildingReader, fp)
+	bSvc := application.NewBuildingService(buildingReader, nil, fp)
 
 	return NewDirectionsHandler(svc, bSvc)
 }
