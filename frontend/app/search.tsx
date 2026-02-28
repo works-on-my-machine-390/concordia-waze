@@ -1,4 +1,5 @@
 import SearchNearbyButton from "@/components/poi/SearchNearbyButton";
+import SearchNearbySuggestions from "@/components/poi/SearchNearbySuggestions";
 import {
   addGuestSearchHistory,
   clearGuestSearchHistory,
@@ -20,6 +21,7 @@ import {
   useSaveToHistory,
 } from "@/hooks/queries/userHistoryQueries";
 import { useGetProfile } from "@/hooks/queries/userQueries";
+import { useNavigationStore } from "@/hooks/useNavigationStore";
 import { Ionicons } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -35,13 +37,10 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colors, SHADOW } from "./styles/theme";
 import { filterBuildingsByQuery } from "./utils/searchUtils";
-import SearchNearbySuggestions from "@/components/poi/SearchNearbySuggestions";
 
 export type SearchQueryParamsModel = {
   campus?: string;
   editMode?: "start" | "end";
-  preserveStart?: string;
-  preserveEnd?: string;
 } & SearchPOIQueryParamsModel;
 
 export type SearchPOIQueryParamsModel = {
@@ -75,6 +74,7 @@ export default function SearchPage() {
   } | null>(null);
 
   const allBuildingsQuery = useGetAllBuildings();
+  const navigationState = useNavigationStore();
 
   useEffect(() => {
     let active = true;
@@ -244,6 +244,26 @@ export default function SearchPage() {
 
     // if user in edit mode, pass the edit info back to map
     if (editMode) {
+      if (editMode === "start") {
+        navigationState.setStartLocation({
+          name: label ?? code,
+          latitude: results.find((r) => r.code === code)?.latitude || 0,
+          longitude: results.find((r) => r.code === code)?.longitude || 0,
+          code,
+          address:
+            address || results.find((r) => r.code === code)?.address || "",
+        });
+      } else if (editMode === "end") {
+        navigationState.setEndLocation({
+          name: label ?? code,
+          latitude: results.find((r) => r.code === code)?.latitude || 0,
+          longitude: results.find((r) => r.code === code)?.longitude || 0,
+          code,
+          address:
+            address || results.find((r) => r.code === code)?.address || "",
+        });
+      }
+
       router.replace({
         pathname: "/map",
         params: {
@@ -251,8 +271,6 @@ export default function SearchPage() {
           campus: resolvedCampus,
           editMode: editMode,
           editValue: code,
-          preserveEnd: params.preserveEnd || "",
-          preserveStart: params.preserveStart || "",
         },
       });
     } else {
@@ -423,6 +441,15 @@ export default function SearchPage() {
     );
   };
 
+  const getSearchPlaceholderText = () => {
+    if (params.editMode === "start") {
+      return "Search for start location";
+    } else if (params.editMode === "end") {
+      return "Search for destination";
+    }
+    return "Where to…";
+  };
+
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
       <View style={styles.page}>
@@ -441,7 +468,7 @@ export default function SearchPage() {
                 autoFocus
                 value={query}
                 onChangeText={setQuery}
-                placeholder="Where to…"
+                placeholder={getSearchPlaceholderText()}
                 placeholderTextColor="#818181"
                 style={styles.searchInput}
               />

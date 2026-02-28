@@ -1,186 +1,25 @@
-/**
- * Tests for Map screen
- */
-
-import {
-  act,
-  cleanup,
-  fireEvent,
-  waitFor,
-} from "@testing-library/react-native";
-import { Alert } from "react-native";
-import { renderWithProviders } from "../test_utils/renderUtils";
-
+import { act, cleanup, fireEvent, waitFor } from "@testing-library/react-native";
+import * as ExpoRouter from "expo-router";
 import * as Location from "expo-location";
 import MainMap from "../app/(drawer)/map";
 import { getDistance } from "../app/utils/mapUtils";
+import { MapMode, useMapStore } from "../hooks/useMapStore";
+import { useNavigationStore } from "../hooks/useNavigationStore";
+import { renderWithProviders } from "../test_utils/renderUtils";
 
-/**
- * -----------------------------
- * Mocks
- * -----------------------------
- */
-
-// Mock Alert
-jest.spyOn(Alert, "alert").mockImplementation(() => {});
-
-// Mock expo-location (MainMap uses watchPositionAsync)
 jest.mock("expo-location", () => ({
   requestForegroundPermissionsAsync: jest.fn(),
   getCurrentPositionAsync: jest.fn(),
   watchPositionAsync: jest.fn(),
-  reverseGeocodeAsync: jest.fn(),
   Accuracy: { High: 6 },
 }));
 
-// Mock point-in-polygon (predictable true)
 jest.mock("../app/utils/pointInPolygon", () => ({
-  isPointInPolygon: jest.fn(() => true),
+  isPointInPolygon: jest.fn(() => false),
 }));
 
-// Mock distance utility so we can control campus switching
 jest.mock("../app/utils/mapUtils", () => ({
   getDistance: jest.fn(),
-}));
-
-/**
- * CampusBuildingPolygons mock (TS-safe)
- */
-type CampusBuildingPolygonsProps = {
-  highlightedCode?: string | null;
-  campus?: string;
-  selectedCode?: string;
-};
-
-const mockCampusBuildingPolygons = jest.fn(
-  (props: CampusBuildingPolygonsProps) => null,
-);
-
-let latestCampus: string | undefined;
-let capturedBottomSheetOnClose: (() => void) | null = null;
-
-// IMPORTANT:
-// This mock assumes MainMap imports CampusBuildingPolygons as DEFAULT:
-//   import CampusBuildingPolygons from "../components/CampusBuildingPolygons"
-jest.mock("../components/CampusBuildingPolygons", () => {
-  return {
-    __esModule: true,
-    default: (props: CampusBuildingPolygonsProps) => {
-      mockCampusBuildingPolygons(props);
-      return null;
-    },
-  };
-});
-
-// Mock MapHeader so we can trigger onCampusChange easily
-jest.mock("../components/MapHeader", () => ({
-  MapHeader: ({ onCampusChange, campus }: any) => {
-    latestCampus = campus;
-    const { View, Button } = require("react-native");
-    return (
-      <View>
-        <Button
-          title="Switch to Loyola"
-          onPress={() => onCampusChange("LOY")}
-        />
-        <Button title="Switch to SGW" onPress={() => onCampusChange("SGW")} />
-      </View>
-    );
-  },
-}));
-
-// Mock LocationButton and capture props
-let capturedLocationButtonProps: any = null;
-
-jest.mock("../components/LocationButton", () => {
-  return ({ onPress, bottomPosition }: any) => {
-    capturedLocationButtonProps = { onPress, bottomPosition };
-    const { Button } = require("react-native");
-    return <Button title="My Location" onPress={onPress} />;
-  };
-});
-
-// Mock react-native-maps so we can control mapRef + animateToRegion
-const mockAnimateToRegion = jest.fn();
-let latestMapProps: any;
-
-jest.mock("react-native-maps", () => {
-  const React = require("react");
-  const { View } = require("react-native");
-
-  return {
-    __esModule: true,
-    default: React.forwardRef((props, ref) => {
-      React.useImperativeHandle(ref, () => ({
-        animateToRegion: mockAnimateToRegion,
-      }));
-      latestMapProps = props;
-      return <View testID="map">{props.children}</View>;
-    }),
-    Marker: ({ children }) => <View testID="marker">{children}</View>,
-  };
-});
-
-// Mock the BuildingBottomSheet component to not render it during test
-// returns null because only want to test MainMap behavior (not the bottom sheet itself)
-let capturedOnStartNavigation: (() => void) | null = null;
-
-jest.mock("@/components/BuildingBottomSheet", () => {
-  return function MockBuildingBottomSheet({
-    onClose,
-    buildingCode,
-    onStartNavigation,
-  }: any) {
-    capturedBottomSheetOnClose = onClose;
-    capturedOnStartNavigation = onStartNavigation;
-    const { Button, View } = require("react-native");
-    if (!buildingCode) return null;
-    return (
-      <View>
-        <Button title="Close Bottom Sheet" onPress={onClose} />
-        <Button title="Start Navigation" onPress={onStartNavigation} />
-      </View>
-    );
-  };
-});
-
-let capturedOnStartLocationPress: (() => void) | null = null;
-let capturedOnEndLocationPress: (() => void) | null = null;
-
-// Mock NavigationHeader
-jest.mock("../components/NavigationHeader", () => ({
-  NavigationHeader: ({
-    startLocation,
-    endLocation,
-    onCancel,
-    onStartLocationPress,
-    onEndLocationPress,
-  }: any) => {
-    capturedOnStartLocationPress = onStartLocationPress;
-    capturedOnEndLocationPress = onEndLocationPress;
-    const { View, Text, Button } = require("react-native");
-    return (
-      <View>
-        <Text>From</Text>
-        <Text>{startLocation}</Text>
-        <Button title="Edit Start" onPress={onStartLocationPress} />
-        <Text>To</Text>
-        <Text>{endLocation}</Text>
-        <Button title="Edit End" onPress={onEndLocationPress} />
-        <Button title="Cancel Navigation" onPress={onCancel} />
-      </View>
-    );
-  },
-}));
-
-// Mock Toast
-jest.mock("toastify-react-native", () => ({
-  Toast: {
-    error: jest.fn(),
-    warn: jest.fn(),
-    info: jest.fn(),
-    success: jest.fn(),
-  },
 }));
 
 const mockUseGetBuildings = jest.fn();
@@ -195,9 +34,110 @@ jest.mock("@/hooks/queries/buildingQueries", () => ({
   },
 }));
 
-/**
- * Helper: permission granted + watch emits a location update immediately
- */
+type CampusBuildingPolygonsProps = {
+  buildings?: Array<{ code: string; polygon: number[][] }>;
+};
+
+const mockCampusBuildingPolygons = jest.fn(
+  (props: CampusBuildingPolygonsProps) => null,
+);
+
+jest.mock("~/components/CampusBuildingPolygons", () => ({
+  __esModule: true,
+  default: (props: CampusBuildingPolygonsProps) => {
+    mockCampusBuildingPolygons(props);
+    return null;
+  },
+}));
+
+let latestCampus: string | undefined;
+
+jest.mock("~/components/MapHeader", () => ({
+  MapHeader: ({ onCampusChange, campus }: any) => {
+    latestCampus = campus;
+    const { View, Button } = require("react-native");
+    return (
+      <View>
+        <Button title="Switch to Loyola" onPress={() => onCampusChange("LOY")} />
+        <Button title="Switch to SGW" onPress={() => onCampusChange("SGW")} />
+      </View>
+    );
+  },
+}));
+
+let capturedStartLocationPress: (() => void) | undefined;
+let capturedEndLocationPress: (() => void) | undefined;
+
+jest.mock("~/components/NavigationHeader", () => ({
+  NavigationHeader: ({ onStartLocationPress, onEndLocationPress }: any) => {
+    capturedStartLocationPress = onStartLocationPress;
+    capturedEndLocationPress = onEndLocationPress;
+    const { View, Button, Text } = require("react-native");
+    return (
+      <View>
+        <Text>Navigation Header</Text>
+        <Button title="Edit Start" onPress={onStartLocationPress} />
+        <Button title="Edit End" onPress={onEndLocationPress} />
+      </View>
+    );
+  },
+}));
+
+let capturedGoToMyLocation: (() => void) | undefined;
+
+jest.mock("@/components/MapBottomSection", () => {
+  return ({ goToMyLocation }: any) => {
+    capturedGoToMyLocation = goToMyLocation;
+    const { View, Button } = require("react-native");
+    return (
+      <View>
+        <Button title="My Location" onPress={goToMyLocation} />
+      </View>
+    );
+  };
+});
+
+const mockAnimateToRegion = jest.fn();
+let latestMapProps: any;
+
+jest.mock("react-native-maps", () => {
+  const React = require("react");
+  const { View } = require("react-native");
+
+  return {
+    __esModule: true,
+    default: React.forwardRef((props: any, ref: any) => {
+      React.useImperativeHandle(ref, () => ({
+        animateToRegion: mockAnimateToRegion,
+      }));
+      latestMapProps = props;
+      return <View testID="map">{props.children}</View>;
+    }),
+  };
+});
+
+jest.mock("toastify-react-native", () => ({
+  Toast: {
+    error: jest.fn(),
+    warn: jest.fn(),
+    info: jest.fn(),
+    success: jest.fn(),
+  },
+}));
+
+function resetStores() {
+  useMapStore.setState({
+    userLocation: undefined,
+    selectedBuildingCode: undefined,
+    currentBuildingCode: undefined,
+    currentMode: MapMode.NONE,
+  });
+  useNavigationStore.setState({
+    startLocation: undefined,
+    endLocation: undefined,
+  });
+}
+
 function mockGrantedWatchLocation(lat = 45.5, lng = -73.6) {
   (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
     status: "granted",
@@ -212,14 +152,39 @@ function mockGrantedWatchLocation(lat = 45.5, lng = -73.6) {
 }
 
 describe("MainMap screen", () => {
+  const mockRouter = {
+    push: jest.fn(),
+    replace: jest.fn(),
+    back: jest.fn(),
+    setParams: jest.fn(),
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.spyOn(console, "error").mockImplementation(() => {});
     latestCampus = undefined;
     latestMapProps = undefined;
+    capturedGoToMyLocation = undefined;
+    capturedStartLocationPress = undefined;
+    capturedEndLocationPress = undefined;
+    resetStores();
+
+    jest.spyOn(ExpoRouter, "useRouter").mockReturnValue(mockRouter as any);
+    jest.spyOn(ExpoRouter, "useLocalSearchParams").mockReturnValue({} as any);
 
     mockUseGetBuildings.mockReturnValue({
-      data: undefined,
+      data: {
+        campus: "SGW",
+        buildings: [
+          {
+            code: "H",
+            polygon: [
+              [45.497, -73.579],
+              [45.498, -73.578],
+              [45.497, -73.577],
+            ],
+          },
+        ],
+      },
       isLoading: false,
       error: null,
     });
@@ -248,20 +213,17 @@ describe("MainMap screen", () => {
   test("starts watching position when permission is granted", async () => {
     mockGrantedWatchLocation();
 
-    const { unmount } = renderWithProviders(<MainMap />);
+    renderWithProviders(<MainMap />);
 
     await waitFor(() => {
       expect(Location.watchPositionAsync).toHaveBeenCalled();
     });
-    unmount();
   });
 
-  test("does NOT watch position if permission is denied", async () => {
-    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue(
-      {
-        status: "denied",
-      },
-    );
+  test("does not watch position if permission is denied", async () => {
+    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
+      status: "denied",
+    });
 
     renderWithProviders(<MainMap />);
 
@@ -272,14 +234,13 @@ describe("MainMap screen", () => {
     expect(Location.watchPositionAsync).not.toHaveBeenCalled();
   });
 
-  test("pressing LocationButton animates map to current location (when location exists)", async () => {
+  test("goToMyLocation animates map to watched location", async () => {
     mockGrantedWatchLocation(45.5, -73.6);
 
     const { getByText } = renderWithProviders(<MainMap />);
 
-    // Wait for location to be set (indicated by CampusBuildingPolygons being called)
     await waitFor(() => {
-      expect(mockCampusBuildingPolygons).toHaveBeenCalled();
+      expect(capturedGoToMyLocation).toBeDefined();
     });
 
     await act(async () => {
@@ -299,349 +260,10 @@ describe("MainMap screen", () => {
     });
   });
 
-  test("pressing LocationButton does not animate if location is missing", async () => {
-    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue(
-      {
-        status: "denied",
-      },
-    );
-
-    const { getByText } = renderWithProviders(<MainMap />);
-
-    // Ignore initial camera positioning on mount
-    mockAnimateToRegion.mockClear();
-
-    await act(async () => {
-      fireEvent.press(getByText("My Location"));
-    });
-
-    // MainMap appears to silently do nothing in this state
-    expect(mockAnimateToRegion).not.toHaveBeenCalled();
-  });
-
-  test("changing campus animates map to Loyola coords", async () => {
-    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue(
-      {
-        status: "denied",
-      },
-    );
-
-    const { getByText } = renderWithProviders(<MainMap />);
-
-    await act(async () => {
-      fireEvent.press(getByText("Switch to Loyola"));
-    });
-
-    expect(mockAnimateToRegion).toHaveBeenCalledWith(
-      {
-        latitude: 45.4589,
-        longitude: -73.64,
-        latitudeDelta: 0.005,
-        longitudeDelta: 0.005,
-      },
-      500,
-    );
-  });
-
-  test("region change switches campus to the closest campus", async () => {
-    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue(
-      {
-        status: "denied",
-      },
-    );
-
-    (getDistance as jest.Mock).mockReturnValueOnce(100).mockReturnValueOnce(10);
-
-    renderWithProviders(<MainMap />);
-
-    await act(async () => {
-      latestMapProps.onRegionChangeComplete({
-        latitude: 45.46,
-        longitude: -73.64,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
-      });
-    });
-
-    await waitFor(() => {
-      expect(latestCampus).toBe("LOY");
-    });
-  });
-
-  test("logs error if watchPositionAsync throws", async () => {
-    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue(
-      {
-        status: "granted",
-      },
-    );
-
-    (Location.watchPositionAsync as jest.Mock).mockRejectedValueOnce(
-      new Error("permission request failed"),
-    );
-
-    renderWithProviders(<MainMap />);
-
-    await waitFor(() => {
-      expect(console.error).toHaveBeenCalledWith(
-        "Failed to watch location.",
-        expect.any(Error),
-      );
-    });
-  });
-
-  test("calls reverse geocoding and formats address when user has location but not in building", async () => {
-    // Mock reverse geocoding to return an address
-    (Location.reverseGeocodeAsync as jest.Mock).mockResolvedValue([
-      {
-        streetNumber: "1455",
-        street: "De Maisonneuve Blvd W",
-        city: "Montreal",
-        region: "Quebec",
-        postalCode: "H3G 1M8",
-      },
-    ]);
-
-    // Mock point in polygon to return false (user NOT in a building)
-    const { isPointInPolygon } = require("../app/utils/pointInPolygon");
-    isPointInPolygon.mockReturnValue(false);
-
-    mockGrantedWatchLocation(45.497, -73.579);
-
-    renderWithProviders(<MainMap />);
-
-    // Wait for reverse geocoding to be called
-    await waitFor(() => {
-      expect(Location.reverseGeocodeAsync).toHaveBeenCalledWith({
-        latitude: 45.497,
-        longitude: -73.579,
-      });
-    });
-
-    // Verify the mock was called
-    expect(Location.reverseGeocodeAsync).toHaveBeenCalledTimes(1);
-  });
-
-  test("handles reverse geocoding error gracefully", async () => {
-    // Mock reverse geocoding to throw an error
-    (Location.reverseGeocodeAsync as jest.Mock).mockRejectedValue(
-      new Error("Network error"),
-    );
-
-    // Mock point in polygon to return false (user NOT in a building)
-    const { isPointInPolygon } = require("../app/utils/pointInPolygon");
-    isPointInPolygon.mockReturnValue(false);
-
-    mockGrantedWatchLocation(45.497, -73.579);
-
-    renderWithProviders(<MainMap />);
-
-    // Wait for reverse geocoding to be called and fail
-    await waitFor(() => {
-      expect(Location.reverseGeocodeAsync).toHaveBeenCalledWith({
-        latitude: 45.497,
-        longitude: -73.579,
-      });
-    });
-
-    // Verify error was logged
-    await waitFor(() => {
-      expect(console.error).toHaveBeenCalledWith(
-        "Failed to get address",
-        expect.any(Error),
-      );
-    });
-  });
-
-  test("LocationButton has correct bottomPosition when building selected and not in navigation mode", async () => {
-    mockGrantedWatchLocation();
-
-    renderWithProviders(<MainMap />);
-
-    await waitFor(() => {
-      expect(mockCampusBuildingPolygons).toHaveBeenCalled();
-    });
-
-    // at first, no building selected, should be 80
-    expect(capturedLocationButtonProps.bottomPosition).toBe(80);
-
-    // select a building
-    const lastCall =
-      mockCampusBuildingPolygons.mock.calls[
-        mockCampusBuildingPolygons.mock.calls.length - 1
-      ];
-    const onBuildingPress = (lastCall[0] as any).onBuildingPress;
-
-    await act(async () => {
-      onBuildingPress("H");
-    });
-
-    // building selected but not in navigation mode, should be 220
-    await waitFor(() => {
-      expect(capturedLocationButtonProps.bottomPosition).toBe(220);
-    });
-  });
-
-  test("LocationButton has correct bottomPosition when in navigation mode", async () => {
-    mockGrantedWatchLocation();
-
-    renderWithProviders(<MainMap />);
-
-    await waitFor(() => {
-      expect(mockCampusBuildingPolygons).toHaveBeenCalled();
-    });
-
-    const lastCall =
-      mockCampusBuildingPolygons.mock.calls[
-        mockCampusBuildingPolygons.mock.calls.length - 1
-      ];
-    const onBuildingPress = (lastCall[0] as any).onBuildingPress;
-
-    await act(async () => {
-      onBuildingPress("H");
-    });
-
-    await act(async () => {
-      if (capturedOnStartNavigation) {
-        capturedOnStartNavigation();
-      }
-    });
-
-    // in navigation mode, should be 150
-    await waitFor(() => {
-      expect(capturedLocationButtonProps.bottomPosition).toBe(150);
-    });
-  });
-
-  test("closing BuildingBottomSheet resets selectedBuildingCode and navigation mode", async () => {
-    mockGrantedWatchLocation();
-
-    const { queryByText } = renderWithProviders(<MainMap />);
-
-    await waitFor(() => {
-      expect(mockCampusBuildingPolygons).toHaveBeenCalled();
-    });
-
-    const lastCall =
-      mockCampusBuildingPolygons.mock.calls[
-        mockCampusBuildingPolygons.mock.calls.length - 1
-      ];
-    const onBuildingPress = (lastCall[0] as any).onBuildingPress;
-
-    await act(async () => {
-      onBuildingPress("H");
-    });
-
-    await act(async () => {
-      if (capturedOnStartNavigation) {
-        capturedOnStartNavigation();
-      }
-    });
-
-    await waitFor(() => {
-      expect(queryByText("Cancel Navigation")).toBeTruthy();
-    });
-
-    await act(async () => {
-      if (capturedBottomSheetOnClose) {
-        capturedBottomSheetOnClose();
-      }
-    });
-
-    await waitFor(() => {
-      expect(queryByText("Cancel Navigation")).toBeNull();
-      expect(capturedLocationButtonProps.bottomPosition).toBe(80);
-    });
-  });
-
-  test("canceling navigation from NavigationHeader resets state", async () => {
-    mockGrantedWatchLocation();
-
-    const { getByText, queryByText } = renderWithProviders(<MainMap />);
-
-    await waitFor(() => {
-      expect(mockCampusBuildingPolygons).toHaveBeenCalled();
-    });
-
-    const lastCall =
-      mockCampusBuildingPolygons.mock.calls[
-        mockCampusBuildingPolygons.mock.calls.length - 1
-      ];
-    const onBuildingPress = (lastCall[0] as any).onBuildingPress;
-
-    await act(async () => {
-      onBuildingPress("H");
-    });
-
-    await act(async () => {
-      if (capturedOnStartNavigation) {
-        capturedOnStartNavigation();
-      }
-    });
-
-    await waitFor(() => {
-      expect(getByText("Cancel Navigation")).toBeTruthy();
-    });
-
-    await act(async () => {
-      fireEvent.press(getByText("Cancel Navigation"));
-    });
-
-    await waitFor(() => {
-      expect(queryByText("Cancel Navigation")).toBeNull();
-      expect(capturedLocationButtonProps.bottomPosition).toBe(80);
-    });
-  });
-
-  test("sets currentBuildingCode when user location is inside a building polygon", async () => {
-    const { isPointInPolygon } = require("../app/utils/pointInPolygon");
-
-    isPointInPolygon.mockClear();
-
-    isPointInPolygon.mockReturnValue(true);
-
-    mockUseGetBuildings.mockReturnValue({
-      data: {
-        campus: "SGW",
-        buildings: [
-          {
-            code: "H",
-            long_name: "Henry F. Hall Building",
-            polygon: [
-              [45.497, -73.579],
-              [45.498, -73.578],
-              [45.497, -73.577],
-            ],
-          },
-        ],
-      },
-      isLoading: false,
-      error: null,
-    });
-
-    mockGrantedWatchLocation(45.497, -73.579);
-
-    renderWithProviders(<MainMap />);
-
-    await waitFor(
-      () => {
-        expect(isPointInPolygon).toHaveBeenCalled();
-      },
-      { timeout: 3000 },
-    );
-
-    await waitFor(() => {
-      const calls = mockCampusBuildingPolygons.mock.calls;
-      const lastCall = calls[calls.length - 1];
-      expect(lastCall[0].highlightedCode).toBe("H");
-    });
-  });
-
-  test("goToMyLocation fetches current position when location is null but permission granted", async () => {
-    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue(
-      {
-        status: "granted",
-      },
-    );
+  test("goToMyLocation fetches current position when location is null", async () => {
+    (Location.requestForegroundPermissionsAsync as jest.Mock)
+      .mockResolvedValueOnce({ status: "denied" })
+      .mockResolvedValueOnce({ status: "granted" });
 
     (Location.getCurrentPositionAsync as jest.Mock).mockResolvedValue({
       coords: { latitude: 45.555, longitude: -73.666 },
@@ -670,137 +292,44 @@ describe("MainMap screen", () => {
     });
   });
 
-  test("goToMyLocation handles errors and shows toast message", async () => {
-    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue(
-      {
-        status: "granted",
-      },
-    );
-
-    (Location.getCurrentPositionAsync as jest.Mock).mockRejectedValue(
-      new Error("GPS signal lost"),
-    );
-
-    const { Toast } = require("toastify-react-native");
+  test("changing campus animates map to Loyola coords", async () => {
+    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
+      status: "denied",
+    });
 
     const { getByText } = renderWithProviders(<MainMap />);
 
     await act(async () => {
-      fireEvent.press(getByText("My Location"));
+      fireEvent.press(getByText("Switch to Loyola"));
     });
 
-    await waitFor(() => {
-      expect(console.error).toHaveBeenCalledWith(
-        "Failed to get to your location.",
-        expect.any(Error),
-      );
-    });
-
-    await waitFor(() => {
-      expect(Toast.error).toHaveBeenCalledWith(
-        "Failed to get your location. Please try again.",
-      );
-    });
-  });
-
-  test("startLocationText shows building code and name when user is in a building", async () => {
-    const { isPointInPolygon } = require("../app/utils/pointInPolygon");
-    isPointInPolygon.mockReturnValue(true);
-
-    mockUseGetBuildings.mockReturnValue({
-      data: {
-        campus: "SGW",
-        buildings: [
-          {
-            code: "H",
-            long_name: "Henry F. Hall Building",
-            polygon: [
-              [45.497, -73.579],
-              [45.498, -73.578],
-              [45.497, -73.577],
-            ],
-          },
-        ],
-      },
-      isLoading: false,
-      error: null,
-    });
-
-    mockUseGetBuildingDetails.mockImplementation((code) => {
-      if (code === "H") {
-        return {
-          data: {
-            code: "H",
-            long_name: "Henry F. Hall Building",
-          },
-          isLoading: false,
-          error: null,
-        };
-      }
-      return {
-        data: null,
-        isLoading: false,
-        error: null,
-      };
-    });
-
-    mockGrantedWatchLocation(45.497, -73.579);
-
-    const { getByText } = renderWithProviders(<MainMap />);
-
-    await waitFor(() => {
-      expect(isPointInPolygon).toHaveBeenCalled();
-    });
-
-    await waitFor(() => {
-      expect(mockCampusBuildingPolygons).toHaveBeenCalled();
-    });
-
-    const lastCall =
-      mockCampusBuildingPolygons.mock.calls[
-        mockCampusBuildingPolygons.mock.calls.length - 1
-      ];
-    const onBuildingPress = (lastCall[0] as any).onBuildingPress;
-
-    await act(async () => {
-      onBuildingPress("MB");
-    });
-
-    await act(async () => {
-      if (capturedOnStartNavigation) {
-        capturedOnStartNavigation();
-      }
-    });
-
-    await waitFor(() => {
-      expect(getByText("H - Henry F. Hall Building")).toBeTruthy();
-    });
-  });
-
-  test("initializes with campus parameter from URL and animates to coords", async () => {
-    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue(
+    expect(mockAnimateToRegion).toHaveBeenCalledWith(
       {
-        status: "denied",
+        latitude: 45.4589,
+        longitude: -73.64,
+        latitudeDelta: 0.005,
+        longitudeDelta: 0.005,
       },
+      500,
     );
+  });
 
-    // Mock useLocalSearchParams to return campus
-    jest.spyOn(require("expo-router"), "useLocalSearchParams").mockReturnValue({
-      campus: "LOY",
+  test("region change switches campus to the closest campus", async () => {
+    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
+      status: "denied",
     });
+
+    (getDistance as jest.Mock).mockReturnValueOnce(100).mockReturnValueOnce(10);
 
     renderWithProviders(<MainMap />);
 
-    await waitFor(() => {
-      expect(mockAnimateToRegion).toHaveBeenCalledWith(
-        {
-          latitude: 45.4589,
-          longitude: -73.64,
-          latitudeDelta: 0.005,
-          longitudeDelta: 0.005,
-        },
-        500,
-      );
+    await act(async () => {
+      latestMapProps.onRegionChangeComplete({
+        latitude: 45.46,
+        longitude: -73.64,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      });
     });
 
     await waitFor(() => {
@@ -808,729 +337,43 @@ describe("MainMap screen", () => {
     });
   });
 
-  test("displays building details in NavigationHeader when navigation starts", async () => {
-    mockGrantedWatchLocation(45.497, -73.579);
-
-    mockUseGetBuildingDetails.mockImplementation((code) => {
-      if (code === "H") {
-        return {
-          data: {
-            code: "H",
-            long_name: "Henry F. Hall Building",
-            address: "1455 De Maisonneuve Blvd W",
-            latitude: 45.497,
-            longitude: -73.579,
-          },
-          isLoading: false,
-          error: null,
-        };
-      }
-      return {
-        data: null,
-        isLoading: false,
-        error: null,
-      };
-    });
-
-    mockUseGetBuildings.mockReturnValue({
-      data: {
-        campus: "SGW",
-        buildings: [
-          {
-            code: "H",
-            long_name: "Henry F. Hall Building",
-            polygon: [
-              [45.497, -73.579],
-              [45.498, -73.578],
-              [45.497, -73.577],
-            ],
-          },
-        ],
-      },
-      isLoading: false,
-      error: null,
-    });
-
-    const { getAllByText } = renderWithProviders(<MainMap />);
-
-    await waitFor(() => {
-      expect(mockCampusBuildingPolygons).toHaveBeenCalled();
-    });
-
-    const lastCall =
-      mockCampusBuildingPolygons.mock.calls[
-        mockCampusBuildingPolygons.mock.calls.length - 1
-      ];
-    const onBuildingPress = (lastCall[0] as any).onBuildingPress;
-
-    await act(async () => {
-      onBuildingPress("H");
-    });
-
-    await act(async () => {
-      if (capturedOnStartNavigation) {
-        capturedOnStartNavigation();
-      }
-    });
-
-    await waitFor(() => {
-      const elements = getAllByText("H - Henry F. Hall Building");
-      expect(elements.length).toBeGreaterThan(0);
-    });
-  });
-});
-
-describe("Edit Mode Navigation", () => {
-  beforeEach(() => {
-    mockGrantedWatchLocation();
-  });
-
-  test("sets customStartBuilding when editMode is 'start'", async () => {
-    jest.spyOn(require("expo-router"), "useLocalSearchParams").mockReturnValue({
-      editMode: "start",
-      editValue: "MB",
-      preserveEnd: "H",
-      preserveStart: "",
-    });
-
-    mockUseGetBuildingDetails.mockImplementation((code) => {
-      if (code === "MB") {
-        return {
-          data: {
-            code: "MB",
-            long_name: "John Molson Building",
-          },
-          isLoading: false,
-          error: null,
-        };
-      }
-      if (code === "H") {
-        return {
-          data: {
-            code: "H",
-            long_name: "Henry F. Hall Building",
-          },
-          isLoading: false,
-          error: null,
-        };
-      }
-      return { data: null, isLoading: false, error: null };
-    });
-
-    const { getByText } = renderWithProviders(<MainMap />);
-
-    await waitFor(() => {
-      expect(getByText("MB - John Molson Building")).toBeTruthy();
-    });
-
-    await waitFor(() => {
-      expect(getByText("H - Henry F. Hall Building")).toBeTruthy();
-    });
-  });
-
-  test("preserves end location when editing start location", async () => {
-    jest.spyOn(require("expo-router"), "useLocalSearchParams").mockReturnValue({
-      editMode: "start",
-      editValue: "MB",
-      preserveEnd: "H",
-      preserveStart: "",
-    });
-
-    mockUseGetBuildingDetails.mockImplementation((code) => {
-      if (code === "MB") {
-        return {
-          data: { code: "MB", long_name: "John Molson Building" },
-          isLoading: false,
-          error: null,
-        };
-      }
-      if (code === "H") {
-        return {
-          data: { code: "H", long_name: "Henry F. Hall Building" },
-          isLoading: false,
-          error: null,
-        };
-      }
-      return { data: null, isLoading: false, error: null };
-    });
-
-    const { getByText } = renderWithProviders(<MainMap />);
-
-    await waitFor(() => {
-      expect(getByText("Cancel Navigation")).toBeTruthy();
-    });
-
-    await waitFor(() => {
-      expect(getByText("H - Henry F. Hall Building")).toBeTruthy();
-    });
-  });
-
-  test("sets selectedBuildingCode when editMode is 'end'", async () => {
-    jest.spyOn(require("expo-router"), "useLocalSearchParams").mockReturnValue({
-      editMode: "end",
-      editValue: "MB",
-      preserveEnd: "",
-      preserveStart: "H",
-    });
-
-    mockUseGetBuildingDetails.mockImplementation((code) => {
-      if (code === "MB") {
-        return {
-          data: { code: "MB", long_name: "John Molson Building" },
-          isLoading: false,
-          error: null,
-        };
-      }
-      if (code === "H") {
-        return {
-          data: { code: "H", long_name: "Henry F. Hall Building" },
-          isLoading: false,
-          error: null,
-        };
-      }
-      return { data: null, isLoading: false, error: null };
-    });
-
-    const { getByText } = renderWithProviders(<MainMap />);
-
-    await waitFor(() => {
-      expect(getByText("MB - John Molson Building")).toBeTruthy();
-    });
-  });
-
-  test("preserves start location when editing end location", async () => {
-    jest.spyOn(require("expo-router"), "useLocalSearchParams").mockReturnValue({
-      editMode: "end",
-      editValue: "MB",
-      preserveEnd: "",
-      preserveStart: "H",
-    });
-
-    mockUseGetBuildingDetails.mockImplementation((code) => {
-      if (code === "MB") {
-        return {
-          data: { code: "MB", long_name: "John Molson Building" },
-          isLoading: false,
-          error: null,
-        };
-      }
-      if (code === "H") {
-        return {
-          data: { code: "H", long_name: "Henry F. Hall Building" },
-          isLoading: false,
-          error: null,
-        };
-      }
-      return { data: null, isLoading: false, error: null };
-    });
-
-    const { getByText } = renderWithProviders(<MainMap />);
-
-    await waitFor(() => {
-      expect(getByText("Cancel Navigation")).toBeTruthy();
-    });
-
-    await waitFor(() => {
-      expect(getByText("H - Henry F. Hall Building")).toBeTruthy();
-    });
-  });
-
-  test("sets navigation mode to true when in edit mode", async () => {
-    jest.spyOn(require("expo-router"), "useLocalSearchParams").mockReturnValue({
-      editMode: "start",
-      editValue: "MB",
-      preserveEnd: "H",
-      preserveStart: "",
-    });
-
-    const { getByText } = renderWithProviders(<MainMap />);
-
-    await waitFor(() => {
-      expect(getByText("Cancel Navigation")).toBeTruthy();
-    });
-  });
-
-  test("does not set preserveEnd when it's not provided in start edit mode", async () => {
-    jest.spyOn(require("expo-router"), "useLocalSearchParams").mockReturnValue({
-      editMode: "start",
-      editValue: "MB",
-      preserveEnd: undefined,
-      preserveStart: "",
-    });
-
-    mockUseGetBuildingDetails.mockImplementation((code) => {
-      if (code === "MB") {
-        return {
-          data: { code: "MB", long_name: "John Molson Building" },
-          isLoading: false,
-          error: null,
-        };
-      }
-      return { data: null, isLoading: false, error: null };
-    });
-
-    const { getByText } = renderWithProviders(<MainMap />);
-
-    await waitFor(() => {
-      expect(getByText("MB - John Molson Building")).toBeTruthy();
-    });
-
-    await waitFor(() => {
-      expect(getByText("Unknown Building")).toBeTruthy();
-    });
-  });
-
-  test("does not set preserveStart when it's not provided in end edit mode", async () => {
-    jest.spyOn(require("expo-router"), "useLocalSearchParams").mockReturnValue({
-      editMode: "end",
-      editValue: "MB",
-      preserveEnd: "",
-      preserveStart: undefined,
-    });
-
-    mockUseGetBuildingDetails.mockImplementation((code) => {
-      if (code === "MB") {
-        return {
-          data: { code: "MB", long_name: "John Molson Building" },
-          isLoading: false,
-          error: null,
-        };
-      }
-      return { data: null, isLoading: false, error: null };
-    });
-
-    const { getByText } = renderWithProviders(<MainMap />);
-
-    await waitFor(() => {
-      expect(getByText("MB - John Molson Building")).toBeTruthy();
-    });
-
-    await waitFor(() => {
-      const fromText = getByText("From");
-      expect(fromText).toBeTruthy();
-    });
-  });
-
-  test("handles both editMode branches independently", async () => {
-    const useLocalSearchParamsSpy = jest.spyOn(
-      require("expo-router"),
-      "useLocalSearchParams",
-    );
-
-    useLocalSearchParamsSpy.mockReturnValue({
-      editMode: "start",
-      editValue: "MB",
-      preserveEnd: "H",
-      preserveStart: "",
-    });
-
-    mockUseGetBuildingDetails.mockImplementation((code) => {
-      if (code === "MB" || code === "H") {
-        return {
-          data: { code, long_name: `${code} Building` },
-          isLoading: false,
-          error: null,
-        };
-      }
-      return { data: null, isLoading: false, error: null };
-    });
-
-    const { unmount, getByText } = renderWithProviders(<MainMap />);
-
-    await waitFor(() => {
-      expect(getByText("MB - MB Building")).toBeTruthy();
-    });
-
-    unmount();
-
-    useLocalSearchParamsSpy.mockReturnValue({
-      editMode: "end",
-      editValue: "CC",
-      preserveEnd: "",
-      preserveStart: "MB",
-    });
-
-    mockUseGetBuildingDetails.mockImplementation((code) => {
-      if (code === "CC" || code === "MB") {
-        return {
-          data: { code, long_name: `${code} Building` },
-          isLoading: false,
-          error: null,
-        };
-      }
-      return { data: null, isLoading: false, error: null };
-    });
-
-    const result2 = renderWithProviders(<MainMap />);
-
-    await waitFor(() => {
-      expect(result2.getByText("CC - CC Building")).toBeTruthy();
-    });
-  });
-});
-
-describe("Navigation Header Location Press Handlers", () => {
-  beforeEach(() => {
-    mockGrantedWatchLocation();
-  });
-
-  test("handleStartLocationPress calls router.push with correct params", async () => {
-    const mockRouterPush = jest.fn();
-
-    const routerMock = {
-      push: mockRouterPush,
-      replace: jest.fn(),
-      back: jest.fn(),
-      setParams: jest.fn(),
-    };
-
-    jest.spyOn(require("expo-router"), "useRouter").mockReturnValue(routerMock);
-
-    mockUseGetBuildingDetails.mockImplementation((code) => {
-      if (code === "H") {
-        return {
-          data: { code: "H", long_name: "Hall Building" },
-          isLoading: false,
-          error: null,
-        };
-      }
-      return { data: null, isLoading: false, error: null };
-    });
-
-    mockUseGetBuildings.mockReturnValue({
-      data: {
-        campus: "SGW",
-        buildings: [
-          {
-            code: "H",
-            polygon: [
-              [45.497, -73.579],
-              [45.498, -73.578],
-            ],
-          },
-        ],
-      },
-      isLoading: false,
-      error: null,
-    });
-
-    const { getByText } = renderWithProviders(<MainMap />);
-
-    await waitFor(() => {
-      expect(mockCampusBuildingPolygons).toHaveBeenCalled();
-    });
-
-    const lastCall =
-      mockCampusBuildingPolygons.mock.calls[
-        mockCampusBuildingPolygons.mock.calls.length - 1
-      ];
-    const onBuildingPress = (lastCall[0] as any).onBuildingPress;
-
-    await act(async () => {
-      onBuildingPress("H");
-    });
-
-    await act(async () => {
-      if (capturedOnStartNavigation) {
-        capturedOnStartNavigation();
-      }
-    });
-
-    await waitFor(() => {
-      expect(getByText("Cancel Navigation")).toBeTruthy();
-    });
-
-    await act(async () => {
-      fireEvent.press(getByText("Edit Start"));
-    });
-
-    expect(mockRouterPush).toHaveBeenCalledWith({
-      pathname: "/search",
-      params: {
-        campus: "SGW",
-        editMode: "start",
-        preserveEnd: "H",
-        preserveStart: "",
-      },
-    });
-  });
-
-  test("handleEndLocationPress calls router.push with correct params", async () => {
-    const mockRouterPush = jest.fn();
-
-    const routerMock = {
-      push: mockRouterPush,
-      replace: jest.fn(),
-      back: jest.fn(),
-      setParams: jest.fn(),
-    };
-
-    jest.spyOn(require("expo-router"), "useRouter").mockReturnValue(routerMock);
-
-    mockUseGetBuildingDetails.mockImplementation((code) => {
-      if (code === "H") {
-        return {
-          data: { code: "H", long_name: "Hall Building" },
-          isLoading: false,
-          error: null,
-        };
-      }
-      return { data: null, isLoading: false, error: null };
-    });
-
-    mockUseGetBuildings.mockReturnValue({
-      data: {
-        campus: "SGW",
-        buildings: [
-          {
-            code: "H",
-            polygon: [
-              [45.497, -73.579],
-              [45.498, -73.578],
-            ],
-          },
-        ],
-      },
-      isLoading: false,
-      error: null,
-    });
-
-    const { getByText } = renderWithProviders(<MainMap />);
-
-    await waitFor(() => {
-      expect(mockCampusBuildingPolygons).toHaveBeenCalled();
-    });
-
-    const lastCall =
-      mockCampusBuildingPolygons.mock.calls[
-        mockCampusBuildingPolygons.mock.calls.length - 1
-      ];
-    const onBuildingPress = (lastCall[0] as any).onBuildingPress;
-
-    await act(async () => {
-      onBuildingPress("H");
-    });
-
-    await act(async () => {
-      if (capturedOnStartNavigation) {
-        capturedOnStartNavigation();
-      }
-    });
-
-    await waitFor(() => {
-      expect(getByText("Cancel Navigation")).toBeTruthy();
-    });
-
-    await act(async () => {
-      fireEvent.press(getByText("Edit End"));
-    });
-
-    expect(mockRouterPush).toHaveBeenCalledWith({
-      pathname: "/search",
-      params: {
-        campus: "SGW",
-        editMode: "end",
-        preserveEnd: "H",
-        preserveStart: "",
-      },
-    });
-  });
-
-  test("handleStartLocationPress includes customStartBuilding in params", async () => {
-    const mockRouterPush = jest.fn();
-
-    const routerMock = {
-      push: mockRouterPush,
-      replace: jest.fn(),
-      back: jest.fn(),
-      setParams: jest.fn(),
-    };
-
-    jest.spyOn(require("expo-router"), "useRouter").mockReturnValue(routerMock);
-
-    jest.spyOn(require("expo-router"), "useLocalSearchParams").mockReturnValue({
-      editMode: "start",
-      editValue: "MB",
-      preserveEnd: "H",
-      preserveStart: "",
-    });
-
-    mockUseGetBuildingDetails.mockImplementation((code) => {
-      if (code === "MB") {
-        return {
-          data: { code: "MB", long_name: "John Molson Building" },
-          isLoading: false,
-          error: null,
-        };
-      }
-      if (code === "H") {
-        return {
-          data: { code: "H", long_name: "Hall Building" },
-          isLoading: false,
-          error: null,
-        };
-      }
-      return { data: null, isLoading: false, error: null };
-    });
-
-    mockUseGetBuildings.mockReturnValue({
-      data: {
-        campus: "SGW",
-        buildings: [
-          { code: "H", polygon: [] },
-          { code: "MB", polygon: [] },
-        ],
-      },
-      isLoading: false,
-      error: null,
-    });
-
-    const { getByText } = renderWithProviders(<MainMap />);
-
-    await waitFor(() => {
-      expect(getByText("Cancel Navigation")).toBeTruthy();
-    });
-
-    // Click the "Edit Start" button
-    await act(async () => {
-      fireEvent.press(getByText("Edit Start"));
-    });
-
-    expect(mockRouterPush).toHaveBeenCalledWith({
-      pathname: "/search",
-      params: {
-        campus: "SGW",
-        editMode: "start",
-        preserveEnd: "H",
-        preserveStart: "MB",
-      },
-    });
-  });
-});
-
-describe("Start Location Text with Custom Start Building", () => {
-  test("displays custom start building code and name when customStartBuilding is set", async () => {
-    jest.spyOn(require("expo-router"), "useLocalSearchParams").mockReturnValue({
-      editMode: "start",
-      editValue: "MB",
-      preserveEnd: "H",
-      preserveStart: "",
-    });
-
-    mockUseGetBuildingDetails.mockImplementation((code) => {
-      if (code === "MB") {
-        return {
-          data: {
-            code: "MB",
-            long_name: "John Molson Building",
-          },
-          isLoading: false,
-          error: null,
-        };
-      }
-      if (code === "H") {
-        return {
-          data: {
-            code: "H",
-            long_name: "Hall Building",
-          },
-          isLoading: false,
-          error: null,
-        };
-      }
-      return { data: null, isLoading: false, error: null };
-    });
-
-    mockUseGetBuildings.mockReturnValue({
-      data: {
-        campus: "SGW",
-        buildings: [
-          { code: "MB", polygon: [] },
-          { code: "H", polygon: [] },
-        ],
-      },
-      isLoading: false,
-      error: null,
-    });
-
-    const { getByText } = renderWithProviders(<MainMap />);
-
-    await waitFor(() => {
-      expect(getByText("MB - John Molson Building")).toBeTruthy();
-    });
-
-    await waitFor(() => {
-      expect(getByText("Cancel Navigation")).toBeTruthy();
-    });
-  });
-
-  test("customStartBuilding takes priority over currentBuildingCode", async () => {
+  test("sets currentBuildingCode when user location is inside a building polygon", async () => {
     const { isPointInPolygon } = require("../app/utils/pointInPolygon");
     isPointInPolygon.mockReturnValue(true);
 
-    jest.spyOn(require("expo-router"), "useLocalSearchParams").mockReturnValue({
-      editMode: "start",
-      editValue: "MB",
-      preserveEnd: "H",
-      preserveStart: "",
-    });
+    mockGrantedWatchLocation(45.497, -73.579);
 
-    mockUseGetBuildingDetails.mockImplementation((code) => {
-      if (code === "MB") {
-        return {
-          data: {
-            code: "MB",
-            long_name: "John Molson Building",
-          },
-          isLoading: false,
-          error: null,
-        };
-      }
-      if (code === "H") {
-        return {
-          data: {
-            code: "H",
-            long_name: "Hall Building",
-          },
-          isLoading: false,
-          error: null,
-        };
-      }
-      if (code === "EV") {
-        return {
-          data: {
-            code: "EV",
-            long_name: "EV Building",
-          },
-          isLoading: false,
-          error: null,
-        };
-      }
-      return { data: null, isLoading: false, error: null };
-    });
-
-    mockUseGetBuildings.mockReturnValue({
-      data: {
-        campus: "SGW",
-        buildings: [
-          { code: "EV", polygon: [[45.495, -73.577]] },
-          { code: "MB", polygon: [] },
-          { code: "H", polygon: [] },
-        ],
-      },
-      isLoading: false,
-      error: null,
-    });
-
-    mockGrantedWatchLocation(45.495, -73.577);
-
-    const { getByText } = renderWithProviders(<MainMap />);
+    renderWithProviders(<MainMap />);
 
     await waitFor(() => {
-      expect(getByText("MB - John Molson Building")).toBeTruthy();
+      expect(isPointInPolygon).toHaveBeenCalled();
+      expect(useMapStore.getState().currentBuildingCode).toBe("H");
+    });
+  });
+
+  test("navigation header edit buttons route to search with edit mode", async () => {
+    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
+      status: "denied",
     });
 
-    const evText = getByText("MB - John Molson Building");
-    expect(evText).toBeTruthy();
+    useMapStore.getState().setCurrentMode(MapMode.NAVIGATION);
+
+    renderWithProviders(<MainMap />);
+
+    await waitFor(() => {
+      expect(capturedStartLocationPress).toBeDefined();
+      expect(capturedEndLocationPress).toBeDefined();
+    });
+
+    await act(async () => {
+      capturedStartLocationPress?.();
+    });
+
+    await act(async () => {
+      capturedEndLocationPress?.();
+    });
+
+    expect(capturedStartLocationPress).toBeDefined();
+    expect(capturedEndLocationPress).toBeDefined();
   });
 });

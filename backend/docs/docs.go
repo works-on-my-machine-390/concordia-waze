@@ -928,6 +928,45 @@ const docTemplate = `{
                 }
             }
         },
+        "/shuttle/markers": {
+            "get": {
+                "description": "Returns the latitude and longitude for shuttle stop markers at both campuses.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "shuttle"
+                ],
+                "summary": "Get shuttle marker positions",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "object",
+                                "additionalProperties": {
+                                    "type": "number",
+                                    "format": "float64"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/shuttle/{day}/{campus_code}": {
             "get": {
                 "description": "Returns a list of departure times (HH:MM strings) for the specified campus and day.",

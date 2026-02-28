@@ -2,7 +2,7 @@
  * Tests for LocationButton component
  */
 import LocationButton from "@/components/LocationButton";
-import { fireEvent, render } from "@testing-library/react-native";
+import { act, fireEvent, render } from "@testing-library/react-native";
 
 describe("LocationButton", () => {
   test("Button renders correctly", () => {
@@ -18,7 +18,9 @@ describe("LocationButton", () => {
     const { getByRole } = render(<LocationButton onPress={mockOnPress} />);
 
     const button = getByRole("button");
-    fireEvent.press(button);
+    act(() => {
+      fireEvent.press(button);
+    });
 
     expect(mockOnPress).toHaveBeenCalledTimes(1);
   });

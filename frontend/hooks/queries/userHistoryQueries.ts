@@ -23,6 +23,7 @@ export const useGetUserHistory = (userId: string) => {
         .catch(() => [] as HistoryLocation[]);
     },
     staleTime: 5 * 60 * 1000,
+    enabled: !!userId,
   });
 };
 
