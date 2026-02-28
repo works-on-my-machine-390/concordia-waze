@@ -71,15 +71,11 @@ func SetupRouter() *gin.Engine {
 	shuttleHandler := handler.NewShuttleHandler(shuttleService)
 	pointOfInterestHandler := handler.NewPointOfInterestHandler(pointOfInterestService, indoorPOIService)
 
-	// =========================
-	// RATE LIMITERS
-	// =========================
-	// Rate limit ONLY endpoints that call external Google APIs.
-	// Env overrides:
-	//   GOOGLE_RATE_LIMIT_RPS   (float, e.g. 2)
-	//   GOOGLE_RATE_LIMIT_BURST (int, e.g. 5)
-	// Defaults: 2 req/sec per IP, burst 5
-	googleRateLimiter := middleware.NewIPRateLimiterFromEnv("GOOGLE", 2.0, 5)
+	googleRateLimiter := middleware.NewIPRateLimiterFromEnv(
+		"GOOGLE",
+		constants.DefaultGoogleRateLimitRPS,
+		constants.DefaultGoogleRateLimitBurst,
+	)
 	googleLimited := googleRateLimiter.Middleware()
 
 	router.Use(middleware.AuthMiddleware(jwtManager))
