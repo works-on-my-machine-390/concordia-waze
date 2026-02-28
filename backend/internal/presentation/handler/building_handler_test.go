@@ -26,6 +26,11 @@ type fakePlacesClient struct {
 	err     error
 }
 
+type fakeFloorRepo struct {
+	floors map[string][]domain.Floor
+	err    error
+}
+
 func (f *fakePlacesClient) FindPlaceID(input string, lat, lng float64) (string, error) {
 	if f.err != nil {
 		return "", f.err
@@ -65,6 +70,21 @@ func (f *fakeBuildingRepo) GetAllBuildingsByCampus() (map[string][]domain.Buildi
 	return map[string][]domain.BuildingSummary{}, nil
 }
 
+func (f *fakeFloorRepo) GetBuildingFloors(code string) ([]domain.Floor, error) {
+	if f.err != nil {
+		return nil, f.err
+	}
+	if f.floors == nil {
+		return nil, domain.ErrNotFound
+	}
+	k := strings.ToUpper(strings.TrimSpace(code))
+	m, ok := f.floors[k]
+	if !ok {
+		return nil, domain.ErrNotFound
+	}
+	return m, nil
+}
+
 func TestBuildingHandler_GetBuilding_Success200(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
@@ -88,7 +108,7 @@ func TestBuildingHandler_GetBuilding_Success200(t *testing.T) {
 		},
 	}
 
-	svc := application.NewBuildingService(repo, fp)
+	svc := application.NewBuildingService(repo, nil, fp)
 	h := NewBuildingHandler(svc)
 
 	r := gin.New()
@@ -124,7 +144,7 @@ func TestBuildingHandler_GetBuilding_NotFound404(t *testing.T) {
 		},
 	}
 
-	svc := application.NewBuildingService(repo, fp)
+	svc := application.NewBuildingService(repo, nil, fp)
 	h := NewBuildingHandler(svc)
 
 	r := gin.New()
@@ -155,7 +175,7 @@ func TestBuildingHandler_GetBuilding_InternalError500(t *testing.T) {
 		},
 	}
 
-	svc := application.NewBuildingService(repo, fp)
+	svc := application.NewBuildingService(repo, nil, fp)
 	h := NewBuildingHandler(svc)
 
 	r := gin.New()
@@ -185,7 +205,7 @@ func TestBuildingHandler_GetAllBuildingsByCampus_Success200(t *testing.T) {
 		},
 	}
 
-	svc := application.NewBuildingService(repo, nil)
+	svc := application.NewBuildingService(repo, nil, nil)
 	h := NewBuildingHandler(svc)
 
 	r := gin.New()
@@ -203,5 +223,86 @@ func TestBuildingHandler_GetAllBuildingsByCampus_Success200(t *testing.T) {
 
 	if !strings.Contains(body, `"buildings"`) || !strings.Contains(body, `"SGW"`) || !strings.Contains(body, `"LOY"`) {
 		t.Fatalf("unexpected body: %s", body)
+	}
+}
+
+func TestBuildingHandler_GetFloorsByBuilding_Success200(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	repo := &fakeBuildingRepo{}
+	floorMap := map[string][]domain.Floor{
+		"MB": {
+			{FloorName: "floor1", FloorNumber: 1, ImgPath: "f1.svg"},
+		},
+	}
+	frepo := &fakeFloorRepo{floors: floorMap}
+
+	svc := application.NewBuildingService(repo, frepo, nil)
+	h := NewBuildingHandler(svc)
+
+	r := gin.New()
+	r.GET("/buildings/:code/floors", h.GetFloorsByBuilding)
+
+	req := httptest.NewRequest(http.MethodGet, "/buildings/MB/floors", nil)
+	w := httptest.NewRecorder()
+
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d, body=%s", w.Code, w.Body.String())
+	}
+	body := w.Body.String()
+	if !strings.Contains(body, `"floors"`) || !strings.Contains(body, `"imgPath":"f1.svg"`) {
+		t.Fatalf("unexpected body: %s", body)
+	}
+}
+
+func TestBuildingHandler_GetFloorsByBuilding_NotFound500(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	repo := &fakeBuildingRepo{}
+	frepo := &fakeFloorRepo{floors: map[string][]domain.Floor{}}
+
+	svc := application.NewBuildingService(repo, frepo, nil)
+	h := NewBuildingHandler(svc)
+
+	r := gin.New()
+	r.GET("/buildings/:code/floors", h.GetFloorsByBuilding)
+
+	req := httptest.NewRequest(http.MethodGet, "/buildings/UNKNOWN/floors", nil)
+	w := httptest.NewRecorder()
+
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("expected status 500 for not-found floor repo, got %d, body=%s", w.Code, w.Body.String())
+	}
+	if !strings.Contains(w.Body.String(), "not found") {
+		t.Fatalf("expected body to contain 'not found', got %s", w.Body.String())
+	}
+}
+
+func TestBuildingHandler_GetFloorsByBuilding_RepoError500(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	repo := &fakeBuildingRepo{}
+	frepo := &fakeFloorRepo{err: errors.New("boom")}
+
+	svc := application.NewBuildingService(repo, frepo, nil)
+	h := NewBuildingHandler(svc)
+
+	r := gin.New()
+	r.GET("/buildings/:code/floors", h.GetFloorsByBuilding)
+
+	req := httptest.NewRequest(http.MethodGet, "/buildings/MB/floors", nil)
+	w := httptest.NewRecorder()
+
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("expected status 500 for repo error, got %d, body=%s", w.Code, w.Body.String())
+	}
+	if !strings.Contains(w.Body.String(), "boom") {
+		t.Fatalf("expected body to contain 'boom', got %s", w.Body.String())
 	}
 }

@@ -10,7 +10,9 @@ type Props = Readonly<{
   onCampusChange: (campus: CampusCode) => void;
   onMenuPress?: () => void;
   searchText: string;
-  onSearchTextChange: (t: string) => void;
+  onSearchClear?: () => void;
+  camLat?: string;
+  camLng?: string;
 }>;
 
 export function MapHeader({
@@ -18,7 +20,9 @@ export function MapHeader({
   onCampusChange,
   onMenuPress,
   searchText,
-  onSearchTextChange,
+  onSearchClear,
+  camLat,
+  camLng,
 }: Props) {
   const navigation = useNavigation();
   const router = useRouter();
@@ -29,9 +33,16 @@ export function MapHeader({
     onMenuPress?.();
   };
 
-  const buildingSearch = () => {
-    // Navigate to dedicated search page
-    router.push({ pathname: "/search", params: { campus } });
+  const openSearch = () => {
+    router.push({
+      pathname: "/search",
+      params: {
+        campus,
+        camLat,
+        camLng,
+        query: searchText,
+      },
+    });
   };
 
   return (
@@ -45,19 +56,23 @@ export function MapHeader({
         {/* search section */}
         <Pressable
           style={styles.searchPill}
-          onPress={buildingSearch}
+          onPress={openSearch}
           testID="open-search"
         >
           <Ionicons name="search" size={26} color={colors.maroon} />
           <TextInput
             value={searchText}
-            onChangeText={onSearchTextChange}
             placeholder="Where to…"
             placeholderTextColor="#818181"
             style={styles.searchInput}
             pointerEvents="none"
             editable={false}
           />
+          {searchText.length > 0 && (
+            <Pressable onPress={onSearchClear}>
+              <Ionicons name="close-circle" size={20} color="#818181" />
+            </Pressable>
+          )}
         </Pressable>
       </View>
       {/* campus selection sections */}

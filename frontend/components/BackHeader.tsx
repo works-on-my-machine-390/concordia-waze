@@ -27,6 +27,9 @@ const BackHeader = ({ title }: HeaderProps) => {
       case "register":
         headerTitle = "Sign Up";
         break;
+      case "expired":
+        headerTitle = "Home Page";
+        break;
       case "index":
       default:
         headerTitle = "Home Page";
@@ -38,7 +41,15 @@ const BackHeader = ({ title }: HeaderProps) => {
     <View style={styles.container}>
       <TouchableOpacity
         style={styles.backButtonTitle}
-        onPress={() => router.back()}
+        onPress={() => {
+          if (params.prev === "expired") {
+            router.replace("/");
+          } else if (router.canGoBack()) {
+            router.back();
+          } else {
+            router.replace("/");
+          }
+        }}
       >
         <BackIcon size={24} />
         <Text style={styles.title}>{headerTitle}</Text>

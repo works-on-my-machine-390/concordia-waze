@@ -2,6 +2,7 @@ package router
 
 import (
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -30,18 +31,30 @@ func SetupRouter() *gin.Engine {
 
 	buildingDataRepo := repository.NewBuildingDataRepository(constants.BuildingDataFile)
 	shuttleDataRepo := repository.NewShuttleDataRepository(constants.ShuttleDataFile)
+	floorDataRepo := repository.NewFloorRepository(constants.FloorDataFile)
 
 	jwtManager := application.NewJWTManager(os.Getenv("JWT_SECRET"), constants.DefaultJWTDuration*time.Hour)
 	userService := application.NewUserService(userRepo, jwtManager)
 
 	placesClient := google.NewGooglePlacesClient(os.Getenv("GOOGLE_PLACES_API_KEY"))
 
-	buildingService := application.NewBuildingService(buildingDataRepo, placesClient)
+	buildingService := application.NewBuildingService(buildingDataRepo, floorDataRepo, placesClient)
 	campusService := application.NewCampusService(buildingDataRepo)
 	imageService := application.NewImageService(buildingService, placesClient)
 	firebaseService := application.NewFirebaseService()
 	shuttleService := application.NewShuttleService(shuttleDataRepo)
 	pointOfInterestService := application.NewPointOfInterestService(placesClient)
+
+	dataDir, err := findIndoorDataDir()
+	if err != nil {
+		// fail fast with a clear message
+		panic("could not find campusData/GeoJsonDataParser/Data from working dir: " + err.Error())
+	}
+	indoorPOIRepo := repository.NewIndoorPOIRepository(dataDir)
+	indoorPOIService := application.NewIndoorPointOfInterestService(indoorPOIRepo)
+	indoorRoomRepo := repository.NewIndoorRoomRepository(dataDir) // reuse same base dir you used for POIs
+	roomSearchService := application.NewRoomSearchService(indoorRoomRepo)
+	roomSearchHandler := handler.NewRoomSearchHandler(roomSearchService)
 
 	// ---- Directions wiring (FIXED: inject shuttle schedule repo) ----
 	directionsClient := google.NewGoogleDirectionsClient(os.Getenv("GOOGLE_DIRECTIONS_API_KEY"))
@@ -56,7 +69,14 @@ func SetupRouter() *gin.Engine {
 	imageHandler := handler.NewImageHandler(imageService)
 	firebaseHandler := handler.NewFirebaseHandler(firebaseService)
 	shuttleHandler := handler.NewShuttleHandler(shuttleService)
-	pointOfInterestHandler := handler.NewPointOfInterestHandler(pointOfInterestService)
+	pointOfInterestHandler := handler.NewPointOfInterestHandler(pointOfInterestService, indoorPOIService)
+
+	googleRateLimiter := middleware.NewIPRateLimiterFromEnv(
+		"GOOGLE",
+		constants.DefaultGoogleRateLimitRPS,
+		constants.DefaultGoogleRateLimitBurst,
+	)
+	googleLimited := googleRateLimiter.Middleware()
 
 	router.Use(middleware.AuthMiddleware(jwtManager))
 
@@ -71,20 +91,23 @@ func SetupRouter() *gin.Engine {
 	buildingsGroup := router.Group("/buildings")
 	{
 		buildingsGroup.GET("/list", buildingHandler.GetAllBuildingsByCampus)
-		buildingsGroup.GET("/:code", buildingHandler.GetBuilding)
-		buildingsGroup.GET("/:code/images", imageHandler.GetBuildingImages)
+
+		// Calls Google Places (opening hours lookup) -> rate limit
+		buildingsGroup.GET("/:code", googleLimited, buildingHandler.GetBuilding)
+
+		// Calls Google Places Photos via placesClient -> rate limit
+		buildingsGroup.GET("/:code/images", googleLimited, imageHandler.GetBuildingImages)
+
+		// Local repo only -> no rate limit
+		buildingsGroup.GET("/floor/:code", buildingHandler.GetFloorsByBuilding)
 	}
 
-	// Directions endpoints (PUBLIC)
-	// 1) Lat/Lng version:
-	// GET /directions?start_lat=...&start_lng=...&end_lat=...&end_lng=...&mode=walking|transit|driving|shuttle
-	// Optional for shuttle: &day=monday..sunday &time=HH:MM
-	router.GET("/directions", directionsHandler.GetDirections)
+	// image utility endpoint (PUBLIC) - local/static, no rate limit needed
+	router.GET("/images/*path", imageHandler.GetStaticImage)
 
-	// 2) Building codes version:
-	// GET /directions/buildings?start_code=EV&end_code=H&mode=walking|transit|driving|shuttle
-	// Optional for shuttle: &day=monday..sunday &time=HH:MM
-	router.GET("/directions/buildings", directionsHandler.GetDirectionsByBuildings)
+	// Directions endpoints (PUBLIC) - calls Google Directions API -> rate limit
+	router.GET("/directions", googleLimited, directionsHandler.GetDirections)
+	router.GET("/directions/buildings", googleLimited, directionsHandler.GetDirectionsByBuildings)
 
 	shuttleGroup := router.Group("/shuttle")
 	{
@@ -96,7 +119,12 @@ func SetupRouter() *gin.Engine {
 
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
-	router.GET("/pointofinterest", pointOfInterestHandler.GetNearbyPointsOfInterest)
+	// Nearby POI uses Google Places API -> rate limit
+	router.GET("/pointofinterest", googleLimited, pointOfInterestHandler.GetNearbyPointsOfInterest)
+
+	// Indoor POIs + room search are local repo-based -> no external API calls (leave unlimited)
+	router.GET("/pointofinterest/indoor", pointOfInterestHandler.GetNearbyIndoorPOIs)
+	router.GET("/rooms/search", roomSearchHandler.SearchRoom)
 
 	// =========================
 	// PROTECTED ROUTES (auth)
@@ -129,4 +157,26 @@ func SetupRouter() *gin.Engine {
 func SetupTestRouter() *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	return SetupRouter()
+}
+
+func findIndoorDataDir() (string, error) {
+	wd, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+
+	cur := wd
+	for {
+		candidate := filepath.Join(cur, "campusData", "GeoJsonDataParser", "Data")
+		if stat, err := os.Stat(candidate); err == nil && stat.IsDir() {
+			return candidate, nil
+		}
+		parent := filepath.Dir(cur)
+		if parent == cur {
+			break // reached filesystem root
+		}
+		cur = parent
+	}
+
+	return "", os.ErrNotExist
 }

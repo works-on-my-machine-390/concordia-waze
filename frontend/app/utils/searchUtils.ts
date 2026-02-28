@@ -1,9 +1,9 @@
-import { BuildingListItem, CampusCode } from "@/hooks/queries/buildingQueries";
+import { BuildingListItem } from "@/hooks/queries/buildingQueries";
 
 export const filterBuildingsByQuery = (
   query: string,
   buildingList: BuildingListItem[],
-) => {
+) : BuildingListItem[] => {
   if (query.trim() === "" || !buildingList || buildingList.length === 0) {
     return [];
   }
@@ -27,15 +27,17 @@ export const filterBuildingsByQuery = (
         (addressMatch ? 1 : 0);
       return {
         code: b.code,
-        campus: b.campus as CampusCode,
+        campus: b.campus,
         name,
-        longName,
+        long_name: longName,
         address,
         score,
         codeMatch,
         nameMatch,
         longMatch,
         addressMatch,
+        latitude: b.latitude,
+        longitude: b.longitude,
       };
     })
     .filter(

@@ -308,6 +308,9 @@ describe("MainMap screen", () => {
 
     const { getByText } = renderWithProviders(<MainMap />);
 
+    // Ignore initial camera positioning on mount
+    mockAnimateToRegion.mockClear();
+
     await act(async () => {
       fireEvent.press(getByText("My Location"));
     });
@@ -1178,6 +1181,7 @@ describe("Navigation Header Location Press Handlers", () => {
       push: mockRouterPush,
       replace: jest.fn(),
       back: jest.fn(),
+      setParams: jest.fn(),
     };
 
     jest.spyOn(require("expo-router"), "useRouter").mockReturnValue(routerMock);
@@ -1258,6 +1262,7 @@ describe("Navigation Header Location Press Handlers", () => {
       push: mockRouterPush,
       replace: jest.fn(),
       back: jest.fn(),
+      setParams: jest.fn(),
     };
 
     jest.spyOn(require("expo-router"), "useRouter").mockReturnValue(routerMock);
@@ -1338,6 +1343,7 @@ describe("Navigation Header Location Press Handlers", () => {
       push: mockRouterPush,
       replace: jest.fn(),
       back: jest.fn(),
+      setParams: jest.fn(),
     };
 
     jest.spyOn(require("expo-router"), "useRouter").mockReturnValue(routerMock);
