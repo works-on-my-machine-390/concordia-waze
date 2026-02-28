@@ -41,97 +41,111 @@ export default function ShuttleSchedule() {
     ? zip(data[tab].LOY ?? [], data[tab].SGW ?? [])
     : [];
 
-  const content = isLoading ? (
-    <ActivityIndicator style={{ marginTop: 40 }} size="large" color={M} />
-  ) : error ? (
-    <View style={{ padding: 24, gap: 8 }}>
-      <Text>Could not load schedule — {error.message}</Text>
-      <TouchableOpacity onPress={() => refetch()}>
-        <Text style={{ color: M }}>Try Again</Text>
-      </TouchableOpacity>
-    </View>
-  ) : (
-    <ScrollView
-      contentContainerStyle={{ padding: 14, paddingBottom: 44 }}
-      showsVerticalScrollIndicator={false}
-    >
-      <View
-        style={{
-          flexDirection: "row",
-          justifyContent: "space-between",
-          alignItems: "baseline",
-          marginBottom: 8,
-        }}
+  let content: React.ReactNode;
+  if (isLoading) {
+    content = (
+      <ActivityIndicator style={{ marginTop: 40 }} size="large" color={M} />
+    );
+  } else if (error) {
+    content = (
+      <View style={{ padding: 24, gap: 8 }}>
+        <Text>Could not load schedule — {error.message}</Text>
+        <TouchableOpacity onPress={() => refetch()}>
+          <Text style={{ color: M }}>Try Again</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  } else {
+    content = (
+      <ScrollView
+        contentContainerStyle={{ padding: 14, paddingBottom: 44 }}
+        showsVerticalScrollIndicator={false}
       >
-        <Text>{DAYS.find((d) => d[0] === tab)?.[2]}</Text>
-        <Text style={{ fontSize: 12, color: C.textMuted }}>
-          {rows.length} departures
-        </Text>
-      </View>
-
-      <View style={s.table}>
-        <View style={s.thead}>
-          {["#", "Loyola to SGW", "SGW to Loyola"].map((h) => (
-            <Text key={h} style={[s.hTxt, h === "#" ? s.cN : s.cT]}>
-              {h}
-            </Text>
-          ))}
-        </View>
-        {rows.map((r, i) => (
-          <View
-            key={`${tab}-${i}`}
-            style={[
-              s.row,
-              i % 2 === 1 && { backgroundColor: C.background },
-              i === rows.length - 1 && { borderBottomWidth: 0 },
-            ]}
-          >
-            <Text style={[s.cN, { fontSize: 11, color: C.textMuted }]}>
-              {i + 1}
-            </Text>
-            <Text style={[s.cT, s.time]}>{r.loy}</Text>
-            <Text style={[s.cT, s.time]}>{r.sgw}</Text>
-          </View>
-        ))}
-      </View>
-
-      <View style={[s.card, { marginTop: 16, marginBottom: 12 }]}>
-        <Text style={{ fontSize: 22, marginBottom: 4 }}>🪪</Text>
-        <Text
+        <View
           style={{
-            fontSize: 13,
-            fontWeight: "700",
-            color: C.textPrimary,
-            marginBottom: 3,
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "baseline",
+            marginBottom: 8,
           }}
         >
-          ID Required
-        </Text>
-        <Text style={{ fontSize: 11, color: C.textSecondary, lineHeight: 16 }}>
-          Show your Concordia student or staff card.
-        </Text>
-      </View>
+          <Text>{DAYS.find((d) => d[0] === tab)?.[2]}</Text>
+          <Text style={{ fontSize: 12, color: C.textMuted }}>
+            {rows.length} departures
+          </Text>
+        </View>
 
-      <View
-        style={[
-          s.card,
-          { backgroundColor: C.conuRedLight, borderColor: "#e8a0aa" },
-        ]}
-      >
-        <Text
-          style={{ fontSize: 15, fontWeight: "700", color: M, marginBottom: 6 }}
+        <View style={s.table}>
+          <View style={s.thead}>
+            {["#", "Loyola to SGW", "SGW to Loyola"].map((h) => (
+              <Text key={h} style={[s.hTxt, h === "#" ? s.cN : s.cT]}>
+                {h}
+              </Text>
+            ))}
+          </View>
+          {rows.map((r, i) => (
+            <View
+              key={`${tab}-${i}`}
+              style={[
+                s.row,
+                i % 2 === 1 && { backgroundColor: C.background },
+                i === rows.length - 1 && { borderBottomWidth: 0 },
+              ]}
+            >
+              <Text style={[s.cN, { fontSize: 11, color: C.textMuted }]}>
+                {i + 1}
+              </Text>
+              <Text style={[s.cT, s.time]}>{r.loy}</Text>
+              <Text style={[s.cT, s.time]}>{r.sgw}</Text>
+            </View>
+          ))}
+        </View>
+
+        <View style={[s.card, { marginTop: 16, marginBottom: 12 }]}>
+          <Text style={{ fontSize: 22, marginBottom: 4 }}>🪪</Text>
+          <Text
+            style={{
+              fontSize: 13,
+              fontWeight: "700",
+              color: C.textPrimary,
+              marginBottom: 3,
+            }}
+          >
+            ID Required
+          </Text>
+          <Text
+            style={{ fontSize: 11, color: C.textSecondary, lineHeight: 16 }}
+          >
+            Show your Concordia student or staff card.
+          </Text>
+        </View>
+
+        <View
+          style={[
+            s.card,
+            { backgroundColor: C.conuRedLight, borderColor: "#e8a0aa" },
+          ]}
         >
-          Questions?
-        </Text>
-        <Text style={{ fontSize: 13, color: M, marginBottom: 2 }}>
-          📧 shuttle@concordia.ca
-        </Text>
-        <Text style={{ fontSize: 13, color: M }}>
-          📞 514-848-2424 ext. 4636
-        </Text>
-      </View>
-    </ScrollView>
-  );
+          <Text
+            style={{
+              fontSize: 15,
+              fontWeight: "700",
+              color: M,
+              marginBottom: 6,
+            }}
+          >
+            Questions?
+          </Text>
+          <Text style={{ fontSize: 13, color: M, marginBottom: 2 }}>
+            📧 shuttle@concordia.ca
+          </Text>
+          <Text style={{ fontSize: 13, color: M }}>
+            📞 514-848-2424 ext. 4636
+          </Text>
+        </View>
+      </ScrollView>
+    );
+  }
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.background }}>
