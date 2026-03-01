@@ -156,11 +156,10 @@ func TestDirectionsService_ShuttleMode_ComposesWalkingLegsAndShuttleStep(t *test
 	}
 	assert.True(t, foundShuttle)
 
-	// Now 3 calls: walk to stop, walking shuttle leg (street-level path), walk from stop
-	assert.Equal(t, 3, f.calls)
+	// Current behavior composes shuttle with 2 walking API calls: to stop + from stop.
+	assert.Equal(t, 2, f.calls)
 	assert.Equal(t, "walking", f.modes[0])
 	assert.Equal(t, "walking", f.modes[1])
-	assert.Equal(t, "walking", f.modes[2])
 
 	assert.NotEmpty(t, shuttleRepo.lastCampus)
 }

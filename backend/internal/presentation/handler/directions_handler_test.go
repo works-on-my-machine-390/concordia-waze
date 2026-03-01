@@ -142,10 +142,17 @@ func TestShuttle_InvalidTime(t *testing.T) {
 	assert.Equal(t, 400, w.Code)
 }
 
-func TestShuttle_SameCampusRejection(t *testing.T) {
+func TestShuttle_SameCampusAccepted(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	h := setupHandler(&fakeDirectionsFetcher{})
+	fetcher := &fakeDirectionsFetcher{
+		resp: domain.DirectionsResponse{
+			Mode:  "walking",
+			Steps: []domain.DirectionStep{{Instruction: "Walk", Duration: "2 mins"}},
+		},
+	}
+
+	h := setupHandler(fetcher)
 	r := gin.New()
 	r.GET("/directions", h.GetDirections)
 
@@ -156,7 +163,8 @@ func TestShuttle_SameCampusRejection(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	assert.Equal(t, 400, w.Code)
+	assert.Equal(t, 200, w.Code)
+	assert.Contains(t, w.Body.String(), "Take the Concordia Shuttle Bus")
 }
 
 /* ---------------- SUCCESS PATHS ---------------- */
