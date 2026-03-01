@@ -112,7 +112,7 @@ func SetupRouter() *gin.Engine {
 	router.GET("/directions", googleLimited, directionsHandler.GetDirections)
 	router.GET("/directions/buildings", googleLimited, directionsHandler.GetDirectionsByBuildings)
 	router.POST("/directions/indoor/multi-floor-path", indoorPathHandler.GetMultiFloorShortestPath)
-	
+
 	shuttleGroup := router.Group("/shuttle")
 	{
 		shuttleGroup.GET("", shuttleHandler.GetDepartureData)

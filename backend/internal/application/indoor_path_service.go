@@ -18,7 +18,7 @@ type IndoorRoomRepo interface {
 
 type IndoorPathService struct {
 	floors FloorRepo
-	rooms  IndoorRoomRepo 
+	rooms  IndoorRoomRepo
 }
 
 func NewIndoorPathService(floors FloorRepo, rooms IndoorRoomRepo) *IndoorPathService {

@@ -55,10 +55,10 @@ func createTestFloor(number int, name string, vertices []domain.Coordinates, edg
 // Helper to create a simple floor graph (square with 4 vertices)
 func createSimpleFloorWithStairs(floorNum int, name string) domain.Floor {
 	vertices := []domain.Coordinates{
-		{X: 0, Y: 0},   // 0: bottom-left
-		{X: 1, Y: 0},   // 1: bottom-right
-		{X: 1, Y: 1},   // 2: top-right
-		{X: 0, Y: 1},   // 3: top-left
+		{X: 0, Y: 0},     // 0: bottom-left
+		{X: 1, Y: 0},     // 1: bottom-right
+		{X: 1, Y: 1},     // 2: top-right
+		{X: 0, Y: 1},     // 3: top-left
 		{X: 0.5, Y: 0.5}, // 4: center (stairs location)
 	}
 	edges := []domain.Edge{
@@ -507,7 +507,7 @@ func TestMultiFloorShortestPath_TotalDistance_IsCalculated(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
-	
+
 	// Total distance should be sum of segment distances
 	expectedTotal := result.Segments[0].Distance + result.Segments[1].Distance
 	assert.Equal(t, expectedTotal, result.TotalDistance)
