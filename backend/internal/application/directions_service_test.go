@@ -118,7 +118,13 @@ func TestDirectionsService_ShuttleMode_ComposesWalkingLegsAndShuttleStep(t *test
 			Mode:     "walking",
 			Polyline: "encoded-polyline",
 			Steps: []domain.DirectionStep{
-				{Instruction: "Walk segment", Distance: "0.2 km", Duration: "2 mins"},
+				{
+					Instruction: "Walk segment",
+					Distance:    "0.2 km",
+					Duration:    "2 mins",
+					Start:       domain.LatLng{Lat: 45.495, Lng: -73.578},
+					End:         domain.LatLng{Lat: 45.497, Lng: -73.579},
+				},
 			},
 		},
 	}
@@ -150,10 +156,11 @@ func TestDirectionsService_ShuttleMode_ComposesWalkingLegsAndShuttleStep(t *test
 	}
 	assert.True(t, foundShuttle)
 
-	assert.GreaterOrEqual(t, f.calls, 2)
-	for _, m := range f.modes {
-		assert.Equal(t, "walking", m)
-	}
+	// Now 3 calls: walk to stop, walking shuttle leg (street-level path), walk from stop
+	assert.Equal(t, 3, f.calls)
+	assert.Equal(t, "walking", f.modes[0])
+	assert.Equal(t, "walking", f.modes[1])
+	assert.Equal(t, "walking", f.modes[2])
 
 	assert.NotEmpty(t, shuttleRepo.lastCampus)
 }
