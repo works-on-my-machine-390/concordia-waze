@@ -145,6 +145,11 @@ func (s *DirectionsService) getShuttleDirectionsAt(start, end domain.LatLng, ref
 	steps = append(steps, shuttleStep)
 	steps = append(steps, walkFromStop.Steps...)
 
+	polyline, err := buildCombinedShuttlePolyline(walkToStop.Polyline, walkFromStop.Polyline)
+	if err != nil {
+		return domain.DirectionsResponse{}, fmt.Errorf("shuttle polyline build failed: %w", err)
+	}
+
 	// Departure message:
 	// leaveAt = (nextDepartureTime - walkDur)
 	leaveAtStr := ""
@@ -172,7 +177,7 @@ func (s *DirectionsService) getShuttleDirectionsAt(start, end domain.LatLng, ref
 	return domain.DirectionsResponse{
 		Mode:             "shuttle",
 		DepartureMessage: depMsg,
-		Polyline:         "",
+		Polyline:         polyline,
 		Steps:            steps,
 	}, nil
 }
@@ -315,10 +320,15 @@ func (s *DirectionsService) GetShuttleDirectionsManual(start, end domain.LatLng,
 	steps = append(steps, shuttleStep)
 	steps = append(steps, walkFromStop.Steps...)
 
+	polyline, err := buildCombinedShuttlePolyline(walkToStop.Polyline, walkFromStop.Polyline)
+	if err != nil {
+		return domain.DirectionsResponse{}, fmt.Errorf("shuttle polyline build failed: %w", err)
+	}
+
 	return domain.DirectionsResponse{
 		Mode:             "shuttle",
 		DepartureMessage: depMsg,
-		Polyline:         "",
+		Polyline:         polyline,
 		Steps:            steps,
 	}, nil
 }
@@ -438,4 +448,113 @@ func pickNextDepartureAt(ref time.Time, times []string) string {
 func pickNextDeparture(times []string) string {
 	now := time.Now().Truncate(time.Minute)
 	return pickNextDepartureAt(now, times)
+}
+
+func buildCombinedShuttlePolyline(walkToEncoded, walkFromEncoded string) (string, error) {
+	toPoints, err := decodePolyline(walkToEncoded)
+	if err != nil {
+		return "", fmt.Errorf("decode walkTo polyline: %w", err)
+	}
+
+	fromPoints, err := decodePolyline(walkFromEncoded)
+	if err != nil {
+		return "", fmt.Errorf("decode walkFrom polyline: %w", err)
+	}
+
+	combined := make([]domain.LatLng, 0, len(toPoints)+2+len(fromPoints))
+	combined = append(combined, toPoints...)
+	combined = append(combined, sgwShuttleStop, loyShuttleStop)
+	combined = append(combined, fromPoints...)
+
+	return encodePolyline(combined), nil
+}
+
+func decodePolyline(encoded string) ([]domain.LatLng, error) {
+	var (
+		points []domain.LatLng
+		lat    int
+		lng    int
+		i      int
+	)
+
+	for i < len(encoded) {
+		var err error
+		var dlat int
+		dlat, i, err = decodeSignedInt(encoded, i)
+		if err != nil {
+			return nil, err
+		}
+		lat += dlat
+
+		var dlng int
+		dlng, i, err = decodeSignedInt(encoded, i)
+		if err != nil {
+			return nil, err
+		}
+		lng += dlng
+
+		points = append(points, domain.LatLng{
+			Lat: float64(lat) / 1e5,
+			Lng: float64(lng) / 1e5,
+		})
+	}
+
+	return points, nil
+}
+
+func decodeSignedInt(encoded string, i int) (int, int, error) {
+	var result int
+	var shift uint
+
+	for {
+		if i >= len(encoded) {
+			return 0, i, errors.New("invalid polyline encoding")
+		}
+		b := int(encoded[i]) - 63
+		i++
+		result |= (b & 0x1f) << shift
+		shift += 5
+		if b < 0x20 {
+			break
+		}
+	}
+
+	value := (result >> 1) ^ (-(result & 1))
+	return value, i, nil
+}
+
+func encodePolyline(points []domain.LatLng) string {
+	if len(points) == 0 {
+		return ""
+	}
+
+	var out strings.Builder
+	prevLat := 0
+	prevLng := 0
+
+	for _, p := range points {
+		lat := int(math.Round(p.Lat * 1e5))
+		lng := int(math.Round(p.Lng * 1e5))
+
+		encodeSignedValue(&out, lat-prevLat)
+		encodeSignedValue(&out, lng-prevLng)
+
+		prevLat = lat
+		prevLng = lng
+	}
+
+	return out.String()
+}
+
+func encodeSignedValue(out *strings.Builder, value int) {
+	v := value << 1
+	if value < 0 {
+		v = ^v
+	}
+
+	for v >= 0x20 {
+		out.WriteByte(byte((0x20 | (v & 0x1f)) + 63))
+		v >>= 5
+	}
+	out.WriteByte(byte(v + 63))
 }

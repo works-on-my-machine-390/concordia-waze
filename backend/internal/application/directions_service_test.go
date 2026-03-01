@@ -116,7 +116,7 @@ func TestDirectionsService_ShuttleMode_ComposesWalkingLegsAndShuttleStep(t *test
 	f := &fakeDirectionsClient{
 		resp: domain.DirectionsResponse{
 			Mode:     "walking",
-			Polyline: "encoded-polyline",
+			Polyline: "??",
 			Steps: []domain.DirectionStep{
 				{Instruction: "Walk segment", Distance: "0.2 km", Duration: "2 mins"},
 			},
@@ -137,6 +137,7 @@ func TestDirectionsService_ShuttleMode_ComposesWalkingLegsAndShuttleStep(t *test
 
 	assert.Equal(t, "shuttle", resp.Mode)
 	assert.NotEmpty(t, resp.Steps)
+	assert.NotEmpty(t, resp.Polyline)
 	assert.GreaterOrEqual(t, len(resp.Steps), 3)
 
 	foundShuttle := false
@@ -161,7 +162,8 @@ func TestDirectionsService_ShuttleMode_ComposesWalkingLegsAndShuttleStep(t *test
 func TestDirectionsService_ShuttleMode_StillWorksWhenRepoMissingOrErrors(t *testing.T) {
 	f := &fakeDirectionsClient{
 		resp: domain.DirectionsResponse{
-			Mode: "walking",
+			Mode:     "walking",
+			Polyline: "??",
 			Steps: []domain.DirectionStep{
 				{Instruction: "Walk segment", Distance: "0.2 km", Duration: "2 mins"},
 			},
@@ -175,6 +177,7 @@ func TestDirectionsService_ShuttleMode_StillWorksWhenRepoMissingOrErrors(t *test
 	assert.NoError(t, err)
 	assert.Equal(t, "shuttle", resp.Mode)
 	assert.NotEmpty(t, resp.Steps)
+	assert.NotEmpty(t, resp.Polyline)
 }
 
 func TestDirectionsService_GetDirectionsWithSchedule_NonShuttleWithUserTime(t *testing.T) {
