@@ -44,11 +44,15 @@ type fakeShuttleRepo struct {
 
 	lastDay    string
 	lastCampus string
+
+	calls []string
 }
 
 func (r *fakeShuttleRepo) GetDepartures(day, campus string) ([]string, error) {
 	r.lastDay = day
 	r.lastCampus = campus
+	r.calls = append(r.calls, campus)
+
 	if r.err != nil {
 		return nil, r.err
 	}
@@ -129,6 +133,7 @@ func TestDirectionsService_ShuttleMode_ComposesWalkingLegsAndShuttleStep(t *test
 
 	s := NewDirectionsService(f).WithShuttleRepo(shuttleRepo)
 
+	// start near SGW, end near LOY (SGW -> LOY direction)
 	start := domain.LatLng{Lat: 45.4973, Lng: -73.5790}
 	end := domain.LatLng{Lat: 45.4582, Lng: -73.6405}
 
@@ -139,12 +144,19 @@ func TestDirectionsService_ShuttleMode_ComposesWalkingLegsAndShuttleStep(t *test
 	assert.NotEmpty(t, resp.Steps)
 	assert.GreaterOrEqual(t, len(resp.Steps), 3)
 
+	assert.Equal(t, "SGW", shuttleRepo.lastCampus)
+
 	foundShuttle := false
 	for _, st := range resp.Steps {
 		if contains(st.Instruction, "Shuttle") || contains(st.Instruction, "shuttle") {
 			foundShuttle = true
+
 			assert.NotEmpty(t, st.Distance)
 			assert.NotEmpty(t, st.Duration)
+
+			assert.Equal(t, sgwShuttleStop, st.Start)
+			assert.Equal(t, loyShuttleStop, st.End)
+
 			break
 		}
 	}
@@ -154,8 +166,6 @@ func TestDirectionsService_ShuttleMode_ComposesWalkingLegsAndShuttleStep(t *test
 	for _, m := range f.modes {
 		assert.Equal(t, "walking", m)
 	}
-
-	assert.NotEmpty(t, shuttleRepo.lastCampus)
 }
 
 func TestDirectionsService_ShuttleMode_StillWorksWhenRepoMissingOrErrors(t *testing.T) {
@@ -301,4 +311,41 @@ func TestManualShuttle_NoRepo(t *testing.T) {
 	_, err := s.GetShuttleDirectionsManual(domain.LatLng{}, domain.LatLng{}, "monday", "10:00")
 	assert.Error(t, err)
 	assert.Equal(t, "no shuttle available", err.Error())
+}
+
+func TestDirectionsService_ShuttleMode_UsesCorrectDirection_LOYtoSGW(t *testing.T) {
+	f := &fakeDirectionsClient{
+		resp: domain.DirectionsResponse{
+			Mode: "walking",
+			Steps: []domain.DirectionStep{
+				{Instruction: "Walk segment", Distance: "0.2 km", Duration: "2 mins"},
+			},
+		},
+	}
+	shuttleRepo := &fakeShuttleRepo{times: []string{"10:00"}}
+
+	s := NewDirectionsService(f).WithShuttleRepo(shuttleRepo)
+
+	// start near LOY, end near SGW
+	start := domain.LatLng{Lat: 45.4582, Lng: -73.6405}
+	end := domain.LatLng{Lat: 45.4973, Lng: -73.5790}
+
+	resp, err := s.GetDirections(start, end, "shuttle")
+	assert.NoError(t, err)
+
+	// should pull departures from LOY
+	assert.Equal(t, "LOY", shuttleRepo.lastCampus)
+
+	// find shuttle step and assert direction
+	found := false
+	for _, st := range resp.Steps {
+		if contains(st.Instruction, "Shuttle") || contains(st.Instruction, "shuttle") {
+			found = true
+			assert.Equal(t, loyShuttleStop, st.Start)
+			assert.Equal(t, sgwShuttleStop, st.End)
+			assert.True(t, contains(st.Instruction, "LOY") && contains(st.Instruction, "SGW"))
+			break
+		}
+	}
+	assert.True(t, found, "expected a shuttle step")
 }

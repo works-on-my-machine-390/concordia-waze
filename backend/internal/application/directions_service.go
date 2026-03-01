@@ -28,9 +28,7 @@ type DirectionsService struct {
 }
 
 func NewDirectionsService(fetcher DirectionsFetcher) *DirectionsService {
-	return &DirectionsService{
-		fetcher: fetcher,
-	}
+	return &DirectionsService{fetcher: fetcher}
 }
 
 // Optional: inject schedule repo if available
@@ -63,16 +61,17 @@ func (s *DirectionsService) GetDirectionsWithSchedule(start, end domain.LatLng, 
 		return domain.DirectionsResponse{}, errors.New("invalid mode")
 	}
 
-	// For departure message style
 	userProvidedTime := strings.TrimSpace(at) != ""
 
-	// Shuttle is composed (walk -> shuttle -> walk)
+	// Shuttle: legacy behavior (no campus info) -> infer campus from coordinates
 	if m == "shuttle" {
 		ref, d, err := parseOptionalDayTime(day, at)
 		if err != nil {
 			return domain.DirectionsResponse{}, err
 		}
-		return s.getShuttleDirectionsAt(start, end, ref, d, userProvidedTime)
+		fromCampus := nearestCampus(start)
+		toCampus := nearestCampus(end)
+		return s.getShuttleDirectionsAtWithCampus(start, end, ref, d, userProvidedTime, fromCampus, toCampus)
 	}
 
 	// Non-shuttle: normal Google route
@@ -85,8 +84,70 @@ func (s *DirectionsService) GetDirectionsWithSchedule(start, end domain.LatLng, 
 	// - if time provided: "Depart at HH:MM"
 	// - else: "Leave now at HH:MM"
 	if userProvidedTime {
-		// validate time input already happens in parseOptionalDayTime only for shuttle,
-		// so for non-shuttle we parse just to avoid weird inputs.
+		parsed, err := time.Parse("15:04", strings.TrimSpace(at))
+		if err != nil {
+			return domain.DirectionsResponse{}, errors.New("invalid time")
+		}
+		now := time.Now()
+		ref := time.Date(now.Year(), now.Month(), now.Day(), parsed.Hour(), parsed.Minute(), 0, 0, now.Location())
+		resp.DepartureMessage = "Depart at " + ref.Format("15:04")
+	} else {
+		resp.DepartureMessage = "Leave now at " + time.Now().Format("15:04")
+	}
+
+	return resp, nil
+}
+
+// Buildings endpoint variant: you already know campus from building JSON.
+// fromCampus/toCampus should be "SGW" or "LOY".
+func (s *DirectionsService) GetDirectionsBuildingsWithSchedule(
+	start, end domain.LatLng,
+	mode, day, at, fromCampus, toCampus string,
+) (domain.DirectionsResponse, error) {
+	m := strings.ToLower(strings.TrimSpace(mode))
+	if m == "" {
+		m = "walking"
+	}
+
+	allowed := map[string]bool{
+		"walking": true,
+		"driving": true,
+		"transit": true,
+		"shuttle": true,
+	}
+	if !allowed[m] {
+		return domain.DirectionsResponse{}, errors.New("invalid mode")
+	}
+
+	userProvidedTime := strings.TrimSpace(at) != ""
+
+	if m == "shuttle" {
+		ref, d, err := parseOptionalDayTime(day, at)
+		if err != nil {
+			return domain.DirectionsResponse{}, err
+		}
+
+		fc := strings.ToUpper(strings.TrimSpace(fromCampus))
+		tc := strings.ToUpper(strings.TrimSpace(toCampus))
+
+		// If caller didn't pass valid campuses, fall back (still works)
+		if fc != "SGW" && fc != "LOY" {
+			fc = nearestCampus(start)
+		}
+		if tc != "SGW" && tc != "LOY" {
+			tc = nearestCampus(end)
+		}
+
+		return s.getShuttleDirectionsAtWithCampus(start, end, ref, d, userProvidedTime, fc, tc)
+	}
+
+	// Non-shuttle: same behavior as GetDirectionsWithSchedule
+	resp, err := s.fetcher.GetDirections(start, end, m)
+	if err != nil {
+		return domain.DirectionsResponse{}, err
+	}
+
+	if userProvidedTime {
 		parsed, err := time.Parse("15:04", strings.TrimSpace(at))
 		if err != nil {
 			return domain.DirectionsResponse{}, errors.New("invalid time")
@@ -103,19 +164,44 @@ func (s *DirectionsService) GetDirectionsWithSchedule(start, end domain.LatLng, 
 
 // ---- Shuttle composition logic ----
 
-// Default shuttle stop coordinates (still fine; buildings endpoint provides real start/end anyway)
+// Default shuttle stop coordinates
 var sgwShuttleStop = domain.LatLng{Lat: 45.495376, Lng: -73.577997}
 var loyShuttleStop = domain.LatLng{Lat: 45.459026, Lng: -73.638606}
 
-func (s *DirectionsService) getShuttleDirectionsAt(start, end domain.LatLng, ref time.Time, day string, userProvidedTime bool) (domain.DirectionsResponse, error) {
-	// Walk from start -> SGW stop
-	walkToStop, err := s.fetcher.GetDirections(start, sgwShuttleStop, "walking")
+func (s *DirectionsService) getShuttleDirectionsAtWithCampus(
+	start, end domain.LatLng,
+	ref time.Time, day string,
+	userProvidedTime bool,
+	fromCampus, toCampus string,
+) (domain.DirectionsResponse, error) {
+	fc := strings.ToUpper(strings.TrimSpace(fromCampus))
+	tc := strings.ToUpper(strings.TrimSpace(toCampus))
+
+	if (fc != "SGW" && fc != "LOY") || (tc != "SGW" && tc != "LOY") {
+		return domain.DirectionsResponse{}, errors.New("invalid campus")
+	}
+
+	// Same-campus trip: shuttle doesn't apply
+	if fc == tc {
+		return domain.DirectionsResponse{}, errors.New("shuttle not applicable for same-campus trip")
+	}
+
+	// Determine which stop you walk to / from based on campus direction
+	departureStop := sgwShuttleStop
+	arrivalStop := loyShuttleStop
+	if fc == "LOY" && tc == "SGW" {
+		departureStop = loyShuttleStop
+		arrivalStop = sgwShuttleStop
+	}
+
+	// Walk start -> departure stop
+	walkToStop, err := s.fetcher.GetDirections(start, departureStop, "walking")
 	if err != nil {
 		return domain.DirectionsResponse{}, fmt.Errorf("walking to shuttle stop: %w", err)
 	}
 
-	// Walk from LOY stop -> end
-	walkFromStop, err := s.fetcher.GetDirections(loyShuttleStop, end, "walking")
+	// Walk arrival stop -> end
+	walkFromStop, err := s.fetcher.GetDirections(arrivalStop, end, "walking")
 	if err != nil {
 		return domain.DirectionsResponse{}, fmt.Errorf("walking from shuttle stop: %w", err)
 	}
@@ -124,22 +210,21 @@ func (s *DirectionsService) getShuttleDirectionsAt(start, end domain.LatLng, ref
 	walkDur := totalDurationFromSteps(walkToStop.Steps)
 	arrivalAtStop := ref.Add(walkDur)
 
-	// Shuttle middle leg (based on arrivalAtStop)
-	shuttleStep, nextDeparture, err := s.buildShuttleStepAt(arrivalAtStop, day)
-
+	// Shuttle middle leg (based on arrivalAtStop + schedule)
+	shuttleStep, nextDeparture, err := s.buildShuttleStepAt(arrivalAtStop, day, fc, tc, departureStop, arrivalStop)
 	if err != nil {
-		// build shuttle step WITHOUT schedule
+		// Fallback shuttle step without schedule
 		shuttleStep = domain.DirectionStep{
-			Instruction: "Take the Concordia Shuttle Bus from SGW to LOY",
-			Distance:    formatKm(haversineKm(sgwShuttleStop, loyShuttleStop)),
+			Instruction: fmt.Sprintf("Take the Concordia Shuttle Bus from %s to %s", fc, tc),
+			Distance:    formatKm(haversineKm(departureStop, arrivalStop)),
 			Duration:    "25 mins",
-			Start:       sgwShuttleStop,
-			End:         loyShuttleStop,
+			Start:       departureStop,
+			End:         arrivalStop,
 		}
 		nextDeparture = ""
 	}
 
-	// Steps = walking + shuttle + walking
+	// Steps = walk + shuttle + walk
 	steps := make([]domain.DirectionStep, 0, len(walkToStop.Steps)+1+len(walkFromStop.Steps))
 	steps = append(steps, walkToStop.Steps...)
 	steps = append(steps, shuttleStep)
@@ -165,7 +250,6 @@ func (s *DirectionsService) getShuttleDirectionsAt(start, end domain.LatLng, ref
 	if leaveAtStr != "" {
 		depMsg = fmt.Sprintf("%s%s to catch the %s shuttle", msgPrefix, leaveAtStr, nextDeparture)
 	} else {
-		// fallback (shouldn't happen normally if nextDeparture parsed ok)
 		depMsg = msgPrefix + time.Now().Format("15:04")
 	}
 
@@ -177,17 +261,17 @@ func (s *DirectionsService) getShuttleDirectionsAt(start, end domain.LatLng, ref
 	}, nil
 }
 
-func (s *DirectionsService) buildShuttleStepAt(ref time.Time, day string) (domain.DirectionStep, string, error) {
-	distKm := haversineKm(sgwShuttleStop, loyShuttleStop)
-	distStr := formatKm(distKm)
-
-	durationStr := "25 mins"
-
+func (s *DirectionsService) buildShuttleStepAt(
+	ref time.Time,
+	day, fromCampus, toCampus string,
+	departureStop, arrivalStop domain.LatLng,
+) (domain.DirectionStep, string, error) {
 	if s.shuttleRepo == nil {
 		return domain.DirectionStep{}, "", errors.New("no shuttle available")
 	}
 
-	times, err := s.shuttleRepo.GetDepartures(day, "SGW")
+	// schedule is keyed by departure campus
+	times, err := s.shuttleRepo.GetDepartures(day, fromCampus)
 	if err != nil || len(times) == 0 {
 		return domain.DirectionStep{}, "", errors.New("no shuttle available")
 	}
@@ -198,11 +282,11 @@ func (s *DirectionsService) buildShuttleStepAt(ref time.Time, day string) (domai
 	}
 
 	step := domain.DirectionStep{
-		Instruction: fmt.Sprintf("Take the Concordia Shuttle Bus from SGW to LOY (day: %s, next departure: %s)", day, next),
-		Distance:    distStr,
-		Duration:    durationStr,
-		Start:       sgwShuttleStop,
-		End:         loyShuttleStop,
+		Instruction: fmt.Sprintf("Take the Concordia Shuttle Bus from %s to %s (day: %s, next departure: %s)", fromCampus, toCampus, day, next),
+		Distance:    formatKm(haversineKm(departureStop, arrivalStop)),
+		Duration:    "25 mins",
+		Start:       departureStop,
+		End:         arrivalStop,
 	}
 	return step, next, nil
 }
@@ -241,7 +325,6 @@ func isValidDay(d string) bool {
 	}
 }
 
-// Manual shuttle departure selection
 func (s *DirectionsService) GetShuttleDirectionsManual(start, end domain.LatLng, day, departure string) (domain.DirectionsResponse, error) {
 	d := strings.ToLower(strings.TrimSpace(day))
 	if !isValidDay(d) {
@@ -263,7 +346,6 @@ func (s *DirectionsService) GetShuttleDirectionsManual(start, end domain.LatLng,
 		return domain.DirectionsResponse{}, errors.New("no shuttle available")
 	}
 
-	// validate the departure exists exactly in schedule
 	ok := false
 	for _, t := range times {
 		if strings.TrimSpace(t) == departure {
@@ -275,7 +357,6 @@ func (s *DirectionsService) GetShuttleDirectionsManual(start, end domain.LatLng,
 		return domain.DirectionsResponse{}, errors.New("invalid shuttle departure")
 	}
 
-	// Walk to stop
 	walkToStop, err := s.fetcher.GetDirections(start, sgwShuttleStop, "walking")
 	if err != nil {
 		return domain.DirectionsResponse{}, fmt.Errorf("walking to shuttle stop: %w", err)
@@ -287,7 +368,6 @@ func (s *DirectionsService) GetShuttleDirectionsManual(start, end domain.LatLng,
 		return domain.DirectionsResponse{}, fmt.Errorf("walking from shuttle stop: %w", err)
 	}
 
-	// Departure message: compute "leave at" based on walking time to stop
 	walkDur := totalDurationFromSteps(walkToStop.Steps)
 
 	now := time.Now()
@@ -301,7 +381,6 @@ func (s *DirectionsService) GetShuttleDirectionsManual(start, end domain.LatLng,
 	leaveAt := depDateTime.Add(-walkDur).Format("15:04")
 	depMsg := fmt.Sprintf("Depart at %s to catch the %s shuttle", leaveAt, departure)
 
-	// Shuttle step
 	shuttleStep := domain.DirectionStep{
 		Instruction: fmt.Sprintf("Take the Concordia Shuttle Bus from SGW to LOY (day: %s, departure: %s)", d, depParsed.Format("15:04")),
 		Distance:    formatKm(haversineKm(sgwShuttleStop, loyShuttleStop)),
@@ -366,7 +445,7 @@ func parseGoogleDuration(s string) time.Duration {
 		return 0
 	}
 
-	parts := strings.Fields(s) // e.g. ["1","hour","5","mins"]
+	parts := strings.Fields(s)
 	var hours, mins int
 
 	for i := 0; i < len(parts)-1; i++ {
@@ -414,14 +493,15 @@ func nextOccurrence(from time.Time, target time.Weekday) time.Time {
 	return from.AddDate(0, 0, delta)
 }
 
-// NEW implementation used by shuttle step logic
 func pickNextDepartureAt(ref time.Time, times []string) string {
-	sort.Slice(times, func(i, j int) bool {
-		return strings.TrimSpace(times[i]) < strings.TrimSpace(times[j])
-	})
-
+	cp := make([]string, 0, len(times))
 	for _, t := range times {
-		tt := strings.TrimSpace(t)
+		cp = append(cp, strings.TrimSpace(t))
+	}
+
+	sort.Slice(cp, func(i, j int) bool { return cp[i] < cp[j] })
+
+	for _, tt := range cp {
 		parsed, err := time.Parse("15:04", tt)
 		if err != nil {
 			continue
@@ -434,8 +514,17 @@ func pickNextDepartureAt(ref time.Time, times []string) string {
 	return ""
 }
 
-// BACKWARD COMPAT: keep old name so your existing test compiles unchanged
 func pickNextDeparture(times []string) string {
 	now := time.Now().Truncate(time.Minute)
 	return pickNextDepartureAt(now, times)
+}
+
+// Legacy fallback (used only when campus is NOT provided)
+func nearestCampus(p domain.LatLng) string {
+	dToSGW := haversineKm(p, sgwShuttleStop)
+	dToLOY := haversineKm(p, loyShuttleStop)
+	if dToSGW <= dToLOY {
+		return "SGW"
+	}
+	return "LOY"
 }
