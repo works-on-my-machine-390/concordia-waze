@@ -2,7 +2,7 @@ import { getIsCrossCampus } from "@/app/utils/mapUtils";
 import { useGetAllModesDirections } from "@/hooks/queries/navigationQueries";
 import { useMapStore } from "@/hooks/useMapStore";
 import { useNavigationStore } from "@/hooks/useNavigationStore";
-import BottomSheet from "@gorhom/bottom-sheet";
+import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { useEffect, useMemo } from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
@@ -14,6 +14,7 @@ import {
   TrainIcon,
   WalkingIcon,
 } from "../app/icons";
+import OutdoorNavigationSteps from "./OutdoorNavigationStep";
 
 const concordiaLogo = require("../assets/images/concordia_logo.png");
 
@@ -127,8 +128,8 @@ export default function NavigationBottomSheet(
     ) || transitOptions[0];
 
   const snapPoints = useMemo(() => {
-    if (!navigationState.startLocation) return ["14%"];
-    return ["20%"];
+    if (!navigationState.startLocation) return ["14%", "70%"];
+    return ["20%", "70%"];
   }, [navigationState.startLocation]);
 
   return (
@@ -149,11 +150,18 @@ export default function NavigationBottomSheet(
         <View style={NavigationBottomSheetStyles.headerContainer}>
           <View style={NavigationBottomSheetStyles.navModeContainer}>
             <View style={NavigationBottomSheetStyles.navModeHeader}>
+              <View>
               <Text style={NavigationBottomSheetStyles.transitModeTitle}>
                 {navigationState.startLocation
                   ? selectedOption.label
                   : "Please select a start location"}
               </Text>
+              {navigationState.currentDirections && (
+                <Text style={NavigationBottomSheetStyles.transitModeDuration}>
+                  {selectedOption.duration}
+                </Text>
+              )}
+              </View>
               <TouchableOpacity
                 onPress={closeSheet}
                 style={NavigationBottomSheetStyles.closeIcon}
@@ -223,6 +231,14 @@ export default function NavigationBottomSheet(
                 })}
               </ScrollView>
             )}
+
+            <BottomSheetScrollView>
+              {!!navigationState.currentDirections && (
+                <OutdoorNavigationSteps
+                  directions={navigationState.currentDirections}
+                />
+              )}
+            </BottomSheetScrollView>
           </View>
         </View>
       </>
@@ -272,6 +288,11 @@ const NavigationBottomSheetStyles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "600",
     color: COLORS.textPrimary,
+  },
+  transitModeDuration: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    marginTop: 2,
   },
 
   transitRow: {

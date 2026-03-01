@@ -97,6 +97,12 @@ export default function MainMap() {
   };
 
   useEffect(() => {
+    if (mapState.currentMode !== MapMode.NAVIGATION) {
+      navigationState.clearState();
+    }
+  }, [mapState.currentMode]);
+
+  useEffect(() => {
     if (buildingListQuery.data) {
       setBuildingsByCampus((prev) => ({
         ...prev,
