@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/works-on-my-machine-390/concordia-waze/internal/constants"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
 )
 
@@ -157,8 +158,11 @@ func (s *DirectionsService) getShuttleDirectionsAt(start, end domain.LatLng, ref
 		}
 		nextDeparture = ""
 	}
-	// Attach the routed shuttle leg polyline to the shuttle step.
-	shuttleStep.Polyline = shuttleLeg.Polyline
+	if fromCampus == "LOY" && toCampus == "SGW" {
+		shuttleStep.Polyline = constants.ShuttlePolylineLOYtoSGW
+	} else {
+		shuttleStep.Polyline = constants.ShuttlePolylineSGWtoLOY
+	}
 
 	// Steps = walking + shuttle + walking, with degenerate steps removed.
 	// A degenerate step has the same start and end coordinate (0 m walk produced
