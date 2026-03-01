@@ -168,7 +168,7 @@ func findIndoorDataDir() (string, error) {
 
 	cur := wd
 	for {
-		candidate := filepath.Join(cur, "campusData", "GeoJsonDataParser", "Data")
+		candidate := filepath.Join(cur, "campusFloormaps", "Data")
 		if stat, err := os.Stat(candidate); err == nil && stat.IsDir() {
 			return candidate, nil
 		}

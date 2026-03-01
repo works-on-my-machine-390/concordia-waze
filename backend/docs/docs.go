@@ -436,7 +436,7 @@ const docTemplate = `{
         },
         "/directions": {
             "get": {
-                "description": "Returns route polyline + step instructions (walking/driving/transit/shuttle)",
+                "description": "Returns route polyline + step instructions (walking/driving/transit/shuttle/bicycling)",
                 "produces": [
                     "application/json"
                 ],
@@ -475,7 +475,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Mode (walking, driving, transit, shuttle)",
+                        "description": "Mode (walking, driving, transit, shuttle, bicycling)",
                         "name": "mode",
                         "in": "query"
                     },
@@ -559,7 +559,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Mode (walking, driving, transit, shuttle)",
+                        "description": "Mode (walking, driving, transit, shuttle, bicycling)",
                         "name": "mode",
                         "in": "query"
                     },
@@ -2162,6 +2162,18 @@ const docTemplate = `{
         "domain.DirectionStep": {
             "type": "object",
             "properties": {
+                "arrival_stop": {
+                    "type": "string"
+                },
+                "arrival_time": {
+                    "type": "string"
+                },
+                "departure_stop": {
+                    "type": "string"
+                },
+                "departure_time": {
+                    "type": "string"
+                },
                 "distance": {
                     "type": "string"
                 },
@@ -2174,8 +2186,29 @@ const docTemplate = `{
                 "instruction": {
                     "type": "string"
                 },
+                "maneuver": {
+                    "type": "string"
+                },
+                "num_stops": {
+                    "type": "integer"
+                },
+                "polyline": {
+                    "type": "string"
+                },
                 "start": {
                     "$ref": "#/definitions/domain.LatLng"
+                },
+                "transit_headsign": {
+                    "type": "string"
+                },
+                "transit_line": {
+                    "type": "string"
+                },
+                "transit_type": {
+                    "type": "string"
+                },
+                "travel_mode": {
+                    "type": "string"
                 }
             }
         },
@@ -2185,14 +2218,17 @@ const docTemplate = `{
                 "departure_message": {
                     "type": "string"
                 },
+                "distance": {
+                    "type": "string"
+                },
+                "duration": {
+                    "type": "string"
+                },
                 "mode": {
                     "type": "string"
                 },
                 "polyline": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/domain.LatLng"
-                    }
+                    "type": "string"
                 },
                 "steps": {
                     "type": "array",

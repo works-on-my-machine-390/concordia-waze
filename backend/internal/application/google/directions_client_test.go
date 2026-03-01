@@ -32,8 +32,7 @@ func (t *rewriteTransport) RoundTrip(req *http.Request) (*http.Response, error) 
 }
 
 func TestGoogleDirectionsClient_GetDirections_SuccessOK(t *testing.T) {
-	// Minimal OK response with one route, one leg, one step, plus a valid polyline.
-	// Polyline "??" decodes to (0,0) twice, valid enough for decoder.
+	// Minimal OK response with one route, one leg, one step, plus an encoded polyline.
 	body := `{
 		"status": "OK",
 		"routes": [{
@@ -43,6 +42,7 @@ func TestGoogleDirectionsClient_GetDirections_SuccessOK(t *testing.T) {
 					"html_instructions": "Head <b>north</b>",
 					"distance": {"text": "0.2 km"},
 					"duration": {"text": "2 mins"},
+					"polyline": {"points": "abcd"},
 					"start_location": {"lat": 45.0, "lng": -73.0},
 					"end_location": {"lat": 45.1, "lng": -73.1}
 				}]
@@ -54,6 +54,8 @@ func TestGoogleDirectionsClient_GetDirections_SuccessOK(t *testing.T) {
 		assert.Contains(t, r.URL.RawQuery, "origin=")
 		assert.Contains(t, r.URL.RawQuery, "destination=")
 		assert.Contains(t, r.URL.RawQuery, "mode=walking")
+		assert.Contains(t, r.URL.RawQuery, "language=en")
+		assert.Contains(t, r.URL.RawQuery, "units=metric")
 		assert.Contains(t, r.URL.RawQuery, "key=test-key")
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(body))
@@ -76,7 +78,8 @@ func TestGoogleDirectionsClient_GetDirections_SuccessOK(t *testing.T) {
 	assert.Equal(t, "Head <b>north</b>", resp.Steps[0].Instruction)
 	assert.Equal(t, "0.2 km", resp.Steps[0].Distance)
 	assert.Equal(t, "2 mins", resp.Steps[0].Duration)
-	assert.NotEmpty(t, resp.Polyline)
+	assert.Equal(t, "abcd", resp.Steps[0].Polyline)
+	assert.Equal(t, "??", resp.Polyline)
 }
 
 func TestGoogleDirectionsClient_StatusNotOK_WithErrorMessage(t *testing.T) {
@@ -95,6 +98,40 @@ func TestGoogleDirectionsClient_StatusNotOK_WithErrorMessage(t *testing.T) {
 	_, err := c.GetDirections(domain.LatLng{}, domain.LatLng{}, "walking")
 	assert.Error(t, err)
 	assert.Equal(t, "nope", err.Error())
+}
+
+func TestGoogleDirectionsClient_TransitIncludesDepartureTimeNow(t *testing.T) {
+	body := `{
+		"status": "OK",
+		"routes": [{
+			"overview_polyline": { "points": "??" },
+			"legs": [{
+				"distance": {"text": "1.0 km"},
+				"duration": {"text": "10 mins"},
+				"steps": []
+			}]
+		}]
+	}`
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Contains(t, r.URL.RawQuery, "mode=transit")
+		assert.Contains(t, r.URL.RawQuery, "departure_time=now")
+		assert.Contains(t, r.URL.RawQuery, "language=en")
+		assert.Contains(t, r.URL.RawQuery, "units=metric")
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(body))
+	}))
+	defer srv.Close()
+
+	oldTransport := http.DefaultTransport
+	http.DefaultTransport = &rewriteTransport{base: oldTransport, target: srv.Listener.Addr().String()}
+	defer func() { http.DefaultTransport = oldTransport }()
+
+	c := NewGoogleDirectionsClient("k")
+	resp, err := c.GetDirections(domain.LatLng{}, domain.LatLng{}, "transit")
+	assert.NoError(t, err)
+	assert.Equal(t, "1.0 km", resp.Distance)
+	assert.Equal(t, "10 mins", resp.Duration)
 }
 
 func TestGoogleDirectionsClient_StatusNotOK_NoErrorMessage(t *testing.T) {
@@ -139,11 +176,4 @@ func TestGoogleDirectionsClient_NoRoutesOrLegs(t *testing.T) {
 			assert.Contains(t, err.Error(), "no route found")
 		})
 	}
-}
-
-func TestDecodePolyline_InvalidEncodingErrors(t *testing.T) {
-	// This should fail (incomplete sequence)
-	_, err := decodePolyline("A")
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "invalid polyline encoding")
 }
