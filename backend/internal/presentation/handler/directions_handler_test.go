@@ -235,7 +235,8 @@ func TestWriteDirectionsError_ShuttleSpecialCase(t *testing.T) {
 
 	// Special case returns 200 with only a message
 	assert.Equal(t, 200, w.Code)
-	assert.Contains(t, w.Body.String(), "No shuttle available for the selected time and day")
+	assert.Contains(t, w.Body.String(), "\"mode\":\"shuttle\"")
+	assert.Contains(t, w.Body.String(), "Take the Concordia Shuttle Bus")
 }
 
 func TestInvalidStartLat(t *testing.T) {
