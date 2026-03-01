@@ -145,12 +145,6 @@ func (s *DirectionsService) getShuttleDirectionsAt(start, end domain.LatLng, ref
 	steps = append(steps, shuttleStep)
 	steps = append(steps, walkFromStop.Steps...)
 
-	// Merge polyline
-	poly := make([]domain.LatLng, 0, len(walkToStop.Polyline)+2+len(walkFromStop.Polyline))
-	poly = append(poly, walkToStop.Polyline...)
-	poly = append(poly, sgwShuttleStop, loyShuttleStop)
-	poly = append(poly, walkFromStop.Polyline...)
-
 	// Departure message:
 	// leaveAt = (nextDepartureTime - walkDur)
 	leaveAtStr := ""
@@ -178,7 +172,7 @@ func (s *DirectionsService) getShuttleDirectionsAt(start, end domain.LatLng, ref
 	return domain.DirectionsResponse{
 		Mode:             "shuttle",
 		DepartureMessage: depMsg,
-		Polyline:         poly,
+		Polyline:         "",
 		Steps:            steps,
 	}, nil
 }
@@ -321,15 +315,10 @@ func (s *DirectionsService) GetShuttleDirectionsManual(start, end domain.LatLng,
 	steps = append(steps, shuttleStep)
 	steps = append(steps, walkFromStop.Steps...)
 
-	poly := make([]domain.LatLng, 0, len(walkToStop.Polyline)+2+len(walkFromStop.Polyline))
-	poly = append(poly, walkToStop.Polyline...)
-	poly = append(poly, sgwShuttleStop, loyShuttleStop)
-	poly = append(poly, walkFromStop.Polyline...)
-
 	return domain.DirectionsResponse{
 		Mode:             "shuttle",
 		DepartureMessage: depMsg,
-		Polyline:         poly,
+		Polyline:         "",
 		Steps:            steps,
 	}, nil
 }

@@ -121,11 +121,6 @@ func (c *googleDirectionsClient) GetDirections(start, end domain.LatLng, mode st
 	route := raw.Routes[0]
 	leg := route.Legs[0]
 
-	points, err := decodePolyline(route.OverviewPolyline.Points)
-	if err != nil {
-		return domain.DirectionsResponse{}, err
-	}
-
 	steps := make([]domain.DirectionStep, 0, len(leg.Steps))
 	for _, s := range leg.Steps {
 		transitLine := s.TransitDetails.Line.ShortName
@@ -156,61 +151,7 @@ func (c *googleDirectionsClient) GetDirections(start, end domain.LatLng, mode st
 		Mode:     mode,
 		Distance: leg.Distance.Text,
 		Duration: leg.Duration.Text,
-		Polyline: points,
+		Polyline: route.OverviewPolyline.Points,
 		Steps:    steps,
 	}, nil
-}
-
-// Standard Google polyline decoder
-func decodePolyline(encoded string) ([]domain.LatLng, error) {
-	var (
-		points []domain.LatLng
-		lat    int
-		lng    int
-		i      int
-	)
-
-	for i < len(encoded) {
-		var result int
-		var shift uint
-
-		for {
-			if i >= len(encoded) {
-				return nil, errors.New("invalid polyline encoding")
-			}
-			b := int(encoded[i]) - 63
-			i++
-			result |= (b & 0x1f) << shift
-			shift += 5
-			if b < 0x20 {
-				break
-			}
-		}
-		dlat := (result >> 1) ^ (-(result & 1))
-		lat += dlat
-
-		result = 0
-		shift = 0
-		for {
-			if i >= len(encoded) {
-				return nil, errors.New("invalid polyline encoding")
-			}
-			b := int(encoded[i]) - 63
-			i++
-			result |= (b & 0x1f) << shift
-			shift += 5
-			if b < 0x20 {
-				break
-			}
-		}
-		dlng := (result >> 1) ^ (-(result & 1))
-		lng += dlng
-
-		points = append(points, domain.LatLng{
-			Lat: float64(lat) / 1e5,
-			Lng: float64(lng) / 1e5,
-		})
-	}
-
-	return points, nil
 }
