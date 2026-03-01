@@ -105,8 +105,8 @@ func (s *DirectionsService) GetDirectionsWithSchedule(start, end domain.LatLng, 
 // ---- Shuttle composition logic ----
 
 // Default shuttle stop coordinates (still fine; buildings endpoint provides real start/end anyway)
-var sgwShuttleStop = domain.LatLng{Lat: 45.495376, Lng: -73.577997}
-var loyShuttleStop = domain.LatLng{Lat: 45.459026, Lng: -73.638606}
+var sgwShuttleStop = constants.SGWShuttleStopPosition
+var loyShuttleStop = constants.LOYShuttleStopPosition
 
 // shuttleDirection determines which stop to depart from based on proximity of start to each stop.
 // Returns (fromStop, toStop, fromCampus, toCampus).
@@ -125,14 +125,6 @@ func (s *DirectionsService) getShuttleDirectionsAt(start, end domain.LatLng, ref
 	walkToStop, err := s.fetcher.GetDirections(start, fromStop, "walking")
 	if err != nil {
 		return domain.DirectionsResponse{}, fmt.Errorf("walking to shuttle stop: %w", err)
-	}
-
-	// Shuttle leg: fetch routed geometry via walking so the polyline follows street-level
-	// paths (Sherbrooke corridor) that match the shuttle's actual route, instead of a
-	// highway-optimised driving path which can look completely wrong visually.
-	shuttleLeg, err := s.fetcher.GetDirections(fromStop, toStop, "walking")
-	if err != nil {
-		return domain.DirectionsResponse{}, fmt.Errorf("shuttle route: %w", err)
 	}
 
 	// Walk from toStop → end
@@ -155,6 +147,7 @@ func (s *DirectionsService) getShuttleDirectionsAt(start, end domain.LatLng, ref
 			Duration:    "25 mins",
 			Start:       fromStop,
 			End:         toStop,
+			TravelMode:  "Shuttle",
 		}
 		nextDeparture = ""
 	}
@@ -173,7 +166,7 @@ func (s *DirectionsService) getShuttleDirectionsAt(start, end domain.LatLng, ref
 	steps = append(steps, stripDegenerateSteps(walkFromStop.Steps)...)
 
 	// Combined polyline: walk to stop + routed shuttle leg + walk from stop.
-	combinedPolyline := buildCombinedShuttlePolyline(walkToStop.Polyline, shuttleLeg.Polyline, walkFromStop.Polyline)
+	combinedPolyline := buildCombinedShuttlePolyline(walkToStop.Polyline, shuttleStep.Polyline, walkFromStop.Polyline)
 
 	// Departure message:
 	// leaveAt = (nextDepartureTime - walkDur)
@@ -233,6 +226,7 @@ func (s *DirectionsService) buildShuttleStepAt(ref time.Time, day, fromCampus, t
 		Duration:    durationStr,
 		Start:       fromStop,
 		End:         toStop,
+		TravelMode:  "Shuttle",
 	}
 	return step, next, nil
 }
@@ -314,13 +308,6 @@ func (s *DirectionsService) GetShuttleDirectionsManual(start, end domain.LatLng,
 		return domain.DirectionsResponse{}, fmt.Errorf("walking to shuttle stop: %w", err)
 	}
 
-	// Shuttle leg: routed geometry via walking so the polyline follows the street-level
-	// corridor (Sherbrooke West) that the shuttle actually uses.
-	shuttleLeg, err := s.fetcher.GetDirections(fromStop, toStop, "walking")
-	if err != nil {
-		return domain.DirectionsResponse{}, fmt.Errorf("shuttle route: %w", err)
-	}
-
 	// Walk from stop to destination
 	walkFromStop, err := s.fetcher.GetDirections(toStop, end, "walking")
 	if err != nil {
@@ -348,7 +335,13 @@ func (s *DirectionsService) GetShuttleDirectionsManual(start, end domain.LatLng,
 		Duration:    "25 mins",
 		Start:       fromStop,
 		End:         toStop,
-		Polyline:    shuttleLeg.Polyline,
+		TravelMode:  "Shuttle",
+	}
+
+	if fromCampus == "LOY" && toCampus == "SGW" {
+		shuttleStep.Polyline = constants.ShuttlePolylineLOYtoSGW
+	} else {
+		shuttleStep.Polyline = constants.ShuttlePolylineSGWtoLOY
 	}
 
 	steps := make([]domain.DirectionStep, 0, len(walkToStop.Steps)+1+len(walkFromStop.Steps))
@@ -356,7 +349,7 @@ func (s *DirectionsService) GetShuttleDirectionsManual(start, end domain.LatLng,
 	steps = append(steps, shuttleStep)
 	steps = append(steps, stripDegenerateSteps(walkFromStop.Steps)...)
 
-	combinedPolyline := buildCombinedShuttlePolyline(walkToStop.Polyline, shuttleLeg.Polyline, walkFromStop.Polyline)
+	combinedPolyline := buildCombinedShuttlePolyline(walkToStop.Polyline, shuttleStep.Polyline, walkFromStop.Polyline)
 
 	return domain.DirectionsResponse{
 		Mode:             "shuttle",
