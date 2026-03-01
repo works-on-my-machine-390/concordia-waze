@@ -2,7 +2,7 @@ import { directionPolylineStyles } from "@/app/styles/directionStyles";
 import { StepModel, useGetDirections } from "@/hooks/queries/navigationQueries";
 import { useNavigationStore } from "@/hooks/useNavigationStore";
 import polyline from "@mapbox/polyline";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { Polyline } from "react-native-maps";
 import { TransitMode } from "./NavigationBottomSheet";
 
@@ -15,6 +15,12 @@ export default function NavigationPolylines() {
     navigationState.transitMode,
     new Date(),
   );
+
+  useEffect(() => {
+    if (directionsQuery.data) {
+      navigationState.setCurrentDirections(directionsQuery.data);
+    }
+  }, [directionsQuery.data]);
 
   const steps: StepModel[] = directionsQuery.data?.steps || [];
 

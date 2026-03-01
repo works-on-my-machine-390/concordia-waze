@@ -1,8 +1,12 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import { NavigableLocation } from "../useNavigationStore";
 import { Point } from "./buildingQueries";
 import { api } from "../api";
 import { TransitMode } from "@/components/NavigationBottomSheet";
+import { getIsCrossCampus } from "@/app/utils/mapUtils";
+import { shouldRetry429 } from "@/app/utils/queryUtils";
+import { QUERY_RETRY_DELAY_MS } from "@/app/constants";
+
 
 // returns the query key and params
 export function prepareDirectionsQuery(
@@ -11,9 +15,11 @@ export function prepareDirectionsQuery(
   mode: TransitMode,
   startDateTime: Date,
 ): { queryKey: any[]; queryParams: string } {
-
   if (!startLocation || !endLocation || !mode || !startDateTime) {
-    return { queryKey: [], queryParams: "" }; // handle by disabling the query in useGetDirections
+    return {
+      queryKey: ["directions", "disabled", mode ?? "UNKNOWN"],
+      queryParams: "",
+    }; // handle by disabling the query in useGetDirections
   }
 
   // round to nearest minute
@@ -97,7 +103,46 @@ export const useGetDirections = (
     },
     staleTime: Infinity,
     enabled: !!startLocation && !!endLocation && !!startDateTime && !!mode,
+    retry: shouldRetry429,
+    retryDelay: QUERY_RETRY_DELAY_MS,
   });
 
   return query;
+};
+
+export const useGetAllModesDirections = (
+  startLocation: NavigableLocation,
+  endLocation: NavigableLocation,
+  startDateTime: Date,
+) => {
+  let modes = Object.values(TransitMode);
+  if (getIsCrossCampus(startLocation, endLocation)) {
+    modes = modes.filter((mode) => mode !== TransitMode.SHUTTLE);
+  }
+
+  const queries = useQueries({
+    queries: modes.map((mode) => {
+      const { queryKey, queryParams } = prepareDirectionsQuery(
+        startLocation,
+        endLocation,
+        mode,
+        startDateTime,
+      );
+      return {
+        queryKey,
+        queryFn: async () => {
+          const apiClient = await api();
+          return apiClient
+            .get(`/directions?${queryParams}`)
+            .json<DirectionsModel>();
+        },
+        staleTime: Infinity,
+        enabled: !!startLocation && !!endLocation && !!startDateTime && !!mode,
+        retry: shouldRetry429,
+        retryDelay: QUERY_RETRY_DELAY_MS,
+      };
+    }),
+  });
+
+  return queries;
 };

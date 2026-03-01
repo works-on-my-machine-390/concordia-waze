@@ -58,3 +58,5 @@ export const CAMPUS_COORDS = {
   [CampusCode.SGW]: { latitude: 45.4972, longitude: -73.5791 }, // SGW campus
   [CampusCode.LOY]: { latitude: 45.4589, longitude: -73.64 }, // Loyola campus
 };
+
+export const QUERY_RETRY_DELAY_MS = 3000;
