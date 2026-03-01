@@ -44,4 +44,7 @@ const (
 	// Google API rate limiter defaults (per client IP)
 	DefaultGoogleRateLimitRPS   = 2.0
 	DefaultGoogleRateLimitBurst = 5
+
+	ShuttlePolylineSGWtoLOY = "gdutGzxa`MbqF|tJ"
+	ShuttlePolylineLOYtoSGW = "crmtGxnm`McqF}tJ"
 )
