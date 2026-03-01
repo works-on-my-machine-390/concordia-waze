@@ -181,7 +181,11 @@ func TestDirectionsService_ShuttleMode_StillWorksWhenRepoMissingOrErrors(t *test
 	shuttleRepo := &fakeShuttleRepo{err: errors.New("no schedule")}
 	s := NewDirectionsService(f).WithShuttleRepo(shuttleRepo)
 
-	resp, err := s.GetDirections(domain.LatLng{Lat: 1, Lng: 2}, domain.LatLng{Lat: 3, Lng: 4}, "shuttle")
+	start := domain.LatLng{Lat: 45.4973, Lng: -73.5790}
+	end := domain.LatLng{Lat: 45.4582, Lng: -73.6405}
+
+	resp, err := s.GetDirections(start, end, "shuttle")
+
 	assert.NoError(t, err)
 	assert.Equal(t, "shuttle", resp.Mode)
 	assert.NotEmpty(t, resp.Steps)

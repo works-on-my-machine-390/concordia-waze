@@ -212,7 +212,8 @@ func TestWriteDirectionsError_Internal500(t *testing.T) {
 func TestWriteDirectionsError_ShuttleSpecialCase(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	// Automatic shuttle: no ShuttleScheduleProvider injected
+	// Fetcher doesn't matter here because DirectionsService will fail earlier due to missing repo
+	// and return "no shuttle available" for a valid cross-campus shuttle request.
 	fetcher := &fakeDirectionsFetcher{
 		resp: domain.DirectionsResponse{
 			Mode:  "walking",
@@ -224,20 +225,17 @@ func TestWriteDirectionsError_ShuttleSpecialCase(t *testing.T) {
 	r := gin.New()
 	r.GET("/directions", h.GetDirections)
 
+	// Use REAL cross-campus coords (SGW -> LOY) so we don't trigger same-campus rejection
 	req := httptest.NewRequest("GET",
-		"/directions?start_lat=1&start_lng=2&end_lat=3&end_lng=4&mode=shuttle",
+		"/directions?start_lat=45.4973&start_lng=-73.5790&end_lat=45.4582&end_lng=-73.6405&mode=shuttle",
 		nil)
 
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
+	// Special case returns 200 with only a message
 	assert.Equal(t, 200, w.Code)
-
-	// Should include shuttle mode in the response
-	assert.Contains(t, w.Body.String(), "\"mode\":\"shuttle\"")
-
-	// Should include the fallback shuttle step instruction
-	assert.Contains(t, w.Body.String(), "Take the Concordia Shuttle Bus from SGW to LOY")
+	assert.Contains(t, w.Body.String(), "No shuttle available for the selected time and day")
 }
 
 func TestInvalidStartLat(t *testing.T) {
