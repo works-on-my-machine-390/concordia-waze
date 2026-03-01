@@ -436,7 +436,7 @@ const docTemplate = `{
         },
         "/directions": {
             "get": {
-                "description": "Returns route polyline + step instructions (walking/driving/transit/shuttle)",
+                "description": "Returns route polyline + step instructions (walking/driving/transit/shuttle/bicycling)",
                 "produces": [
                     "application/json"
                 ],
@@ -475,7 +475,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Mode (walking, driving, transit, shuttle)",
+                        "description": "Mode (walking, driving, transit, shuttle, bicycling)",
                         "name": "mode",
                         "in": "query"
                     },
@@ -559,7 +559,7 @@ const docTemplate = `{
                     },
                     {
                         "type": "string",
-                        "description": "Mode (walking, driving, transit, shuttle)",
+                        "description": "Mode (walking, driving, transit, shuttle, bicycling)",
                         "name": "mode",
                         "in": "query"
                     },

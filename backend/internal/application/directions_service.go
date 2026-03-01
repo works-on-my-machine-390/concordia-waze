@@ -60,10 +60,11 @@ func (s *DirectionsService) GetDirectionsWithSchedule(start, end domain.LatLng, 
 	}
 
 	allowed := map[string]bool{
-		"walking": true,
-		"driving": true,
-		"transit": true,
-		"shuttle": true,
+		"walking":   true,
+		"driving":   true,
+		"transit":   true,
+		"shuttle":   true,
+		"bicycling": true,
 	}
 	if !allowed[m] {
 		return domain.DirectionsResponse{}, errors.New("invalid mode")

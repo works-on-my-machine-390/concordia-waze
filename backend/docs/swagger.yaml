@@ -588,7 +588,7 @@ paths:
       - buildings
   /directions:
     get:
-      description: Returns route polyline + step instructions (walking/driving/transit/shuttle)
+      description: Returns route polyline + step instructions (walking/driving/transit/shuttle/bicycling)
       parameters:
       - description: Start latitude
         in: query
@@ -610,7 +610,7 @@ paths:
         name: end_lng
         required: true
         type: number
-      - description: Mode (walking, driving, transit, shuttle)
+      - description: Mode (walking, driving, transit, shuttle, bicycling)
         in: query
         name: mode
         type: string
@@ -666,7 +666,7 @@ paths:
         name: end_code
         required: true
         type: string
-      - description: Mode (walking, driving, transit, shuttle)
+      - description: Mode (walking, driving, transit, shuttle, bicycling)
         in: query
         name: mode
         type: string

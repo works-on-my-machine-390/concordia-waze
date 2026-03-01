@@ -42,7 +42,7 @@ func normalizeMode(raw string) (string, bool) {
 	}
 
 	switch m {
-	case "walking", "driving", "transit", "shuttle":
+	case "walking", "driving", "transit", "shuttle", "bicycling":
 		return m, true
 	default:
 		return "", false
@@ -96,14 +96,14 @@ func (h *DirectionsHandler) writeDirectionsError(c *gin.Context, err error) {
 
 // GetDirections godoc
 // @Summary      Get directions between coordinates
-// @Description  Returns route polyline + step instructions (walking/driving/transit/shuttle)
+// @Description  Returns route polyline + step instructions (walking/driving/transit/shuttle/bicycling)
 // @Tags         directions
 // @Produce      json
 // @Param        start_lat    query number true  "Start latitude"
 // @Param        start_lng    query number true  "Start longitude"
 // @Param        end_lat      query number true  "End latitude"
 // @Param        end_lng      query number true  "End longitude"
-// @Param        mode         query string false "Mode (walking, driving, transit, shuttle)"
+// @Param        mode         query string false "Mode (walking, driving, transit, shuttle, bicycling)"
 // @Param        day          query string false "Optional day for shuttle (monday..sunday) - automatic"
 // @Param        time         query string false "Optional time for shuttle (HH:MM 24h) - automatic"
 // @Param        shuttle_day  query string false "Manual shuttle day (monday..sunday) - manual departure selection"
@@ -173,7 +173,7 @@ func (h *DirectionsHandler) GetDirections(c *gin.Context) {
 // @Produce      json
 // @Param        start_code   query string true  "Start building code"
 // @Param        end_code     query string true  "End building code"
-// @Param        mode         query string false "Mode (walking, driving, transit, shuttle)"
+// @Param        mode         query string false "Mode (walking, driving, transit, shuttle, bicycling)"
 // @Param        day          query string false "Optional day for shuttle (monday..sunday) - automatic"
 // @Param        time         query string false "Optional time for shuttle (HH:MM 24h) - automatic"
 // @Param        shuttle_day  query string false "Manual shuttle day (monday..sunday) - manual departure selection"
