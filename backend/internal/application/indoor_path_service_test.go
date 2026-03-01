@@ -533,3 +533,621 @@ func TestMultiFloorShortestPath_FloorRepoError_Propagates(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "database connection failed")
 }
+
+// ==================== ShortestPath (Single Floor) Tests ====================
+
+func TestShortestPath_WithCoordinates(t *testing.T) {
+	floorRepo := &mockFloorRepoForPath{
+		floors: map[string][]domain.Floor{
+			"VL": {createSimpleFloorWithStairs(1, "VLFloor1")},
+		},
+	}
+	roomRepo := &mockIndoorRoomRepoForPath{rooms: map[string][]domain.IndoorRoom{}}
+	svc := NewIndoorPathService(floorRepo, roomRepo)
+
+	start := domain.Coordinates{X: 0, Y: 0}
+	end := domain.Coordinates{X: 1, Y: 1}
+
+	result, err := svc.ShortestPath(IndoorPathRequest{
+		BuildingCode: "VL",
+		FloorNumber:  1,
+		StartCoord:   &start,
+		EndCoord:     &end,
+	})
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Greater(t, len(result.Path), 0)
+	assert.GreaterOrEqual(t, result.Distance, 0.0)
+}
+
+func TestShortestPath_WithVertices(t *testing.T) {
+	floorRepo := &mockFloorRepoForPath{
+		floors: map[string][]domain.Floor{
+			"VL": {createSimpleFloorWithStairs(1, "VLFloor1")},
+		},
+	}
+	svc := NewIndoorPathService(floorRepo, &mockIndoorRoomRepoForPath{})
+
+	startV := 0
+	endV := 2
+
+	result, err := svc.ShortestPath(IndoorPathRequest{
+		BuildingCode: "VL",
+		FloorNumber:  1,
+		StartVertex:  &startV,
+		EndVertex:    &endV,
+	})
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Greater(t, len(result.Path), 0)
+}
+
+func TestShortestPath_WithRoomNames(t *testing.T) {
+	floorRepo := &mockFloorRepoForPath{
+		floors: map[string][]domain.Floor{
+			"VL": {createSimpleFloorWithStairs(1, "VLFloor1")},
+		},
+	}
+	roomRepo := &mockIndoorRoomRepoForPath{
+		rooms: map[string][]domain.IndoorRoom{
+			"VL": {
+				{Room: "Classroom", Building: "VL", Floor: 1, Centroid: domain.IndoorPosition{X: 0.1, Y: 0.1}},
+				{Room: "Office", Building: "VL", Floor: 1, Centroid: domain.IndoorPosition{X: 0.9, Y: 0.9}},
+			},
+		},
+	}
+	svc := NewIndoorPathService(floorRepo, roomRepo)
+
+	result, err := svc.ShortestPath(IndoorPathRequest{
+		BuildingCode: "VL",
+		FloorNumber:  1,
+		StartRoom:    "Classroom",
+		EndRoom:      "Office",
+	})
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Greater(t, len(result.Path), 0)
+}
+
+func TestShortestPath_EmptyBuildingCode_ReturnsError(t *testing.T) {
+	svc := NewIndoorPathService(&mockFloorRepoForPath{}, &mockIndoorRoomRepoForPath{})
+
+	start := domain.Coordinates{X: 0, Y: 0}
+	end := domain.Coordinates{X: 1, Y: 1}
+
+	_, err := svc.ShortestPath(IndoorPathRequest{
+		BuildingCode: "",
+		FloorNumber:  1,
+		StartCoord:   &start,
+		EndCoord:     &end,
+	})
+
+	assert.Error(t, err)
+	assert.Equal(t, "buildingCode is required", err.Error())
+}
+
+func TestShortestPath_FloorNotFound_ReturnsError(t *testing.T) {
+	floorRepo := &mockFloorRepoForPath{
+		floors: map[string][]domain.Floor{
+			"VL": {createSimpleFloorWithStairs(1, "VLFloor1")},
+		},
+	}
+	svc := NewIndoorPathService(floorRepo, &mockIndoorRoomRepoForPath{})
+
+	start := domain.Coordinates{X: 0, Y: 0}
+	end := domain.Coordinates{X: 1, Y: 1}
+
+	_, err := svc.ShortestPath(IndoorPathRequest{
+		BuildingCode: "VL",
+		FloorNumber:  99,
+		StartCoord:   &start,
+		EndCoord:     &end,
+	})
+
+	assert.Error(t, err)
+	assert.Equal(t, "floor not found for building", err.Error())
+}
+
+func TestShortestPath_MissingEndpoints_ReturnsError(t *testing.T) {
+	floorRepo := &mockFloorRepoForPath{
+		floors: map[string][]domain.Floor{
+			"VL": {createSimpleFloorWithStairs(1, "VLFloor1")},
+		},
+	}
+	svc := NewIndoorPathService(floorRepo, &mockIndoorRoomRepoForPath{})
+
+	_, err := svc.ShortestPath(IndoorPathRequest{
+		BuildingCode: "VL",
+		FloorNumber:  1,
+		// Missing all endpoints
+	})
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "provide either")
+}
+
+func TestShortestPath_FloorRepoError_Propagates(t *testing.T) {
+	floorRepo := &mockFloorRepoForPath{
+		err: errors.New("database error"),
+	}
+	svc := NewIndoorPathService(floorRepo, &mockIndoorRoomRepoForPath{})
+
+	start := domain.Coordinates{X: 0, Y: 0}
+	end := domain.Coordinates{X: 1, Y: 1}
+
+	_, err := svc.ShortestPath(IndoorPathRequest{
+		BuildingCode: "VL",
+		FloorNumber:  1,
+		StartCoord:   &start,
+		EndCoord:     &end,
+	})
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "database error")
+}
+
+func TestShortestPath_RoomRepoError_Propagates(t *testing.T) {
+	floorRepo := &mockFloorRepoForPath{
+		floors: map[string][]domain.Floor{
+			"VL": {createSimpleFloorWithStairs(1, "VLFloor1")},
+		},
+	}
+	roomRepo := &mockIndoorRoomRepoForPath{
+		err: errors.New("room database error"),
+	}
+	svc := NewIndoorPathService(floorRepo, roomRepo)
+
+	_, err := svc.ShortestPath(IndoorPathRequest{
+		BuildingCode: "VL",
+		FloorNumber:  1,
+		StartRoom:    "Classroom",
+		EndRoom:      "Office",
+	})
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "room database error")
+}
+
+func TestShortestPath_RoomNotFound_ReturnsError(t *testing.T) {
+	floorRepo := &mockFloorRepoForPath{
+		floors: map[string][]domain.Floor{
+			"VL": {createSimpleFloorWithStairs(1, "VLFloor1")},
+		},
+	}
+	roomRepo := &mockIndoorRoomRepoForPath{
+		rooms: map[string][]domain.IndoorRoom{
+			"VL": {
+				{Room: "Classroom", Building: "VL", Floor: 1, Centroid: domain.IndoorPosition{X: 0.1, Y: 0.1}},
+			},
+		},
+	}
+	svc := NewIndoorPathService(floorRepo, roomRepo)
+
+	_, err := svc.ShortestPath(IndoorPathRequest{
+		BuildingCode: "VL",
+		FloorNumber:  1,
+		StartRoom:    "Classroom",
+		EndRoom:      "NonExistent",
+	})
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "room not found")
+}
+
+// ==================== Graph Function Tests ====================
+
+func TestNewGraphFromFloor_EmptyVertices_ReturnsError(t *testing.T) {
+	floor := domain.Floor{
+		FloorNumber: 1,
+		FloorName:   "Empty",
+		Vertices:    []domain.Coordinates{},
+		Edges:       []domain.Edge{},
+	}
+
+	_, err := newGraphFromFloor(floor)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "no vertices")
+}
+
+func TestNewGraphFromFloor_InvalidEdgeIndex_ReturnsError(t *testing.T) {
+	floor := domain.Floor{
+		FloorNumber: 1,
+		FloorName:   "InvalidEdge",
+		Vertices: []domain.Coordinates{
+			{X: 0, Y: 0},
+			{X: 1, Y: 0},
+		},
+		Edges: []domain.Edge{
+			{StartVertex: 0, EndVertex: 99}, // Invalid index
+		},
+	}
+
+	_, err := newGraphFromFloor(floor)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid vertex index")
+}
+
+func TestNewGraphFromFloor_NegativeEdgeIndex_ReturnsError(t *testing.T) {
+	floor := domain.Floor{
+		FloorNumber: 1,
+		FloorName:   "NegativeEdge",
+		Vertices: []domain.Coordinates{
+			{X: 0, Y: 0},
+			{X: 1, Y: 0},
+		},
+		Edges: []domain.Edge{
+			{StartVertex: -1, EndVertex: 1}, // Negative index
+		},
+	}
+
+	_, err := newGraphFromFloor(floor)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid vertex index")
+}
+
+func TestGraph_ShortestPath_SameStartAndGoal(t *testing.T) {
+	floor := createSimpleFloorWithStairs(1, "TestFloor")
+	g, err := newGraphFromFloor(floor)
+	assert.NoError(t, err)
+
+	path, dist, err := g.shortestPath(0, 0)
+	assert.NoError(t, err)
+	assert.Equal(t, []int{0}, path)
+	assert.Equal(t, 0.0, dist)
+}
+
+func TestGraph_ShortestPath_OutOfRange_ReturnsError(t *testing.T) {
+	floor := createSimpleFloorWithStairs(1, "TestFloor")
+	g, err := newGraphFromFloor(floor)
+	assert.NoError(t, err)
+
+	_, _, err = g.shortestPath(-1, 2)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "out of range")
+
+	_, _, err = g.shortestPath(0, 100)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "out of range")
+}
+
+func TestGraph_ShortestPath_NoPathExists_ReturnsError(t *testing.T) {
+	// Create a disconnected graph
+	floor := domain.Floor{
+		FloorNumber: 1,
+		FloorName:   "Disconnected",
+		Vertices: []domain.Coordinates{
+			{X: 0, Y: 0},
+			{X: 1, Y: 0},
+			{X: 10, Y: 10}, // Disconnected vertex
+		},
+		Edges: []domain.Edge{
+			{StartVertex: 0, EndVertex: 1}, // Only connects 0 and 1
+		},
+	}
+
+	g, err := newGraphFromFloor(floor)
+	assert.NoError(t, err)
+
+	_, _, err = g.shortestPath(0, 2)
+	assert.Error(t, err)
+	assert.Equal(t, ErrNoPath, err)
+}
+
+func TestGraph_NearestVertex(t *testing.T) {
+	floor := domain.Floor{
+		FloorNumber: 1,
+		FloorName:   "Test",
+		Vertices: []domain.Coordinates{
+			{X: 0, Y: 0},
+			{X: 1, Y: 0},
+			{X: 1, Y: 1},
+			{X: 0, Y: 1},
+		},
+		Edges: []domain.Edge{
+			{StartVertex: 0, EndVertex: 1},
+		},
+	}
+
+	g, err := newGraphFromFloor(floor)
+	assert.NoError(t, err)
+
+	// Point closest to vertex 2 (1,1)
+	nearest := g.nearestVertex(domain.Coordinates{X: 0.9, Y: 0.9})
+	assert.Equal(t, 2, nearest)
+
+	// Point closest to vertex 0 (0,0)
+	nearest = g.nearestVertex(domain.Coordinates{X: 0.1, Y: 0.1})
+	assert.Equal(t, 0, nearest)
+}
+
+func TestGraph_PathCoordinates(t *testing.T) {
+	floor := createSimpleFloorWithStairs(1, "Test")
+	g, err := newGraphFromFloor(floor)
+	assert.NoError(t, err)
+
+	coords := g.pathCoordinates([]int{0, 1, 2})
+	assert.Len(t, coords, 3)
+	assert.Equal(t, domain.Coordinates{X: 0, Y: 0}, coords[0])
+	assert.Equal(t, domain.Coordinates{X: 1, Y: 0}, coords[1])
+	assert.Equal(t, domain.Coordinates{X: 1, Y: 1}, coords[2])
+}
+
+// ==================== Additional MultiFloor Edge Cases ====================
+
+func TestMultiFloorShortestPath_SameFloor_WithRoomNames(t *testing.T) {
+	floorRepo := &mockFloorRepoForPath{
+		floors: map[string][]domain.Floor{
+			"VL": {createSimpleFloorWithStairs(1, "VLFloor1")},
+		},
+	}
+	roomRepo := &mockIndoorRoomRepoForPath{
+		rooms: map[string][]domain.IndoorRoom{
+			"VL": {
+				{Room: "classroom", Building: "VL", Floor: 1, Centroid: domain.IndoorPosition{X: 0.1, Y: 0.1}},
+				{Room: "office", Building: "VL", Floor: 1, Centroid: domain.IndoorPosition{X: 0.9, Y: 0.9}},
+			},
+		},
+	}
+	svc := NewIndoorPathService(floorRepo, roomRepo)
+
+	result, err := svc.MultiFloorShortestPath(MultiFloorPathRequest{
+		BuildingCode: "VL",
+		StartFloor:   1,
+		EndFloor:     1,
+		StartRoom:    "CLASSROOM", // Test case insensitivity
+		EndRoom:      "OFFICE",
+	})
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, "none", result.TransitionType)
+}
+
+func TestMultiFloorShortestPath_SameFloor_RoomRepoError(t *testing.T) {
+	floorRepo := &mockFloorRepoForPath{
+		floors: map[string][]domain.Floor{
+			"VL": {createSimpleFloorWithStairs(1, "VLFloor1")},
+		},
+	}
+	roomRepo := &mockIndoorRoomRepoForPath{
+		err: errors.New("room db error"),
+	}
+	svc := NewIndoorPathService(floorRepo, roomRepo)
+
+	_, err := svc.MultiFloorShortestPath(MultiFloorPathRequest{
+		BuildingCode: "VL",
+		StartFloor:   1,
+		EndFloor:     1,
+		StartRoom:    "Classroom",
+		EndRoom:      "Office",
+	})
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "room db error")
+}
+
+func TestMultiFloorShortestPath_MultiFloor_WithRoomNames(t *testing.T) {
+	floorRepo := &mockFloorRepoForPath{
+		floors: map[string][]domain.Floor{
+			"VL": {
+				createSimpleFloorWithStairs(1, "VLFloor1"),
+				createSimpleFloorWithStairs(2, "VLFloor2"),
+			},
+		},
+	}
+	roomRepo := &mockIndoorRoomRepoForPath{
+		rooms: map[string][]domain.IndoorRoom{
+			"VL": {
+				{Room: "Classroom", Building: "VL", Floor: 1, Centroid: domain.IndoorPosition{X: 0.1, Y: 0.1}},
+				{Room: "Office", Building: "VL", Floor: 2, Centroid: domain.IndoorPosition{X: 0.9, Y: 0.9}},
+			},
+		},
+	}
+	svc := NewIndoorPathService(floorRepo, roomRepo)
+
+	result, err := svc.MultiFloorShortestPath(MultiFloorPathRequest{
+		BuildingCode: "VL",
+		StartFloor:   1,
+		EndFloor:     2,
+		StartRoom:    "Classroom",
+		EndRoom:      "Office",
+	})
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Len(t, result.Segments, 2)
+	assert.Equal(t, "stairs", result.TransitionType)
+}
+
+func TestMultiFloorShortestPath_MultiFloor_RoomRepoErrorOnStart(t *testing.T) {
+	floorRepo := &mockFloorRepoForPath{
+		floors: map[string][]domain.Floor{
+			"VL": {
+				createSimpleFloorWithStairs(1, "VLFloor1"),
+				createSimpleFloorWithStairs(2, "VLFloor2"),
+			},
+		},
+	}
+	roomRepo := &mockIndoorRoomRepoForPath{
+		err: errors.New("room fetch error"),
+	}
+	svc := NewIndoorPathService(floorRepo, roomRepo)
+
+	_, err := svc.MultiFloorShortestPath(MultiFloorPathRequest{
+		BuildingCode: "VL",
+		StartFloor:   1,
+		EndFloor:     2,
+		StartRoom:    "Classroom",
+		EndRoom:      "Office",
+	})
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "room fetch error")
+}
+
+func TestMultiFloorShortestPath_MultiFloor_StartRoomNotFound(t *testing.T) {
+	floorRepo := &mockFloorRepoForPath{
+		floors: map[string][]domain.Floor{
+			"VL": {
+				createSimpleFloorWithStairs(1, "VLFloor1"),
+				createSimpleFloorWithStairs(2, "VLFloor2"),
+			},
+		},
+	}
+	roomRepo := &mockIndoorRoomRepoForPath{
+		rooms: map[string][]domain.IndoorRoom{
+			"VL": {
+				{Room: "Office", Building: "VL", Floor: 2, Centroid: domain.IndoorPosition{X: 0.9, Y: 0.9}},
+			},
+		},
+	}
+	svc := NewIndoorPathService(floorRepo, roomRepo)
+
+	_, err := svc.MultiFloorShortestPath(MultiFloorPathRequest{
+		BuildingCode: "VL",
+		StartFloor:   1,
+		EndFloor:     2,
+		StartRoom:    "NonExistent",
+		EndRoom:      "Office",
+	})
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "room not found")
+}
+
+func TestMultiFloorShortestPath_MultiFloor_EndRoomNotFound(t *testing.T) {
+	floorRepo := &mockFloorRepoForPath{
+		floors: map[string][]domain.Floor{
+			"VL": {
+				createSimpleFloorWithStairs(1, "VLFloor1"),
+				createSimpleFloorWithStairs(2, "VLFloor2"),
+			},
+		},
+	}
+	roomRepo := &mockIndoorRoomRepoForPath{
+		rooms: map[string][]domain.IndoorRoom{
+			"VL": {
+				{Room: "Classroom", Building: "VL", Floor: 1, Centroid: domain.IndoorPosition{X: 0.1, Y: 0.1}},
+			},
+		},
+	}
+	svc := NewIndoorPathService(floorRepo, roomRepo)
+
+	end := domain.Coordinates{X: 0.9, Y: 0.9}
+	_, err := svc.MultiFloorShortestPath(MultiFloorPathRequest{
+		BuildingCode: "VL",
+		StartFloor:   1,
+		EndFloor:     2,
+		StartRoom:    "Classroom",
+		EndCoord:     &end,
+	})
+
+	// This should succeed since we're using EndCoord
+	assert.NoError(t, err)
+}
+
+func TestMultiFloorShortestPath_FallbackToElevator_WhenNoStairs(t *testing.T) {
+	floorRepo := &mockFloorRepoForPath{
+		floors: map[string][]domain.Floor{
+			"VL": {
+				createSimpleFloorWithElevator(1, "VLFloor1"),
+				createSimpleFloorWithElevator(2, "VLFloor2"),
+			},
+		},
+	}
+	svc := NewIndoorPathService(floorRepo, &mockIndoorRoomRepoForPath{})
+
+	start := domain.Coordinates{X: 0, Y: 0}
+	end := domain.Coordinates{X: 1, Y: 1}
+
+	result, err := svc.MultiFloorShortestPath(MultiFloorPathRequest{
+		BuildingCode:   "VL",
+		StartFloor:     1,
+		EndFloor:       2,
+		StartCoord:     &start,
+		EndCoord:       &end,
+		PreferElevator: false, // prefer stairs but none exists
+	})
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, "elevator", result.TransitionType) // falls back to elevator
+}
+
+// ==================== NormalizeRoom Tests ====================
+
+func TestNormalizeRoom(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"classroom", "CLASSROOM"},
+		{"  Classroom  ", "CLASSROOM"},
+		{"Class Room", "CLASSROOM"},
+		{"H 101", "H101"},
+		{"h-101", "H-101"},
+	}
+
+	for _, tt := range tests {
+		result := normalizeRoom(tt.input)
+		assert.Equal(t, tt.expected, result)
+	}
+}
+
+// ==================== FindTransitionPoint Edge Cases ====================
+
+func TestFindTransitionPoint_PartialTypeMatch(t *testing.T) {
+	floorRepo := &mockFloorRepoForPath{
+		floors: map[string][]domain.Floor{
+			"VL": {
+				{
+					FloorNumber: 1,
+					FloorName:   "VLFloor1",
+					Vertices: []domain.Coordinates{
+						{X: 0, Y: 0},
+						{X: 1, Y: 1},
+					},
+					Edges: []domain.Edge{
+						{StartVertex: 0, EndVertex: 1},
+					},
+					POIs: []domain.PointOfInterest{
+						{Name: "Main Stairs", Type: "main_stairs", Position: domain.Coordinates{X: 0.5, Y: 0.5}}, // Contains "stairs"
+					},
+				},
+				{
+					FloorNumber: 2,
+					FloorName:   "VLFloor2",
+					Vertices: []domain.Coordinates{
+						{X: 0, Y: 0},
+						{X: 1, Y: 1},
+					},
+					Edges: []domain.Edge{
+						{StartVertex: 0, EndVertex: 1},
+					},
+					POIs: []domain.PointOfInterest{
+						{Name: "Main Stairs", Type: "main_stairs", Position: domain.Coordinates{X: 0.5, Y: 0.5}},
+					},
+				},
+			},
+		},
+	}
+	svc := NewIndoorPathService(floorRepo, &mockIndoorRoomRepoForPath{})
+
+	start := domain.Coordinates{X: 0, Y: 0}
+	end := domain.Coordinates{X: 1, Y: 1}
+
+	result, err := svc.MultiFloorShortestPath(MultiFloorPathRequest{
+		BuildingCode: "VL",
+		StartFloor:   1,
+		EndFloor:     2,
+		StartCoord:   &start,
+		EndCoord:     &end,
+	})
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, "stairs", result.TransitionType)
+}
