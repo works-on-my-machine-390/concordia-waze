@@ -7,7 +7,7 @@ import {
   TextSearchRankPreferenceType,
   useGetNearbyPoi,
 } from "@/hooks/queries/poiQueries";
-import { useMapStore } from "@/hooks/useMapStore";
+import { MapMode, useMapStore } from "@/hooks/useMapStore";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useRef } from "react";
@@ -17,10 +17,10 @@ import { BottomSheetStyles } from "../BuildingBottomSheet";
 import PoiSearchBottomSheetHeader from "./PoiSearchBottomSheetHeader";
 import PoiSearchRankPreferenceFilter from "./PoiSearchRankPreferenceFilter";
 import PoiSearchResult from "./PoiSearchResult";
+import { useNavigationStore } from "@/hooks/useNavigationStore";
 
 export type PoiSearchBottomSheetProps = {
   moveCamera?: (params: { latitude: number; longitude: number }) => void;
-  onDirectionsPress: (result: PoiSearchResultModel) => void;
 };
 
 export type ExtendedPoiSearchResultModel = {
@@ -30,10 +30,11 @@ export type ExtendedPoiSearchResultModel = {
 export default function PoiSearchBottomSheet(
   props: Readonly<PoiSearchBottomSheetProps>,
 ) {
-  const { closeSheet, userLocation } = useMapStore();
+  const { closeSheet, userLocation, setCurrentMode } = useMapStore();
   const bottomSheetRef = useRef<BottomSheet>(null);
   const snapPoints = ["20%", "70%"];
-
+  const navigationState = useNavigationStore();
+  
   const params = useLocalSearchParams<MapQueryParamsModel>();
   const router = useRouter();
 
@@ -90,9 +91,14 @@ export default function PoiSearchBottomSheet(
   };
 
   const handleDirectionsPressed = (result: PoiSearchResultModel) => {
-    props.onDirectionsPress(result);
-  };
-
+    console.log("running", result)
+    setCurrentMode(MapMode.NAVIGATION);
+    navigationState.setEndLocation({
+      latitude: result.latitude,
+      longitude: result.longitude,
+      name: result.name,
+    });
+  }
   const performRefetch = () => {
     poiSearchQuery.refetch();
   };

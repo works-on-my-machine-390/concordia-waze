@@ -3,10 +3,16 @@ import { StepModel, useGetDirections } from "@/hooks/queries/navigationQueries";
 import { useNavigationStore } from "@/hooks/useNavigationStore";
 import polyline from "@mapbox/polyline";
 import { useEffect, useMemo } from "react";
-import { Polyline } from "react-native-maps";
+import { Marker, Polyline } from "react-native-maps";
 import { TransitMode } from "./NavigationBottomSheet";
 
-export default function NavigationPolylines() {
+export type NavigationPolylinesProps = {
+  showEndPoint?: boolean;
+};
+
+export default function NavigationPolylines(
+  props: Readonly<NavigationPolylinesProps>,
+) {
   const navigationState = useNavigationStore();
 
   const directionsQuery = useGetDirections(
@@ -84,6 +90,14 @@ export default function NavigationPolylines() {
           {...getStepStyling(step)}
         />
       ))}
+      {props.showEndPoint && (
+        <Marker
+          coordinate={{
+            latitude: navigationState.endLocation.latitude,
+            longitude: navigationState.endLocation.longitude,
+          }}
+        />
+      )}
     </>
   );
 }

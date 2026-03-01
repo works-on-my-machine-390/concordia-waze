@@ -48,7 +48,6 @@ export default function MapBottomSection(
         {state.currentMode === MapMode.POI && (
           <PoiSearchBottomSheet
             moveCamera={props.moveCamera}
-            onDirectionsPress={() => {}}
           />
         )}
 
