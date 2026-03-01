@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/works-on-my-machine-390/concordia-waze/internal/constants"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
 )
 
@@ -214,12 +215,19 @@ func (s *DirectionsService) getShuttleDirectionsAtWithCampus(
 	shuttleStep, nextDeparture, err := s.buildShuttleStepAt(arrivalAtStop, day, fc, tc, departureStop, arrivalStop)
 	if err != nil {
 		// Fallback shuttle step without schedule
+		poly := constants.ShuttlePolylineSGWtoLOY
+		if fc == "LOY" && tc == "SGW" {
+			poly = constants.ShuttlePolylineLOYtoSGW
+		}
+
 		shuttleStep = domain.DirectionStep{
 			Instruction: fmt.Sprintf("Take the Concordia Shuttle Bus from %s to %s", fc, tc),
 			Distance:    formatKm(haversineKm(departureStop, arrivalStop)),
 			Duration:    "25 mins",
 			Start:       departureStop,
 			End:         arrivalStop,
+			Polyline:    poly,
+			TravelMode:  "SHUTTLE",
 		}
 		nextDeparture = ""
 	}
@@ -281,12 +289,19 @@ func (s *DirectionsService) buildShuttleStepAt(
 		return domain.DirectionStep{}, "", errors.New("no shuttle available")
 	}
 
+	poly := constants.ShuttlePolylineSGWtoLOY
+	if fromCampus == "LOY" && toCampus == "SGW" {
+		poly = constants.ShuttlePolylineLOYtoSGW
+	}
+
 	step := domain.DirectionStep{
 		Instruction: fmt.Sprintf("Take the Concordia Shuttle Bus from %s to %s (day: %s, next departure: %s)", fromCampus, toCampus, day, next),
 		Distance:    formatKm(haversineKm(departureStop, arrivalStop)),
 		Duration:    "25 mins",
 		Start:       departureStop,
 		End:         arrivalStop,
+		Polyline:    poly,
+		TravelMode:  "SHUTTLE",
 	}
 	return step, next, nil
 }
@@ -387,6 +402,8 @@ func (s *DirectionsService) GetShuttleDirectionsManual(start, end domain.LatLng,
 		Duration:    "25 mins",
 		Start:       sgwShuttleStop,
 		End:         loyShuttleStop,
+		Polyline:    constants.ShuttlePolylineSGWtoLOY,
+		TravelMode:  "SHUTTLE",
 	}
 
 	steps := make([]domain.DirectionStep, 0, len(walkToStop.Steps)+1+len(walkFromStop.Steps))
