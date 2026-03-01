@@ -45,6 +45,6 @@ const (
 	DefaultGoogleRateLimitRPS   = 2.0
 	DefaultGoogleRateLimitBurst = 5
 
-	ShuttlePolylineLOYtoSGW = "msmtGnqmM\\iAHKBK_D}DP_@IIeA}Ac@s@s@}AIMgAqCQ_@mAqC}AoDcBaE_BqD_BuDiDcISo@q@oAUSG_@Oi@Sc@wBcFiDaI_@gAcAyBuD{IoFmMcAcCaA}B{@oB[y@kAuCoDuIuAkDm@qA_@}@GYcAaCwAkDkBwEgBcE{@uBs@qAeJ{KgKcMoEoFSUWSO[eAqAc@e@oDiEwAcBmEmFcGkHoFsGw@cAgAoAiByBgBwB{AgBYa@KUUi@Me@}@qDw@sCQa@[m@eDwEq@{@g@k@uBeCQM}AgBi@m@qAwA}@eAMQOGoAiBs@oA}A}CsDiH_@e@IUQQe@c@o@i@kFqEwBiBw@o@QWm@g@F[f@wBBe@LUJ[Je@T{@d@wALa@GCW[FMTi@v@_CPg@"
-	ShuttlePolylineSGWtoLOY = "kxttG~uaMmAnDUh@GLVZFBM@Wv@[dASz@KZQ^?Zg@vBGZl@f@PVv@n@l@h@rExDpCCd@b@PPHT^d@Xh@lBvDlACnBrDnAhBNFLP|@dApAvAh@l@|AfBPLtBdCf@j@fBCnBpCZl@b@nAz@bDt@xCTh@JTX@zAfBv@~@BpB~BnCv@bAtABnEnFhHtI|KxMdApANZVRRTdAnAAjAhC|CrDpE|FHjEjFfAxAl@rAbAdCxCjHzAnD|AvDFX^|@l@pAjDtIdDIZx@z@nBvAdD~AxDdHvPlArCbAxB^fArA|CjDdIt@dBNh@F^TRp@nARn@fEzJjBnEBpDfBjEzBdFP^fApCHLr@|APVPZdA|AHHQ^~C|DCJIJ]hA"
+	ShuttlePolylineLOYtoSGW = "ermtGxnm`MBK_D}DP_@IIeA}AQ[eAuBIMgAqCQ_@{BeFgBkEaBqDkBoEgE{JSo@q@oAUSG_@Oi@u@eBkDeIsA}C_@gAcAyBmAsCsC}GqFsMwAeD{@oB[y@eDaIkDuIm@qA_@}@GYcAaCYu@{AoD}AyD_CwFm@sAgAyAaK{LeKaM{CqDWSO[eAqAiC}C_F{F{D{EqJiLuAaBw@cA_CoCuFyGYa@KUUi@u@yC{@cDc@oA[m@oBqCgBaC}CqDQM}AgBi@m@qAwA}@eAMQOGoAiBoBsDmAaCqB_EUa@_@e@IUQQe@c@qCaCyHsGQWm@g@y@w@k@a@oBoB|@_C|@cCn@cBOMkAcA"
+	ShuttlePolylineSGWtoLOY = "adutGjxa`MzApAwAxDYv@o@|AIVlAjA`@b@j@`@x@v@l@f@PVv@n@l@h@rExDpC`Cd@b@PPHT^d@Xh@lBvDlA`CnBrDnAhBNFLP|@dApAvAh@l@|AfBPLtBdCf@j@fB`CnBpCZl@b@nAz@bDt@xCTh@JTX`@zAfBv@~@`BpB~BnCv@bAtA`BnEnFhHtIfCzCtG|HdApANZVRRTdAnA`AjAhC|CrDpE|F`HjEjFfAxAl@rAbAdCxCjHzAnD|AvDFX^|@l@pAjDtIdD`IZx@z@nBvAdD~AxDdHvPlArCbAxB^fArA|CjDdIt@dBNh@F^TRp@nARn@fEzJjBnE`BpDfBjEzBdFP^fApCHLr@|APVPZdA|AHHQ^~C|DCJ"
 )
