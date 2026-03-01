@@ -2192,6 +2192,9 @@ const docTemplate = `{
                 "num_stops": {
                     "type": "integer"
                 },
+                "polyline": {
+                    "type": "string"
+                },
                 "start": {
                     "$ref": "#/definitions/domain.LatLng"
                 },

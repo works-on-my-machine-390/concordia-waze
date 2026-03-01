@@ -42,6 +42,7 @@ func TestGoogleDirectionsClient_GetDirections_SuccessOK(t *testing.T) {
 					"html_instructions": "Head <b>north</b>",
 					"distance": {"text": "0.2 km"},
 					"duration": {"text": "2 mins"},
+					"polyline": {"points": "abcd"},
 					"start_location": {"lat": 45.0, "lng": -73.0},
 					"end_location": {"lat": 45.1, "lng": -73.1}
 				}]
@@ -77,6 +78,7 @@ func TestGoogleDirectionsClient_GetDirections_SuccessOK(t *testing.T) {
 	assert.Equal(t, "Head <b>north</b>", resp.Steps[0].Instruction)
 	assert.Equal(t, "0.2 km", resp.Steps[0].Distance)
 	assert.Equal(t, "2 mins", resp.Steps[0].Duration)
+	assert.Equal(t, "abcd", resp.Steps[0].Polyline)
 	assert.Equal(t, "??", resp.Polyline)
 }
 

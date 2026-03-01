@@ -4,6 +4,7 @@ type DirectionStep struct {
 	Instruction     string `json:"instruction"`
 	Distance        string `json:"distance"`
 	Duration        string `json:"duration"`
+	Polyline        string `json:"polyline,omitempty"`
 	Start           LatLng `json:"start"`
 	End             LatLng `json:"end"`
 	TravelMode      string `json:"travel_mode,omitempty"`

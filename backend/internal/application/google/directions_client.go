@@ -66,6 +66,9 @@ func (c *googleDirectionsClient) GetDirections(start, end domain.LatLng, mode st
 					Duration struct {
 						Text string `json:"text"`
 					} `json:"duration"`
+					Polyline struct {
+						Points string `json:"points"`
+					} `json:"polyline"`
 					StartLocation struct {
 						Lat float64 `json:"lat"`
 						Lng float64 `json:"lng"`
@@ -132,6 +135,7 @@ func (c *googleDirectionsClient) GetDirections(start, end domain.LatLng, mode st
 			Instruction:     s.HTMLInstructions,
 			Distance:        s.Distance.Text,
 			Duration:        s.Duration.Text,
+			Polyline:        s.Polyline.Points,
 			Start:           domain.LatLng{Lat: s.StartLocation.Lat, Lng: s.StartLocation.Lng},
 			End:             domain.LatLng{Lat: s.EndLocation.Lat, Lng: s.EndLocation.Lng},
 			TravelMode:      s.TravelMode,
