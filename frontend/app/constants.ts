@@ -26,6 +26,18 @@ export const COLORS = {
   warning: "#FF9800",
 };
 
+export const DIRECTION_COLORS = {
+  walking: "#1B53FD",
+  driving: "#1B53FD", // same as walking
+  shuttle: COLORS.goldDark,
+  bus: "#429FE1",
+  stmGreen: "#389E50",
+  stmOrange: "#E57D22",
+  stmBlue: "#3074BA",
+  stmYellow: "#EBCF00",
+  bicycling: "#1F8E3F",
+};
+
 // App Info
 export const APP_INFO = {
   name: "Concordia Waze",

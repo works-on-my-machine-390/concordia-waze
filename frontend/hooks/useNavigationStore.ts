@@ -1,4 +1,6 @@
+import { TransitMode } from "@/components/NavigationBottomSheet";
 import { create } from "zustand";
+import { DirectionsModel } from "./queries/navigationQueries";
 
 /**
  * Zustand store for managing states during navigation.
@@ -17,6 +19,12 @@ interface NavigationState {
   setStartLocation: (location: NavigableLocation) => void;
   endLocation?: NavigableLocation;
   setEndLocation: (location: NavigableLocation) => void;
+  transitMode?: TransitMode;
+  setTransitMode?: (mode: TransitMode) => void;
+  currentDirections?: DirectionsModel;
+  setCurrentDirections?: (directions: DirectionsModel) => void;
+
+  clearState: () => void;
 }
 
 export const useNavigationStore = create<NavigationState>()((set) => ({
@@ -26,4 +34,18 @@ export const useNavigationStore = create<NavigationState>()((set) => ({
   endLocation: undefined,
   setEndLocation: (location: NavigableLocation) =>
     set({ endLocation: location }),
+  transitMode: undefined,
+  setTransitMode: (mode: TransitMode) => set({ transitMode: mode }),
+
+  currentDirections: undefined,
+  setCurrentDirections: (directions: DirectionsModel) =>
+    set({ currentDirections: directions }),
+
+  clearState: () =>
+    set({
+      startLocation: undefined,
+      endLocation: undefined,
+      transitMode: undefined,
+      currentDirections: undefined,
+    }),
 }));

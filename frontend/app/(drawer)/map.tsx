@@ -26,6 +26,7 @@ import {
   DEFAULT_MAP_DELTA,
 } from "../constants";
 import { getDistance } from "../utils/mapUtils";
+import NavigationPolylines from "@/components/NavigationPolylines";
 
 export type MapQueryParamsModel = {
   selected?: string;
@@ -151,8 +152,9 @@ export default function MainMap() {
   }, [params.campus]);
 
   const buildingsToRender = useMemo(() => {
-    return buildingsByCampus[campus] || [];
-  }, [campus, buildingsByCampus]);
+    // we were previously rendering one campus at a time
+    return Object.values(buildingsByCampus).flat();
+  }, [buildingsByCampus]);
 
   const mapStyle = [
     {
@@ -361,6 +363,7 @@ export default function MainMap() {
         onRegionChangeComplete={handleRegionChangeComplete}
       >
         <CampusBuildingPolygons buildings={buildingsToRender} />
+        {mapState.currentMode === MapMode.NAVIGATION && <NavigationPolylines />}
         {mapState.currentMode === MapMode.POI && <PoiOutdoorMarkers />}
         <ShuttleBusMarkers />
       </MapView>

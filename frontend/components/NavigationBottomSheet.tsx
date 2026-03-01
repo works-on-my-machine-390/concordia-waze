@@ -2,7 +2,7 @@ import { getIsCrossCampus } from "@/app/utils/mapUtils";
 import { useMapStore } from "@/hooks/useMapStore";
 import { useNavigationStore } from "@/hooks/useNavigationStore";
 import BottomSheet from "@gorhom/bottom-sheet";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
 import { COLORS } from "../app/constants";
@@ -17,14 +17,14 @@ import {
 const concordiaLogo = require("../assets/images/concordia_logo.png");
 
 export const TransitMode = {
-  CAR: "CAR",
-  TRAIN: "TRAIN",
-  WALK: "WALK",
-  BIKE: "BIKE",
+  DRIVING: "DRIVING",
+  TRANSIT: "TRANSIT",
+  WALKING: "WALKING",
+  BICYCLING: "BICYCLING",
   SHUTTLE: "SHUTTLE",
 } as const;
 
-type TransitMode = (typeof TransitMode)[keyof typeof TransitMode];
+export type TransitMode = (typeof TransitMode)[keyof typeof TransitMode];
 
 export type NavigationBottomSheetProps = {};
 
@@ -34,7 +34,6 @@ export default function NavigationBottomSheet(
   const closeSheet = useMapStore((state) => state.closeSheet);
 
   const navigationState = useNavigationStore();
-  const [transitMode, setTransitMode] = useState<TransitMode | null>(null);
 
   const isCrossCampus = useMemo(() => {
     if (!navigationState.startLocation || !navigationState.endLocation)
@@ -48,25 +47,25 @@ export default function NavigationBottomSheet(
   const transitOptions = useMemo(() => {
     const baseOptions = [
       {
-        mode: TransitMode.CAR,
+        mode: TransitMode.DRIVING,
         Icon: CarIcon,
         label: "Drive",
         duration: "5 min",
       },
       {
-        mode: TransitMode.TRAIN,
+        mode: TransitMode.TRANSIT,
         Icon: TrainIcon,
         label: "Transit",
         duration: "3 min",
       },
       {
-        mode: TransitMode.WALK,
+        mode: TransitMode.WALKING,
         Icon: WalkingIcon,
         label: "Walk",
         duration: "3 min",
       },
       {
-        mode: TransitMode.BIKE,
+        mode: TransitMode.BICYCLING,
         Icon: BikeIcon,
         label: "Bike",
         duration: "4 min",
@@ -94,12 +93,13 @@ export default function NavigationBottomSheet(
 
   useEffect(() => {
     if (transitOptions.length > 0) {
-      setTransitMode(transitOptions[0].mode);
+      navigationState.setTransitMode(transitOptions[0].mode);
+      
     }
   }, [transitOptions]);
 
   const selectedOption =
-    transitOptions.find((option) => option.mode === transitMode) ||
+    transitOptions.find((option) => option.mode === navigationState.transitMode) ||
     transitOptions[0];
 
   const snapPoints = useMemo(() => {
@@ -149,7 +149,7 @@ export default function NavigationBottomSheet(
                 nestedScrollEnabled={true}
               >
                 {transitOptions.map(({ mode, Icon, image, duration }) => {
-                  const selected = transitMode === mode;
+                  const selected = navigationState.transitMode === mode;
                   return (
                     <TouchableOpacity
                       key={mode}
@@ -158,7 +158,7 @@ export default function NavigationBottomSheet(
                         selected &&
                           NavigationBottomSheetStyles.transitChipSelected,
                       ]}
-                      onPress={() => setTransitMode(mode)}
+                      onPress={() => navigationState.setTransitMode(mode)}
                     >
                       {Icon ? (
                         <Icon
