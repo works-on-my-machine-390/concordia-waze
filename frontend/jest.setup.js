@@ -4,10 +4,23 @@ jest.mock("react-native-svg", () => {
   const { View } = require("react-native");
   return {
     __esModule: true,
-    default: ({ children }) => React.createElement(View, {}, children),
-    Svg: ({ children }) => React.createElement(View, {}, children),
+    default: ({ children, width, height }) => 
+      React.createElement(View, { 
+        testID: "svg",
+        accessibilityLabel: `svg-${width}x${height}` 
+      }, children),
+    Svg: ({ children, width, height }) => 
+      React.createElement(View, { 
+        testID: "svg",
+        accessibilityLabel: `svg-${width}x${height}` 
+      }, children),
     SvgXml: "SvgXml",
-    Polygon: "Polygon",
+    Polygon: ({ points, fill, stroke, strokeWidth }) => 
+      React.createElement(View, {
+        testID: "polygon",
+        accessibilityLabel: `polygon-${points}`,
+        accessibilityHint: `fill:${fill},stroke:${stroke},strokeWidth:${strokeWidth}`
+      }),
     Circle: "Circle",
     Path: "Path",
     G: "G",
