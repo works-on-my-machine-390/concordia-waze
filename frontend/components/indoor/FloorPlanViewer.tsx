@@ -3,10 +3,10 @@ import { useSvgDimensions } from "@/hooks/useSvgDimensions";
 import { ReactNativeZoomableView } from "@openspacelabs/react-native-zoomable-view";
 import {
   ActivityIndicator,
-  Dimensions,
   StyleSheet,
   Text,
   View,
+  useWindowDimensions,
 } from "react-native";
 import { SvgXml } from "react-native-svg";
 import PoiMarker from "./PoiMarker";
@@ -16,9 +16,8 @@ type Props = {
   floor: Floor | undefined;
 };
 
-const SCREEN_WIDTH = Dimensions.get("window").width;
-
 export default function FloorPlanViewer({ floor }: Readonly<Props>) {
+  const { width: SCREEN_WIDTH } = useWindowDimensions();
   const { dimensions, svgText, error, isLoading } = useSvgDimensions(
     floor?.imgPath,
   );
