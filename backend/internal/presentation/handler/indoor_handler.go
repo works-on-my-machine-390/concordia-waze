@@ -15,22 +15,6 @@ func NewIndoorPathHandler(svc *application.IndoorPathService) *IndoorPathHandler
 	return &IndoorPathHandler{svc: svc}
 }
 
-func (h *IndoorPathHandler) GetIndoorShortestPath(c *gin.Context) {
-	var req application.IndoorPathRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid JSON body"})
-		return
-	}
-
-	res, err := h.svc.ShortestPath(req)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, res)
-}
-
 // GetMultiFloorShortestPath handles pathfinding from (x,y) on one floor to (x,y) on another floor
 func (h *IndoorPathHandler) GetMultiFloorShortestPath(c *gin.Context) {
 	var req application.MultiFloorPathRequest

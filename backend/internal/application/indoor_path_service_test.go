@@ -155,7 +155,7 @@ func TestMultiFloorShortestPath_SameFloor_WithCoordinates(t *testing.T) {
 	assert.NotNil(t, result)
 	assert.Len(t, result.Segments, 1)
 	assert.Equal(t, 1, result.Segments[0].FloorNumber)
-	assert.Equal(t, "none", result.TransitionType)
+	assert.Equal(t, TransitionNone, result.TransitionType)
 	assert.Greater(t, len(result.Segments[0].Path), 0)
 }
 
@@ -189,7 +189,7 @@ func TestMultiFloorShortestPath_DifferentFloors_ViaStairs(t *testing.T) {
 	assert.Len(t, result.Segments, 2)
 	assert.Equal(t, 1, result.Segments[0].FloorNumber)
 	assert.Equal(t, 2, result.Segments[1].FloorNumber)
-	assert.Equal(t, "stairs", result.TransitionType)
+	assert.Equal(t, TransitionStairs, result.TransitionType)
 }
 
 func TestMultiFloorShortestPath_DifferentFloors_PreferElevator(t *testing.T) {
@@ -220,7 +220,7 @@ func TestMultiFloorShortestPath_DifferentFloors_PreferElevator(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Len(t, result.Segments, 2)
-	assert.Equal(t, "elevator", result.TransitionType)
+	assert.Equal(t, TransitionElevator, result.TransitionType)
 }
 
 func TestMultiFloorShortestPath_FallbackToStairs_WhenNoElevator(t *testing.T) {
@@ -250,7 +250,7 @@ func TestMultiFloorShortestPath_FallbackToStairs_WhenNoElevator(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
-	assert.Equal(t, "stairs", result.TransitionType) // falls back to stairs
+	assert.Equal(t, TransitionStairs, result.TransitionType) // falls back to stairs
 }
 
 func TestMultiFloorShortestPath_WithRoomNames(t *testing.T) {
@@ -281,7 +281,7 @@ func TestMultiFloorShortestPath_WithRoomNames(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Len(t, result.Segments, 1)
-	assert.Equal(t, "none", result.TransitionType)
+	assert.Equal(t, TransitionNone, result.TransitionType)
 }
 
 func TestMultiFloorShortestPath_EmptyBuildingCode_ReturnsError(t *testing.T) {
@@ -903,7 +903,7 @@ func TestMultiFloorShortestPath_SameFloor_WithRoomNames(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
-	assert.Equal(t, "none", result.TransitionType)
+	assert.Equal(t, TransitionNone, result.TransitionType)
 }
 
 func TestMultiFloorShortestPath_SameFloor_RoomRepoError(t *testing.T) {
@@ -959,7 +959,7 @@ func TestMultiFloorShortestPath_MultiFloor_WithRoomNames(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Len(t, result.Segments, 2)
-	assert.Equal(t, "stairs", result.TransitionType)
+	assert.Equal(t, TransitionStairs, result.TransitionType)
 }
 
 func TestMultiFloorShortestPath_MultiFloor_RoomRepoErrorOnStart(t *testing.T) {
@@ -1074,7 +1074,7 @@ func TestMultiFloorShortestPath_FallbackToElevator_WhenNoStairs(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
-	assert.Equal(t, "elevator", result.TransitionType) // falls back to elevator
+	assert.Equal(t, TransitionElevator, result.TransitionType) // falls back to elevator
 }
 
 // ==================== NormalizeRoom Tests ====================
@@ -1149,5 +1149,313 @@ func TestFindTransitionPoint_PartialTypeMatch(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
-	assert.Equal(t, "stairs", result.TransitionType)
+	assert.Equal(t, TransitionStairs, result.TransitionType)
+}
+
+// ========== Tests for Turn Direction Calculation ==========
+
+func TestCalculateTurnDirections_LessThanThreePoints_ReturnsEmpty(t *testing.T) {
+	// Two points - not enough to determine a turn
+	coords := []domain.Coordinates{
+		{X: 0, Y: 0},
+		{X: 1, Y: 0},
+	}
+	directions := calculateTurnDirections(coords)
+	assert.Empty(t, directions)
+}
+
+func TestCalculateTurnDirections_Straight_ReturnsNoTurn(t *testing.T) {
+	// Three points in a straight line
+	coords := []domain.Coordinates{
+		{X: 0, Y: 0},
+		{X: 1, Y: 0},
+		{X: 2, Y: 0},
+	}
+	directions := calculateTurnDirections(coords)
+	assert.Len(t, directions, 1)
+	assert.Equal(t, TurnStraight, directions[0])
+}
+
+func TestCalculateTurnDirections_LeftTurn_ReturnsLeft(t *testing.T) {
+	// L-shaped path turning left (going east, then north)
+	coords := []domain.Coordinates{
+		{X: 0, Y: 0},
+		{X: 1, Y: 0},
+		{X: 1, Y: 1}, // 90 degree left turn
+	}
+	directions := calculateTurnDirections(coords)
+	assert.Len(t, directions, 1)
+	assert.Equal(t, TurnLeft, directions[0])
+}
+
+func TestCalculateTurnDirections_RightTurn_ReturnsRight(t *testing.T) {
+	// L-shaped path turning right (going east, then south)
+	coords := []domain.Coordinates{
+		{X: 0, Y: 0},
+		{X: 1, Y: 0},
+		{X: 1, Y: -1}, // 90 degree right turn
+	}
+	directions := calculateTurnDirections(coords)
+	assert.Len(t, directions, 1)
+	assert.Equal(t, TurnRight, directions[0])
+}
+
+func TestCalculateTurnDirections_MultipleTurns(t *testing.T) {
+	// Square path with multiple turns
+	coords := []domain.Coordinates{
+		{X: 0, Y: 0}, // Start
+		{X: 1, Y: 0}, // Point 1: walking east
+		{X: 1, Y: 1}, // Point 2: turned left (north)
+		{X: 0, Y: 1}, // Point 3: turned left (west)
+		{X: 0, Y: 0}, // Point 4: turned left (south)
+	}
+	directions := calculateTurnDirections(coords)
+	assert.Len(t, directions, 3)
+	// All should be left turns going around a square counter-clockwise
+	assert.Equal(t, TurnLeft, directions[0])
+	assert.Equal(t, TurnLeft, directions[1])
+	assert.Equal(t, TurnLeft, directions[2])
+}
+
+// ========== Tests for Closest Point On Segment ==========
+
+func TestClosestPointOnSegment_PointOnSegment(t *testing.T) {
+	a := domain.Coordinates{X: 0, Y: 0}
+	b := domain.Coordinates{X: 2, Y: 0}
+	p := domain.Coordinates{X: 1, Y: 0}
+
+	closest := closestPointOnSegment(p, a, b)
+	assert.InDelta(t, 1.0, closest.X, 0.001)
+	assert.InDelta(t, 0.0, closest.Y, 0.001)
+}
+
+func TestClosestPointOnSegment_PointAboveSegment(t *testing.T) {
+	a := domain.Coordinates{X: 0, Y: 0}
+	b := domain.Coordinates{X: 2, Y: 0}
+	p := domain.Coordinates{X: 1, Y: 1}
+
+	closest := closestPointOnSegment(p, a, b)
+	assert.InDelta(t, 1.0, closest.X, 0.001)
+	assert.InDelta(t, 0.0, closest.Y, 0.001)
+}
+
+func TestClosestPointOnSegment_PointBeforeSegment(t *testing.T) {
+	a := domain.Coordinates{X: 0, Y: 0}
+	b := domain.Coordinates{X: 2, Y: 0}
+	p := domain.Coordinates{X: -1, Y: 0}
+
+	closest := closestPointOnSegment(p, a, b)
+	// Should clamp to point a
+	assert.InDelta(t, 0.0, closest.X, 0.001)
+	assert.InDelta(t, 0.0, closest.Y, 0.001)
+}
+
+func TestClosestPointOnSegment_PointAfterSegment(t *testing.T) {
+	a := domain.Coordinates{X: 0, Y: 0}
+	b := domain.Coordinates{X: 2, Y: 0}
+	p := domain.Coordinates{X: 3, Y: 0}
+
+	closest := closestPointOnSegment(p, a, b)
+	// Should clamp to point b
+	assert.InDelta(t, 2.0, closest.X, 0.001)
+	assert.InDelta(t, 0.0, closest.Y, 0.001)
+}
+
+func TestClosestPointOnSegment_DiagonalSegment(t *testing.T) {
+	a := domain.Coordinates{X: 0, Y: 0}
+	b := domain.Coordinates{X: 2, Y: 2}
+	p := domain.Coordinates{X: 2, Y: 0}
+
+	closest := closestPointOnSegment(p, a, b)
+	// Closest point should be at (1, 1)
+	assert.InDelta(t, 1.0, closest.X, 0.001)
+	assert.InDelta(t, 1.0, closest.Y, 0.001)
+}
+
+// ========== Tests for Graph Splitting ==========
+
+func TestGraph_NearestPointOnEdge_FindsCorrectEdge(t *testing.T) {
+	floor := domain.Floor{
+		FloorNumber: 1,
+		FloorName:   "Test",
+		Vertices: []domain.Coordinates{
+			{X: 0, Y: 0}, // 0
+			{X: 2, Y: 0}, // 1
+			{X: 2, Y: 2}, // 2
+			{X: 0, Y: 2}, // 3
+		},
+		Edges: []domain.Edge{
+			{StartVertex: 0, EndVertex: 1},
+			{StartVertex: 1, EndVertex: 2},
+			{StartVertex: 2, EndVertex: 3},
+			{StartVertex: 3, EndVertex: 0},
+		},
+	}
+
+	g, err := newGraphFromFloor(floor)
+	assert.NoError(t, err)
+
+	// Point (1, 0.5) should be closest to edge 0-1 at (1, 0)
+	point, u, v, dist := g.nearestPointOnEdge(domain.Coordinates{X: 1, Y: 0.5})
+	assert.InDelta(t, 1.0, point.X, 0.001)
+	assert.InDelta(t, 0.0, point.Y, 0.001)
+	assert.Equal(t, 0, u)
+	assert.Equal(t, 1, v)
+	assert.InDelta(t, 0.5, dist, 0.001)
+}
+
+func TestGraph_InsertVertexOnEdge_SplitsCorrectly(t *testing.T) {
+	floor := domain.Floor{
+		FloorNumber: 1,
+		FloorName:   "Test",
+		Vertices: []domain.Coordinates{
+			{X: 0, Y: 0}, // 0
+			{X: 2, Y: 0}, // 1
+		},
+		Edges: []domain.Edge{
+			{StartVertex: 0, EndVertex: 1},
+		},
+	}
+
+	g, err := newGraphFromFloor(floor)
+	assert.NoError(t, err)
+	assert.Len(t, g.pos, 2)
+
+	// Insert a new vertex at (1, 0) - middle of the edge
+	newIdx := g.insertVertexOnEdge(domain.Coordinates{X: 1, Y: 0}, 0, 1)
+
+	// Should have added a new vertex
+	assert.Equal(t, 2, newIdx)
+	assert.Len(t, g.pos, 3)
+
+	// New vertex should be at (1, 0)
+	assert.InDelta(t, 1.0, g.pos[newIdx].X, 0.001)
+	assert.InDelta(t, 0.0, g.pos[newIdx].Y, 0.001)
+
+	// Check adjacency: 0 should connect to 2, 2 should connect to 0 and 1, 1 should connect to 2
+	// Vertex 0 should NOT directly connect to 1 anymore
+	hasEdge0to1 := false
+	hasEdge0to2 := false
+	for _, nb := range g.adj[0] {
+		if nb.to == 1 {
+			hasEdge0to1 = true
+		}
+		if nb.to == 2 {
+			hasEdge0to2 = true
+		}
+	}
+	assert.False(t, hasEdge0to1, "Edge 0->1 should have been removed")
+	assert.True(t, hasEdge0to2, "Edge 0->2 should exist")
+
+	hasEdge2to0 := false
+	hasEdge2to1 := false
+	for _, nb := range g.adj[2] {
+		if nb.to == 0 {
+			hasEdge2to0 = true
+		}
+		if nb.to == 1 {
+			hasEdge2to1 = true
+		}
+	}
+	assert.True(t, hasEdge2to0, "Edge 2->0 should exist")
+	assert.True(t, hasEdge2to1, "Edge 2->1 should exist")
+}
+
+func TestGraph_NearestVertexWithSplit_UsesExistingVertexWhenClose(t *testing.T) {
+	floor := domain.Floor{
+		FloorNumber: 1,
+		FloorName:   "Test",
+		Vertices: []domain.Coordinates{
+			{X: 0, Y: 0}, // 0
+			{X: 2, Y: 0}, // 1
+		},
+		Edges: []domain.Edge{
+			{StartVertex: 0, EndVertex: 1},
+		},
+	}
+
+	g, err := newGraphFromFloor(floor)
+	assert.NoError(t, err)
+
+	// Point exactly at vertex 0 - should return vertex 0, not split
+	idx := g.nearestVertexWithSplit(domain.Coordinates{X: 0, Y: 0})
+	assert.Equal(t, 0, idx)
+	assert.Len(t, g.pos, 2) // No new vertex added
+}
+
+func TestGraph_NearestVertexWithSplit_SplitsEdgeWhenFarFromVertices(t *testing.T) {
+	floor := domain.Floor{
+		FloorNumber: 1,
+		FloorName:   "Test",
+		Vertices: []domain.Coordinates{
+			{X: 0, Y: 0}, // 0
+			{X: 2, Y: 0}, // 1
+		},
+		Edges: []domain.Edge{
+			{StartVertex: 0, EndVertex: 1},
+		},
+	}
+
+	g, err := newGraphFromFloor(floor)
+	assert.NoError(t, err)
+
+	// Point above the middle of the edge - should split the edge
+	idx := g.nearestVertexWithSplit(domain.Coordinates{X: 1, Y: 0.5})
+	assert.Equal(t, 2, idx) // New vertex index
+	assert.Len(t, g.pos, 3) // New vertex added
+
+	// The new vertex should be at (1, 0) - projection onto the edge
+	assert.InDelta(t, 1.0, g.pos[idx].X, 0.001)
+	assert.InDelta(t, 0.0, g.pos[idx].Y, 0.001)
+}
+
+func TestShortestPath_WithDirections_ReturnsCorrectDirections(t *testing.T) {
+	// Create a floor with a path that requires turns
+	floor := domain.Floor{
+		FloorNumber: 1,
+		FloorName:   "Test",
+		Vertices: []domain.Coordinates{
+			{X: 0, Y: 0}, // 0 - start
+			{X: 1, Y: 0}, // 1 - turn point
+			{X: 1, Y: 1}, // 2 - end
+		},
+		Edges: []domain.Edge{
+			{StartVertex: 0, EndVertex: 1},
+			{StartVertex: 1, EndVertex: 2},
+		},
+	}
+
+	floorRepo := &mockFloorRepoForPath{
+		floors: map[string][]domain.Floor{
+			"VL": {floor},
+		},
+	}
+	roomRepo := &mockIndoorRoomRepoForPath{rooms: map[string][]domain.IndoorRoom{}}
+
+	svc := NewIndoorPathService(floorRepo, roomRepo)
+
+	start := domain.Coordinates{X: 0, Y: 0}
+	end := domain.Coordinates{X: 1, Y: 1}
+
+	result, err := svc.ShortestPath(IndoorPathRequest{
+		BuildingCode: "VL",
+		FloorNumber:  1,
+		StartCoord:   &start,
+		EndCoord:     &end,
+	})
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.NotEmpty(t, result.Directions)
+	// There should be one turn direction (at the middle point)
+	if len(result.Directions) > 0 {
+		// Walking east then north is a left turn
+		assert.Equal(t, TurnLeft, result.Directions[0])
+	}
+}
+
+func TestTransitionType_String(t *testing.T) {
+	assert.Equal(t, "none", TransitionNone.String())
+	assert.Equal(t, "stairs", TransitionStairs.String())
+	assert.Equal(t, "elevator", TransitionElevator.String())
 }

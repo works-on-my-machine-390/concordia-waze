@@ -157,7 +157,7 @@ func TestGetMultiFloorShortestPath_SameFloor_Success(t *testing.T) {
 	err := json.Unmarshal(w.Body.Bytes(), &result)
 	assert.NoError(t, err)
 	assert.Len(t, result.Segments, 1)
-	assert.Equal(t, "none", result.TransitionType)
+	assert.Equal(t, application.TransitionNone, result.TransitionType)
 }
 
 func TestGetMultiFloorShortestPath_MultiFloor_Success(t *testing.T) {
@@ -196,7 +196,7 @@ func TestGetMultiFloorShortestPath_MultiFloor_Success(t *testing.T) {
 	err := json.Unmarshal(w.Body.Bytes(), &result)
 	assert.NoError(t, err)
 	assert.Len(t, result.Segments, 2)
-	assert.Equal(t, "stairs", result.TransitionType)
+	assert.Equal(t, application.TransitionStairs, result.TransitionType)
 }
 
 func TestGetMultiFloorShortestPath_FloorNotFound(t *testing.T) {
@@ -321,7 +321,7 @@ func TestGetMultiFloorShortestPath_WithRoomNames(t *testing.T) {
 	var result application.MultiFloorPathResult
 	err := json.Unmarshal(w.Body.Bytes(), &result)
 	assert.NoError(t, err)
-	assert.Equal(t, "none", result.TransitionType)
+	assert.Equal(t, application.TransitionNone, result.TransitionType)
 }
 
 func TestNewIndoorPathHandler(t *testing.T) {
