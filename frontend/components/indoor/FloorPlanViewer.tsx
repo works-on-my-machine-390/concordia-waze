@@ -1,7 +1,6 @@
 import type { Floor } from "@/hooks/queries/indoorMapQueries";
 import { useSvgDimensions } from "@/hooks/useSvgDimensions";
 import { ReactNativeZoomableView } from "@openspacelabs/react-native-zoomable-view";
-import { useEffect, useRef } from "react";
 import {
   ActivityIndicator,
   Dimensions,
@@ -20,20 +19,9 @@ type Props = {
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
 export default function FloorPlanViewer({ floor }: Readonly<Props>) {
-  const zoomableViewRef = useRef<ReactNativeZoomableView>(null);
   const { dimensions, svgText, error, isLoading } = useSvgDimensions(
     floor?.imgPath,
   );
-
-  // Reset zoom when floor changes
-  useEffect(() => {
-    if (zoomableViewRef.current) {
-      setTimeout(() => {
-        zoomableViewRef.current?.zoomTo(1);
-        zoomableViewRef.current?.moveTo(0, 0);
-      }, 100);
-    }
-  }, [floor?.number]);
 
   if (!floor) {
     return (
@@ -66,7 +54,6 @@ export default function FloorPlanViewer({ floor }: Readonly<Props>) {
   return (
     <View style={styles.container}>
       <ReactNativeZoomableView
-        ref={zoomableViewRef}
         key={floor?.number}
         maxZoom={5}
         minZoom={1}
