@@ -739,7 +739,7 @@ func TestNewGraphFromFloor_EmptyVertices_ReturnsError(t *testing.T) {
 		Edges:       []domain.Edge{},
 	}
 
-	_, err := newGraphFromFloor(floor)
+	_, err := newGraphFromFloor(floor, false)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "no vertices")
 }
@@ -757,7 +757,7 @@ func TestNewGraphFromFloor_InvalidEdgeIndex_ReturnsError(t *testing.T) {
 		},
 	}
 
-	_, err := newGraphFromFloor(floor)
+	_, err := newGraphFromFloor(floor, false)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid vertex index")
 }
@@ -775,14 +775,14 @@ func TestNewGraphFromFloor_NegativeEdgeIndex_ReturnsError(t *testing.T) {
 		},
 	}
 
-	_, err := newGraphFromFloor(floor)
+	_, err := newGraphFromFloor(floor, false)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid vertex index")
 }
 
 func TestGraph_ShortestPath_SameStartAndGoal(t *testing.T) {
 	floor := createSimpleFloorWithStairs(1, "TestFloor")
-	g, err := newGraphFromFloor(floor)
+	g, err := newGraphFromFloor(floor, false)
 	assert.NoError(t, err)
 
 	path, dist, err := g.shortestPath(0, 0)
@@ -793,7 +793,7 @@ func TestGraph_ShortestPath_SameStartAndGoal(t *testing.T) {
 
 func TestGraph_ShortestPath_OutOfRange_ReturnsError(t *testing.T) {
 	floor := createSimpleFloorWithStairs(1, "TestFloor")
-	g, err := newGraphFromFloor(floor)
+	g, err := newGraphFromFloor(floor, false)
 	assert.NoError(t, err)
 
 	_, _, err = g.shortestPath(-1, 2)
@@ -820,7 +820,7 @@ func TestGraph_ShortestPath_NoPathExists_ReturnsError(t *testing.T) {
 		},
 	}
 
-	g, err := newGraphFromFloor(floor)
+	g, err := newGraphFromFloor(floor, false)
 	assert.NoError(t, err)
 
 	_, _, err = g.shortestPath(0, 2)
@@ -843,7 +843,7 @@ func TestGraph_NearestVertex(t *testing.T) {
 		},
 	}
 
-	g, err := newGraphFromFloor(floor)
+	g, err := newGraphFromFloor(floor, false)
 	assert.NoError(t, err)
 
 	// Point closest to vertex 2 (1,1)
@@ -857,7 +857,7 @@ func TestGraph_NearestVertex(t *testing.T) {
 
 func TestGraph_PathCoordinates(t *testing.T) {
 	floor := createSimpleFloorWithStairs(1, "Test")
-	g, err := newGraphFromFloor(floor)
+	g, err := newGraphFromFloor(floor, false)
 	assert.NoError(t, err)
 
 	coords := g.pathCoordinates([]int{0, 1, 2})
@@ -1284,7 +1284,7 @@ func TestGraph_NearestPointOnEdge_FindsCorrectEdge(t *testing.T) {
 		},
 	}
 
-	g, err := newGraphFromFloor(floor)
+	g, err := newGraphFromFloor(floor, false)
 	assert.NoError(t, err)
 
 	// Point (1, 0.5) should be closest to edge 0-1 at (1, 0)
@@ -1309,7 +1309,7 @@ func TestGraph_InsertVertexOnEdge_SplitsCorrectly(t *testing.T) {
 		},
 	}
 
-	g, err := newGraphFromFloor(floor)
+	g, err := newGraphFromFloor(floor, false)
 	assert.NoError(t, err)
 	assert.Len(t, g.pos, 2)
 
@@ -1366,7 +1366,7 @@ func TestGraph_NearestVertexWithSplit_UsesExistingVertexWhenClose(t *testing.T) 
 		},
 	}
 
-	g, err := newGraphFromFloor(floor)
+	g, err := newGraphFromFloor(floor, false)
 	assert.NoError(t, err)
 
 	// Point exactly at vertex 0 - should return vertex 0, not split
@@ -1388,7 +1388,7 @@ func TestGraph_NearestVertexWithSplit_SplitsEdgeWhenFarFromVertices(t *testing.T
 		},
 	}
 
-	g, err := newGraphFromFloor(floor)
+	g, err := newGraphFromFloor(floor, false)
 	assert.NoError(t, err)
 
 	// Point above the middle of the edge - should split the edge
