@@ -5,9 +5,6 @@ import FloorPlanViewer from "../components/indoor/FloorPlanViewer";
 
 // Mock dependencies
 jest.mock("@/hooks/useSvgDimensions");
-jest.mock("react-native-svg", () => ({
-  SvgXml: "SvgXml",
-}));
 jest.mock("@openspacelabs/react-native-zoomable-view", () => {
   const React = require("react");
   const { View } = require("react-native");

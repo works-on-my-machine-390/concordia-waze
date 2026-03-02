@@ -2,30 +2,6 @@ import type { Coordinate } from "@/hooks/queries/indoorMapQueries";
 import { renderWithProviders } from "@/test_utils/renderUtils";
 import RoomPolygon from "../components/indoor/RoomPolygon";
 
-jest.mock("react-native-svg", () => {
-  const { View } = require("react-native");
-  return {
-    __esModule: true,
-    default: ({ children, width, height }: any) => (
-      <View testID="svg" accessibilityLabel={`svg-${width}x${height}`}>
-        {children}
-      </View>
-    ),
-    Svg: ({ children, width, height }: any) => (
-      <View testID="svg" accessibilityLabel={`svg-${width}x${height}`}>
-        {children}
-      </View>
-    ),
-    Polygon: ({ points, fill, stroke, strokeWidth }: any) => (
-      <View
-        testID="polygon"
-        accessibilityLabel={`polygon-${points}`}
-        accessibilityHint={`fill:${fill},stroke:${stroke},strokeWidth:${strokeWidth}`}
-      />
-    ),
-  };
-});
-
 describe("RoomPolygon", () => {
   const defaultProps = {
     width: 1000,
