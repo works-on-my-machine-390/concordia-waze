@@ -72,9 +72,10 @@ export default function FloorPlanViewer({ floor }: Props) {
         minZoom={1}
         zoomStep={0.5}
         initialZoom={1}
-        bindToBorders={true}
+        bindToBorders={false}
         contentWidth={DISPLAY_WIDTH}
         contentHeight={DISPLAY_HEIGHT}
+        style={{ flex: 1 }}
       >
         <View
           style={{
@@ -117,8 +118,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f5f5f5",
-    justifyContent: "center",
-    alignItems: "center",
   },
   emptyContainer: {
     flex: 1,
