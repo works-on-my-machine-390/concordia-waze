@@ -5,6 +5,11 @@ import {
   LockersIcon,
   StairsIcon,
   StudySpotIcon,
+  SittingAreaIcon,
+  SecurityIcon,
+  SlopeUpIcon,
+  CirculationDeskIcon,
+  ReferenceDeskIcon,
 } from "@/app/icons";
 import type { PointOfInterest } from "@/hooks/queries/indoorMapQueries";
 import { StyleSheet, View } from "react-native";
@@ -29,12 +34,21 @@ const getIconComponent = (type: string) => {
     case "elevator":
       return ElevatorIcon;
     case "fire_escape":
-    case "fireescape":
       return FireEscapeIcon;
     case "study_spot":
       return StudySpotIcon;
     case "lockers":
       return LockersIcon;
+    case "sitting_area":
+      return SittingAreaIcon;
+    case "campus_security":
+      return SecurityIcon;
+    case "ramp":
+      return SlopeUpIcon;
+    case "circulation_desk":
+      return CirculationDeskIcon;
+    case "reference_desk":
+      return ReferenceDeskIcon;
     default:
       return null;
   }

@@ -245,3 +245,27 @@ export const LockersIcon: React.FC<IconProps> = ({
   size = DEFAULT_ICON_SIZE,
   color = DEFAULT_ICON_COLOR,
 }) => <MaterialCommunityIcons name="locker" size={size} color={color} />;
+
+// sitting area icon
+export const SittingAreaIcon: React.FC<IconProps> = ({
+  size = DEFAULT_ICON_SIZE,
+  color = DEFAULT_ICON_COLOR,
+}) => <MaterialIcons name="chair" size={size} color={color} />;
+
+// security icon
+export const SecurityIcon: React.FC<IconProps> = ({
+  size = DEFAULT_ICON_SIZE,
+  color = DEFAULT_ICON_COLOR,
+}) => <MaterialIcons name="security" size={size} color={color} />;
+
+// circulation desk icon
+export const CirculationDeskIcon: React.FC<IconProps> = ({
+  size = DEFAULT_ICON_SIZE,
+  color = DEFAULT_ICON_COLOR,
+}) => <Ionicons name="information-circle-outline" size={size} color={color} />;
+
+// reference desk icon
+export const ReferenceDeskIcon: React.FC<IconProps> = ({
+  size = DEFAULT_ICON_SIZE,
+  color = DEFAULT_ICON_COLOR,
+}) => <MaterialCommunityIcons name="bookshelf" size={size} color={color} />;
