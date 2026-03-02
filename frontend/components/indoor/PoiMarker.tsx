@@ -1,10 +1,10 @@
 import {
-    BathroomIcon,
-    ElevatorIcon,
-    FireEscapeIcon,
-    LockersIcon,
-    StairsIcon,
-    StudySpotIcon,
+  BathroomIcon,
+  ElevatorIcon,
+  FireEscapeIcon,
+  LockersIcon,
+  StairsIcon,
+  StudySpotIcon,
 } from "@/app/icons";
 import type { PointOfInterest } from "@/hooks/queries/indoorMapQueries";
 import { StyleSheet, View } from "react-native";
