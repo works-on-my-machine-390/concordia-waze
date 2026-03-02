@@ -8,8 +8,8 @@ from pathlib import Path
 
 EPS = 1e-7
 
-DATA_DIR    = Path(r"") # enter appropriate path
-OUTPUT_PATH = Path(r"") # enter appropriate path
+DATA_DIR    = Path(r"C:\Users\amal_\gitStuff\concordia-waze\campusFloormaps\Data") # enter appropriate path
+OUTPUT_PATH = Path(r"C:\Users\amal_\gitStuff\concordia-waze\backend\resource\floor_information.json") # enter appropriate path
 
 # ── Vec2 helpers ─────────────────────────────────────────────────────────────
 
