@@ -1,8 +1,8 @@
-import { useState } from "react";
-import { View, ActivityIndicator, Text, StyleSheet } from "react-native";
-import { useGetBuildingFloors } from "@/hooks/queries/indoorMapQueries";
-import FloorSelector from "@/components/indoor/FloorSelector";
 import FloorPlanViewer from "@/components/indoor/FloorPlanViewer";
+import FloorSelector from "@/components/indoor/FloorSelector";
+import { useGetBuildingFloors } from "@/hooks/queries/indoorMapQueries";
+import { useState } from "react";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 
 type Props = {
   buildingCode: string;

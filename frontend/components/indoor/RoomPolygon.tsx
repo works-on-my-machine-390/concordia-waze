@@ -1,6 +1,6 @@
-import { View, StyleSheet } from "react-native";
-import Svg, { Polygon } from "react-native-svg";
 import type { Coordinate } from "@/hooks/queries/indoorMapQueries";
+import { StyleSheet, View } from "react-native";
+import Svg, { Polygon } from "react-native-svg";
 
 type Props = {
   polygon: Coordinate[];

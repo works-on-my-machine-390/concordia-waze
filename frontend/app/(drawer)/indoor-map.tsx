@@ -1,31 +1,42 @@
-import { View, StyleSheet } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useLocalSearchParams, useNavigation } from "expo-router";
-import { DrawerActions } from "@react-navigation/native";
 import IndoorMapContainer from "@/components/indoor/IndoorMapContainer";
-import { MenuIcon } from "../icons";
+import IndoorMapHeader from "@/components/indoor/IndoorMapHeader";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useState } from "react";
+import { StyleSheet, View } from "react-native";
 import { COLORS } from "../constants";
 
 export default function IndoorMapPage() {
-  const navigation = useNavigation();
+  const router = useRouter();
   const params = useLocalSearchParams<{
     buildingCode?: string;
   }>();
 
-  const buildingCode = params.buildingCode || "H";
+  const buildingCode = params.buildingCode || "VL";
+  const [searchText, setSearchText] = useState("");
 
-  const handleMenuPress = () => {
-    navigation.dispatch(DrawerActions.openDrawer());
+  const handleSearchPress = () => {
+    //searching for rooms, not doing anything rn
+  };
+
+  const handleSearchClear = () => {
+    setSearchText("");
+  };
+
+  const handleBackToOutdoor = () => {
+    router.push("/map");
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
-      <View style={styles.header}>
-        <MenuIcon onPress={handleMenuPress} color={COLORS.maroon} />
-      </View>
-
+    <View style={styles.mapContainer}>
       <IndoorMapContainer buildingCode={buildingCode} />
-    </SafeAreaView>
+
+      <IndoorMapHeader
+        searchText={searchText}
+        onSearchPress={handleSearchPress}
+        onSearchClear={handleSearchClear}
+        onBackToOutdoor={handleBackToOutdoor}
+      />
+    </View>
   );
 }
 
@@ -34,13 +45,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: COLORS.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+  mapContainer: {
+    flex: 1,
+    position: "relative",
   },
 });

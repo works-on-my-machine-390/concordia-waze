@@ -1,5 +1,5 @@
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import type { Floor } from "@/hooks/queries/indoorMapQueries";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 type Props = {
   floors: Floor[];
@@ -7,7 +7,11 @@ type Props = {
   onSelectFloor: (floorNumber: number) => void;
 };
 
-export default function FloorSelector({ floors, selectedFloor, onSelectFloor }: Props) {
+export default function FloorSelector({
+  floors,
+  selectedFloor,
+  onSelectFloor,
+}: Props) {
   if (floors.length === 0) {
     return null;
   }

@@ -1,6 +1,6 @@
-import { View, StyleSheet } from "react-native";
-import { memo } from "react";
 import type { PointOfInterest } from "@/hooks/queries/indoorMapQueries";
+import { memo } from "react";
+import { StyleSheet, View } from "react-native";
 import RoomPolygon from "./RoomPolygon";
 
 type Props = {

@@ -1,8 +1,8 @@
-import { View, StyleSheet, Dimensions, Text, ScrollView } from "react-native";
-import { SvgUri } from "react-native-svg";
-import type { Floor } from "@/hooks/queries/indoorMapQueries";
 import { API_URL } from "@/hooks/api";
+import type { Floor } from "@/hooks/queries/indoorMapQueries";
 import { useSvgDimensions } from "@/hooks/useSvgDimensions";
+import { Dimensions, ScrollView, StyleSheet, Text, View } from "react-native";
+import { SvgUri } from "react-native-svg";
 import PolygonOverlay from "./PolygonOverlay";
 
 type Props = {
@@ -46,10 +46,8 @@ export default function FloorPlanViewer({ floor }: Props) {
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.scrollContent}
-      showsVerticalScrollIndicator={true}
-      showsHorizontalScrollIndicator={false}
-      maximumZoomScale={5} 
-      minimumZoomScale={0.5} 
+      maximumZoomScale={5}
+      minimumZoomScale={0.5}
       bouncesZoom={true}
     >
       <View
@@ -83,6 +81,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#f5f5f5",
   },
   scrollContent: {
+    flexGrow: 1,
+    justifyContent: "center",
+    alignItems: "center",
     padding: 16,
   },
   emptyContainer: {
