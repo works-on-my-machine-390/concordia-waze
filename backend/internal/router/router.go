@@ -117,6 +117,7 @@ func SetupRouter() *gin.Engine {
 	{
 		shuttleGroup.GET("", shuttleHandler.GetDepartureData)
 		shuttleGroup.GET("/:day/:campus_code", shuttleHandler.GetCampusDaySchedule)
+		shuttleGroup.GET("/markers", shuttleHandler.GetShuttleMarkerPositions)
 	}
 
 	router.GET("/campuses/:campus/buildings", campusHandler.GetCampusBuildings)
@@ -171,7 +172,7 @@ func findIndoorDataDir() (string, error) {
 
 	cur := wd
 	for {
-		candidate := filepath.Join(cur, "campusData", "GeoJsonDataParser", "Data")
+		candidate := filepath.Join(cur, "campusFloormaps", "Data")
 		if stat, err := os.Stat(candidate); err == nil && stat.IsDir() {
 			return candidate, nil
 		}

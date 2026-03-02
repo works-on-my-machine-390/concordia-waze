@@ -3,6 +3,7 @@ import {
   TextSearchRankPreferenceType,
   useGetNearbyPoi,
 } from "@/hooks/queries/poiQueries";
+import { useMapStore } from "@/hooks/useMapStore";
 import { fireEvent, render } from "@testing-library/react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import PoiSearchBottomSheet from "../components/poi/PoiSearchBottomSheet";
@@ -22,6 +23,10 @@ jest.mock("@/hooks/queries/poiQueries", () => ({
 
 jest.mock("@/app/utils/mapUtils", () => ({
   getDistanceInMeters: jest.fn(),
+}));
+
+jest.mock("@/hooks/useMapStore", () => ({
+  useMapStore: jest.fn(),
 }));
 
 jest.mock("react-native-gesture-handler", () => {
@@ -93,6 +98,7 @@ describe("PoiSearchBottomSheet", () => {
   const mockedUseRouter = useRouter as jest.Mock;
   const mockedUseGetNearbyPoi = useGetNearbyPoi as jest.Mock;
   const mockedGetDistanceInMeters = getDistanceInMeters as jest.Mock;
+  const mockedUseMapStore = jest.mocked(useMapStore);
 
   const mockSetParams = jest.fn();
   const mockRefetch = jest.fn();
@@ -146,6 +152,11 @@ describe("PoiSearchBottomSheet", () => {
       refetch: mockRefetch,
     });
 
+    mockedUseMapStore.mockReturnValue({
+      closeSheet: jest.fn(),
+      userLocation: undefined,
+    });
+
     mockedGetDistanceInMeters.mockImplementation((poi: { latitude: number }) =>
       poi.latitude === 45.51 ? 300 : 100,
     );
@@ -174,7 +185,6 @@ describe("PoiSearchBottomSheet", () => {
       <PoiSearchBottomSheet
         onDirectionsPress={jest.fn()}
         moveCamera={moveCamera}
-        userLocation={{ latitude: 45.5, longitude: -73.57 }}
       />,
     );
 
@@ -222,11 +232,13 @@ describe("PoiSearchBottomSheet", () => {
       rankPref: TextSearchRankPreferenceType.DISTANCE,
     });
 
+    mockedUseMapStore.mockReturnValue({
+      closeSheet: jest.fn(),
+      userLocation: { coords: { latitude: 45.5, longitude: -73.57 } },
+    });
+
     const { getAllByTestId } = render(
-      <PoiSearchBottomSheet
-        onDirectionsPress={jest.fn()}
-        userLocation={{ latitude: 45.5, longitude: -73.57 }}
-      />,
+      <PoiSearchBottomSheet onDirectionsPress={jest.fn()} />,
     );
 
     const rows = getAllByTestId("poi-result-row");

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/works-on-my-machine-390/concordia-waze/internal/constants"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
 )
 
@@ -26,6 +27,11 @@ type DirectionsService struct {
 	fetcher     DirectionsFetcher
 	shuttleRepo ShuttleScheduleProvider // optional
 }
+
+const (
+	shuttleDuration  = "25 mins"
+	noShuttleErrText = "no shuttle available"
+)
 
 func NewDirectionsService(fetcher DirectionsFetcher) *DirectionsService {
 	return &DirectionsService{
@@ -54,10 +60,11 @@ func (s *DirectionsService) GetDirectionsWithSchedule(start, end domain.LatLng, 
 	}
 
 	allowed := map[string]bool{
-		"walking": true,
-		"driving": true,
-		"transit": true,
-		"shuttle": true,
+		"walking":   true,
+		"driving":   true,
+		"transit":   true,
+		"shuttle":   true,
+		"bicycling": true,
 	}
 	if !allowed[m] {
 		return domain.DirectionsResponse{}, errors.New("invalid mode")
@@ -104,52 +111,39 @@ func (s *DirectionsService) GetDirectionsWithSchedule(start, end domain.LatLng, 
 // ---- Shuttle composition logic ----
 
 // Default shuttle stop coordinates (still fine; buildings endpoint provides real start/end anyway)
-var sgwShuttleStop = domain.LatLng{Lat: 45.495376, Lng: -73.577997}
-var loyShuttleStop = domain.LatLng{Lat: 45.459026, Lng: -73.638606}
+var sgwShuttleStop = constants.SGWShuttleStopPosition
+var loyShuttleStop = constants.LOYShuttleStopPosition
+
+// shuttleDirection determines which stop to depart from based on proximity of start to each stop.
+// Returns (fromStop, toStop, fromCampus, toCampus).
+func shuttleDirection(start domain.LatLng) (fromStop, toStop domain.LatLng, fromCampus, toCampus string) {
+	if haversineKm(start, sgwShuttleStop) <= haversineKm(start, loyShuttleStop) {
+		return sgwShuttleStop, loyShuttleStop, "SGW", "LOY"
+	}
+	return loyShuttleStop, sgwShuttleStop, "LOY", "SGW"
+}
 
 func (s *DirectionsService) getShuttleDirectionsAt(start, end domain.LatLng, ref time.Time, day string, userProvidedTime bool) (domain.DirectionsResponse, error) {
-	// Walk from start -> SGW stop
-	walkToStop, err := s.fetcher.GetDirections(start, sgwShuttleStop, "walking")
+	// Determine which direction the shuttle should run based on start location.
+	fromStop, toStop, fromCampus, toCampus := shuttleDirection(start)
+
+	walkToStop, walkFromStop, walkDur, err := s.fetchShuttleWalkLegs(start, end, fromStop, toStop)
 	if err != nil {
-		return domain.DirectionsResponse{}, fmt.Errorf("walking to shuttle stop: %w", err)
+		return domain.DirectionsResponse{}, err
 	}
 
-	// Walk from LOY stop -> end
-	walkFromStop, err := s.fetcher.GetDirections(loyShuttleStop, end, "walking")
-	if err != nil {
-		return domain.DirectionsResponse{}, fmt.Errorf("walking from shuttle stop: %w", err)
-	}
-
-	// You can only catch a shuttle AFTER you arrive at the stop
-	walkDur := totalDurationFromSteps(walkToStop.Steps)
+	// You can only catch a shuttle AFTER you arrive at the stop.
 	arrivalAtStop := ref.Add(walkDur)
 
 	// Shuttle middle leg (based on arrivalAtStop)
-	shuttleStep, nextDeparture, err := s.buildShuttleStepAt(arrivalAtStop, day)
-
+	shuttleStep, nextDeparture, err := s.buildShuttleStepAt(arrivalAtStop, day, fromCampus, toCampus, fromStop, toStop)
 	if err != nil {
 		// build shuttle step WITHOUT schedule
-		shuttleStep = domain.DirectionStep{
-			Instruction: "Take the Concordia Shuttle Bus from SGW to LOY",
-			Distance:    formatKm(haversineKm(sgwShuttleStop, loyShuttleStop)),
-			Duration:    "25 mins",
-			Start:       sgwShuttleStop,
-			End:         loyShuttleStop,
-		}
+		shuttleStep = newBaseShuttleStep(fromCampus, toCampus, fromStop, toStop)
+		shuttleStep.Instruction = fmt.Sprintf("Take the Concordia Shuttle Bus from %s to %s", fromCampus, toCampus)
 		nextDeparture = ""
 	}
-
-	// Steps = walking + shuttle + walking
-	steps := make([]domain.DirectionStep, 0, len(walkToStop.Steps)+1+len(walkFromStop.Steps))
-	steps = append(steps, walkToStop.Steps...)
-	steps = append(steps, shuttleStep)
-	steps = append(steps, walkFromStop.Steps...)
-
-	// Merge polyline
-	poly := make([]domain.LatLng, 0, len(walkToStop.Polyline)+2+len(walkFromStop.Polyline))
-	poly = append(poly, walkToStop.Polyline...)
-	poly = append(poly, sgwShuttleStop, loyShuttleStop)
-	poly = append(poly, walkFromStop.Polyline...)
+	applyShuttlePolyline(&shuttleStep, fromCampus, toCampus)
 
 	// Departure message:
 	// leaveAt = (nextDepartureTime - walkDur)
@@ -175,41 +169,33 @@ func (s *DirectionsService) getShuttleDirectionsAt(start, end domain.LatLng, ref
 		depMsg = msgPrefix + time.Now().Format("15:04")
 	}
 
-	return domain.DirectionsResponse{
-		Mode:             "shuttle",
-		DepartureMessage: depMsg,
-		Polyline:         poly,
-		Steps:            steps,
-	}, nil
+	return buildShuttleRouteResponse(depMsg, walkToStop, shuttleStep, walkFromStop), nil
 }
 
-func (s *DirectionsService) buildShuttleStepAt(ref time.Time, day string) (domain.DirectionStep, string, error) {
-	distKm := haversineKm(sgwShuttleStop, loyShuttleStop)
+func (s *DirectionsService) buildShuttleStepAt(ref time.Time, day, fromCampus, toCampus string, fromStop, toStop domain.LatLng) (domain.DirectionStep, string, error) {
+	distKm := haversineKm(fromStop, toStop)
 	distStr := formatKm(distKm)
 
-	durationStr := "25 mins"
+	durationStr := shuttleDuration
 
 	if s.shuttleRepo == nil {
-		return domain.DirectionStep{}, "", errors.New("no shuttle available")
+		return domain.DirectionStep{}, "", errors.New(noShuttleErrText)
 	}
 
-	times, err := s.shuttleRepo.GetDepartures(day, "SGW")
+	times, err := s.shuttleRepo.GetDepartures(day, fromCampus)
 	if err != nil || len(times) == 0 {
-		return domain.DirectionStep{}, "", errors.New("no shuttle available")
+		return domain.DirectionStep{}, "", errors.New(noShuttleErrText)
 	}
 
 	next := pickNextDepartureAt(ref, times)
 	if next == "" {
-		return domain.DirectionStep{}, "", errors.New("no shuttle available")
+		return domain.DirectionStep{}, "", errors.New(noShuttleErrText)
 	}
 
-	step := domain.DirectionStep{
-		Instruction: fmt.Sprintf("Take the Concordia Shuttle Bus from SGW to LOY (day: %s, next departure: %s)", day, next),
-		Distance:    distStr,
-		Duration:    durationStr,
-		Start:       sgwShuttleStop,
-		End:         loyShuttleStop,
-	}
+	step := newBaseShuttleStep(fromCampus, toCampus, fromStop, toStop)
+	step.Distance = distStr
+	step.Duration = durationStr
+	step.Instruction = fmt.Sprintf("Take the Concordia Shuttle Bus from %s to %s (day: %s, next departure: %s)", fromCampus, toCampus, day, next)
 	return step, next, nil
 }
 
@@ -261,40 +247,26 @@ func (s *DirectionsService) GetShuttleDirectionsManual(start, end domain.LatLng,
 	}
 
 	if s.shuttleRepo == nil {
-		return domain.DirectionsResponse{}, errors.New("no shuttle available")
+		return domain.DirectionsResponse{}, errors.New(noShuttleErrText)
 	}
 
-	times, err := s.shuttleRepo.GetDepartures(d, "SGW")
+	// Determine direction based on start proximity to shuttle stops.
+	fromStop, toStop, fromCampus, toCampus := shuttleDirection(start)
+
+	times, err := s.shuttleRepo.GetDepartures(d, fromCampus)
 	if err != nil || len(times) == 0 {
-		return domain.DirectionsResponse{}, errors.New("no shuttle available")
+		return domain.DirectionsResponse{}, errors.New(noShuttleErrText)
 	}
 
 	// validate the departure exists exactly in schedule
-	ok := false
-	for _, t := range times {
-		if strings.TrimSpace(t) == departure {
-			ok = true
-			break
-		}
-	}
-	if !ok {
+	if !hasExactDeparture(times, departure) {
 		return domain.DirectionsResponse{}, errors.New("invalid shuttle departure")
 	}
 
-	// Walk to stop
-	walkToStop, err := s.fetcher.GetDirections(start, sgwShuttleStop, "walking")
+	walkToStop, walkFromStop, walkDur, err := s.fetchShuttleWalkLegs(start, end, fromStop, toStop)
 	if err != nil {
-		return domain.DirectionsResponse{}, fmt.Errorf("walking to shuttle stop: %w", err)
+		return domain.DirectionsResponse{}, err
 	}
-
-	// Walk from stop to destination
-	walkFromStop, err := s.fetcher.GetDirections(loyShuttleStop, end, "walking")
-	if err != nil {
-		return domain.DirectionsResponse{}, fmt.Errorf("walking from shuttle stop: %w", err)
-	}
-
-	// Departure message: compute "leave at" based on walking time to stop
-	walkDur := totalDurationFromSteps(walkToStop.Steps)
 
 	now := time.Now()
 	targetWd, ok := weekdayFromString(d)
@@ -307,31 +279,69 @@ func (s *DirectionsService) GetShuttleDirectionsManual(start, end domain.LatLng,
 	leaveAt := depDateTime.Add(-walkDur).Format("15:04")
 	depMsg := fmt.Sprintf("Depart at %s to catch the %s shuttle", leaveAt, departure)
 
-	// Shuttle step
-	shuttleStep := domain.DirectionStep{
-		Instruction: fmt.Sprintf("Take the Concordia Shuttle Bus from SGW to LOY (day: %s, departure: %s)", d, depParsed.Format("15:04")),
-		Distance:    formatKm(haversineKm(sgwShuttleStop, loyShuttleStop)),
-		Duration:    "25 mins",
-		Start:       sgwShuttleStop,
-		End:         loyShuttleStop,
+	shuttleStep := newBaseShuttleStep(fromCampus, toCampus, fromStop, toStop)
+	shuttleStep.Instruction = fmt.Sprintf("Take the Concordia Shuttle Bus from %s to %s (day: %s, departure: %s)", fromCampus, toCampus, d, depParsed.Format("15:04"))
+	applyShuttlePolyline(&shuttleStep, fromCampus, toCampus)
+
+	return buildShuttleRouteResponse(depMsg, walkToStop, shuttleStep, walkFromStop), nil
+}
+
+func (s *DirectionsService) fetchShuttleWalkLegs(start, end, fromStop, toStop domain.LatLng) (domain.DirectionsResponse, domain.DirectionsResponse, time.Duration, error) {
+	walkToStop, err := s.fetcher.GetDirections(start, fromStop, "walking")
+	if err != nil {
+		return domain.DirectionsResponse{}, domain.DirectionsResponse{}, 0, fmt.Errorf("walking to shuttle stop: %w", err)
 	}
 
-	steps := make([]domain.DirectionStep, 0, len(walkToStop.Steps)+1+len(walkFromStop.Steps))
-	steps = append(steps, walkToStop.Steps...)
-	steps = append(steps, shuttleStep)
-	steps = append(steps, walkFromStop.Steps...)
+	walkFromStop, err := s.fetcher.GetDirections(toStop, end, "walking")
+	if err != nil {
+		return domain.DirectionsResponse{}, domain.DirectionsResponse{}, 0, fmt.Errorf("walking from shuttle stop: %w", err)
+	}
 
-	poly := make([]domain.LatLng, 0, len(walkToStop.Polyline)+2+len(walkFromStop.Polyline))
-	poly = append(poly, walkToStop.Polyline...)
-	poly = append(poly, sgwShuttleStop, loyShuttleStop)
-	poly = append(poly, walkFromStop.Polyline...)
+	return walkToStop, walkFromStop, totalDurationFromSteps(walkToStop.Steps), nil
+}
+
+func newBaseShuttleStep(fromCampus, toCampus string, fromStop, toStop domain.LatLng) domain.DirectionStep {
+	return domain.DirectionStep{
+		Instruction: fmt.Sprintf("Take the Concordia Shuttle Bus from %s to %s", fromCampus, toCampus),
+		Distance:    formatKm(haversineKm(fromStop, toStop)),
+		Duration:    shuttleDuration,
+		Start:       fromStop,
+		End:         toStop,
+		TravelMode:  "Shuttle",
+	}
+}
+
+func applyShuttlePolyline(step *domain.DirectionStep, fromCampus, toCampus string) {
+	if fromCampus == "LOY" && toCampus == "SGW" {
+		step.Polyline = constants.ShuttlePolylineLOYtoSGW
+		return
+	}
+	step.Polyline = constants.ShuttlePolylineSGWtoLOY
+}
+
+func buildShuttleRouteResponse(depMsg string, walkToStop domain.DirectionsResponse, shuttleStep domain.DirectionStep, walkFromStop domain.DirectionsResponse) domain.DirectionsResponse {
+	steps := make([]domain.DirectionStep, 0, len(walkToStop.Steps)+1+len(walkFromStop.Steps))
+	steps = append(steps, stripDegenerateSteps(walkToStop.Steps)...)
+	steps = append(steps, shuttleStep)
+	steps = append(steps, stripDegenerateSteps(walkFromStop.Steps)...)
+
+	combinedPolyline := buildCombinedShuttlePolyline(walkToStop.Polyline, shuttleStep.Polyline, walkFromStop.Polyline)
 
 	return domain.DirectionsResponse{
 		Mode:             "shuttle",
 		DepartureMessage: depMsg,
-		Polyline:         poly,
+		Polyline:         combinedPolyline,
 		Steps:            steps,
-	}, nil
+	}
+}
+
+func hasExactDeparture(times []string, departure string) bool {
+	for _, t := range times {
+		if strings.TrimSpace(t) == departure {
+			return true
+		}
+	}
+	return false
 }
 
 // ---- Helpers ----
@@ -449,4 +459,128 @@ func pickNextDepartureAt(ref time.Time, times []string) string {
 func pickNextDeparture(times []string) string {
 	now := time.Now().Truncate(time.Minute)
 	return pickNextDepartureAt(now, times)
+}
+
+// stripDegenerateSteps removes steps where start == end (zero-distance walk that
+// Google returns when the origin is already at the destination after road snapping).
+// These steps carry no navigational value and clutter the response.
+func stripDegenerateSteps(steps []domain.DirectionStep) []domain.DirectionStep {
+	filtered := steps[:0:0] // same backing array, zero length
+	for _, s := range steps {
+		if s.Start.Lat == s.End.Lat && s.Start.Lng == s.End.Lng {
+			continue
+		}
+		filtered = append(filtered, s)
+	}
+	return filtered
+}
+
+// ---- Shuttle polyline helpers ----
+
+// buildCombinedShuttlePolyline merges three encoded polylines into one:
+// the walking leg to the shuttle stop, the shuttle leg (walking directions between
+// the stops, following the Sherbrooke corridor the shuttle actually uses), and the
+// walking leg from the shuttle stop to the destination.
+// If any segment fails to decode it is silently skipped; the result is never nil.
+func buildCombinedShuttlePolyline(walkToEncoded, shuttleLegEncoded, walkFromEncoded string) string {
+	toPoints, _ := decodePolyline(walkToEncoded)
+	shuttlePoints, _ := decodePolyline(shuttleLegEncoded)
+	fromPoints, _ := decodePolyline(walkFromEncoded)
+
+	combined := make([]domain.LatLng, 0, len(toPoints)+len(shuttlePoints)+len(fromPoints))
+	combined = append(combined, toPoints...)
+	combined = append(combined, shuttlePoints...)
+	combined = append(combined, fromPoints...)
+
+	return encodePolyline(combined)
+}
+
+func decodePolyline(encoded string) ([]domain.LatLng, error) {
+	var (
+		points []domain.LatLng
+		lat    int
+		lng    int
+		i      int
+	)
+
+	for i < len(encoded) {
+		var err error
+		var dlat int
+		dlat, i, err = decodeSignedInt(encoded, i)
+		if err != nil {
+			return nil, err
+		}
+		lat += dlat
+
+		var dlng int
+		dlng, i, err = decodeSignedInt(encoded, i)
+		if err != nil {
+			return nil, err
+		}
+		lng += dlng
+
+		points = append(points, domain.LatLng{
+			Lat: float64(lat) / 1e5,
+			Lng: float64(lng) / 1e5,
+		})
+	}
+
+	return points, nil
+}
+
+func decodeSignedInt(encoded string, i int) (int, int, error) {
+	var result int
+	var shift uint
+
+	for {
+		if i >= len(encoded) {
+			return 0, i, errors.New("invalid polyline encoding")
+		}
+		b := int(encoded[i]) - 63
+		i++
+		result |= (b & 0x1f) << shift
+		shift += 5
+		if b < 0x20 {
+			break
+		}
+	}
+
+	value := (result >> 1) ^ (-(result & 1))
+	return value, i, nil
+}
+
+func encodePolyline(points []domain.LatLng) string {
+	if len(points) == 0 {
+		return ""
+	}
+
+	var out strings.Builder
+	prevLat := 0
+	prevLng := 0
+
+	for _, p := range points {
+		lat := int(math.Round(p.Lat * 1e5))
+		lng := int(math.Round(p.Lng * 1e5))
+
+		encodeSignedValue(&out, lat-prevLat)
+		encodeSignedValue(&out, lng-prevLng)
+
+		prevLat = lat
+		prevLng = lng
+	}
+
+	return out.String()
+}
+
+func encodeSignedValue(out *strings.Builder, value int) {
+	v := value << 1
+	if value < 0 {
+		v = ^v
+	}
+
+	for v >= 0x20 {
+		out.WriteByte(byte((0x20 | (v & 0x1f)) + 63))
+		v >>= 5
+	}
+	out.WriteByte(byte(v + 63))
 }

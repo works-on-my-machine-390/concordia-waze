@@ -7,6 +7,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import Octicons from "@expo/vector-icons/Octicons";
 import React from "react";
+import { Pressable, StyleSheet } from "react-native";
 import { COLORS } from "./constants";
 
 // Standard defaults
@@ -16,6 +17,11 @@ const DEFAULT_ICON_COLOR = COLORS.textPrimary;
 interface IconProps {
   size?: number;
   color?: string;
+}
+
+interface PressableIconProps extends IconProps {
+  onPress?: () => void;
+  testID?: string;
 }
 
 // Account icon
@@ -173,3 +179,36 @@ export const BikeIcon: React.FC<IconProps> = ({
   size = DEFAULT_ICON_SIZE,
   color = DEFAULT_ICON_COLOR,
 }) => <MaterialIcons name="directions-bike" size={size} color={color} />;
+
+export const ShuttleIcon: React.FC<IconProps> = ({
+  size = DEFAULT_ICON_SIZE,
+  color = DEFAULT_ICON_COLOR,
+}) => <MaterialCommunityIcons name="bus-clock" size={size} color={color} />;
+
+// Pressable menu button
+export const MenuIcon: React.FC<PressableIconProps> = ({
+  size = 26,
+  color = DEFAULT_ICON_COLOR,
+  onPress,
+  testID,
+}) => (
+  <Pressable style={styles.menuBtn} onPress={onPress} testID={testID}>
+    <Ionicons name="menu" size={size} color={color} />
+  </Pressable>
+);
+
+const styles = StyleSheet.create({
+  menuBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 26,
+    backgroundColor: "white",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
+  },
+});

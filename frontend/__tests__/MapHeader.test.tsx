@@ -2,7 +2,7 @@
  * Tests for MapHeader component
  */
 import { MapHeader } from "@/components/MapHeader";
-import { fireEvent, render } from "@testing-library/react-native";
+import { act, fireEvent, render } from "@testing-library/react-native";
 import * as expoRouter from "expo-router";
 
 // Mock expo-router
@@ -86,10 +86,14 @@ describe("MapHeader", () => {
     const loyolaButton = getByText("Loyola");
     const sgwButton = getByText("SGW");
 
-    fireEvent.press(loyolaButton);
+    act(() => {
+      fireEvent.press(loyolaButton);
+    });
     expect(mockOnCampusChange).toHaveBeenCalledWith("LOY");
 
-    fireEvent.press(sgwButton);
+    act(() => {
+      fireEvent.press(sgwButton);
+    });
     expect(mockOnCampusChange).toHaveBeenCalledWith("SGW");
   });
 
@@ -166,7 +170,9 @@ describe("MapHeader", () => {
     const searchInput = getByPlaceholderText("Where to…");
     const searchPill = searchInput.parent;
 
-    fireEvent.press(searchPill);
+    act(() => {
+      fireEvent.press(searchPill);
+    });
 
     expect(mockPush).toHaveBeenCalledWith({
       pathname: "/search",

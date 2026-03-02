@@ -115,13 +115,16 @@ func TestDirectionsService_PropagatesClientError(t *testing.T) {
 func TestDirectionsService_ShuttleMode_ComposesWalkingLegsAndShuttleStep(t *testing.T) {
 	f := &fakeDirectionsClient{
 		resp: domain.DirectionsResponse{
-			Mode: "walking",
-			Polyline: []domain.LatLng{
-				{Lat: 45.0, Lng: -73.0},
-				{Lat: 45.1, Lng: -73.1},
-			},
+			Mode:     "walking",
+			Polyline: "encoded-polyline",
 			Steps: []domain.DirectionStep{
-				{Instruction: "Walk segment", Distance: "0.2 km", Duration: "2 mins"},
+				{
+					Instruction: "Walk segment",
+					Distance:    "0.2 km",
+					Duration:    "2 mins",
+					Start:       domain.LatLng{Lat: 45.495, Lng: -73.578},
+					End:         domain.LatLng{Lat: 45.497, Lng: -73.579},
+				},
 			},
 		},
 	}
@@ -153,10 +156,10 @@ func TestDirectionsService_ShuttleMode_ComposesWalkingLegsAndShuttleStep(t *test
 	}
 	assert.True(t, foundShuttle)
 
-	assert.GreaterOrEqual(t, f.calls, 2)
-	for _, m := range f.modes {
-		assert.Equal(t, "walking", m)
-	}
+	// Current behavior composes shuttle with 2 walking API calls: to stop + from stop.
+	assert.Equal(t, 2, f.calls)
+	assert.Equal(t, "walking", f.modes[0])
+	assert.Equal(t, "walking", f.modes[1])
 
 	assert.NotEmpty(t, shuttleRepo.lastCampus)
 }

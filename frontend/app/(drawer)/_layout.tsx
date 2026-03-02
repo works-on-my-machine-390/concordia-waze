@@ -1,7 +1,13 @@
 import CustomDrawer from "@/components/CustomDrawer";
 import { Drawer } from "expo-router/drawer";
 import { COLORS } from "../constants";
-import { CalendarIcon, DirectoryIcon, FavoritesIcon, MapIcon } from "../icons";
+import {
+  CalendarIcon,
+  DirectoryIcon,
+  FavoritesIcon,
+  MapIcon,
+  ShuttleIcon,
+} from "../icons";
 
 const MapDrawerIcon = ({ color, size }: { color: string; size: number }) => (
   <MapIcon color={color} size={size} />
@@ -31,6 +37,14 @@ const ScheduleDrawerIcon = ({
   size: number;
 }) => <CalendarIcon color={color} size={size} />;
 
+const ShuttleDrawerIcon = ({
+  color,
+  size,
+}: {
+  color: string;
+  size: number;
+}) => <ShuttleIcon color={color} size={size} />;
+
 export default function DrawerLayout() {
   const getDrawerScreenOptions = (label: string) => ({
     headerShown: false,
@@ -44,8 +58,8 @@ export default function DrawerLayout() {
       screenOptions={{
         headerShown: false,
 
-        drawerActiveTintColor: COLORS.textPrimary, // Text/Icon color when selected
-        drawerActiveBackgroundColor: COLORS.conuRedLight, // Background color when selected
+        drawerActiveTintColor: COLORS.textPrimary,
+        drawerActiveBackgroundColor: COLORS.conuRedLight,
 
         drawerInactiveTintColor: "#333",
         drawerInactiveBackgroundColor: "transparent",
@@ -81,6 +95,13 @@ export default function DrawerLayout() {
         options={{
           ...getDrawerScreenOptions("Schedule"),
           drawerIcon: ScheduleDrawerIcon,
+        }}
+      />
+      <Drawer.Screen
+        name="shuttle"
+        options={{
+          ...getDrawerScreenOptions("Shuttle Bus"),
+          drawerIcon: ShuttleDrawerIcon,
         }}
       />
     </Drawer>

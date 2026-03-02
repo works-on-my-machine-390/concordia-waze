@@ -136,6 +136,14 @@ definitions:
     type: object
   domain.DirectionStep:
     properties:
+      arrival_stop:
+        type: string
+      arrival_time:
+        type: string
+      departure_stop:
+        type: string
+      departure_time:
+        type: string
       distance:
         type: string
       duration:
@@ -144,19 +152,35 @@ definitions:
         $ref: '#/definitions/domain.LatLng'
       instruction:
         type: string
+      maneuver:
+        type: string
+      num_stops:
+        type: integer
+      polyline:
+        type: string
       start:
         $ref: '#/definitions/domain.LatLng'
+      transit_headsign:
+        type: string
+      transit_line:
+        type: string
+      transit_type:
+        type: string
+      travel_mode:
+        type: string
     type: object
   domain.DirectionsResponse:
     properties:
       departure_message:
         type: string
+      distance:
+        type: string
+      duration:
+        type: string
       mode:
         type: string
       polyline:
-        items:
-          $ref: '#/definitions/domain.LatLng'
-        type: array
+        type: string
       steps:
         items:
           $ref: '#/definitions/domain.DirectionStep'
@@ -564,7 +588,7 @@ paths:
       - buildings
   /directions:
     get:
-      description: Returns route polyline + step instructions (walking/driving/transit/shuttle)
+      description: Returns route polyline + step instructions (walking/driving/transit/shuttle/bicycling)
       parameters:
       - description: Start latitude
         in: query
@@ -586,7 +610,7 @@ paths:
         name: end_lng
         required: true
         type: number
-      - description: Mode (walking, driving, transit, shuttle)
+      - description: Mode (walking, driving, transit, shuttle, bicycling)
         in: query
         name: mode
         type: string
@@ -642,7 +666,7 @@ paths:
         name: end_code
         required: true
         type: string
-      - description: Mode (walking, driving, transit, shuttle)
+      - description: Mode (walking, driving, transit, shuttle, bicycling)
         in: query
         name: mode
         type: string
@@ -936,6 +960,33 @@ paths:
               type: string
             type: object
       summary: Get shuttle departures for a campus on a given day
+      tags:
+      - shuttle
+  /shuttle/markers:
+    get:
+      consumes:
+      - application/json
+      description: Returns the latitude and longitude for shuttle stop markers at
+        both campuses.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              additionalProperties:
+                format: float64
+                type: number
+              type: object
+            type: object
+        "500":
+          description: internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get shuttle marker positions
       tags:
       - shuttle
   /users/{userId}/history:
