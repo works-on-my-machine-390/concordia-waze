@@ -151,16 +151,16 @@ export default function NavigationBottomSheet(
           <View style={NavigationBottomSheetStyles.navModeContainer}>
             <View style={NavigationBottomSheetStyles.navModeHeader}>
               <View>
-              <Text style={NavigationBottomSheetStyles.transitModeTitle}>
-                {navigationState.startLocation
-                  ? selectedOption.label
-                  : "Please select a start location"}
-              </Text>
-              {navigationState.currentDirections && (
-                <Text style={NavigationBottomSheetStyles.transitModeDuration}>
-                  {selectedOption.duration}
+                <Text style={NavigationBottomSheetStyles.transitModeTitle}>
+                  {navigationState.startLocation
+                    ? selectedOption.label
+                    : "Please select a start location"}
                 </Text>
-              )}
+                {!!navigationState.currentDirections && !!selectedOption.duration && (
+                  <Text style={NavigationBottomSheetStyles.transitModeDuration}>
+                    {selectedOption.duration}
+                  </Text>
+                )}
               </View>
               <TouchableOpacity
                 onPress={closeSheet}
@@ -177,6 +177,7 @@ export default function NavigationBottomSheet(
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
+                style={{ overflow: "visible" }}
                 contentContainerStyle={NavigationBottomSheetStyles.transitRow}
                 nestedScrollEnabled={true}
               >
@@ -281,7 +282,7 @@ const NavigationBottomSheetStyles = StyleSheet.create({
   navModeHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
+    alignItems: "flex-start",
   },
 
   transitModeTitle: {
@@ -296,9 +297,12 @@ const NavigationBottomSheetStyles = StyleSheet.create({
   },
 
   transitRow: {
+    display: "flex",
     flexDirection: "row",
     gap: 8,
     paddingBottom: 4,
+    overflow: "visible",
+    minHeight: 40,
   },
 
   transitChip: {

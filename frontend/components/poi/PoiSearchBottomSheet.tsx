@@ -18,6 +18,7 @@ import PoiSearchBottomSheetHeader from "./PoiSearchBottomSheetHeader";
 import PoiSearchRankPreferenceFilter from "./PoiSearchRankPreferenceFilter";
 import PoiSearchResult from "./PoiSearchResult";
 import { useNavigationStore } from "@/hooks/useNavigationStore";
+import useStartLocation from "@/hooks/useStartLocation";
 
 export type PoiSearchBottomSheetProps = {
   moveCamera?: (params: { latitude: number; longitude: number }) => void;
@@ -30,11 +31,12 @@ export type ExtendedPoiSearchResultModel = {
 export default function PoiSearchBottomSheet(
   props: Readonly<PoiSearchBottomSheetProps>,
 ) {
+  const { findAndSetStartLocation } = useStartLocation();
   const { closeSheet, userLocation, setCurrentMode } = useMapStore();
   const bottomSheetRef = useRef<BottomSheet>(null);
   const snapPoints = ["20%", "70%"];
   const navigationState = useNavigationStore();
-  
+
   const params = useLocalSearchParams<MapQueryParamsModel>();
   const router = useRouter();
 
@@ -91,14 +93,16 @@ export default function PoiSearchBottomSheet(
   };
 
   const handleDirectionsPressed = (result: PoiSearchResultModel) => {
-    console.log("running", result)
     setCurrentMode(MapMode.NAVIGATION);
+
+    findAndSetStartLocation();
+
     navigationState.setEndLocation({
       latitude: result.latitude,
       longitude: result.longitude,
       name: result.name,
     });
-  }
+  };
   const performRefetch = () => {
     poiSearchQuery.refetch();
   };

@@ -1,9 +1,11 @@
 import type { Building } from "@/hooks/queries/buildingQueries";
 import { useGetBuildingDetails } from "@/hooks/queries/buildingQueries";
+import { useSaveToHistory } from "@/hooks/queries/userHistoryQueries";
+import { useGetProfile } from "@/hooks/queries/userQueries";
 import { MapMode, useMapStore } from "@/hooks/useMapStore";
 import { useNavigationStore } from "@/hooks/useNavigationStore";
+import useStartLocation from "@/hooks/useStartLocation";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
-import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -26,9 +28,6 @@ import ListSection from "./BottomSheetListSection";
 import BuildingGallery from "./BuildingGallery";
 import MetroAccessibleChip from "./MetroAccessibleChip";
 import OpeningHours from "./OpeningHours";
-import { useSaveToHistory } from "@/hooks/queries/userHistoryQueries";
-import { getAddressFromLocation } from "@/app/utils/mapUtils";
-import { useGetProfile } from "@/hooks/queries/userQueries";
 
 export type BuildingBottomSheetProps = {};
 
@@ -61,7 +60,8 @@ export default function BuildingBottomSheet(
   const [sheetOpen, setSheetOpen] = useState(true);
 
   const mapState = useMapStore();
-  const queryClient = useQueryClient();
+
+  const { findAndSetStartLocation } = useStartLocation();
 
   const userProfileQuery = useGetProfile();
 
@@ -124,16 +124,6 @@ export default function BuildingBottomSheet(
 
   const navigationState = useNavigationStore();
   const handleStartNavigation = async () => {
-    const currentLocationDetails = queryClient.getQueryData<Building>([
-      "buildingDetails",
-      mapState.currentBuildingCode,
-    ]);
-
-    let startAddress = "";
-    if (mapState.userLocation && !currentLocationDetails) {
-      startAddress = await getAddressFromLocation(mapState.userLocation);
-    }
-
     navigationState.setEndLocation({
       code: building.code,
       name: building.long_name,
@@ -154,24 +144,7 @@ export default function BuildingBottomSheet(
       });
     }
 
-    if (!currentLocationDetails && !mapState.userLocation) {
-      navigationState.setStartLocation(null);
-      return;
-    }
-
-    navigationState.setStartLocation({
-      name: currentLocationDetails?.long_name || startAddress,
-      latitude:
-        currentLocationDetails?.latitude ||
-        mapState.userLocation?.coords.latitude ||
-        0,
-      longitude:
-        currentLocationDetails?.longitude ||
-        mapState.userLocation?.coords.longitude ||
-        0,
-      code: currentLocationDetails?.code,
-      address: currentLocationDetails?.address || startAddress,
-    });
+    findAndSetStartLocation();
   };
 
   return (
