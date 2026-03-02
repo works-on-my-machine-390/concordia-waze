@@ -1,0 +1,132 @@
+{
+    "type": "FeatureCollection",
+    "name": "POIs",
+    "crs": {
+        "type": "name",
+        "properties": {
+            "name": "urn:ogc:def:crs:EPSG::32198"
+        }
+    },
+    "features": [
+        {
+            "type": "Feature",
+            "properties": {
+                "fid": 1,
+                "floor": 1,
+                "type": "bathroom"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -402195.99874770687893,
+                    176978.777121880761115
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "fid": 2,
+                "floor": 1,
+                "type": "stairs"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -402181.735588069830555,
+                    176969.592511508380994
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "fid": 3,
+                "floor": 1,
+                "type": "stairs"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -402182.059750788845122,
+                    176963.865636805596296
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "fid": 4,
+                "floor": 1,
+                "type": "stairs"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -402160.935146932373755,
+                    176950.412883966055233
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "fid": 5,
+                "floor": 1,
+                "type": "stairs"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -402156.504923105705529,
+                    176953.762565395998536
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "fid": 6,
+                "floor": 1,
+                "type": "stairs"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -402143.59244146454148,
+                    176939.175243039848283
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "fid": 7,
+                "floor": 1,
+                "type": "stairs"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -402141.863573629758321,
+                    176943.929629585560178
+                ]
+            }
+        },
+        {
+            "type": "Feature",
+            "properties": {
+                "fid": 8,
+                "floor": 1,
+                "type": "stairs"
+            },
+            "geometry": {
+                "type": "Point",
+                "coordinates": [
+                    -402142.457871947903186,
+                    176934.528910733846715
+                ]
+            }
+        }
+    ]
+}
