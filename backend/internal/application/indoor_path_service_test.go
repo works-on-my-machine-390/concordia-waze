@@ -52,80 +52,72 @@ func createTestFloor(number int, name string, vertices []domain.Coordinates, edg
 	}
 }
 
-// Helper to create a simple floor graph (square with 4 vertices)
-func createSimpleFloorWithStairs(floorNum int, name string) domain.Floor {
-	vertices := []domain.Coordinates{
-		{X: 0, Y: 0},     // 0: bottom-left
-		{X: 1, Y: 0},     // 1: bottom-right
-		{X: 1, Y: 1},     // 2: top-right
-		{X: 0, Y: 1},     // 3: top-left
-		{X: 0.5, Y: 0.5}, // 4: center (stairs location)
-	}
-	edges := []domain.Edge{
-		{StartVertex: 0, EndVertex: 1},
-		{StartVertex: 1, EndVertex: 2},
-		{StartVertex: 2, EndVertex: 3},
-		{StartVertex: 3, EndVertex: 0},
-		{StartVertex: 0, EndVertex: 4},
-		{StartVertex: 1, EndVertex: 4},
-		{StartVertex: 2, EndVertex: 4},
-		{StartVertex: 3, EndVertex: 4},
-	}
-	pois := []domain.PointOfInterest{
-		{Name: "stairs_1", Type: "stairs", Position: domain.Coordinates{X: 0.5, Y: 0.5}},
+// Helper to create a simple floor graph with specified POIs
+func createSimpleFloor(floorNum int, name string, pois []domain.PointOfInterest) domain.Floor {
+	// For floors with both transitions, use 6 vertices; otherwise 5
+	hasBoth := len(pois) > 1
+	var vertices []domain.Coordinates
+	var edges []domain.Edge
+
+	if hasBoth {
+		vertices = []domain.Coordinates{
+			{X: 0, Y: 0},
+			{X: 1, Y: 0},
+			{X: 1, Y: 1},
+			{X: 0, Y: 1},
+			{X: 0.3, Y: 0.3},
+			{X: 0.7, Y: 0.7},
+		}
+		edges = []domain.Edge{
+			{StartVertex: 0, EndVertex: 1},
+			{StartVertex: 1, EndVertex: 2},
+			{StartVertex: 2, EndVertex: 3},
+			{StartVertex: 3, EndVertex: 0},
+			{StartVertex: 0, EndVertex: 4},
+			{StartVertex: 1, EndVertex: 4},
+			{StartVertex: 2, EndVertex: 5},
+			{StartVertex: 3, EndVertex: 5},
+			{StartVertex: 4, EndVertex: 5},
+		}
+	} else {
+		vertices = []domain.Coordinates{
+			{X: 0, Y: 0},
+			{X: 1, Y: 0},
+			{X: 1, Y: 1},
+			{X: 0, Y: 1},
+			{X: 0.5, Y: 0.5},
+		}
+		edges = []domain.Edge{
+			{StartVertex: 0, EndVertex: 1},
+			{StartVertex: 1, EndVertex: 2},
+			{StartVertex: 2, EndVertex: 3},
+			{StartVertex: 3, EndVertex: 0},
+			{StartVertex: 0, EndVertex: 4},
+			{StartVertex: 1, EndVertex: 4},
+			{StartVertex: 2, EndVertex: 4},
+			{StartVertex: 3, EndVertex: 4},
+		}
 	}
 	return createTestFloor(floorNum, name, vertices, edges, pois)
+}
+
+func createSimpleFloorWithStairs(floorNum int, name string) domain.Floor {
+	return createSimpleFloor(floorNum, name, []domain.PointOfInterest{
+		{Name: "stairs_1", Type: "stairs", Position: domain.Coordinates{X: 0.5, Y: 0.5}},
+	})
 }
 
 func createSimpleFloorWithElevator(floorNum int, name string) domain.Floor {
-	vertices := []domain.Coordinates{
-		{X: 0, Y: 0},
-		{X: 1, Y: 0},
-		{X: 1, Y: 1},
-		{X: 0, Y: 1},
-		{X: 0.5, Y: 0.5},
-	}
-	edges := []domain.Edge{
-		{StartVertex: 0, EndVertex: 1},
-		{StartVertex: 1, EndVertex: 2},
-		{StartVertex: 2, EndVertex: 3},
-		{StartVertex: 3, EndVertex: 0},
-		{StartVertex: 0, EndVertex: 4},
-		{StartVertex: 1, EndVertex: 4},
-		{StartVertex: 2, EndVertex: 4},
-		{StartVertex: 3, EndVertex: 4},
-	}
-	pois := []domain.PointOfInterest{
+	return createSimpleFloor(floorNum, name, []domain.PointOfInterest{
 		{Name: "elevator_1", Type: "elevator", Position: domain.Coordinates{X: 0.5, Y: 0.5}},
-	}
-	return createTestFloor(floorNum, name, vertices, edges, pois)
+	})
 }
 
 func createSimpleFloorWithBothTransitions(floorNum int, name string) domain.Floor {
-	vertices := []domain.Coordinates{
-		{X: 0, Y: 0},
-		{X: 1, Y: 0},
-		{X: 1, Y: 1},
-		{X: 0, Y: 1},
-		{X: 0.3, Y: 0.3}, // stairs
-		{X: 0.7, Y: 0.7}, // elevator
-	}
-	edges := []domain.Edge{
-		{StartVertex: 0, EndVertex: 1},
-		{StartVertex: 1, EndVertex: 2},
-		{StartVertex: 2, EndVertex: 3},
-		{StartVertex: 3, EndVertex: 0},
-		{StartVertex: 0, EndVertex: 4},
-		{StartVertex: 1, EndVertex: 4},
-		{StartVertex: 2, EndVertex: 5},
-		{StartVertex: 3, EndVertex: 5},
-		{StartVertex: 4, EndVertex: 5},
-	}
-	pois := []domain.PointOfInterest{
+	return createSimpleFloor(floorNum, name, []domain.PointOfInterest{
 		{Name: "stairs_1", Type: "stairs", Position: domain.Coordinates{X: 0.3, Y: 0.3}},
 		{Name: "elevator_1", Type: "elevator", Position: domain.Coordinates{X: 0.7, Y: 0.7}},
-	}
-	return createTestFloor(floorNum, name, vertices, edges, pois)
+	})
 }
 
 // ==================== MultiFloorShortestPath Tests ====================
