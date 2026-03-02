@@ -104,6 +104,13 @@ export default function DrawerLayout() {
           drawerIcon: ShuttleDrawerIcon,
         }}
       />
+      <Drawer.Screen
+        name="indoor-map"
+        options={{
+          drawerItemStyle: { display: "none" }, 
+          headerShown: false, 
+        }}
+      />
     </Drawer>
   );
 }

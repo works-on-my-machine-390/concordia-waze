@@ -12,7 +12,7 @@ import AuthButton from "../components/AuthButton";
 import AuthInput from "../components/AuthInput";
 import AuthLayout from "../components/AuthLayout";
 import PasswordToggle from "../components/PasswordToggle";
-import { TermsText } from "../components/SharedUI";
+import { TermsText } from "../components/TermsText";
 import { useAuth } from "../hooks/useAuth";
 import { COLORS } from "./constants";
 import { EyeHidingIcon, EyeShowingIcon } from "./icons";

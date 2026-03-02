@@ -898,7 +898,7 @@
             "properties": {
                 "fid": 60,
                 "floor": 5,
-                "type": "fireescape"
+                "type": "fire_escape"
             },
             "geometry": {
                 "type": "Point",
