@@ -185,28 +185,14 @@ func (s *IndoorPathService) MultiFloorShortestPath(req MultiFloorPathRequest) (*
 		return s.sameFloorPath(req, startFloor)
 	}
 
-	// Resolve start point for finding closest transition
-	var startPoint domain.Coordinates
-	if req.StartCoord != nil {
-		startPoint = *req.StartCoord
-	} else {
-		c, err := s.roomCentroid(req.BuildingCode, req.StartFloor, req.StartRoom)
-		if err != nil {
-			return nil, err
-		}
-		startPoint = *c
+	// Resolve start and end points
+	startPoint, err := s.resolveCoordinate(req.StartCoord, req.BuildingCode, req.StartFloor, req.StartRoom)
+	if err != nil {
+		return nil, err
 	}
-
-	// Resolve end point for finding closest transition
-	var endPoint domain.Coordinates
-	if req.EndCoord != nil {
-		endPoint = *req.EndCoord
-	} else {
-		c, err := s.roomCentroid(req.BuildingCode, req.EndFloor, req.EndRoom)
-		if err != nil {
-			return nil, err
-		}
-		endPoint = *c
+	endPoint, err := s.resolveCoordinate(req.EndCoord, req.BuildingCode, req.EndFloor, req.EndRoom)
+	if err != nil {
+		return nil, err
 	}
 
 	// Find transition points (stairs/elevator) on both floors using enum
@@ -279,6 +265,18 @@ func (s *IndoorPathService) MultiFloorShortestPath(req MultiFloorPathRequest) (*
 	}, nil
 }
 
+// resolveCoordinate resolves a coordinate from either a direct coord or a room name
+func (s *IndoorPathService) resolveCoordinate(coord *domain.Coordinates, building string, floorNum int, room string) (domain.Coordinates, error) {
+	if coord != nil {
+		return *coord, nil
+	}
+	c, err := s.roomCentroid(building, floorNum, room)
+	if err != nil {
+		return domain.Coordinates{}, err
+	}
+	return *c, nil
+}
+
 // sameFloorPath handles navigation when start and end are on the same floor
 func (s *IndoorPathService) sameFloorPath(req MultiFloorPathRequest, floor *domain.Floor) (*MultiFloorPathResult, error) {
 	g, err := newGraphFromFloor(*floor)
@@ -286,28 +284,14 @@ func (s *IndoorPathService) sameFloorPath(req MultiFloorPathRequest, floor *doma
 		return nil, err
 	}
 
-	// Resolve start point
-	var startPoint domain.Coordinates
-	if req.StartCoord != nil {
-		startPoint = *req.StartCoord
-	} else {
-		c, err := s.roomCentroid(req.BuildingCode, req.StartFloor, req.StartRoom)
-		if err != nil {
-			return nil, err
-		}
-		startPoint = *c
+	// Resolve start and end points
+	startPoint, err := s.resolveCoordinate(req.StartCoord, req.BuildingCode, req.StartFloor, req.StartRoom)
+	if err != nil {
+		return nil, err
 	}
-
-	// Resolve end point
-	var endPoint domain.Coordinates
-	if req.EndCoord != nil {
-		endPoint = *req.EndCoord
-	} else {
-		c, err := s.roomCentroid(req.BuildingCode, req.EndFloor, req.EndRoom)
-		if err != nil {
-			return nil, err
-		}
-		endPoint = *c
+	endPoint, err := s.resolveCoordinate(req.EndCoord, req.BuildingCode, req.EndFloor, req.EndRoom)
+	if err != nil {
+		return nil, err
 	}
 
 	startIdx := g.nearestVertexWithSplit(startPoint)
