@@ -1,17 +1,22 @@
 import type { Coordinate } from "@/hooks/queries/indoorMapQueries";
-import { StyleSheet, View } from "react-native";
-import Svg, { Polygon } from "react-native-svg";
+import { Polygon } from "react-native-svg";
+import { ROOM_STYLE } from "@/app/styles/roomPolygons/roomStyle";
+import { SELECTED_ROOM_STYLE } from "@/app/styles/roomPolygons/selectedRoomStyle";
 
 type Props = {
   polygon: Coordinate[];
   width: number;
   height: number;
+  isSelected?: boolean;
+  onPress?: () => void;
 };
 
 export default function RoomPolygon({
   polygon,
   width,
   height,
+  isSelected,
+  onPress,
 }: Readonly<Props>) {
   if (polygon.length < 3) {
     return null;
@@ -21,16 +26,15 @@ export default function RoomPolygon({
     .map((coord) => `${coord.x * width},${coord.y * height}`)
     .join(" ");
 
+  const style = isSelected ? SELECTED_ROOM_STYLE : ROOM_STYLE;
+
   return (
-    <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      <Svg width={width} height={height}>
-        <Polygon
-          points={points}
-          fill="rgba(145, 35, 56, 0.15)"
-          stroke="#912338"
-          strokeWidth="2"
-        />
-      </Svg>
-    </View>
+    <Polygon
+      points={points}
+      fill={style.fillColor}
+      stroke={style.strokeColor}
+      strokeWidth={style.strokeWidth}
+      onPress={onPress}
+    />
   );
 }

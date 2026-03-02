@@ -1,30 +1,39 @@
 import type { PointOfInterest } from "@/hooks/queries/indoorMapQueries";
 import { memo } from "react";
 import { StyleSheet, View } from "react-native";
+import Svg from "react-native-svg";
 import RoomPolygon from "./RoomPolygon";
 
 type Props = {
   pois: PointOfInterest[];
   width: number;
   height: number;
+  selectedPoiName?: string;
+  onSelectPoi?: (name: string) => void;
 };
 
-const PolygonOverlay = memo(({ pois, width, height }: Props) => {
-  return (
-    <View style={styles.overlay}>
-      {pois
-        .filter((poi) => poi.polygon.length > 0)
-        .map((poi, index) => (
-          <RoomPolygon
-            key={`room-${poi.name}-${poi.position.x}-${poi.position.y}`}
-            polygon={poi.polygon}
-            width={width}
-            height={height}
-          />
-        ))}
-    </View>
-  );
-});
+const PolygonOverlay = memo(
+  ({ pois, width, height, selectedPoiName, onSelectPoi }: Props) => {
+    return (
+      <View style={styles.overlay} pointerEvents="box-none">
+        <Svg width={width} height={height}>
+          {pois
+            .filter((poi) => poi.polygon.length > 0)
+            .map((poi) => (
+              <RoomPolygon
+                key={`room-${poi.name}-${poi.position.x}-${poi.position.y}`}
+                polygon={poi.polygon}
+                width={width}
+                height={height}
+                isSelected={poi.name === selectedPoiName}
+                onPress={() => onSelectPoi?.(poi.name)}
+              />
+            ))}
+        </Svg>
+      </View>
+    );
+  },
+);
 
 const styles = StyleSheet.create({
   overlay: {
