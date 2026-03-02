@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet } from "react-native";
+import { View, StyleSheet } from "react-native";
 import Svg, { Polygon } from "react-native-svg";
 import type { Coordinate } from "@/hooks/queries/indoorMapQueries";
 
@@ -18,11 +18,6 @@ export default function RoomPolygon({ polygon, name, width, height }: Props) {
     .map((coord) => `${coord.x * width},${coord.y * height}`)
     .join(" ");
 
-  const centerX =
-    polygon.reduce((sum, coord) => sum + coord.x, 0) / polygon.length;
-  const centerY =
-    polygon.reduce((sum, coord) => sum + coord.y, 0) / polygon.length;
-
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
       <Svg width={width} height={height}>
@@ -33,37 +28,6 @@ export default function RoomPolygon({ polygon, name, width, height }: Props) {
           strokeWidth="2"
         />
       </Svg>
-
-      <View
-        style={[
-          styles.label,
-          {
-            left: centerX * width - 50,
-            top: centerY * height - 10,
-          },
-        ]}
-      >
-        <Text style={styles.labelText} numberOfLines={1}>
-          {name}
-        </Text>
-      </View>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  label: {
-    position: "absolute",
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-    width: 100,
-    alignItems: "center",
-  },
-  labelText: {
-    fontSize: 10,
-    color: "#912338",
-    fontWeight: "600",
-  },
-});
