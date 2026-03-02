@@ -41,6 +41,33 @@ jest.mock("@/app/icons", () => {
         accessibilityLabel={`lockers-${size}-${color}`}
       />
     ),
+    SittingAreaIcon: ({ size, color }: any) => (
+      <View
+        testID="sitting-area-icon"
+        accessibilityLabel={`sitting-area-${size}-${color}`}
+      />
+    ),
+    SecurityIcon: ({ size, color }: any) => (
+      <View
+        testID="security-icon"
+        accessibilityLabel={`security-${size}-${color}`}
+      />
+    ),
+    SlopeUpIcon: ({ size, color }: any) => (
+      <View testID="ramp-icon" accessibilityLabel={`ramp-${size}-${color}`} />
+    ),
+    CirculationDeskIcon: ({ size, color }: any) => (
+      <View
+        testID="circulation-desk-icon"
+        accessibilityLabel={`circulation-desk-${size}-${color}`}
+      />
+    ),
+    ReferenceDeskIcon: ({ size, color }: any) => (
+      <View
+        testID="reference-desk-icon"
+        accessibilityLabel={`reference-desk-${size}-${color}`}
+      />
+    ),
   };
 });
 
@@ -86,15 +113,6 @@ describe("PoiMarker", () => {
 
   test("renders fire escape icon for fire_escape type", () => {
     const poi = createPoi("fire_escape");
-    const { getByTestId } = renderWithProviders(
-      <PoiMarker poi={poi} {...defaultProps} />,
-    );
-
-    expect(getByTestId("fire-escape-icon")).toBeTruthy();
-  });
-
-  test("renders fire escape icon for fireescape type", () => {
-    const poi = createPoi("fireescape");
     const { getByTestId } = renderWithProviders(
       <PoiMarker poi={poi} {...defaultProps} />,
     );
@@ -184,5 +202,49 @@ describe("PoiMarker", () => {
     );
 
     expect(getByLabelText("elevator-20-#912338")).toBeTruthy();
+  });
+  test("renders sitting area icon for sitting_area type", () => {
+    const poi = createPoi("sitting_area");
+    const { getByTestId } = renderWithProviders(
+      <PoiMarker poi={poi} {...defaultProps} />,
+    );
+
+    expect(getByTestId("sitting-area-icon")).toBeTruthy();
+  });
+
+  test("renders security icon for campus_security type", () => {
+    const poi = createPoi("campus_security");
+    const { getByTestId } = renderWithProviders(
+      <PoiMarker poi={poi} {...defaultProps} />,
+    );
+
+    expect(getByTestId("security-icon")).toBeTruthy();
+  });
+
+  test("renders ramp icon for ramp type", () => {
+    const poi = createPoi("ramp");
+    const { getByTestId } = renderWithProviders(
+      <PoiMarker poi={poi} {...defaultProps} />,
+    );
+
+    expect(getByTestId("ramp-icon")).toBeTruthy();
+  });
+
+  test("renders circulation desk icon for circulation_desk type", () => {
+    const poi = createPoi("circulation_desk");
+    const { getByTestId } = renderWithProviders(
+      <PoiMarker poi={poi} {...defaultProps} />,
+    );
+
+    expect(getByTestId("circulation-desk-icon")).toBeTruthy();
+  });
+
+  test("renders reference desk icon for reference_desk type", () => {
+    const poi = createPoi("reference_desk");
+    const { getByTestId } = renderWithProviders(
+      <PoiMarker poi={poi} {...defaultProps} />,
+    );
+
+    expect(getByTestId("reference-desk-icon")).toBeTruthy();
   });
 });
