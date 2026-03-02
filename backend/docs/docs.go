@@ -616,6 +616,49 @@ const docTemplate = `{
                 }
             }
         },
+        "/directions/indoor/multi-floor-path": {
+            "post": {
+                "description": "Returns shortest path from a point on one floor to a point on another floor (or same floor). Supports room names or raw coordinates. Uses stairs by default, set preferElevator=true for elevator.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "directions"
+                ],
+                "summary": "Get indoor path across floors",
+                "parameters": [
+                    {
+                        "description": "Path request with building, floors, and start/end points",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/application.MultiFloorPathRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/application.MultiFloorPathResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/images/{path}": {
             "get": {
                 "description": "SWAGGER DOES NOT WORK SINCE THE PATH HAS '/' . Get images for a path from the backend resource directory",
@@ -1986,6 +2029,78 @@ const docTemplate = `{
                 }
             }
         },
+        "application.FloorSegment": {
+            "type": "object",
+            "properties": {
+                "directions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/application.TurnDirection"
+                    }
+                },
+                "distance": {
+                    "type": "number"
+                },
+                "floorName": {
+                    "type": "string"
+                },
+                "floorNumber": {
+                    "type": "integer"
+                },
+                "path": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.Coordinates"
+                    }
+                }
+            }
+        },
+        "application.MultiFloorPathRequest": {
+            "type": "object",
+            "properties": {
+                "buildingCode": {
+                    "type": "string"
+                },
+                "end": {
+                    "$ref": "#/definitions/domain.Coordinates"
+                },
+                "endFloor": {
+                    "type": "integer"
+                },
+                "endRoom": {
+                    "type": "string"
+                },
+                "preferElevator": {
+                    "type": "boolean"
+                },
+                "start": {
+                    "$ref": "#/definitions/domain.Coordinates"
+                },
+                "startFloor": {
+                    "type": "integer"
+                },
+                "startRoom": {
+                    "type": "string"
+                }
+            }
+        },
+        "application.MultiFloorPathResult": {
+            "type": "object",
+            "properties": {
+                "segments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/application.FloorSegment"
+                    }
+                },
+                "totalDistance": {
+                    "type": "number"
+                },
+                "transitionType": {
+                    "$ref": "#/definitions/application.TransitionType"
+                }
+            }
+        },
         "application.SavedAddress": {
             "type": "object",
             "properties": {
@@ -2028,6 +2143,32 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        },
+        "application.TransitionType": {
+            "type": "integer",
+            "enum": [
+                0,
+                1,
+                2
+            ],
+            "x-enum-varnames": [
+                "TransitionNone",
+                "TransitionStairs",
+                "TransitionElevator"
+            ]
+        },
+        "application.TurnDirection": {
+            "type": "string",
+            "enum": [
+                "left",
+                "right",
+                "straight"
+            ],
+            "x-enum-varnames": [
+                "TurnLeft",
+                "TurnRight",
+                "TurnStraight"
+            ]
         },
         "domain.Building": {
             "type": "object",

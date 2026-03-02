@@ -56,6 +56,9 @@ func SetupRouter() *gin.Engine {
 	roomSearchService := application.NewRoomSearchService(indoorRoomRepo)
 	roomSearchHandler := handler.NewRoomSearchHandler(roomSearchService)
 
+	indoorPathService := application.NewIndoorPathService(floorDataRepo, indoorRoomRepo)
+	indoorPathHandler := handler.NewIndoorPathHandler(indoorPathService)
+
 	// ---- Directions wiring (FIXED: inject shuttle schedule repo) ----
 	directionsClient := google.NewGoogleDirectionsClient(os.Getenv("GOOGLE_DIRECTIONS_API_KEY"))
 	directionsService := application.NewDirectionsService(directionsClient).WithShuttleRepo(shuttleService)
@@ -108,6 +111,7 @@ func SetupRouter() *gin.Engine {
 	// Directions endpoints (PUBLIC) - calls Google Directions API -> rate limit
 	router.GET("/directions", googleLimited, directionsHandler.GetDirections)
 	router.GET("/directions/buildings", googleLimited, directionsHandler.GetDirectionsByBuildings)
+	router.POST("/directions/indoor/multi-floor-path", indoorPathHandler.GetMultiFloorShortestPath)
 
 	shuttleGroup := router.Group("/shuttle")
 	{
