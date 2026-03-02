@@ -8,7 +8,7 @@ type Props = {
   buildingCode: string;
 };
 
-export default function IndoorMapContainer({ buildingCode }: Props) {
+export default function IndoorMapContainer({ buildingCode }: Readonly<Props>) {
   const [selectedFloor, setSelectedFloor] = useState<number | null>(null);
   const hasInitialized = useRef(false);
   const { data, isLoading, error } = useGetBuildingFloors(buildingCode);
@@ -35,7 +35,9 @@ export default function IndoorMapContainer({ buildingCode }: Props) {
     return (
       <View style={styles.centerContainer}>
         <Text style={styles.errorText}>Failed to load floor plans</Text>
-        <Text style={styles.errorDetail}>{(error as Error).message}</Text>
+        <Text style={styles.errorDetail}>
+          {error?.message || "Failed to load floor plans"}
+        </Text>
       </View>
     );
   }

@@ -16,7 +16,7 @@ const PolygonOverlay = memo(({ pois, width, height }: Props) => {
         .filter((poi) => poi.polygon.length > 0)
         .map((poi, index) => (
           <RoomPolygon
-            key={`room-${index}`}
+            key={`room-${poi.name}-${poi.position.x}-${poi.position.y}`}
             polygon={poi.polygon}
             width={width}
             height={height}

@@ -11,7 +11,7 @@ export default function FloorSelector({
   floors,
   selectedFloor,
   onSelectFloor,
-}: Props) {
+}: Readonly<Props>) {
   if (floors.length === 0) {
     return null;
   }

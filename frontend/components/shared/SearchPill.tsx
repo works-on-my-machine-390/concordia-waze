@@ -14,7 +14,7 @@ export default function SearchPill({
   placeholder,
   onPress,
   onClear,
-}: Props) {
+}: Readonly<Props>) {
   return (
     <Pressable style={styles.searchPill} onPress={onPress}>
       <Ionicons name="search" size={26} color={colors.maroon} />

@@ -7,7 +7,7 @@ type Props = {
   buildingCode: string;
 };
 
-export default function ViewIndoorMapButton({ buildingCode }: Props) {
+export default function ViewIndoorMapButton({ buildingCode }: Readonly<Props>) {
   const router = useRouter();
 
   const handlePress = () => {

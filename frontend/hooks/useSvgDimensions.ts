@@ -17,8 +17,8 @@ export const useSvgDimensions = (imgPath: string | undefined) => {
   const [error, setError] = useState(false);
 
   const { data: svgText, isLoading } = useQuery({
-    queryKey: ['svg-text', imgPath],
-    queryFn: () => fetchSvgText(imgPath!),
+    queryKey: ["svg-text", imgPath],
+    queryFn: () => (imgPath ? fetchSvgText(imgPath) : Promise.resolve("")),
     enabled: !!imgPath,
     staleTime: Infinity,
     gcTime: Infinity,
@@ -34,7 +34,9 @@ export const useSvgDimensions = (imgPath: string | undefined) => {
       let width = 0;
       let height = 0;
 
-      const viewBoxMatch = svgText.match(/viewBox=["']([^"']+)["']/);
+      const viewBoxRegex = /viewBox=["']([^"']+)["']/;
+      const viewBoxMatch = viewBoxRegex.exec(svgText);
+
       if (viewBoxMatch) {
         const values = viewBoxMatch[1].trim().split(/[\s,]+/);
         if (values.length === 4) {
@@ -44,8 +46,10 @@ export const useSvgDimensions = (imgPath: string | undefined) => {
       }
 
       if (!width || !height || Number.isNaN(width) || Number.isNaN(height)) {
-        const widthMatch = svgText.match(/\swidth=["']?(\d+(?:\.\d+)?)["']?/);
-        const heightMatch = svgText.match(/\sheight=["']?(\d+(?:\.\d+)?)["']?/);
+        const widthRegex = /\swidth=["']?(\d+(?:\.\d+)?)["']?/;
+        const heightRegex = /\sheight=["']?(\d+(?:\.\d+)?)["']?/;
+        const widthMatch = widthRegex.exec(svgText);
+        const heightMatch = heightRegex.exec(svgText);
 
         if (widthMatch) width = Number.parseFloat(widthMatch[1]);
         if (heightMatch) height = Number.parseFloat(heightMatch[1]);
@@ -65,5 +69,5 @@ export const useSvgDimensions = (imgPath: string | undefined) => {
     }
   }, [svgText]);
 
-  return { dimensions, svgText, error, isLoading }; 
+  return { dimensions, svgText, error, isLoading };
 };

@@ -18,7 +18,7 @@ export default function IndoorMapHeader({
   onSearchPress,
   onSearchClear,
   onBackToOutdoor,
-}: Props) {
+}: Readonly<Props>) {
   const navigation = useNavigation();
 
   const handleMenuPress = () => {
@@ -36,7 +36,7 @@ export default function IndoorMapHeader({
           value={searchText}
           placeholder="Search rooms..."
           onPress={onSearchPress}
-          onClear={onSearchClear} 
+          onClear={onSearchClear}
         />
       </View>
 

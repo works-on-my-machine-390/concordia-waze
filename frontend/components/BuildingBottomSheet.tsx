@@ -1,5 +1,8 @@
+import { getAddressFromLocation } from "@/app/utils/mapUtils";
 import type { Building } from "@/hooks/queries/buildingQueries";
 import { useGetBuildingDetails } from "@/hooks/queries/buildingQueries";
+import { useSaveToHistory } from "@/hooks/queries/userHistoryQueries";
+import { useGetProfile } from "@/hooks/queries/userQueries";
 import { MapMode, useMapStore } from "@/hooks/useMapStore";
 import { useNavigationStore } from "@/hooks/useNavigationStore";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
@@ -13,7 +16,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { COLORS } from "../app/constants";
+import { BUILDINGS_WITH_INDOOR_MAPS, COLORS } from "../app/constants";
 import {
   CloseIcon,
   ElevatorIcon,
@@ -26,10 +29,6 @@ import ListSection from "./BottomSheetListSection";
 import BuildingGallery from "./BuildingGallery";
 import MetroAccessibleChip from "./MetroAccessibleChip";
 import OpeningHours from "./OpeningHours";
-import { useSaveToHistory } from "@/hooks/queries/userHistoryQueries";
-import { getAddressFromLocation } from "@/app/utils/mapUtils";
-import { useGetProfile } from "@/hooks/queries/userQueries";
-import { BUILDINGS_WITH_INDOOR_MAPS } from "../app/constants";
 import ViewIndoorMapButton from "./ViewIndoorMapButton";
 
 export type BuildingBottomSheetProps = {};

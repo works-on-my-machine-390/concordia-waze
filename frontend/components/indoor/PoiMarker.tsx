@@ -18,7 +18,8 @@ type Props = {
 const ICON_SIZE = 20;
 
 const getIconComponent = (type: string) => {
-  const normalizedType = type.toLowerCase().replace(/\s+/g, "_");
+  // eslint-disable-next-line sonarjs/prefer-string-replace-all
+  const normalizedType = type.toLowerCase().replace(/\s+/g, "_"); //sonarqube wants me to use replaceAll() but the ts config has lib version before replaceAll() was added
 
   switch (normalizedType) {
     case "stairs":
@@ -39,7 +40,7 @@ const getIconComponent = (type: string) => {
   }
 };
 
-export default function PoiMarker({ poi, width, height }: Props) {
+export default function PoiMarker({ poi, width, height }: Readonly<Props>) {
   const IconComponent = getIconComponent(poi.type);
 
   if (!IconComponent) {

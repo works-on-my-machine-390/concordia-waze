@@ -19,7 +19,7 @@ type Props = {
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
-export default function FloorPlanViewer({ floor }: Props) {
+export default function FloorPlanViewer({ floor }: Readonly<Props>) {
   const zoomableViewRef = useRef<ReactNativeZoomableView>(null);
   const { dimensions, svgText, error, isLoading } = useSvgDimensions(
     floor?.imgPath,
@@ -101,7 +101,7 @@ export default function FloorPlanViewer({ floor }: Props) {
           <View style={StyleSheet.absoluteFill} pointerEvents="none">
             {floor.pois.map((poi, index) => (
               <PoiMarker
-                key={`poi-${index}`}
+                key={`poi-${poi.name}-${poi.position.x}-${poi.position.y}`}
                 poi={poi}
                 width={DISPLAY_WIDTH}
                 height={DISPLAY_HEIGHT}

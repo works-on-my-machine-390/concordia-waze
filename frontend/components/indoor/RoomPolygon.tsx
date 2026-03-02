@@ -8,7 +8,11 @@ type Props = {
   height: number;
 };
 
-export default function RoomPolygon({ polygon, width, height }: Props) {
+export default function RoomPolygon({
+  polygon,
+  width,
+  height,
+}: Readonly<Props>) {
   if (polygon.length < 3) {
     return null;
   }
