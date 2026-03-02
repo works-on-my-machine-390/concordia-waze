@@ -2,11 +2,19 @@ import { useQueries, useQuery } from "@tanstack/react-query";
 import { NavigableLocation } from "../useNavigationStore";
 import { Point } from "./buildingQueries";
 import { api } from "../api";
-import { TransitMode } from "@/components/NavigationBottomSheet";
 import { getIsCrossCampus } from "@/app/utils/mapUtils";
 import { shouldRetry429 } from "@/app/utils/queryUtils";
 import { QUERY_RETRY_DELAY_MS } from "@/app/constants";
 
+export const TransitMode = {
+  DRIVING: "DRIVING",
+  TRANSIT: "TRANSIT",
+  WALKING: "WALKING",
+  BICYCLING: "BICYCLING",
+  SHUTTLE: "SHUTTLE",
+} as const;
+
+export type TransitMode = (typeof TransitMode)[keyof typeof TransitMode];
 
 // returns the query key and params
 export function prepareDirectionsQuery(

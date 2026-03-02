@@ -1,8 +1,7 @@
 import { stripHtmlTags } from "@/app/utils/stringUtils";
 import TransitStepDetails from "@/components/TransitStepDetails";
-import { DirectionsModel, StepModel } from "@/hooks/queries/navigationQueries";
+import { DirectionsModel, StepModel, TransitMode } from "@/hooks/queries/navigationQueries";
 import { StyleSheet, Text, View } from "react-native";
-import { TransitMode } from "./NavigationBottomSheet";
 
 export type OutdoorNavigationStepsProps = {
   directions: DirectionsModel;

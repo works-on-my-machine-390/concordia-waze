@@ -1,6 +1,5 @@
-import { TransitMode } from "@/components/NavigationBottomSheet";
 import { create } from "zustand";
-import { DirectionsModel } from "./queries/navigationQueries";
+import { DirectionsModel, TransitMode } from "./queries/navigationQueries";
 
 /**
  * Zustand store for managing states during navigation.

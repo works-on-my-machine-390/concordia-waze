@@ -1,5 +1,5 @@
 import { getIsCrossCampus } from "@/app/utils/mapUtils";
-import { useGetAllModesDirections } from "@/hooks/queries/navigationQueries";
+import { TransitMode, useGetAllModesDirections } from "@/hooks/queries/navigationQueries";
 import { useMapStore } from "@/hooks/useMapStore";
 import { useNavigationStore } from "@/hooks/useNavigationStore";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
@@ -17,16 +17,6 @@ import {
 import OutdoorNavigationSteps from "./OutdoorNavigationStep";
 
 const concordiaLogo = require("../assets/images/concordia_logo.png");
-
-export const TransitMode = {
-  DRIVING: "DRIVING",
-  TRANSIT: "TRANSIT",
-  WALKING: "WALKING",
-  BICYCLING: "BICYCLING",
-  SHUTTLE: "SHUTTLE",
-} as const;
-
-export type TransitMode = (typeof TransitMode)[keyof typeof TransitMode];
 
 export type NavigationBottomSheetProps = {};
 

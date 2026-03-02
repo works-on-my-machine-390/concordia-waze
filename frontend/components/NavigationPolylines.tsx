@@ -1,11 +1,13 @@
 import { directionPolylineStyles } from "@/app/styles/directionStyles";
-import { StepModel, useGetDirections } from "@/hooks/queries/navigationQueries";
+import {
+  StepModel,
+  TransitMode,
+  useGetDirections,
+} from "@/hooks/queries/navigationQueries";
 import { useNavigationStore } from "@/hooks/useNavigationStore";
 import polyline from "@mapbox/polyline";
 import { useEffect, useMemo } from "react";
 import { Marker, Polyline } from "react-native-maps";
-import { TransitMode } from "./NavigationBottomSheet";
-
 export type NavigationPolylinesProps = {
   showEndPoint?: boolean;
 };
