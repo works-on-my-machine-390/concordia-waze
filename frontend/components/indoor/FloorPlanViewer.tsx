@@ -1,9 +1,10 @@
 import type { Floor } from "@/hooks/queries/indoorMapQueries";
 import { useSvgDimensions } from "@/hooks/useSvgDimensions";
+import { ReactNativeZoomableView } from "@openspacelabs/react-native-zoomable-view";
+import { useEffect, useRef } from "react";
 import {
   ActivityIndicator,
   Dimensions,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -19,9 +20,20 @@ type Props = {
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
 export default function FloorPlanViewer({ floor }: Props) {
+  const zoomableViewRef = useRef<ReactNativeZoomableView>(null);
   const { dimensions, svgText, error, isLoading } = useSvgDimensions(
     floor?.imgPath,
   );
+
+  // Reset zoom when floor changes
+  useEffect(() => {
+    if (zoomableViewRef.current) {
+      setTimeout(() => {
+        zoomableViewRef.current?.zoomTo(1);
+        zoomableViewRef.current?.moveTo(0, 0);
+      }, 100);
+    }
+  }, [floor?.number]);
 
   if (!floor) {
     return (
@@ -52,46 +64,52 @@ export default function FloorPlanViewer({ floor }: Props) {
   const DISPLAY_HEIGHT = DISPLAY_WIDTH * (dimensions.height / dimensions.width);
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.scrollContent}
-      maximumZoomScale={5}
-      minimumZoomScale={0.5}
-      bouncesZoom={true}
-    >
-      <View
-        style={{
-          width: DISPLAY_WIDTH,
-          height: DISPLAY_HEIGHT,
-          position: "relative",
-        }}
+    <View style={styles.container}>
+      <ReactNativeZoomableView
+        ref={zoomableViewRef}
+        key={floor?.number}
+        maxZoom={5}
+        minZoom={1}
+        zoomStep={0.5}
+        initialZoom={1}
+        bindToBorders={true}
+        contentWidth={DISPLAY_WIDTH}
+        contentHeight={DISPLAY_HEIGHT}
       >
-        <SvgXml
-          xml={svgText}
-          width={DISPLAY_WIDTH}
-          height={DISPLAY_HEIGHT}
-          viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
-          preserveAspectRatio="xMidYMid meet"
-        />
+        <View
+          style={{
+            width: DISPLAY_WIDTH,
+            height: DISPLAY_HEIGHT,
+            position: "relative",
+          }}
+        >
+          <SvgXml
+            xml={svgText}
+            width={DISPLAY_WIDTH}
+            height={DISPLAY_HEIGHT}
+            viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
+            preserveAspectRatio="xMidYMid meet"
+          />
 
-        <PolygonOverlay
-          pois={floor.pois}
-          width={DISPLAY_WIDTH}
-          height={DISPLAY_HEIGHT}
-        />
+          <PolygonOverlay
+            pois={floor.pois}
+            width={DISPLAY_WIDTH}
+            height={DISPLAY_HEIGHT}
+          />
 
-        <View style={StyleSheet.absoluteFill} pointerEvents="none">
-          {floor.pois.map((poi, index) => (
-            <PoiMarker
-              key={`poi-${index}`}
-              poi={poi}
-              width={DISPLAY_WIDTH}
-              height={DISPLAY_HEIGHT}
-            />
-          ))}
+          <View style={StyleSheet.absoluteFill} pointerEvents="none">
+            {floor.pois.map((poi, index) => (
+              <PoiMarker
+                key={`poi-${index}`}
+                poi={poi}
+                width={DISPLAY_WIDTH}
+                height={DISPLAY_HEIGHT}
+              />
+            ))}
+          </View>
         </View>
-      </View>
-    </ScrollView>
+      </ReactNativeZoomableView>
+    </View>
   );
 }
 
@@ -99,12 +117,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#f5f5f5",
-  },
-  scrollContent: {
-    flexGrow: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 16,
   },
   emptyContainer: {
     flex: 1,
