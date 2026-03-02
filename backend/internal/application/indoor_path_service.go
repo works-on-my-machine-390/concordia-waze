@@ -37,6 +37,9 @@ const (
 	TurnStraight TurnDirection = "straight"
 )
 
+// StraightTurnThreshold is the cosine threshold for considering a turn as "straight" (cos 15°)
+const StraightTurnThreshold = 0.966
+
 type FloorRepo interface {
 	GetBuildingFloors(code string) ([]domain.Floor, error)
 }
@@ -589,12 +592,9 @@ func calculateTurnDirections(coords []domain.Coordinates) []TurnDirection {
 		magCurr := math.Sqrt(currDirX*currDirX + currDirY*currDirY)
 		magNext := math.Sqrt(nextDirX*nextDirX + nextDirY*nextDirY)
 
-		// Threshold for considering a turn as "straight" (about 15 degrees)
-		const straightThreshold = 0.966 // cos(15°)
-
 		if magCurr > 0 && magNext > 0 {
 			cosAngle := dotProduct / (magCurr * magNext)
-			if cosAngle > straightThreshold {
+			if cosAngle > StraightTurnThreshold {
 				directions = append(directions, TurnStraight)
 			} else if crossProduct > 0 {
 				directions = append(directions, TurnLeft)
