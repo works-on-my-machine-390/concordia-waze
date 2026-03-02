@@ -29,6 +29,8 @@ import OpeningHours from "./OpeningHours";
 import { useSaveToHistory } from "@/hooks/queries/userHistoryQueries";
 import { getAddressFromLocation } from "@/app/utils/mapUtils";
 import { useGetProfile } from "@/hooks/queries/userQueries";
+import { BUILDINGS_WITH_INDOOR_MAPS } from "../app/constants";
+import ViewIndoorMapButton from "./ViewIndoorMapButton";
 
 export type BuildingBottomSheetProps = {};
 
@@ -121,6 +123,9 @@ export default function BuildingBottomSheet(
 
   const isLoading = getBuildingQuery.isLoading;
   const hasBuildingData = !!building && getBuildingQuery.isSuccess;
+  const hasIndoorMap =
+    hasBuildingData &&
+    BUILDINGS_WITH_INDOOR_MAPS.includes(building.code as any);
 
   const navigationState = useNavigationStore();
   const handleStartNavigation = async () => {
@@ -200,14 +205,22 @@ export default function BuildingBottomSheet(
           {/* Header */}
           <View style={BottomSheetStyles.headerContainer}>
             {sheetOpen && (
-              <TouchableOpacity
-                onPress={handleStartNavigation}
-                testID="start-navigation"
-              >
-                <View style={BottomSheetStyles.floatingIcon}>
-                  <GetDirectionsIcon size={90} color={COLORS.maroon} />
-                </View>
-              </TouchableOpacity>
+              <>
+                <TouchableOpacity
+                  onPress={handleStartNavigation}
+                  testID="start-navigation"
+                >
+                  <View style={BottomSheetStyles.floatingIcon}>
+                    <GetDirectionsIcon size={90} color={COLORS.maroon} />
+                  </View>
+                </TouchableOpacity>
+
+                {hasIndoorMap && (
+                  <View style={BottomSheetStyles.indoorMapButton}>
+                    <ViewIndoorMapButton buildingCode={building.code} />
+                  </View>
+                )}
+              </>
             )}
 
             <View style={BottomSheetStyles.textContainer}>
@@ -359,5 +372,12 @@ export const BottomSheetStyles = StyleSheet.create({
     fontSize: 16,
     color: COLORS.textSecondary,
     textAlign: "center",
+  },
+
+  indoorMapButton: {
+    position: "absolute",
+    top: -88,
+    left: 10,
+    zIndex: 10,
   },
 });

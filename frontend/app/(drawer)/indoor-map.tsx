@@ -11,7 +11,7 @@ export default function IndoorMapPage() {
     buildingCode?: string;
   }>();
 
-  const buildingCode = params.buildingCode || "VL";
+  const buildingCode = params.buildingCode;
   const [searchText, setSearchText] = useState("");
 
   const handleSearchPress = () => {
