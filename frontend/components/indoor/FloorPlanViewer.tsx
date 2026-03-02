@@ -1,8 +1,7 @@
-import { API_URL } from "@/hooks/api";
 import type { Floor } from "@/hooks/queries/indoorMapQueries";
 import { useSvgDimensions } from "@/hooks/useSvgDimensions";
-import { Dimensions, ScrollView, StyleSheet, Text, View } from "react-native";
-import { SvgUri } from "react-native-svg";
+import { Dimensions, ScrollView, StyleSheet, Text, View, ActivityIndicator } from "react-native";
+import { SvgXml } from "react-native-svg";
 import PolygonOverlay from "./PolygonOverlay";
 
 type Props = {
@@ -12,7 +11,7 @@ type Props = {
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
 export default function FloorPlanViewer({ floor }: Props) {
-  const { dimensions, error, isLoading } = useSvgDimensions(floor?.imgPath);
+  const { dimensions, svgText, error, isLoading } = useSvgDimensions(floor?.imgPath);
 
   if (!floor) {
     return (
@@ -30,15 +29,15 @@ export default function FloorPlanViewer({ floor }: Props) {
     );
   }
 
-  if (isLoading || !dimensions) {
+  if (isLoading || !dimensions || !svgText) {
     return (
       <View style={styles.emptyContainer}>
+        <ActivityIndicator size="large" />
         <Text style={styles.emptyText}>Loading floor plan...</Text>
       </View>
     );
   }
 
-  const svgUrl = `${API_URL}/images/${floor.imgPath}`;
   const DISPLAY_WIDTH = SCREEN_WIDTH - 32;
   const DISPLAY_HEIGHT = DISPLAY_WIDTH * (dimensions.height / dimensions.width);
 
@@ -50,26 +49,15 @@ export default function FloorPlanViewer({ floor }: Props) {
       minimumZoomScale={0.5}
       bouncesZoom={true}
     >
-      <View
-        style={{
-          width: DISPLAY_WIDTH,
-          height: DISPLAY_HEIGHT,
-          position: "relative",
-        }}
-      >
-        <SvgUri
+      <View style={{ width: DISPLAY_WIDTH, height: DISPLAY_HEIGHT, position: "relative" }}>
+        <SvgXml
+          xml={svgText}
           width={DISPLAY_WIDTH}
           height={DISPLAY_HEIGHT}
-          uri={svgUrl}
           viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
           preserveAspectRatio="xMidYMid meet"
         />
-
-        <PolygonOverlay
-          pois={floor.pois}
-          width={DISPLAY_WIDTH}
-          height={DISPLAY_HEIGHT}
-        />
+        <PolygonOverlay pois={floor.pois} width={DISPLAY_WIDTH} height={DISPLAY_HEIGHT} />
       </View>
     </ScrollView>
   );
@@ -95,5 +83,6 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     color: "#666",
+    marginTop: 10,
   },
 });

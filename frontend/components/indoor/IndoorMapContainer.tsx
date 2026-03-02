@@ -1,7 +1,7 @@
 import FloorPlanViewer from "@/components/indoor/FloorPlanViewer";
 import FloorSelector from "@/components/indoor/FloorSelector";
 import { useGetBuildingFloors } from "@/hooks/queries/indoorMapQueries";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 
 type Props = {
@@ -9,13 +9,14 @@ type Props = {
 };
 
 export default function IndoorMapContainer({ buildingCode }: Props) {
-  const [selectedFloor, setSelectedFloor] = useState(1);
+  const [selectedFloor, setSelectedFloor] = useState<number | null>(null);
+  const hasInitialized = useRef(false);
   const { data, isLoading, error } = useGetBuildingFloors(buildingCode);
 
   useEffect(() => {
-    if (data?.floors && data.floors.length > 0) {
-      const firstFloor = data.floors[0].number;
-      setSelectedFloor(firstFloor);
+    if (data?.floors && data.floors.length > 0 && !hasInitialized.current) {
+      setSelectedFloor(data.floors[0].number);
+      hasInitialized.current = true;
     }
   }, [data?.floors]);
 
@@ -45,13 +46,19 @@ export default function IndoorMapContainer({ buildingCode }: Props) {
     );
   }
 
-  const currentFloor =
-    data.floors.find((f) => f.number === selectedFloor) || data.floors[0];
+  if (selectedFloor === null) {
+    return (
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
+  const currentFloor = data.floors.find((f) => f.number === selectedFloor) || data.floors[0];
 
   return (
     <View style={styles.container}>
-      <FloorPlanViewer floor={currentFloor} />
-
+      <FloorPlanViewer key={selectedFloor} floor={currentFloor} />
       <FloorSelector
         floors={data.floors}
         selectedFloor={selectedFloor}
