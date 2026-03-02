@@ -1,7 +1,15 @@
 import type { Floor } from "@/hooks/queries/indoorMapQueries";
 import { useSvgDimensions } from "@/hooks/useSvgDimensions";
-import { Dimensions, ScrollView, StyleSheet, Text, View, ActivityIndicator } from "react-native";
+import {
+  ActivityIndicator,
+  Dimensions,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { SvgXml } from "react-native-svg";
+import PoiMarker from "./PoiMarker";
 import PolygonOverlay from "./PolygonOverlay";
 
 type Props = {
@@ -11,7 +19,9 @@ type Props = {
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
 export default function FloorPlanViewer({ floor }: Props) {
-  const { dimensions, svgText, error, isLoading } = useSvgDimensions(floor?.imgPath);
+  const { dimensions, svgText, error, isLoading } = useSvgDimensions(
+    floor?.imgPath,
+  );
 
   if (!floor) {
     return (
@@ -49,7 +59,13 @@ export default function FloorPlanViewer({ floor }: Props) {
       minimumZoomScale={0.5}
       bouncesZoom={true}
     >
-      <View style={{ width: DISPLAY_WIDTH, height: DISPLAY_HEIGHT, position: "relative" }}>
+      <View
+        style={{
+          width: DISPLAY_WIDTH,
+          height: DISPLAY_HEIGHT,
+          position: "relative",
+        }}
+      >
         <SvgXml
           xml={svgText}
           width={DISPLAY_WIDTH}
@@ -57,7 +73,23 @@ export default function FloorPlanViewer({ floor }: Props) {
           viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
           preserveAspectRatio="xMidYMid meet"
         />
-        <PolygonOverlay pois={floor.pois} width={DISPLAY_WIDTH} height={DISPLAY_HEIGHT} />
+
+        <PolygonOverlay
+          pois={floor.pois}
+          width={DISPLAY_WIDTH}
+          height={DISPLAY_HEIGHT}
+        />
+
+        <View style={StyleSheet.absoluteFill} pointerEvents="none">
+          {floor.pois.map((poi, index) => (
+            <PoiMarker
+              key={`poi-${index}`}
+              poi={poi}
+              width={DISPLAY_WIDTH}
+              height={DISPLAY_HEIGHT}
+            />
+          ))}
+        </View>
       </View>
     </ScrollView>
   );

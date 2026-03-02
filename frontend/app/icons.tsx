@@ -180,6 +180,7 @@ export const BikeIcon: React.FC<IconProps> = ({
   color = DEFAULT_ICON_COLOR,
 }) => <MaterialIcons name="directions-bike" size={size} color={color} />;
 
+// shuttle icon
 export const ShuttleIcon: React.FC<IconProps> = ({
   size = DEFAULT_ICON_SIZE,
   color = DEFAULT_ICON_COLOR,
@@ -212,3 +213,35 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
 });
+
+// bathroom icon
+export const BathroomIcon: React.FC<IconProps> = ({
+  size = DEFAULT_ICON_SIZE,
+  color = DEFAULT_ICON_COLOR,
+}) => (
+  <MaterialCommunityIcons name="human-male-female" size={size} color={color} />
+);
+
+// stairs icon
+export const StairsIcon: React.FC<IconProps> = ({
+  size = DEFAULT_ICON_SIZE,
+  color = DEFAULT_ICON_COLOR,
+}) => <MaterialIcons name="stairs" size={size} color={color} />;
+
+// fire escape icon (i just found a fire icon..)
+export const FireEscapeIcon: React.FC<IconProps> = ({
+  size = DEFAULT_ICON_SIZE,
+  color = DEFAULT_ICON_COLOR,
+}) => <MaterialIcons name="local-fire-department" size={size} color={color} />;
+
+// study spot icon
+export const StudySpotIcon: React.FC<IconProps> = ({
+  size = DEFAULT_ICON_SIZE,
+  color = DEFAULT_ICON_COLOR,
+}) => <Entypo name="book" size={size} color={color} />;
+
+// lockers icon
+export const LockersIcon: React.FC<IconProps> = ({
+  size = DEFAULT_ICON_SIZE,
+  color = DEFAULT_ICON_COLOR,
+}) => <MaterialCommunityIcons name="locker" size={size} color={color} />;
