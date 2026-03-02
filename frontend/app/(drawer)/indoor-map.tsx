@@ -3,7 +3,6 @@ import IndoorMapHeader from "@/components/indoor/IndoorMapHeader";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
-import { COLORS } from "../constants";
 
 export default function IndoorMapPage() {
   const router = useRouter();
@@ -41,10 +40,6 @@ export default function IndoorMapPage() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.background,
-  },
   mapContainer: {
     flex: 1,
     position: "relative",

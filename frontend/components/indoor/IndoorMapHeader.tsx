@@ -62,23 +62,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
   },
-  searchPill: {
-    flex: 1,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "white",
-    paddingHorizontal: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    ...SHADOW,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: "#111",
-    paddingVertical: 0,
-  },
   backButton: {
     width: 44,
     height: 44,
