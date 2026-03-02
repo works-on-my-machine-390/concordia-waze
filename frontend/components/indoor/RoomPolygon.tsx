@@ -4,12 +4,11 @@ import type { Coordinate } from "@/hooks/queries/indoorMapQueries";
 
 type Props = {
   polygon: Coordinate[];
-  name: string;
   width: number;
   height: number;
 };
 
-export default function RoomPolygon({ polygon, name, width, height }: Props) {
+export default function RoomPolygon({ polygon, width, height }: Props) {
   if (polygon.length < 3) {
     return null;
   }

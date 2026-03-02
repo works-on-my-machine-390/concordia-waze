@@ -12,7 +12,7 @@ export default function IndoorMapPage() {
     buildingCode?: string;
   }>();
 
-  const buildingCode = params.buildingCode || "VL";
+  const buildingCode = params.buildingCode || "H";
 
   const handleMenuPress = () => {
     navigation.dispatch(DrawerActions.openDrawer());

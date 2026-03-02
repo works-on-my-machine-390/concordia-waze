@@ -57,7 +57,7 @@ export default function IndoorMapContainer({ buildingCode }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    position: "relative",  
+    position: "relative",
   },
   centerContainer: {
     flex: 1,

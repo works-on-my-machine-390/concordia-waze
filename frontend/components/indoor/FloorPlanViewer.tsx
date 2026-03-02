@@ -1,18 +1,19 @@
-import { View, ScrollView, StyleSheet, Dimensions, Text } from "react-native";
+import { View, StyleSheet, Dimensions, Text, ScrollView } from "react-native";
 import { SvgUri } from "react-native-svg";
 import type { Floor } from "@/hooks/queries/indoorMapQueries";
 import { API_URL } from "@/hooks/api";
-import RoomPolygon from "./RoomPolygon";
+import { useSvgDimensions } from "@/hooks/useSvgDimensions";
+import PolygonOverlay from "./PolygonOverlay";
 
 type Props = {
   floor: Floor | undefined;
 };
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
-const FLOOR_PLAN_WIDTH = SCREEN_WIDTH - 32;
-const FLOOR_PLAN_HEIGHT = FLOOR_PLAN_WIDTH * (762 / 829);
 
 export default function FloorPlanViewer({ floor }: Props) {
+  const { dimensions, error, isLoading } = useSvgDimensions(floor?.imgPath);
+
   if (!floor) {
     return (
       <View style={styles.emptyContainer}>
@@ -21,31 +22,56 @@ export default function FloorPlanViewer({ floor }: Props) {
     );
   }
 
+  if (error) {
+    return (
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>Failed to load floor plan</Text>
+      </View>
+    );
+  }
+
+  if (isLoading || !dimensions) {
+    return (
+      <View style={styles.emptyContainer}>
+        <Text style={styles.emptyText}>Loading floor plan...</Text>
+      </View>
+    );
+  }
+
   const svgUrl = `${API_URL}/images/${floor.imgPath}`;
+  const DISPLAY_WIDTH = SCREEN_WIDTH - 32;
+  const DISPLAY_HEIGHT = DISPLAY_WIDTH * (dimensions.height / dimensions.width);
 
   return (
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.scrollContent}
-      showsVerticalScrollIndicator={false}
+      showsVerticalScrollIndicator={true}
       showsHorizontalScrollIndicator={false}
+      maximumZoomScale={5} 
+      minimumZoomScale={0.5} 
+      bouncesZoom={true}
     >
-      <View style={styles.floorPlanContainer}>
-        <SvgUri width={FLOOR_PLAN_WIDTH} height={FLOOR_PLAN_HEIGHT} uri={svgUrl} />
+      <View
+        style={{
+          width: DISPLAY_WIDTH,
+          height: DISPLAY_HEIGHT,
+          position: "relative",
+        }}
+      >
+        <SvgUri
+          width={DISPLAY_WIDTH}
+          height={DISPLAY_HEIGHT}
+          uri={svgUrl}
+          viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
+          preserveAspectRatio="xMidYMid meet"
+        />
 
-        <View style={styles.overlay}>
-          {floor.pois
-            .filter((poi) => poi.polygon.length > 0)
-            .map((poi, index) => (
-              <RoomPolygon
-                key={`room-${index}`}
-                polygon={poi.polygon}
-                name={poi.name}
-                width={FLOOR_PLAN_WIDTH}
-                height={FLOOR_PLAN_HEIGHT}
-              />
-            ))}
-        </View>
+        <PolygonOverlay
+          pois={floor.pois}
+          width={DISPLAY_WIDTH}
+          height={DISPLAY_HEIGHT}
+        />
       </View>
     </ScrollView>
   );
@@ -58,21 +84,6 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
-  },
-  floorPlanContainer: {
-    position: "relative",
-    width: FLOOR_PLAN_WIDTH,
-    height: FLOOR_PLAN_HEIGHT,
-    backgroundColor: "#fff",
-    borderRadius: 8,
-    overflow: "hidden",
-  },
-  overlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
   },
   emptyContainer: {
     flex: 1,
