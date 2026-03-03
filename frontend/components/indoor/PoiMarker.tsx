@@ -12,12 +12,13 @@ import {
   ReferenceDeskIcon,
 } from "@/app/icons";
 import type { PointOfInterest } from "@/hooks/queries/indoorMapQueries";
-import { StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet } from "react-native";
 
 type Props = {
   poi: PointOfInterest;
   width: number;
   height: number;
+  onPress?: () => void;
 };
 
 const ICON_SIZE = 20;
@@ -54,7 +55,7 @@ const getIconComponent = (type: string) => {
   }
 };
 
-export default function PoiMarker({ poi, width, height }: Readonly<Props>) {
+export default function PoiMarker({ poi, width, height, onPress }: Readonly<Props>) {
   const IconComponent = getIconComponent(poi.type);
 
   if (!IconComponent) {
@@ -65,7 +66,8 @@ export default function PoiMarker({ poi, width, height }: Readonly<Props>) {
   const y = poi.position.y * height;
 
   return (
-    <View
+    <Pressable
+      onPress={onPress}
       style={[
         styles.marker,
         {
@@ -75,7 +77,7 @@ export default function PoiMarker({ poi, width, height }: Readonly<Props>) {
       ]}
     >
       <IconComponent size={ICON_SIZE} color="#912338" />
-    </View>
+    </Pressable>
   );
 }
 

@@ -11,6 +11,7 @@ import {
 import { SvgXml } from "react-native-svg";
 import PoiMarker from "./PoiMarker";
 import PolygonOverlay from "./PolygonOverlay";
+import { useState } from "react";
 
 type Props = {
   floor: Floor | undefined;
@@ -21,6 +22,7 @@ export default function FloorPlanViewer({ floor }: Readonly<Props>) {
   const { dimensions, svgText, error, isLoading } = useSvgDimensions(
     floor?.imgPath,
   );
+  const [selectedPoiName, setSelectedPoiName] = useState<string | undefined>();
 
   if (!floor) {
     return (
@@ -82,15 +84,18 @@ export default function FloorPlanViewer({ floor }: Readonly<Props>) {
             pois={floor.pois}
             width={DISPLAY_WIDTH}
             height={DISPLAY_HEIGHT}
+            selectedPoiName={selectedPoiName}
+            onSelectPoi={setSelectedPoiName}
           />
 
-          <View style={StyleSheet.absoluteFill} pointerEvents="none">
+          <View style={StyleSheet.absoluteFill}>
             {floor.pois.map((poi, index) => (
               <PoiMarker
                 key={`poi-${poi.name}-${poi.position.x}-${poi.position.y}`}
                 poi={poi}
                 width={DISPLAY_WIDTH}
                 height={DISPLAY_HEIGHT}
+                onPress={() => setSelectedPoiName(poi.name)}
               />
             ))}
           </View>
