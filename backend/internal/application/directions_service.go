@@ -138,10 +138,7 @@ func (s *DirectionsService) getShuttleDirectionsAt(start, end domain.LatLng, ref
 	// Shuttle middle leg (based on arrivalAtStop)
 	shuttleStep, nextDeparture, err := s.buildShuttleStepAt(arrivalAtStop, day, fromCampus, toCampus, fromStop, toStop)
 	if err != nil {
-		// build shuttle step WITHOUT schedule
-		shuttleStep = newBaseShuttleStep(fromCampus, toCampus, fromStop, toStop)
-		shuttleStep.Instruction = fmt.Sprintf("Take the Concordia Shuttle Bus from %s to %s", fromCampus, toCampus)
-		nextDeparture = ""
+		return domain.DirectionsResponse{}, err
 	}
 	applyShuttlePolyline(&shuttleStep, fromCampus, toCampus)
 
