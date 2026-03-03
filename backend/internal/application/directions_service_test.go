@@ -179,7 +179,7 @@ func TestDirectionsService_ShuttleMode_ReturnsErrorWhenRepoMissingOrErrors(t *te
 
 	_, err := s.GetDirections(domain.LatLng{Lat: 1, Lng: 2}, domain.LatLng{Lat: 3, Lng: 4}, "shuttle")
 	assert.Error(t, err)
-	assert.Equal(t, "no shuttle available", err.Error())
+	assert.Equal(t, "No shuttle available at this time.", err.Error())
 }
 
 func TestDirectionsService_ShuttleMode_OutsideHours(t *testing.T) {
@@ -201,7 +201,7 @@ func TestDirectionsService_ShuttleMode_OutsideHours(t *testing.T) {
 	// Request at 20:00
 	_, err := s.GetDirectionsWithSchedule(domain.LatLng{}, domain.LatLng{}, "shuttle", "monday", "20:00")
 	assert.Error(t, err)
-	assert.Equal(t, "no shuttle available", err.Error())
+	assert.Equal(t, "No shuttle available at this time.", err.Error())
 }
 
 func TestDirectionsService_ShuttleMode_InsideHours(t *testing.T) {
@@ -347,7 +347,7 @@ func TestManualShuttle_NoRepo(t *testing.T) {
 
 	_, err := s.GetShuttleDirectionsManual(domain.LatLng{}, domain.LatLng{}, "monday", "10:00")
 	assert.Error(t, err)
-	assert.Equal(t, "no shuttle available", err.Error())
+	assert.Equal(t, "No shuttle available at this time.", err.Error())
 }
 
 func TestFormatDuration(t *testing.T) {

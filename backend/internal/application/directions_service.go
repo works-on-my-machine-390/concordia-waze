@@ -30,7 +30,7 @@ type DirectionsService struct {
 
 const (
 	shuttleDuration  = "25 mins"
-	noShuttleErrText = "no shuttle available"
+	noShuttleErrText = "No shuttle available at this time."
 )
 
 func NewDirectionsService(fetcher DirectionsFetcher) *DirectionsService {
