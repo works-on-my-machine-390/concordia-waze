@@ -805,8 +805,9 @@ func TestDirectionsService_Shuttle_Auto_Boundary(t *testing.T) {
 	assert.Contains(t, resp.DepartureMessage, "Leave at")
 
 	// Case B: LeaveAt = now. (Close -> "Leave now")
-	// NextDep = now + 5m.
-	depTimeB := time.Now().Add(5 * time.Minute).Format("15:04")
+	// NextDep should be soon, so that LeaveAt is within the next minute.
+	// Let's set it to be 6 mins from now. Walk is 5 mins. LeaveAt will be ~1 min from now.
+	depTimeB := time.Now().Add(6 * time.Minute).Format("15:04")
 	s.WithShuttleRepo(&fakeShuttleRepo{times: []string{depTimeB}})
 	resp, err = s.GetDirectionsWithSchedule(domain.LatLng{}, domain.LatLng{}, "shuttle", "", "")
 	assert.NoError(t, err)
