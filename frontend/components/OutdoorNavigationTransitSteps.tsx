@@ -1,16 +1,19 @@
-import { COLORS, DIRECTION_COLORS } from "@/app/constants";
 import { CircleIcon } from "@/app/icons";
-import { directionStepsStyles } from "@/app/styles/directionStyles";
+import {
+  directionStepsStyles,
+  getTransitLineChipColorsStyle,
+  getTransitStepVerticalLineColorStyle,
+} from "@/app/styles/directionStyles";
 import {
   DirectionsModel,
   StepModel,
   TransitMode,
   TransitType,
 } from "@/hooks/queries/navigationQueries";
+import { useNavigationStore } from "@/hooks/useNavigationStore";
 import { Text, View } from "react-native";
 import TransitTypeIcon from "./TransitTypeIcon";
 import WalkingDottedLine from "./WalkingDottedLine";
-import { useNavigationStore } from "@/hooks/useNavigationStore";
 
 export type OutdoorNavigationStepsProps = {
   directions: DirectionsModel;
@@ -25,7 +28,7 @@ export default function OutdoorNavigationTransitSteps(
   const renderDivider = () => {
     return (
       <View style={directionStepsStyles.distanceDivider}>
-        <View style={{ flex: 1, height: 1, backgroundColor: COLORS.border }} />
+        <View style={directionStepsStyles.dividerLine} />
       </View>
     );
   };
@@ -34,13 +37,7 @@ export default function OutdoorNavigationTransitSteps(
     return (
       <View key={step.polyline + index}>
         <View style={directionStepsStyles.checkpointContainer}>
-          <View
-            style={{
-              minWidth: 40,
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
+          <View style={directionStepsStyles.checkpointIconContainer}>
             <CircleIcon size={16} />
           </View>
 
@@ -50,53 +47,27 @@ export default function OutdoorNavigationTransitSteps(
         </View>
 
         <View style={directionStepsStyles.transitStepContainer}>
-          <View style={{ minWidth: 40, alignItems: "center" }}>
+          <View style={directionStepsStyles.transitStepVerticalLineContainer}>
             <View
               style={[
                 directionStepsStyles.transitStepVerticalLine,
-                {
-                  backgroundColor:
-                    step.transit_line_color || DIRECTION_COLORS.transit,
-                },
+                getTransitStepVerticalLineColorStyle(step.transit_line_color),
               ]}
             />
           </View>
-          <View
-            style={{
-              flex: 1,
-              height: 100,
-              justifyContent: "space-between",
-              alignItems: "flex-start",
-            }}
-          >
+          <View style={directionStepsStyles.transitStepContentContainer}>
             {renderDivider()}
 
-            <View
-              style={{
-                width: "100%",
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-              }}
-            >
-              <View style={{ height: "100%", justifyContent: "center" }}>
-                <View
-                  style={{
-                    width: "100%",
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 8,
-                  }}
-                >
+            <View style={directionStepsStyles.transitStepRow}>
+              <View style={directionStepsStyles.transitStepMainInfoContainer}>
+                <View style={directionStepsStyles.transitStepLineInfoRow}>
                   <Text
                     style={[
                       directionStepsStyles.transitLineChip,
-                      {
-                        backgroundColor:
-                          step.transit_line_color || DIRECTION_COLORS.transit,
-                        color:
-                          step.transit_line_text_color || COLORS.textPrimary,
-                      },
+                      getTransitLineChipColorsStyle(
+                        step.transit_line_color,
+                        step.transit_line_text_color,
+                      ),
                     ]}
                   >
                     {step.transit_line}
@@ -106,7 +77,7 @@ export default function OutdoorNavigationTransitSteps(
                     {step.transit_headsign}
                   </Text>
                 </View>
-                <Text style={{ color: COLORS.textMuted }}>
+                <Text style={directionStepsStyles.mutedText}>
                   {step.duration} {`(${step.num_stops} stops)`}
                 </Text>
                 <Text>Departs at {step.departure_time}</Text>
@@ -122,7 +93,7 @@ export default function OutdoorNavigationTransitSteps(
         </View>
 
         <View style={directionStepsStyles.checkpointContainer}>
-          <View style={{ minWidth: 40, alignItems: "center" }}>
+          <View style={directionStepsStyles.checkpointIconContainer}>
             <CircleIcon size={16} />
           </View>
 
@@ -138,41 +109,23 @@ export default function OutdoorNavigationTransitSteps(
     return (
       <View key={step.polyline + index}>
         <View style={directionStepsStyles.transitStepContainer}>
-          <View
-            style={{
-              alignItems: "center",
-              width: 40,
-              height: 100,
-              marginTop: -8,
-            }}
-          >
+          <View style={directionStepsStyles.walkingStepLineContainer}>
             <WalkingDottedLine height={120} />
           </View>
 
-          <View
-            style={{
-              flex: 1,
-              height: 100,
-              justifyContent: "space-between",
-              alignItems: "flex-start",
-            }}
-          >
+          <View style={directionStepsStyles.walkingStepContentContainer}>
             {renderDivider()}
-            <View
-              style={{
-                width: "100%",
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-              }}
-            >
-              <View style={{ maxWidth: "80%" }}>
+            <View style={directionStepsStyles.walkingStepRow}>
+              <View style={directionStepsStyles.walkingStepMainInfoContainer}>
                 <Text
-                  style={[directionStepsStyles.stepText, { maxWidth: "100%" }]}
+                  style={[
+                    directionStepsStyles.stepText,
+                    directionStepsStyles.walkingStepTextFullWidth,
+                  ]}
                 >
                   {step.instruction}
                 </Text>
-                <Text style={{ color: COLORS.textMuted }}>
+                <Text style={directionStepsStyles.mutedText}>
                   {step.duration} ({step.distance})
                 </Text>
               </View>
@@ -191,11 +144,14 @@ export default function OutdoorNavigationTransitSteps(
         key={"start-checkpoint"}
         style={directionStepsStyles.checkpointContainer}
       >
-        <View style={{ minWidth: 40, alignItems: "center" }}>
+        <View style={directionStepsStyles.checkpointIconContainer}>
           <CircleIcon size={16} />
         </View>
         <Text
-          style={[directionStepsStyles.checkpointText, { maxWidth: "80%" }]}
+          style={[
+            directionStepsStyles.checkpointText,
+            directionStepsStyles.checkpointTextWithMaxWidth,
+          ]}
         >
           {startLocation?.name || "Start location"}
         </Text>
@@ -213,11 +169,14 @@ export default function OutdoorNavigationTransitSteps(
         key={"end-checkpoint"}
         style={directionStepsStyles.checkpointContainer}
       >
-        <View style={{ minWidth: 40, alignItems: "center" }}>
+        <View style={directionStepsStyles.checkpointIconContainer}>
           <CircleIcon size={16} />
         </View>
         <Text
-          style={[directionStepsStyles.checkpointText, { maxWidth: "80%" }]}
+          style={[
+            directionStepsStyles.checkpointText,
+            directionStepsStyles.checkpointTextWithMaxWidth,
+          ]}
         >
           {endLocation?.name || "Destination"}
         </Text>

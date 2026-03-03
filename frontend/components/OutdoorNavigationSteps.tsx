@@ -1,7 +1,6 @@
 import { COLORS } from "@/app/constants";
 import { directionStepsStyles } from "@/app/styles/directionStyles";
 import { stripHtmlTags } from "@/app/utils/stringUtils";
-import TransitStepDetails from "@/components/TransitStepDetails";
 import {
   DirectionsModel,
   StepModel,
@@ -72,9 +71,6 @@ export default function OutdoorNavigationSteps(
               >
                 {stripHtmlTags(step.instruction)}
               </Text>
-              {step.travel_mode === TransitMode.TRANSIT && (
-                <TransitStepDetails step={step} />
-              )}
               <View style={directionStepsStyles.distanceDivider}>
                 <Text style={directionStepsStyles.distanceText}>
                   {step.distance}

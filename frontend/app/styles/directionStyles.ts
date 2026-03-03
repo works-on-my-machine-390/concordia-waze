@@ -80,6 +80,11 @@ export const directionStepsStyles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.textMuted,
   },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: COLORS.border,
+  },
 
   placeholderStep: {
     padding: 16,
@@ -104,16 +109,50 @@ export const directionStepsStyles = StyleSheet.create({
     padding: 8,
     gap: 12,
   },
+  checkpointIconContainer: {
+    minWidth: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  checkpointTextWithMaxWidth: {
+    maxWidth: "80%",
+  },
 
   transitStepVerticalLine: {
     width: 6,
     height: 120,
     borderRadius: 2,
   },
+  transitStepVerticalLineContainer: {
+    minWidth: 40,
+    alignItems: "center",
+  },
   transitStepContainer: {
     flexDirection: "row",
     padding: 8,
     gap: 12,
+  },
+  transitStepContentContainer: {
+    flex: 1,
+    height: 100,
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  transitStepRow: {
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  transitStepMainInfoContainer: {
+    height: "100%",
+    justifyContent: "center",
+  },
+  transitStepLineInfoRow: {
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   transitLineChip: {
     paddingHorizontal: 8,
@@ -121,4 +160,43 @@ export const directionStepsStyles = StyleSheet.create({
     borderRadius: 4,
     fontSize: 16,
   },
+  mutedText: {
+    color: COLORS.textMuted,
+  },
+  walkingStepLineContainer: {
+    alignItems: "center",
+    width: 40,
+    height: 100,
+    marginTop: -8,
+  },
+  walkingStepContentContainer: {
+    flex: 1,
+    height: 100,
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  walkingStepRow: {
+    width: "100%",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  walkingStepMainInfoContainer: {
+    maxWidth: "80%",
+  },
+  walkingStepTextFullWidth: {
+    maxWidth: "100%",
+  },
+});
+
+export const getTransitStepVerticalLineColorStyle = (color?: string) => ({
+  backgroundColor: color || DIRECTION_COLORS.transit,
+});
+
+export const getTransitLineChipColorsStyle = (
+  lineColor?: string,
+  textColor?: string,
+) => ({
+  backgroundColor: lineColor || DIRECTION_COLORS.transit,
+  color: textColor || COLORS.textPrimary,
 });
