@@ -113,10 +113,14 @@ export default function NavigationBottomSheet(
   }, [isCrossCampus, directionsData]);
 
   useEffect(() => {
-    if (transitOptions.length > 0) {
+    const hasSelectedMode = transitOptions.some(
+      (option) => option.mode === navigationState.transitMode,
+    );
+
+    if (transitOptions.length > 0 && !hasSelectedMode) {
       navigationState.setTransitMode(transitOptions[0].mode);
     }
-  }, [transitOptions]);
+  }, [navigationState.transitMode, transitOptions]);
 
   const selectedOption =
     transitOptions.find(
