@@ -330,12 +330,11 @@ func TestFetchOpeningHours_Success(t *testing.T) {
 		},
 	}
 
-	// Construct a real BuildingService (backed by our fake repo) and pass its value into HoursService.
+	// Construct a real BuildingService (backed by our fake repo) and pass its pointer into HoursService.
 	cacheDir := t.TempDir()
 	buildingSvcPtr := NewBuildingService(repo, nil, nil, cacheDir)
-	buildingSvcVal := *buildingSvcPtr
 
-	hsvc := NewHoursService(buildingSvcVal, fp)
+	hsvc := NewHoursService(buildingSvcPtr, fp)
 
 	out, err := hsvc.FetchOpeningHours("LS")
 	assert.NoError(t, err)
@@ -355,9 +354,8 @@ func TestFetchOpeningHours_GetBuildingError(t *testing.T) {
 	}
 	cacheDir := t.TempDir()
 	buildingSvcPtr := NewBuildingService(repo, nil, nil, cacheDir)
-	buildingSvcVal := *buildingSvcPtr
 
-	hsvc := NewHoursService(buildingSvcVal, &fakePlacesClient{})
+	hsvc := NewHoursService(buildingSvcPtr, &fakePlacesClient{})
 
 	_, err := hsvc.FetchOpeningHours("MISSING")
 	assert.Error(t, err)
@@ -379,9 +377,8 @@ func TestFetchOpeningHours_FindPlaceIDError(t *testing.T) {
 
 	cacheDir := t.TempDir()
 	buildingSvcPtr := NewBuildingService(repo, nil, nil, cacheDir)
-	buildingSvcVal := *buildingSvcPtr
 
-	hsvc := NewHoursService(buildingSvcVal, fp)
+	hsvc := NewHoursService(buildingSvcPtr, fp)
 
 	_, err := hsvc.FetchOpeningHours("LS")
 	assert.Error(t, err)
@@ -404,9 +401,8 @@ func TestFetchOpeningHours_GetOpeningHoursError(t *testing.T) {
 
 	cacheDir := t.TempDir()
 	buildingSvcPtr := NewBuildingService(repo, nil, nil, cacheDir)
-	buildingSvcVal := *buildingSvcPtr
 
-	hsvc := NewHoursService(buildingSvcVal, fp)
+	hsvc := NewHoursService(buildingSvcPtr, fp)
 
 	_, err := hsvc.FetchOpeningHours("LS")
 	assert.Error(t, err)
@@ -430,9 +426,8 @@ func TestFetchOpeningHours_EmptyHours(t *testing.T) {
 
 	cacheDir := t.TempDir()
 	buildingSvcPtr := NewBuildingService(repo, nil, nil, cacheDir)
-	buildingSvcVal := *buildingSvcPtr
 
-	hsvc := NewHoursService(buildingSvcVal, fp)
+	hsvc := NewHoursService(buildingSvcPtr, fp)
 
 	out, err := hsvc.FetchOpeningHours("LS")
 	assert.NoError(t, err)
