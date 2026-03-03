@@ -86,6 +86,8 @@ func (c *googleDirectionsClient) GetDirections(start, end domain.LatLng, mode st
 							Vehicle   struct {
 								Type string `json:"type"`
 							} `json:"vehicle"`
+							Color     string `json:"color"`
+							TextColor string `json:"text_color"`
 						} `json:"line"`
 						DepartureStop struct {
 							Name string `json:"name"`
@@ -130,24 +132,25 @@ func (c *googleDirectionsClient) GetDirections(start, end domain.LatLng, mode st
 		if transitLine == "" {
 			transitLine = s.TransitDetails.Line.Name
 		}
-
 		steps = append(steps, domain.DirectionStep{
-			Instruction:     s.HTMLInstructions,
-			Distance:        s.Distance.Text,
-			Duration:        s.Duration.Text,
-			Polyline:        s.Polyline.Points,
-			Start:           domain.LatLng{Lat: s.StartLocation.Lat, Lng: s.StartLocation.Lng},
-			End:             domain.LatLng{Lat: s.EndLocation.Lat, Lng: s.EndLocation.Lng},
-			TravelMode:      s.TravelMode,
-			Maneuver:        s.Maneuver,
-			TransitLine:     transitLine,
-			TransitType:     s.TransitDetails.Line.Vehicle.Type,
-			TransitHeadsign: s.TransitDetails.Headsign,
-			DepartureStop:   s.TransitDetails.DepartureStop.Name,
-			ArrivalStop:     s.TransitDetails.ArrivalStop.Name,
-			DepartureTime:   s.TransitDetails.DepartureTime.Text,
-			ArrivalTime:     s.TransitDetails.ArrivalTime.Text,
-			NumStops:        s.TransitDetails.NumStops,
+			Instruction:          s.HTMLInstructions,
+			Distance:             s.Distance.Text,
+			Duration:             s.Duration.Text,
+			Polyline:             s.Polyline.Points,
+			Start:                domain.LatLng{Lat: s.StartLocation.Lat, Lng: s.StartLocation.Lng},
+			End:                  domain.LatLng{Lat: s.EndLocation.Lat, Lng: s.EndLocation.Lng},
+			TravelMode:           s.TravelMode,
+			Maneuver:             s.Maneuver,
+			TransitLine:          transitLine,
+			TransitType:          s.TransitDetails.Line.Vehicle.Type,
+			TransitHeadsign:      s.TransitDetails.Headsign,
+			DepartureStop:        s.TransitDetails.DepartureStop.Name,
+			ArrivalStop:          s.TransitDetails.ArrivalStop.Name,
+			DepartureTime:        s.TransitDetails.DepartureTime.Text,
+			ArrivalTime:          s.TransitDetails.ArrivalTime.Text,
+			NumStops:             s.TransitDetails.NumStops,
+			TransitLineColor:     s.TransitDetails.Line.Color,
+			TransitLineTextColor: s.TransitDetails.Line.TextColor,
 		})
 	}
 

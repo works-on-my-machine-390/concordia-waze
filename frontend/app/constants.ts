@@ -26,6 +26,14 @@ export const COLORS = {
   warning: "#FF9800",
 };
 
+export const DIRECTION_COLORS = {
+  walking: "#1B53FD",
+  driving: "#1B53FD", // same as walking
+  shuttle: COLORS.goldDark,
+  transit: "#429FE1", // the color to use is typically returned but this is the fallback for transit
+  bicycling: "#1F8E3F",
+};
+
 // App Info
 export const APP_INFO = {
   name: "Concordia Waze",
@@ -47,4 +55,5 @@ export const CAMPUS_COORDS = {
   [CampusCode.LOY]: { latitude: 45.4589, longitude: -73.64 }, // Loyola campus
 };
 
+export const QUERY_RETRY_DELAY_MS = 3000;
 export const BUILDINGS_WITH_INDOOR_MAPS = ['CC', 'H', 'LB', 'MB', 'VL'] as const;
