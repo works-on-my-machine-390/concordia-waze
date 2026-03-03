@@ -23,6 +23,8 @@ type fakeDirectionsClient struct {
 	lastEnd   domain.LatLng
 	starts    []domain.LatLng
 	ends      []domain.LatLng
+
+	errOnCall int // If > 0, only return error on this call number (1-based)
 }
 
 func (f *fakeDirectionsClient) GetDirections(start, end domain.LatLng, mode string) (domain.DirectionsResponse, error) {
@@ -35,6 +37,12 @@ func (f *fakeDirectionsClient) GetDirections(start, end domain.LatLng, mode stri
 	f.starts = append(f.starts, start)
 	f.ends = append(f.ends, end)
 
+	if f.errOnCall > 0 {
+		if f.calls == f.errOnCall {
+			return domain.DirectionsResponse{}, f.err
+		}
+		return f.resp, nil
+	}
 	return f.resp, f.err
 }
 
@@ -532,6 +540,48 @@ func TestDirectionsService_Shuttle_LeaveNow_UserTime(t *testing.T) {
 	resp, err := s.GetDirectionsWithSchedule(domain.LatLng{}, domain.LatLng{}, "shuttle", "monday", "09:50")
 	assert.NoError(t, err)
 	assert.Contains(t, resp.DepartureMessage, "Leave now to catch")
+}
+
+func TestGetShuttleDirectionsAt_WalkLegsFail(t *testing.T) {
+	cases := []struct {
+		name      string
+		errOnCall int
+		errMsg    string
+	}{
+		{"walk to stop fails", 1, "walking to shuttle stop"},
+		{"walk from stop fails", 2, "walking from shuttle stop"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			f := &fakeDirectionsClient{
+				resp:      domain.DirectionsResponse{Mode: "walking"},
+				err:       errors.New("walk failed"),
+				errOnCall: tc.errOnCall,
+			}
+			s := NewDirectionsService(f).WithShuttleRepo(&fakeShuttleRepo{times: []string{"10:00"}})
+
+			_, err := s.GetDirectionsWithSchedule(domain.LatLng{}, domain.LatLng{}, "shuttle", "monday", "09:00")
+			assert.Error(t, err)
+			assert.Contains(t, err.Error(), tc.errMsg)
+			assert.Contains(t, err.Error(), "walk failed")
+		})
+	}
+}
+
+func TestGetShuttleDirectionsManual_WalkLegsError(t *testing.T) {
+	f := &fakeDirectionsClient{
+		err:       errors.New("walk failed"),
+		errOnCall: 1,
+	}
+	repo := &fakeShuttleRepo{
+		times: []string{"10:00"},
+	}
+	s := NewDirectionsService(f).WithShuttleRepo(repo)
+
+	_, err := s.GetShuttleDirectionsManual(domain.LatLng{}, domain.LatLng{}, "monday", "10:00")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "walk failed")
 }
 
 func TestDirectionsService_Shuttle_DepartAt_UserTime(t *testing.T) {
