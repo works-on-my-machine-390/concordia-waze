@@ -113,8 +113,7 @@ func TestBuildingService_GetBuilding_Success(t *testing.T) {
 		},
 	}
 
-	cacheDir := t.TempDir()
-	svc := NewBuildingService(repo, fp, cacheDir)
+	svc := NewBuildingService(repo, nil, fp)
 
 	b, err := svc.GetBuilding("MB")
 	if err != nil {
@@ -148,8 +147,7 @@ func TestBuildingService_GetBuilding_PlacesErrorNonFatal(t *testing.T) {
 		err: errors.New("places error"),
 	}
 
-	cacheDir := t.TempDir()
-	svc := NewBuildingService(repo, fp, cacheDir)
+	svc := NewBuildingService(repo, nil, fp)
 
 	b, err := svc.GetBuilding("MB")
 	if err != nil {
@@ -167,8 +165,7 @@ func TestBuildingService_GetBuilding_PlacesErrorNonFatal(t *testing.T) {
 func TestBuildingService_GetBuilding_NotFound(t *testing.T) {
 	repo := &fakeBuildingRepo{err: domain.ErrNotFound}
 	// places client may be nil because repo returns error before places are used
-	cacheDir := t.TempDir()
-	svc := NewBuildingService(repo, nil, cacheDir)
+	svc := NewBuildingService(repo, nil, nil)
 
 	_, err := svc.GetBuilding("XYZ")
 	if err == nil {
@@ -220,8 +217,7 @@ func TestBuildingService_GetAllBuildingsByCampus_Success(t *testing.T) {
 			},
 		},
 	}
-	cacheDir := t.TempDir()
-	svc := NewBuildingService(repo, nil, cacheDir)
+	svc := NewBuildingService(repo, nil, nil)
 
 	grouped, err := svc.GetAllBuildingsByCampus()
 	if err != nil {
@@ -331,8 +327,7 @@ func TestFetchOpeningHours_Success(t *testing.T) {
 	}
 
 	// Construct a real BuildingService (backed by our fake repo) and pass its value into HoursService.
-	cacheDir := t.TempDir()
-	buildingSvcPtr := NewBuildingService(repo, nil, cacheDir)
+	buildingSvcPtr := NewBuildingService(repo, nil, nil)
 	buildingSvcVal := *buildingSvcPtr
 
 	hsvc := NewHoursService(buildingSvcVal, fp)
@@ -353,8 +348,7 @@ func TestFetchOpeningHours_GetBuildingError(t *testing.T) {
 	repo := &fakeBuildingRepo{
 		err: errors.New("not found"),
 	}
-	cacheDir := t.TempDir()
-	buildingSvcPtr := NewBuildingService(repo, nil, cacheDir)
+	buildingSvcPtr := NewBuildingService(repo, nil, nil)
 	buildingSvcVal := *buildingSvcPtr
 
 	hsvc := NewHoursService(buildingSvcVal, &fakePlacesClient{})
@@ -377,8 +371,7 @@ func TestFetchOpeningHours_FindPlaceIDError(t *testing.T) {
 		err: errors.New("places find error"),
 	}
 
-	cacheDir := t.TempDir()
-	buildingSvcPtr := NewBuildingService(repo, nil, cacheDir)
+	buildingSvcPtr := NewBuildingService(repo, nil, nil)
 	buildingSvcVal := *buildingSvcPtr
 
 	hsvc := NewHoursService(buildingSvcVal, fp)
@@ -402,8 +395,7 @@ func TestFetchOpeningHours_GetOpeningHoursError(t *testing.T) {
 		err:     errors.New("opening hours error"),
 	}
 
-	cacheDir := t.TempDir()
-	buildingSvcPtr := NewBuildingService(repo, nil, cacheDir)
+	buildingSvcPtr := NewBuildingService(repo, nil, nil)
 	buildingSvcVal := *buildingSvcPtr
 
 	hsvc := NewHoursService(buildingSvcVal, fp)
@@ -428,8 +420,7 @@ func TestFetchOpeningHours_EmptyHours(t *testing.T) {
 		hours:   domain.OpeningHours{},
 	}
 
-	cacheDir := t.TempDir()
-	buildingSvcPtr := NewBuildingService(repo, nil, cacheDir)
+	buildingSvcPtr := NewBuildingService(repo, nil, nil)
 	buildingSvcVal := *buildingSvcPtr
 
 	hsvc := NewHoursService(buildingSvcVal, fp)

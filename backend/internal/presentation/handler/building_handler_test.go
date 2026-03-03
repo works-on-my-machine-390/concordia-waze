@@ -108,8 +108,7 @@ func TestBuildingHandler_GetBuilding_Success200(t *testing.T) {
 		},
 	}
 
-	cacheDir := t.TempDir()
-	svc := application.NewBuildingService(repo, fp, cacheDir)
+	svc := application.NewBuildingService(repo, nil, fp)
 	h := NewBuildingHandler(svc)
 
 	r := gin.New()
@@ -145,8 +144,7 @@ func TestBuildingHandler_GetBuilding_NotFound404(t *testing.T) {
 		},
 	}
 
-	cacheDir := t.TempDir()
-	svc := application.NewBuildingService(repo, fp, cacheDir)
+	svc := application.NewBuildingService(repo, nil, fp)
 	h := NewBuildingHandler(svc)
 
 	r := gin.New()
@@ -177,8 +175,7 @@ func TestBuildingHandler_GetBuilding_InternalError500(t *testing.T) {
 		},
 	}
 
-	cacheDir := t.TempDir()
-	svc := application.NewBuildingService(repo, fp, cacheDir)
+	svc := application.NewBuildingService(repo, nil, fp)
 	h := NewBuildingHandler(svc)
 
 	r := gin.New()
@@ -208,8 +205,7 @@ func TestBuildingHandler_GetAllBuildingsByCampus_Success200(t *testing.T) {
 		},
 	}
 
-	cacheDir := t.TempDir()
-	svc := application.NewBuildingService(repo, nil, cacheDir)
+	svc := application.NewBuildingService(repo, nil, nil)
 	h := NewBuildingHandler(svc)
 
 	r := gin.New()
