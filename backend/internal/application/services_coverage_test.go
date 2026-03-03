@@ -113,7 +113,8 @@ func TestBuildingService_GetBuilding_Success(t *testing.T) {
 		},
 	}
 
-	svc := NewBuildingService(repo, nil, fp)
+	cacheDir := t.TempDir()
+	svc := NewBuildingService(repo, nil, fp, cacheDir)
 
 	b, err := svc.GetBuilding("MB")
 	if err != nil {
@@ -147,7 +148,8 @@ func TestBuildingService_GetBuilding_PlacesErrorNonFatal(t *testing.T) {
 		err: errors.New("places error"),
 	}
 
-	svc := NewBuildingService(repo, nil, fp)
+	cacheDir := t.TempDir()
+	svc := NewBuildingService(repo, nil, fp, cacheDir)
 
 	b, err := svc.GetBuilding("MB")
 	if err != nil {
@@ -165,7 +167,8 @@ func TestBuildingService_GetBuilding_PlacesErrorNonFatal(t *testing.T) {
 func TestBuildingService_GetBuilding_NotFound(t *testing.T) {
 	repo := &fakeBuildingRepo{err: domain.ErrNotFound}
 	// places client may be nil because repo returns error before places are used
-	svc := NewBuildingService(repo, nil, nil)
+	cacheDir := t.TempDir()
+	svc := NewBuildingService(repo, nil, nil, cacheDir)
 
 	_, err := svc.GetBuilding("XYZ")
 	if err == nil {
@@ -217,7 +220,8 @@ func TestBuildingService_GetAllBuildingsByCampus_Success(t *testing.T) {
 			},
 		},
 	}
-	svc := NewBuildingService(repo, nil, nil)
+	cacheDir := t.TempDir()
+	svc := NewBuildingService(repo, nil, nil, cacheDir)
 
 	grouped, err := svc.GetAllBuildingsByCampus()
 	if err != nil {
@@ -327,7 +331,8 @@ func TestFetchOpeningHours_Success(t *testing.T) {
 	}
 
 	// Construct a real BuildingService (backed by our fake repo) and pass its value into HoursService.
-	buildingSvcPtr := NewBuildingService(repo, nil, nil)
+	cacheDir := t.TempDir()
+	buildingSvcPtr := NewBuildingService(repo, nil, nil, cacheDir)
 	buildingSvcVal := *buildingSvcPtr
 
 	hsvc := NewHoursService(buildingSvcVal, fp)
@@ -348,7 +353,8 @@ func TestFetchOpeningHours_GetBuildingError(t *testing.T) {
 	repo := &fakeBuildingRepo{
 		err: errors.New("not found"),
 	}
-	buildingSvcPtr := NewBuildingService(repo, nil, nil)
+	cacheDir := t.TempDir()
+	buildingSvcPtr := NewBuildingService(repo, nil, nil, cacheDir)
 	buildingSvcVal := *buildingSvcPtr
 
 	hsvc := NewHoursService(buildingSvcVal, &fakePlacesClient{})
@@ -371,7 +377,8 @@ func TestFetchOpeningHours_FindPlaceIDError(t *testing.T) {
 		err: errors.New("places find error"),
 	}
 
-	buildingSvcPtr := NewBuildingService(repo, nil, nil)
+	cacheDir := t.TempDir()
+	buildingSvcPtr := NewBuildingService(repo, nil, nil, cacheDir)
 	buildingSvcVal := *buildingSvcPtr
 
 	hsvc := NewHoursService(buildingSvcVal, fp)
@@ -395,7 +402,8 @@ func TestFetchOpeningHours_GetOpeningHoursError(t *testing.T) {
 		err:     errors.New("opening hours error"),
 	}
 
-	buildingSvcPtr := NewBuildingService(repo, nil, nil)
+	cacheDir := t.TempDir()
+	buildingSvcPtr := NewBuildingService(repo, nil, nil, cacheDir)
 	buildingSvcVal := *buildingSvcPtr
 
 	hsvc := NewHoursService(buildingSvcVal, fp)
@@ -420,7 +428,8 @@ func TestFetchOpeningHours_EmptyHours(t *testing.T) {
 		hours:   domain.OpeningHours{},
 	}
 
-	buildingSvcPtr := NewBuildingService(repo, nil, nil)
+	cacheDir := t.TempDir()
+	buildingSvcPtr := NewBuildingService(repo, nil, nil, cacheDir)
 	buildingSvcVal := *buildingSvcPtr
 
 	hsvc := NewHoursService(buildingSvcVal, fp)
@@ -445,7 +454,8 @@ func TestBuildingService_GetBuildingFloors_Success(t *testing.T) {
 	}
 	frepo := &fakeFloorRepo{floors: floorMap}
 
-	svc := NewBuildingService(repo, frepo, nil)
+	cacheDir := t.TempDir()
+	svc := NewBuildingService(repo, frepo, nil, cacheDir)
 
 	out, err := svc.GetBuildingFloors("mb")
 	if err != nil {
@@ -463,7 +473,8 @@ func TestBuildingService_GetBuildingFloors_NotFound(t *testing.T) {
 	repo := &fakeBuildingRepo{}
 	frepo := &fakeFloorRepo{floors: map[string][]domain.Floor{}}
 
-	svc := NewBuildingService(repo, frepo, nil)
+	cacheDir := t.TempDir()
+	svc := NewBuildingService(repo, frepo, nil, cacheDir)
 
 	_, err := svc.GetBuildingFloors("UNKNOWN")
 	if err == nil {
@@ -478,7 +489,8 @@ func TestBuildingService_GetBuildingFloors_RepoError(t *testing.T) {
 	repo := &fakeBuildingRepo{}
 	frepo := &fakeFloorRepo{err: errors.New("boom")}
 
-	svc := NewBuildingService(repo, frepo, nil)
+	cacheDir := t.TempDir()
+	svc := NewBuildingService(repo, frepo, nil, cacheDir)
 
 	_, err := svc.GetBuildingFloors("MB")
 	if err == nil {
