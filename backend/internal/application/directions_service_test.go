@@ -642,3 +642,49 @@ func TestDirectionsService_Shuttle_LeaveNow_Auto(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Contains(t, resp.DepartureMessage, "Leave now to catch")
 }
+
+func TestDirectionsService_ShuttleMode_LOYtoSGW(t *testing.T) {
+	f := &fakeDirectionsClient{
+		resp: domain.DirectionsResponse{
+			Mode: "walking",
+			Steps: []domain.DirectionStep{
+				{Instruction: "Walk", Distance: "0.1 km", Duration: "1 min"},
+			},
+		},
+	}
+	repo := &fakeShuttleRepo{times: []string{"00:00", "23:59"}}
+	s := NewDirectionsService(f).WithShuttleRepo(repo)
+
+	// Start at LOY, End at SGW
+	start := domain.LatLng{Lat: 45.4582, Lng: -73.6405}
+	end := domain.LatLng{Lat: 45.4973, Lng: -73.5790}
+
+	resp, err := s.GetDirections(start, end, "shuttle")
+	assert.NoError(t, err)
+	assert.Equal(t, "shuttle", resp.Mode)
+	assert.Equal(t, "LOY", repo.lastCampus)
+}
+
+func TestPickNextDeparture_Legacy(t *testing.T) {
+	times := []string{"00:00", "23:59"}
+	// Just ensure it executes without panic
+	_ = pickNextDeparture(times)
+}
+
+func TestParseOptionalDayTime_DefaultDay(t *testing.T) {
+	ref, day, err := parseOptionalDayTime("", "12:00")
+	assert.NoError(t, err)
+	assert.NotEmpty(t, day)
+	assert.Equal(t, 12, ref.Hour())
+}
+
+func TestDecodePolyline_Malformed(t *testing.T) {
+	_, err := decodePolyline("_")
+	assert.Error(t, err)
+	assert.Equal(t, "invalid polyline encoding", err.Error())
+}
+
+func TestFormatDuration_Negative(t *testing.T) {
+	d := -5 * time.Minute
+	assert.Equal(t, "5 mins", formatDuration(d))
+}
