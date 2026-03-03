@@ -14,6 +14,8 @@ type IndoorNavigationState = {
   mode: IndoorNavMode;
   pickMode: PickMode;
 
+  selectedRoom: SelectedPoint | null;
+
   start: SelectedPoint | null;
   end: SelectedPoint | null;
 
@@ -21,7 +23,9 @@ type IndoorNavigationState = {
   totalDistance: number | null;
 
   // actions
-  enterItinerary: () => void;
+  setSelectedRoom: (p: SelectedPoint | null) => void;
+
+  enterItineraryFromSelected: () => void;
   exitItinerary: () => void;
 
   setPickMode: (m: PickMode) => void;
@@ -32,9 +36,11 @@ type IndoorNavigationState = {
   clearRoute: () => void;
 };
 
-export const useIndoorNavigationStore = create<IndoorNavigationState>((set) => ({
+export const useIndoorNavigationStore = create<IndoorNavigationState>((set, get) => ({
   mode: "BROWSE",
   pickMode: "start",
+
+  selectedRoom: null,
 
   start: null,
   end: null,
@@ -42,15 +48,22 @@ export const useIndoorNavigationStore = create<IndoorNavigationState>((set) => (
   routeSegments: null,
   totalDistance: null,
 
-  enterItinerary: () =>
+  setSelectedRoom: (p) => set({ selectedRoom: p }),
+
+  //uses selectedRoom as START automatically
+  enterItineraryFromSelected: () => {
+    const sel = get().selectedRoom;
+    if (!sel) return;
+
     set({
       mode: "ITINERARY",
-      pickMode: "start",
-      start: null,
+      pickMode: "end",
+      start: sel,
       end: null,
       routeSegments: null,
       totalDistance: null,
-    }),
+    });
+  },
 
   exitItinerary: () =>
     set({
@@ -60,6 +73,7 @@ export const useIndoorNavigationStore = create<IndoorNavigationState>((set) => (
       end: null,
       routeSegments: null,
       totalDistance: null,
+      // keep selectedRoom so the button stays available after exiting
     }),
 
   setPickMode: (m) => set({ pickMode: m }),

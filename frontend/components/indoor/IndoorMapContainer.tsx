@@ -4,7 +4,7 @@ import { useGetBuildingFloors } from "@/hooks/queries/indoorMapQueries";
 import type { FloorSegment, Coordinates } from "@/hooks/queries/indoorDirectionsQueries";
 import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
-import type { PointOfInterest } from "@/hooks/queries/indoorMapQueries";
+import { useIndoorNavigationStore } from "@/hooks/useIndoorNavigationStore";
 
 export type SelectedPoint = {
   label: string; // room name
@@ -19,11 +19,7 @@ type Props = {
   routeSegments?: FloorSegment[] | null;
   preferredFloorNumber?: number | null;
 
-  // NEW: click selection
-  pickMode?: "start" | "end";
-  onPickPoint?: (p: SelectedPoint) => void;
-
-  // ✅ NEW: allows parent to push floor selector up (ex: when itinerary sheet open)
+  // allows parent to push floor selector up (ex: when itinerary sheet open)
   floorSelectorBottomOffset?: number;
 };
 
@@ -31,10 +27,10 @@ export default function IndoorMapContainer({
   buildingCode,
   routeSegments = null,
   preferredFloorNumber = null,
-  pickMode = "end",
-  onPickPoint,
-  floorSelectorBottomOffset = 24, // ✅ default matches your previous behavior
+  floorSelectorBottomOffset = 24,
 }: Readonly<Props>) {
+  const nav = useIndoorNavigationStore();
+
   const [selectedFloor, setSelectedFloor] = useState<number | null>(null);
   const { data, isLoading, error } = useGetBuildingFloors(buildingCode);
 
@@ -60,17 +56,43 @@ export default function IndoorMapContainer({
     return seg?.path ?? null;
   }, [routeSegments, selectedFloor]);
 
-  const handlePickPoi = (poi: PointOfInterest) => {
-    if (!onPickPoint || !currentFloor) return;
+  //  user clicks polygon -> we get name here
+  const handleSelectPoiName = (name: string) => {
+    if (!currentFloor) return;
 
-    const coord = { x: poi.position.x, y: poi.position.y } as Coordinates;
+    const poi = currentFloor.pois.find((p) => (p.name ?? "") === name);
+    if (!poi) return;
 
-    onPickPoint({
+    const point: SelectedPoint = {
       label: poi.name ?? "Room",
       floor: currentFloor.number,
-      coord,
-    });
+      coord: { x: poi.position.x, y: poi.position.y },
+    };
+
+    if (nav.mode === "BROWSE") {
+      nav.setSelectedRoom(point);
+      return;
+    }
+
+    // ITINERARY: start already chosen when entering
+    if (nav.start) {
+      nav.setEnd(point);
+      nav.clearRoute(); // trigger new backend call via controller
+    } else {
+      // fallback safety: if start missing, set it
+      nav.setStart(point);
+      nav.setPickMode("end");
+      nav.clearRoute();
+    }
   };
+
+  //highlight:
+  // - In itinerary: highlight the END (second room) if picked, else highlight START
+  // - In browse: highlight the selectedRoom
+  const highlightedPoiName =
+    nav.mode === "ITINERARY"
+      ? (nav.end?.label ?? nav.start?.label)
+      : nav.selectedRoom?.label;
 
   if (isLoading) {
     return (
@@ -86,7 +108,7 @@ export default function IndoorMapContainer({
       <View style={styles.centerContainer}>
         <Text style={styles.errorText}>Failed to load floor plans</Text>
         <Text style={styles.errorDetail}>
-          {error?.message || "Failed to load floor plans"}
+          {(error as any)?.message || "Failed to load floor plans"}
         </Text>
       </View>
     );
@@ -114,14 +136,16 @@ export default function IndoorMapContainer({
         key={selectedFloor}
         floor={currentFloor}
         routePath={routePathForCurrentFloor}
-        onPickPoi={onPickPoint ? handlePickPoi : undefined}
+        // ✅ teammate selection props
+        selectedPoiName={highlightedPoiName}
+        onSelectPoiName={handleSelectPoiName}
       />
 
       <FloorSelector
         floors={data.floors}
         selectedFloor={selectedFloor}
         onSelectFloor={setSelectedFloor}
-        bottomOffset={floorSelectorBottomOffset} // ✅ important
+        bottomOffset={floorSelectorBottomOffset}
       />
     </View>
   );

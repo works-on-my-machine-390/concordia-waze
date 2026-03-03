@@ -1,4 +1,4 @@
-import type { Floor, PointOfInterest } from "@/hooks/queries/indoorMapQueries";
+import type { Floor } from "@/hooks/queries/indoorMapQueries";
 import type { Coordinates } from "@/hooks/queries/indoorDirectionsQueries";
 import { useSvgDimensions } from "@/hooks/useSvgDimensions";
 import { ReactNativeZoomableView } from "@openspacelabs/react-native-zoomable-view";
@@ -12,10 +12,8 @@ import {
 import { SvgXml } from "react-native-svg";
 import IndoorPathOverlay from "./IndoorPathOverlay";
 import PoiMarker from "./PoiMarker";
-import PoiPickOverlay from "./PoiPickOverlay";
 import PolygonOverlay from "./PolygonOverlay";
 import { useIndoorNavigationStore } from "@/hooks/useIndoorNavigationStore";
-import { useState } from "react";
 
 type Props = {
   floor: Floor | undefined;
@@ -23,8 +21,8 @@ type Props = {
   // if current floor has a path to draw
   routePath?: Coordinates[] | null;
 
-  // allow picking POIs from this floor
-  onPickPoi?: (poi: PointOfInterest) => void;
+  selectedPoiName?: string;
+  onSelectPoiName?: (name: string) => void;
 };
 
 const normalizeName = (s: string) => s.trim().toLowerCase().replace(/\s+/g, "");
@@ -32,7 +30,8 @@ const normalizeName = (s: string) => s.trim().toLowerCase().replace(/\s+/g, "");
 export default function FloorPlanViewer({
   floor,
   routePath,
-  onPickPoi,
+  selectedPoiName,
+  onSelectPoiName,
 }: Readonly<Props>) {
   const nav = useIndoorNavigationStore();
 
@@ -41,7 +40,6 @@ export default function FloorPlanViewer({
     floor?.imgPath,
   );
 
-  const [selectedPoiName, setSelectedPoiName] = useState<string | undefined>();
   if (!floor) {
     return (
       <View style={styles.emptyContainer}>
@@ -70,15 +68,16 @@ export default function FloorPlanViewer({
   const DISPLAY_WIDTH = SCREEN_WIDTH - 32;
   const DISPLAY_HEIGHT = DISPLAY_WIDTH * (dimensions.height / dimensions.width);
 
-  // ✅ Find destination POI on this floor (used for BLUE highlight + optional route clipping)
+  //Find destination POI on this floor (used for route clipping to border)
   const destinationPoi =
     nav.mode === "ITINERARY" && nav.end && nav.end.floor === floor.number
       ? floor.pois.find(
-          (poi) => normalizeName(poi.name ?? "") === normalizeName(nav.end?.label ?? ""),
+          (poi) =>
+            normalizeName(poi.name ?? "") === normalizeName(nav.end?.label ?? ""),
         ) ?? null
       : null;
 
-  // ✅ Find destination polygon on this floor (so the route can clip to the room border)
+  // ✅ destination polygon used by IndoorPathOverlay to snap dotted end to border
   const endPolygon =
     destinationPoi && (destinationPoi.polygon?.length ?? 0) > 2
       ? destinationPoi.polygon
@@ -112,45 +111,36 @@ export default function FloorPlanViewer({
             preserveAspectRatio="xMidYMid meet"
           />
 
-          {/* ✅ room polygons (destination gets blue highlight) */}
+          {/* teammate polygons: pressable + highlight */}
           <PolygonOverlay
             pois={floor.pois}
             width={DISPLAY_WIDTH}
             height={DISPLAY_HEIGHT}
             selectedPoiName={selectedPoiName}
-            onSelectPoi={setSelectedPoiName}
+            onSelectPoi={onSelectPoiName}
+            // If you merged my earlier suggestion, you can also pass:
+            // destinationPoiName={destinationPoi?.name ?? null}
           />
-          <View style={StyleSheet.absoluteFill}>
-            
-            {floor.pois.map((poi, index) => (
+
+          {/* POI markers are visual only */}
+          <View style={StyleSheet.absoluteFill} pointerEvents="none">
+            {floor.pois.map((poi) => (
               <PoiMarker
                 key={`poi-${poi.name}-${poi.position.x}-${poi.position.y}`}
                 poi={poi}
                 width={DISPLAY_WIDTH}
                 height={DISPLAY_HEIGHT}
-                onPress={() => setSelectedPoiName(poi.name)}
               />
             ))}
           </View>
 
-          {/* tap targets (interactive) */}
-          {onPickPoi ? (
-            <PoiPickOverlay
-              pois={floor.pois}
-              width={DISPLAY_WIDTH}
-              height={DISPLAY_HEIGHT}
-              onPickPoi={onPickPoi}
-              allowTypes={["room"]} // ✅ only rooms selectable
-            />
-          ) : null}
-
-          {/* route overlay (visual only) */}
+          {/* route overlay */}
           {routePath && routePath.length >= 2 ? (
             <IndoorPathOverlay
               path={routePath}
               width={DISPLAY_WIDTH}
               height={DISPLAY_HEIGHT}
-              endPolygon={endPolygon} // ✅ makes route touch destination border
+              endPolygon={endPolygon}
             />
           ) : null}
         </View>
