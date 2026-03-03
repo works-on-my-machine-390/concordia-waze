@@ -1,3 +1,4 @@
+import { DIRECTION_COLORS } from "@/app/constants";
 import { directionPolylineStyles } from "@/app/styles/directionStyles";
 import {
   StepModel,
@@ -47,25 +48,12 @@ export default function NavigationPolylines(
   const getStepStyling = (step: StepModel) => {
     const travelMode = step.travel_mode;
 
+    // check first for travel mode transit, and apply the transit line color if available.
     if (travelMode === TransitMode.TRANSIT) {
-      const transitType = step.transit_type;
-      const transitLine = step.transit_line;
-
-      if (transitType === "BUS") {
-        return directionPolylineStyles.bus;
-      } else if (transitType === "SUBWAY") {
-        if (transitLine?.includes("1")) {
-          return directionPolylineStyles.stmGreen;
-        } else if (transitLine?.includes("2")) {
-          return directionPolylineStyles.stmOrange;
-        } else if (transitLine?.includes("5")) {
-          return directionPolylineStyles.stmBlue;
-        } else if (transitLine?.includes("4")) {
-          return directionPolylineStyles.stmYellow;
-        }
-
-        return directionPolylineStyles.bus;
-      }
+      return {
+        ...directionPolylineStyles.transit,
+        strokeColor: step.transit_line_color || DIRECTION_COLORS.transit,
+      };
     }
 
     if (

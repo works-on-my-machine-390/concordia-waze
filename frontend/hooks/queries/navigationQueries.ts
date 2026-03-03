@@ -16,6 +16,17 @@ export const TransitMode = {
 
 export type TransitMode = (typeof TransitMode)[keyof typeof TransitMode];
 
+
+export const TransitType = {
+  BUS: "BUS",
+  SUBWAY: "SUBWAY",
+  TRAIN: "TRAIN",
+  TRAM: "TRAM",
+  WALKING: "WALKING", // technically not a transit type but shh
+} as const;
+
+export type TransitType = (typeof TransitType)[keyof typeof TransitType];
+
 // returns the query key and params
 export function prepareDirectionsQuery(
   startLocation: NavigableLocation,
@@ -77,6 +88,8 @@ type StepModelExtension = {
   transit_line?: string;
   transit_type?: string;
   travel_mode?: string;
+  transit_line_color?: string;
+  transit_line_text_color?: string;
 };
 
 export type DirectionsModel = {

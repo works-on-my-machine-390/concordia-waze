@@ -1,11 +1,15 @@
 import { getIsCrossCampus } from "@/app/utils/mapUtils";
-import { TransitMode, useGetAllModesDirections } from "@/hooks/queries/navigationQueries";
+import {
+  TransitMode,
+  useGetAllModesDirections,
+} from "@/hooks/queries/navigationQueries";
 import { useMapStore } from "@/hooks/useMapStore";
 import { useNavigationStore } from "@/hooks/useNavigationStore";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { useEffect, useMemo } from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { COLORS } from "../app/constants";
 import {
   BikeIcon,
@@ -14,7 +18,7 @@ import {
   TrainIcon,
   WalkingIcon,
 } from "../app/icons";
-import OutdoorNavigationSteps from "./OutdoorNavigationStep";
+import OutdoorNavigationSteps from "./OutdoorNavigationSteps";
 
 const concordiaLogo = require("../assets/images/concordia_logo.png");
 
@@ -23,6 +27,8 @@ export type NavigationBottomSheetProps = {};
 export default function NavigationBottomSheet(
   props: Readonly<NavigationBottomSheetProps>,
 ) {
+  const insets = useSafeAreaInsets();
+
   const queries = useGetAllModesDirections(
     useNavigationStore().startLocation,
     useNavigationStore().endLocation,
@@ -133,106 +139,111 @@ export default function NavigationBottomSheet(
       backgroundStyle={NavigationBottomSheetStyles.bottomSheet}
       containerStyle={{ overflow: "visible" }}
     >
-      <>
+      <View style={NavigationBottomSheetStyles.rootContent}>
         <View style={NavigationBottomSheetStyles.fakeHandleContainer}>
           <View style={NavigationBottomSheetStyles.fakeHandleBar} />
         </View>
         <View style={NavigationBottomSheetStyles.headerContainer}>
-          <View style={NavigationBottomSheetStyles.navModeContainer}>
-            <View style={NavigationBottomSheetStyles.navModeHeader}>
-              <View>
-                <Text style={NavigationBottomSheetStyles.transitModeTitle}>
-                  {navigationState.startLocation
-                    ? selectedOption.label
-                    : "Please select a start location"}
-                </Text>
-                {!!navigationState.currentDirections && !!selectedOption.duration && (
+          <View style={NavigationBottomSheetStyles.navModeHeader}>
+            <View>
+              <Text style={NavigationBottomSheetStyles.transitModeTitle}>
+                {navigationState.startLocation
+                  ? selectedOption.label
+                  : "Please select a start location"}
+              </Text>
+              {!!navigationState.currentDirections &&
+                !!selectedOption.duration && (
                   <Text style={NavigationBottomSheetStyles.transitModeDuration}>
                     {selectedOption.duration}
                   </Text>
                 )}
-              </View>
-              <TouchableOpacity
-                onPress={closeSheet}
-                style={NavigationBottomSheetStyles.closeIcon}
-                testID="close-navigation"
-                accessibilityLabel="Close navigation"
-                accessibilityRole="button"
-              >
-                <CloseIcon size={28} />
-              </TouchableOpacity>
             </View>
-
-            {!!navigationState.startLocation && (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={{ overflow: "visible" }}
-                contentContainerStyle={NavigationBottomSheetStyles.transitRow}
-                nestedScrollEnabled={true}
-              >
-                {transitOptions.map(({ mode, Icon, image, duration }) => {
-                  const selected = navigationState.transitMode === mode;
-                  const disabled =
-                    mode === TransitMode.SHUTTLE && !isCrossCampus;
-                  return (
-                    <TouchableOpacity
-                      key={mode}
-                      style={[
-                        NavigationBottomSheetStyles.transitChip,
-                        selected &&
-                          NavigationBottomSheetStyles.transitChipSelected,
-                        disabled &&
-                          NavigationBottomSheetStyles.transitChipDisabled,
-                      ]}
-                      onPress={() =>
-                        !disabled && navigationState.setTransitMode(mode)
-                      }
-                      disabled={disabled}
-                    >
-                      {Icon ? (
-                        <Icon
-                          size={18}
-                          color={selected ? "#fff" : COLORS.textPrimary}
-                        />
-                      ) : (
-                        <View style={disabled ? { opacity: 0.5 } : {}}>
-                          <Image
-                            source={image}
-                            style={{ width: 18, height: 18 }}
-                            resizeMode="contain"
-                          />
-                        </View>
-                      )}
-                      {!!duration && (
-                        <Text
-                          style={[
-                            NavigationBottomSheetStyles.transitChipText,
-                            selected &&
-                              NavigationBottomSheetStyles.transitChipTextSelected,
-                            disabled &&
-                              NavigationBottomSheetStyles.transitChipTextDisabled,
-                          ]}
-                        >
-                          {duration}
-                        </Text>
-                      )}
-                    </TouchableOpacity>
-                  );
-                })}
-              </ScrollView>
-            )}
-
-            <BottomSheetScrollView>
-              {!!navigationState.currentDirections && (
-                <OutdoorNavigationSteps
-                  directions={navigationState.currentDirections}
-                />
-              )}
-            </BottomSheetScrollView>
+            <TouchableOpacity
+              onPress={closeSheet}
+              style={NavigationBottomSheetStyles.closeIcon}
+              testID="close-navigation"
+              accessibilityLabel="Close navigation"
+              accessibilityRole="button"
+            >
+              <CloseIcon size={28} />
+            </TouchableOpacity>
           </View>
+
+          {!!navigationState.startLocation && (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={{ overflow: "visible" }}
+              contentContainerStyle={NavigationBottomSheetStyles.transitRow}
+              nestedScrollEnabled={true}
+            >
+              {transitOptions.map(({ mode, Icon, image, duration }) => {
+                const selected = navigationState.transitMode === mode;
+                const disabled = mode === TransitMode.SHUTTLE && !isCrossCampus;
+                return (
+                  <TouchableOpacity
+                    key={mode}
+                    style={[
+                      NavigationBottomSheetStyles.transitChip,
+                      selected &&
+                        NavigationBottomSheetStyles.transitChipSelected,
+                      disabled &&
+                        NavigationBottomSheetStyles.transitChipDisabled,
+                    ]}
+                    onPress={() =>
+                      !disabled && navigationState.setTransitMode(mode)
+                    }
+                    disabled={disabled}
+                  >
+                    {Icon ? (
+                      <Icon
+                        size={18}
+                        color={selected ? "#fff" : COLORS.textPrimary}
+                      />
+                    ) : (
+                      <View style={disabled ? { opacity: 0.5 } : {}}>
+                        <Image
+                          source={image}
+                          style={{ width: 18, height: 18 }}
+                          resizeMode="contain"
+                        />
+                      </View>
+                    )}
+                    {!!duration && (
+                      <Text
+                        style={[
+                          NavigationBottomSheetStyles.transitChipText,
+                          selected &&
+                            NavigationBottomSheetStyles.transitChipTextSelected,
+                          disabled &&
+                            NavigationBottomSheetStyles.transitChipTextDisabled,
+                        ]}
+                      >
+                        {duration}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          )}
         </View>
-      </>
+
+        <BottomSheetScrollView
+          style={NavigationBottomSheetStyles.stepsScrollView}
+          contentContainerStyle={[
+            NavigationBottomSheetStyles.scrollContent,
+            { paddingBottom: insets.bottom },
+          ]}
+          nestedScrollEnabled
+        >
+          {!!navigationState.currentDirections && (
+            <OutdoorNavigationSteps
+              directions={navigationState.currentDirections}
+            />
+          )}
+        </BottomSheetScrollView>
+      </View>
     </BottomSheet>
   );
 }
@@ -260,13 +271,17 @@ const NavigationBottomSheetStyles = StyleSheet.create({
     borderRadius: 2,
   },
 
+  rootContent: {
+    flex: 1,
+  },
+
   headerContainer: {
     paddingHorizontal: 16,
     paddingVertical: 8,
   },
 
-  navModeContainer: {
-    gap: 10,
+  stepsScrollView: {
+    flex: 1,
   },
 
   navModeHeader: {
@@ -290,6 +305,7 @@ const NavigationBottomSheetStyles = StyleSheet.create({
     display: "flex",
     flexDirection: "row",
     gap: 8,
+    marginTop: 10,
     paddingBottom: 4,
     overflow: "visible",
     minHeight: 40,

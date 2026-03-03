@@ -30,11 +30,7 @@ export const DIRECTION_COLORS = {
   walking: "#1B53FD",
   driving: "#1B53FD", // same as walking
   shuttle: COLORS.goldDark,
-  bus: "#429FE1",
-  stmGreen: "#389E50",
-  stmOrange: "#E57D22",
-  stmBlue: "#3074BA",
-  stmYellow: "#EBCF00",
+  transit: "#429FE1", // the color to use is typically returned but this is the fallback for transit
   bicycling: "#1F8E3F",
 };
 
