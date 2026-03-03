@@ -2,6 +2,7 @@ package application
 
 import (
 	"errors"
+	"math"
 	"testing"
 	"time"
 
@@ -812,4 +813,55 @@ func TestDirectionsService_Shuttle_Auto_Boundary(t *testing.T) {
 	resp, err = s.GetDirectionsWithSchedule(domain.LatLng{}, domain.LatLng{}, "shuttle", "", "")
 	assert.NoError(t, err)
 	assert.Contains(t, resp.DepartureMessage, "Leave now")
+}
+
+func TestBuildShuttleStepAt_NoRepo_ReturnsNoShuttleErr(t *testing.T) {
+	s := NewDirectionsService(&fakeDirectionsClient{}) // shuttleRepo is nil by default
+
+	step, next, err := s.buildShuttleStepAt(
+		time.Now(),
+		"monday",
+		"SGW", "LOY",
+		sgwShuttleStop, loyShuttleStop,
+	)
+
+	assert.Error(t, err)
+	assert.Equal(t, "No shuttle available at this time.", err.Error())
+	assert.Equal(t, domain.DirectionStep{}, step)
+	assert.Equal(t, "", next)
+}
+
+func TestFormatDuration_MinIntOverflow_HitsEmptyPartsFallback(t *testing.T) {
+	// This triggers the overflow edge case:
+	// d < 0 => d = -d overflows for MinInt64 and stays negative.
+	d := time.Duration(math.MinInt64)
+
+	assert.Equal(t, "0 mins", formatDuration(d))
+}
+
+func TestWeekdayFromString_AllDays(t *testing.T) {
+	tests := []struct {
+		in   string
+		want time.Weekday
+	}{
+		{"sunday", time.Sunday},
+		{"monday", time.Monday},
+		{"tuesday", time.Tuesday},
+		{"wednesday", time.Wednesday},
+		{"thursday", time.Thursday},
+		{"friday", time.Friday},
+		{"saturday", time.Saturday},
+
+		// also cover normalization
+		{"  MONDAY  ", time.Monday},
+	}
+
+	for _, tt := range tests {
+		got, ok := weekdayFromString(tt.in)
+		assert.True(t, ok, "input=%q", tt.in)
+		assert.Equal(t, tt.want, got, "input=%q", tt.in)
+	}
+
+	_, ok := weekdayFromString("notaday")
+	assert.False(t, ok)
 }
