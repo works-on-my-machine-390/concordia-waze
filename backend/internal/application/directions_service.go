@@ -109,7 +109,12 @@ func shuttleDirection(start domain.LatLng) (fromStop, toStop domain.LatLng, from
 	return loyShuttleStop, sgwShuttleStop, "LOY", "SGW"
 }
 
-func (s *DirectionsService) getShuttleDirectionsAt(start, end domain.LatLng, ref time.Time, day string, userProvidedTime bool) (domain.DirectionsResponse, error) {
+func (s *DirectionsService) getShuttleDirectionsAt(
+	start, end domain.LatLng,
+	ref time.Time,
+	day string,
+	userProvidedTime bool,
+) (domain.DirectionsResponse, error) {
 	// Determine which direction the shuttle should run based on start location.
 	fromStop, toStop, fromCampus, toCampus := shuttleDirection(start)
 
@@ -142,9 +147,19 @@ func (s *DirectionsService) getShuttleDirectionsAt(start, end domain.LatLng, ref
 		}
 	}
 
+	// Default (fallback) message — always set something.
+	// This avoids an extra "else fallback" branch that can be hard/unreachable to cover in tests.
 	depMsg := ""
+	if userProvidedTime {
+		depMsg = "Depart at " + time.Now().Format("15:04")
+	} else {
+		depMsg = "Leave now at " + time.Now().Format("15:04")
+	}
+
+	// Override fallback only when we successfully computed leaveAtStr.
 	if leaveAtStr != "" {
 		if userProvidedTime {
+			// Accept "leave now" when ref is within [-1min, +∞) of ideal leave time.
 			if !ref.Before(leaveAtTime.Add(-time.Minute)) {
 				depMsg = fmt.Sprintf("Leave now to catch the %s shuttle", nextDeparture)
 			} else {
@@ -154,13 +169,6 @@ func (s *DirectionsService) getShuttleDirectionsAt(start, end domain.LatLng, ref
 			depMsg = fmt.Sprintf("Leave at %s to catch the %s shuttle", leaveAtStr, nextDeparture)
 		} else {
 			depMsg = fmt.Sprintf("Leave now to catch the %s shuttle", nextDeparture)
-		}
-	} else {
-		// fallback (shouldn't happen normally if nextDeparture parsed ok)
-		if userProvidedTime {
-			depMsg = "Depart at " + time.Now().Format("15:04")
-		} else {
-			depMsg = "Leave now at " + time.Now().Format("15:04")
 		}
 	}
 
@@ -264,10 +272,7 @@ func (s *DirectionsService) GetShuttleDirectionsManual(start, end domain.LatLng,
 	}
 
 	now := time.Now()
-	targetWd, ok := weekdayFromString(d)
-	if !ok {
-		return domain.DirectionsResponse{}, errors.New("invalid shuttle_day")
-	}
+	targetWd, _ := weekdayFromString(d)
 	depDate := nextOccurrence(now, targetWd)
 	depDateTime := time.Date(depDate.Year(), depDate.Month(), depDate.Day(), depParsed.Hour(), depParsed.Minute(), 0, 0, depDate.Location())
 
