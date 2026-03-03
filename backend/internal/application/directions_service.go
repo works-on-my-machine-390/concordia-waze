@@ -325,11 +325,20 @@ func buildShuttleRouteResponse(depMsg string, walkToStop domain.DirectionsRespon
 	steps = append(steps, shuttleStep)
 	steps = append(steps, stripDegenerateSteps(walkFromStop.Steps)...)
 
+	totalDuration := time.Duration(0)
+	totalDistanceKm := 0.0
+	for _, s := range steps {
+		totalDuration += parseGoogleDuration(s.Duration)
+		totalDistanceKm += parseDistance(s.Distance)
+	}
+
 	combinedPolyline := buildCombinedShuttlePolyline(walkToStop.Polyline, shuttleStep.Polyline, walkFromStop.Polyline)
 
 	return domain.DirectionsResponse{
 		Mode:             "shuttle",
 		DepartureMessage: depMsg,
+		Distance:         formatKm(totalDistanceKm),
+		Duration:         formatDuration(totalDuration),
 		Polyline:         combinedPolyline,
 		Steps:            steps,
 	}
@@ -405,6 +414,65 @@ func parseGoogleDuration(s string) time.Duration {
 	}
 
 	return time.Duration(hours)*time.Hour + time.Duration(mins)*time.Minute
+}
+
+// formatDuration formats a time.Duration into a string like "1 hour 5 mins" or "3 mins".
+func formatDuration(d time.Duration) string {
+	if d < 0 {
+		d = -d
+	}
+	totalMinutes := int(math.Round(d.Minutes()))
+
+	if totalMinutes == 0 {
+		return "0 mins"
+	}
+
+	hours := totalMinutes / 60
+	minutes := totalMinutes % 60
+
+	var parts []string
+	if hours > 0 {
+		part := fmt.Sprintf("%d hour", hours)
+		if hours > 1 {
+			part += "s"
+		}
+		parts = append(parts, part)
+	}
+
+	if minutes > 0 {
+		part := fmt.Sprintf("%d min", minutes)
+		if minutes > 1 {
+			part += "s"
+		}
+		parts = append(parts, part)
+	}
+
+	if len(parts) == 0 {
+		return "0 mins"
+	}
+
+	return strings.Join(parts, " ")
+}
+
+// parseDistance parses a distance string (e.g., "1.2 km", "500 m") and returns the distance in kilometers.
+func parseDistance(s string) float64 {
+	s = strings.ToLower(strings.TrimSpace(s))
+	parts := strings.Fields(s)
+	if len(parts) != 2 {
+		return 0
+	}
+
+	val, err := strconv.ParseFloat(parts[0], 64)
+	if err != nil {
+		return 0
+	}
+
+	unit := parts[1]
+	if unit == "m" {
+		return val / 1000
+	}
+	// assume km
+	return val
 }
 
 func weekdayFromString(s string) (time.Weekday, bool) {
