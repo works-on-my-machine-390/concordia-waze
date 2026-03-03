@@ -336,9 +336,9 @@ func TestNonShuttle_InvalidTimeInput(t *testing.T) {
 	f := &fakeDirectionsClient{resp: domain.DirectionsResponse{Mode: "walking"}}
 	s := NewDirectionsService(f)
 
-	_, err := s.GetDirectionsWithSchedule(domain.LatLng{}, domain.LatLng{}, "walking", "", "25:99")
-	assert.Error(t, err)
-	assert.Equal(t, "invalid time", err.Error())
+	resp, err := s.GetDirectionsWithSchedule(domain.LatLng{}, domain.LatLng{}, "walking", "", "25:99")
+	assert.NoError(t, err)
+	assert.Equal(t, "Leave now", resp.DepartureMessage)
 }
 
 func TestManualShuttle_NoRepo(t *testing.T) {
