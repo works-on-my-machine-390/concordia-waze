@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"errors"
 	"net/http/httptest"
 	"testing"
 
@@ -56,7 +55,7 @@ func (r *fakeBuildingReader) GetAllBuildingsByCampus() (map[string][]domain.Buil
 	return result, nil
 }
 
-func setupHandler(fetcher *fakeDirectionsFetcher) *DirectionsHandler {
+func setupHandler(fetcher *fakeDirectionsFetcher, t *testing.T) *DirectionsHandler {
 	svc := application.NewDirectionsService(fetcher)
 
 	buildingReader := &fakeBuildingReader{
@@ -66,7 +65,9 @@ func setupHandler(fetcher *fakeDirectionsFetcher) *DirectionsHandler {
 		},
 	}
 
-	bSvc := application.NewBuildingService(buildingReader, nil, nil)
+	cacheDir := t.TempDir()
+	bSvc := application.NewBuildingService(buildingReader, fp, cacheDir)
+
 	return NewDirectionsHandler(svc, bSvc)
 }
 
@@ -74,24 +75,64 @@ func setupHandler(fetcher *fakeDirectionsFetcher) *DirectionsHandler {
 
 func TestInvalidStartLat(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	h := setupHandler(&fakeDirectionsFetcher{})
+	h := setupHandler(&fakeDirectionsFetcher{}, t)
 	r := gin.New()
 	r.GET("/directions", h.GetDirections)
 
 	req := httptest.NewRequest("GET",
-		"/directions?start_lat=abc&start_lng=2&end_lat=3&end_lng=4",
+		"/directions?start_lat=1&start_lng=2&end_lat=abc&end_lng=4",
+		nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, 400, w.Code)
+	assert.Contains(t, w.Body.String(), "invalid end_lat")
+}
+
+func TestInvalidEndLng(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h := setupHandler(&fakeDirectionsFetcher{}, t)
+	r := gin.New()
+	r.GET("/directions", h.GetDirections)
+
+	req := httptest.NewRequest("GET",
+		"/directions?start_lat=1&start_lng=2&end_lat=3&end_lng=abc",
 		nil)
 
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, 400, w.Code)
-	assert.Contains(t, w.Body.String(), "invalid start_lat")
+	assert.Contains(t, w.Body.String(), "invalid end_lng")
 }
 
-func TestInvalidMode(t *testing.T) {
+func TestManualShuttle_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	h := setupHandler(&fakeDirectionsFetcher{})
+
+	fetcher := &fakeDirectionsFetcher{
+		resp: domain.DirectionsResponse{
+			Mode:  "shuttle",
+			Steps: []domain.DirectionStep{{Instruction: "Manual Shuttle"}},
+		},
+	}
+
+	h := setupHandler(fetcher, t)
+	r := gin.New()
+	r.GET("/directions", h.GetDirections)
+
+	req := httptest.NewRequest("GET",
+		"/directions?start_lat=1&start_lng=2&end_lat=3&end_lng=4&mode=shuttle&shuttle_day=monday&shuttle_time=09:15",
+		nil)
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, 200, w.Code)
+}
+
+func TestManualShuttle_MissingTime(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h := setupHandler(&fakeDirectionsFetcher{}, t)
 	r := gin.New()
 	r.GET("/directions", h.GetDirections)
 
@@ -110,8 +151,7 @@ func TestInvalidMode(t *testing.T) {
 
 func TestShuttle_InvalidDay(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-
-	h := setupHandler(&fakeDirectionsFetcher{})
+	h := setupHandler(&fakeDirectionsFetcher{}, t)
 	r := gin.New()
 	r.GET("/directions", h.GetDirections)
 
@@ -127,8 +167,7 @@ func TestShuttle_InvalidDay(t *testing.T) {
 
 func TestShuttle_InvalidTime(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-
-	h := setupHandler(&fakeDirectionsFetcher{})
+	h := setupHandler(&fakeDirectionsFetcher{}, t)
 	r := gin.New()
 	r.GET("/directions", h.GetDirections)
 
@@ -152,7 +191,7 @@ func TestShuttle_SameCampusAccepted(t *testing.T) {
 		},
 	}
 
-	h := setupHandler(fetcher)
+	h := setupHandler(fetcher, t)
 	r := gin.New()
 	r.GET("/directions", h.GetDirections)
 
@@ -179,7 +218,7 @@ func TestShuttle_AutoMode_NoScheduleRepo(t *testing.T) {
 		},
 	}
 
-	h := setupHandler(fetcher)
+	h := setupHandler(fetcher, t)
 	r := gin.New()
 	r.GET("/directions", h.GetDirections)
 
@@ -194,14 +233,62 @@ func TestShuttle_AutoMode_NoScheduleRepo(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "Take the Concordia Shuttle Bus")
 }
 
-func TestBuildingsEndpoint_Success(t *testing.T) {
+func TestInvalidStartLat(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h := setupHandler(&fakeDirectionsFetcher{}, t)
+	r := gin.New()
+	r.GET("/directions", h.GetDirections)
+
+	req := httptest.NewRequest("GET",
+		"/directions?start_lat=abc&start_lng=2&end_lat=3&end_lng=4",
+		nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, 400, w.Code)
+	assert.Contains(t, w.Body.String(), "invalid start_lat")
+}
+
+func TestInvalidStartLng(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h := setupHandler(&fakeDirectionsFetcher{}, t)
+	r := gin.New()
+	r.GET("/directions", h.GetDirections)
+
+	req := httptest.NewRequest("GET",
+		"/directions?start_lat=1&start_lng=abc&end_lat=3&end_lng=4",
+		nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, 400, w.Code)
+	assert.Contains(t, w.Body.String(), "invalid start_lng")
+}
+
+func TestInvalidMode(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h := setupHandler(&fakeDirectionsFetcher{}, t)
+	r := gin.New()
+	r.GET("/directions", h.GetDirections)
+
+	req := httptest.NewRequest("GET",
+		"/directions?start_lat=1&start_lng=2&end_lat=3&end_lng=4&mode=plane",
+		nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, 400, w.Code)
+	assert.Contains(t, w.Body.String(), "invalid mode")
+}
+
+func TestGetDirectionsByBuildings_Success(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	fetcher := &fakeDirectionsFetcher{
 		resp: domain.DirectionsResponse{Mode: "walking"},
 	}
 
-	h := setupHandler(fetcher)
+	h := setupHandler(fetcher, t)
 	r := gin.New()
 	r.GET("/directions/buildings", h.GetDirectionsByBuildings)
 
@@ -217,12 +304,22 @@ func TestBuildingsEndpoint_Success(t *testing.T) {
 
 func TestInternalError(t *testing.T) {
 	gin.SetMode(gin.TestMode)
+	h := setupHandler(&fakeDirectionsFetcher{}, t)
+	r := gin.New()
+	r.GET("/directions/buildings", h.GetDirectionsByBuildings)
 
-	fetcher := &fakeDirectionsFetcher{
-		err: errors.New("unexpected failure"),
-	}
+	req := httptest.NewRequest("GET",
+		"/directions/buildings?start_code=XXX&end_code=VL",
+		nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
 
-	h := setupHandler(fetcher)
+	assert.Equal(t, 400, w.Code)
+}
+
+func TestGetDirectionsByBuildings_InvalidEndCode(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	h := setupHandler(&fakeDirectionsFetcher{}, t)
 	r := gin.New()
 	r.GET("/directions", h.GetDirections)
 
