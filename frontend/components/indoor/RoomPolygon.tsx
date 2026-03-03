@@ -6,16 +6,18 @@ type Props = {
   polygon: Coordinate[];
   width: number;
   height: number;
+
+  // ✅ NEW
+  highlighted?: boolean;
 };
 
 export default function RoomPolygon({
   polygon,
   width,
   height,
+  highlighted = false,
 }: Readonly<Props>) {
-  if (polygon.length < 3) {
-    return null;
-  }
+  if (polygon.length < 3) return null;
 
   const points = polygon
     .map((coord) => `${coord.x * width},${coord.y * height}`)
@@ -26,9 +28,13 @@ export default function RoomPolygon({
       <Svg width={width} height={height}>
         <Polygon
           points={points}
-          fill="rgba(145, 35, 56, 0.15)"
-          stroke="#912338"
-          strokeWidth="2"
+          fill={
+            highlighted
+              ? "rgba(30,115,255,0.25)" // ✅ blue highlight
+              : "rgba(145,35,56,0.15)"
+          }
+          stroke={highlighted ? "#1E73FF" : "#912338"}
+          strokeWidth={highlighted ? 3 : 2}
         />
       </Svg>
     </View>

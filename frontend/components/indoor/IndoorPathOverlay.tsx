@@ -1,0 +1,236 @@
+import React, { useMemo } from "react";
+import { StyleSheet, View } from "react-native";
+import Svg, { Circle } from "react-native-svg";
+import type { Coordinates } from "@/hooks/queries/indoorDirectionsQueries";
+
+type Props = {
+  path: Coordinates[];
+  width: number;
+  height: number;
+
+  // destination room polygon (normalized 0..1 coords)
+  endPolygon?: Coordinates[];
+};
+
+function dist2(ax: number, ay: number, bx: number, by: number) {
+  const dx = bx - ax;
+  const dy = by - ay;
+  return dx * dx + dy * dy;
+}
+
+// ✅ Force Manhattan turns: no diagonal segments (A->B becomes A->elbow->B)
+function orthogonalizePath(points: { x: number; y: number }[]) {
+  if (points.length < 2) return points;
+
+  const out: { x: number; y: number }[] = [points[0]];
+
+  for (let i = 1; i < points.length; i++) {
+    const a = out[out.length - 1];
+    const b = points[i];
+
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+
+    // already horizontal or vertical
+    if (Math.abs(dx) < 0.001 || Math.abs(dy) < 0.001) {
+      out.push(b);
+      continue;
+    }
+
+    // choose elbow: go along dominant axis first (cleaner-looking)
+    const elbow1 = { x: b.x, y: a.y }; // horizontal then vertical
+    const elbow2 = { x: a.x, y: b.y }; // vertical then horizontal
+
+    const preferHorizontalFirst = Math.abs(dx) >= Math.abs(dy);
+    const elbow = preferHorizontalFirst ? elbow1 : elbow2;
+
+    // avoid duplicate elbow if it matches a
+    if (dist2(a.x, a.y, elbow.x, elbow.y) > 0.001) out.push(elbow);
+    out.push(b);
+  }
+
+  return out;
+}
+
+// remove micro-vertices so the dots look like straight segments
+function simplifyOrthogonalPath(points: { x: number; y: number }[]) {
+  if (points.length <= 2) return points;
+
+  const result = [points[0]];
+
+  for (let i = 1; i < points.length - 1; i++) {
+    const prev = result[result.length - 1];
+    const curr = points[i];
+    const next = points[i + 1];
+
+    const dx1 = curr.x - prev.x;
+    const dy1 = curr.y - prev.y;
+    const dx2 = next.x - curr.x;
+    const dy2 = next.y - curr.y;
+
+    const dir1x = Math.abs(dx1) > Math.abs(dy1) ? Math.sign(dx1) : 0;
+    const dir1y = Math.abs(dy1) >= Math.abs(dx1) ? Math.sign(dy1) : 0;
+
+    const dir2x = Math.abs(dx2) > Math.abs(dy2) ? Math.sign(dx2) : 0;
+    const dir2y = Math.abs(dy2) >= Math.abs(dx2) ? Math.sign(dy2) : 0;
+
+    if (dir1x !== dir2x || dir1y !== dir2y) {
+      result.push(curr);
+    }
+  }
+
+  result.push(points[points.length - 1]);
+  return result;
+}
+
+// Closest point on segment AB to point P
+function closestPointOnSegment(
+  px: number,
+  py: number,
+  ax: number,
+  ay: number,
+  bx: number,
+  by: number,
+) {
+  const abx = bx - ax;
+  const aby = by - ay;
+  const apx = px - ax;
+  const apy = py - ay;
+
+  const ab2 = abx * abx + aby * aby;
+  if (ab2 < 1e-9) return { x: ax, y: ay };
+
+  let t = (apx * abx + apy * aby) / ab2;
+  if (t < 0) t = 0;
+  if (t > 1) t = 1;
+
+  return { x: ax + t * abx, y: ay + t * aby };
+}
+
+// ✅ Guaranteed: snap endpoint to closest point on polygon BORDER
+function snapEndToClosestPolygonBorder(
+  end: { x: number; y: number },
+  polyPx: { x: number; y: number }[],
+) {
+  if (polyPx.length < 3) return end;
+
+  let best = end;
+  let bestD2 = Number.POSITIVE_INFINITY;
+
+  for (let i = 0; i < polyPx.length; i++) {
+    const a = polyPx[i];
+    const b = polyPx[(i + 1) % polyPx.length];
+
+    const c = closestPointOnSegment(end.x, end.y, a.x, a.y, b.x, b.y);
+    const d2 = dist2(end.x, end.y, c.x, c.y);
+
+    if (d2 < bestD2) {
+      bestD2 = d2;
+      best = c;
+    }
+  }
+
+  return best;
+}
+
+export default function IndoorPathOverlay({
+  path,
+  width,
+  height,
+  endPolygon,
+}: Readonly<Props>) {
+  if (!path || path.length < 2) return null;
+
+  const pts = useMemo(() => {
+    const scaled = path.map((p) => ({ x: p.x * width, y: p.y * height }));
+
+    // ✅ force right-angle turns
+    const ortho = orthogonalizePath(scaled);
+
+    // ✅ then simplify extra points
+    return simplifyOrthogonalPath(ortho);
+  }, [path, width, height]);
+
+  const finalPts = useMemo(() => {
+    if (!endPolygon || endPolygon.length < 3 || pts.length < 2) return pts;
+
+    const polyPx = endPolygon.map((p) => ({ x: p.x * width, y: p.y * height }));
+
+    const out = [...pts];
+    const end = out[out.length - 1];
+
+    // ✅ snap to border closest point (always works)
+    out[out.length - 1] = snapEndToClosestPolygonBorder(end, polyPx);
+
+    return out;
+  }, [endPolygon, pts, width, height]);
+
+  const start = finalPts[0];
+
+  const dots = useMemo(() => {
+    const out: { x: number; y: number }[] = [];
+
+    const spacing = 7;
+    const radius = 2.5;
+
+    let carry = 0;
+
+    const dist = (a: { x: number; y: number }, b: { x: number; y: number }) =>
+      Math.sqrt(dist2(a.x, a.y, b.x, b.y));
+
+    for (let i = 1; i < finalPts.length; i++) {
+      const a = finalPts[i - 1];
+      const b = finalPts[i];
+      const segLen = dist(a, b);
+      if (segLen <= 0.001) continue;
+
+      let t = (spacing - carry) / segLen;
+
+      while (t <= 1) {
+        out.push({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
+        t += spacing / segLen;
+      }
+
+      const lastT = t - spacing / segLen;
+      const used = segLen * lastT;
+      carry = segLen - used;
+
+      if (carry < 0) carry = 0;
+      if (carry >= spacing) carry = 0;
+    }
+
+    // ✅ force final dot exactly at snapped endpoint so it "touches"
+    const endPt = finalPts[finalPts.length - 1];
+    out.push({ x: endPt.x, y: endPt.y });
+
+    return { points: out, radius };
+  }, [finalPts]);
+
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      <Svg width={width} height={height} style={StyleSheet.absoluteFill}>
+        {dots.points.map((p, idx) => (
+          <Circle
+            key={`dot-${idx}`}
+            cx={p.x}
+            cy={p.y}
+            r={dots.radius}
+            fill="#1E73FF"
+          />
+        ))}
+
+        {/* start marker */}
+        <Circle cx={start.x} cy={start.y} r={15} fill="#1E73FF" opacity={0.25} />
+        <Circle
+          cx={start.x}
+          cy={start.y}
+          r={6}
+          fill="none"
+          stroke="#FFFFFF"
+          strokeWidth={6}
+        />
+        <Circle cx={start.x} cy={start.y} r={7} fill="#1E73FF" />
+      </Svg>
+    </View>
+  );
+}

@@ -1,22 +1,76 @@
 import FloorPlanViewer from "@/components/indoor/FloorPlanViewer";
 import FloorSelector from "@/components/indoor/FloorSelector";
 import { useGetBuildingFloors } from "@/hooks/queries/indoorMapQueries";
-import { useEffect, useState } from "react";
+import type { FloorSegment, Coordinates } from "@/hooks/queries/indoorDirectionsQueries";
+import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import type { PointOfInterest } from "@/hooks/queries/indoorMapQueries";
+
+export type SelectedPoint = {
+  label: string; // room name
+  floor: number;
+  coord: Coordinates; // normalized [0..1]
+};
 
 type Props = {
   buildingCode: string;
+
+  // route segments from backend
+  routeSegments?: FloorSegment[] | null;
+  preferredFloorNumber?: number | null;
+
+  // NEW: click selection
+  pickMode?: "start" | "end";
+  onPickPoint?: (p: SelectedPoint) => void;
+
+  // ✅ NEW: allows parent to push floor selector up (ex: when itinerary sheet open)
+  floorSelectorBottomOffset?: number;
 };
 
-export default function IndoorMapContainer({ buildingCode }: Readonly<Props>) {
+export default function IndoorMapContainer({
+  buildingCode,
+  routeSegments = null,
+  preferredFloorNumber = null,
+  pickMode = "end",
+  onPickPoint,
+  floorSelectorBottomOffset = 24, // ✅ default matches your previous behavior
+}: Readonly<Props>) {
   const [selectedFloor, setSelectedFloor] = useState<number | null>(null);
   const { data, isLoading, error } = useGetBuildingFloors(buildingCode);
 
   useEffect(() => {
-    if (data?.floors && data.floors.length > 0) {
-      setSelectedFloor(data.floors[0].number);
+    if (!data?.floors?.length) return;
+
+    if (preferredFloorNumber != null) {
+      setSelectedFloor(preferredFloorNumber);
+      return;
     }
-  }, [buildingCode, data?.floors]);
+
+    setSelectedFloor(data.floors[0].number);
+  }, [buildingCode, data?.floors, preferredFloorNumber]);
+
+  const currentFloor =
+    selectedFloor != null
+      ? data?.floors?.find((f) => f.number === selectedFloor) ?? data?.floors?.[0]
+      : undefined;
+
+  const routePathForCurrentFloor = useMemo(() => {
+    if (!routeSegments || selectedFloor == null) return null;
+    const seg = routeSegments.find((s) => s.floorNumber === selectedFloor);
+    return seg?.path ?? null;
+  }, [routeSegments, selectedFloor]);
+
+  const handlePickPoi = (poi: PointOfInterest) => {
+    if (!onPickPoint || !currentFloor) return;
+
+    const coord = { x: poi.position.x, y: poi.position.y } as Coordinates;
+
+    onPickPoint({
+      label: poi.name ?? "Room",
+      floor: currentFloor.number,
+      coord,
+    });
+  };
 
   if (isLoading) {
     return (
@@ -46,7 +100,7 @@ export default function IndoorMapContainer({ buildingCode }: Readonly<Props>) {
     );
   }
 
-  if (selectedFloor === null) {
+  if (selectedFloor === null || !currentFloor) {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" />
@@ -54,16 +108,20 @@ export default function IndoorMapContainer({ buildingCode }: Readonly<Props>) {
     );
   }
 
-  const currentFloor =
-    data.floors.find((f) => f.number === selectedFloor) || data.floors[0];
-
   return (
     <View style={styles.container}>
-      <FloorPlanViewer key={selectedFloor} floor={currentFloor} />
+      <FloorPlanViewer
+        key={selectedFloor}
+        floor={currentFloor}
+        routePath={routePathForCurrentFloor}
+        onPickPoi={onPickPoint ? handlePickPoi : undefined}
+      />
+
       <FloorSelector
         floors={data.floors}
         selectedFloor={selectedFloor}
         onSelectFloor={setSelectedFloor}
+        bottomOffset={floorSelectorBottomOffset} // ✅ important
       />
     </View>
   );

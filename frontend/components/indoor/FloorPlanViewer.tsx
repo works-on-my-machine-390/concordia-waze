@@ -1,4 +1,5 @@
-import type { Floor } from "@/hooks/queries/indoorMapQueries";
+import type { Floor, PointOfInterest } from "@/hooks/queries/indoorMapQueries";
+import type { Coordinates } from "@/hooks/queries/indoorDirectionsQueries";
 import { useSvgDimensions } from "@/hooks/useSvgDimensions";
 import { ReactNativeZoomableView } from "@openspacelabs/react-native-zoomable-view";
 import {
@@ -9,18 +10,33 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { SvgXml } from "react-native-svg";
+import IndoorPathOverlay from "./IndoorPathOverlay";
 import PoiMarker from "./PoiMarker";
+import PoiPickOverlay from "./PoiPickOverlay";
 import PolygonOverlay from "./PolygonOverlay";
+import { useIndoorNavigationStore } from "@/hooks/useIndoorNavigationStore";
 
 type Props = {
   floor: Floor | undefined;
+
+  // if current floor has a path to draw
+  routePath?: Coordinates[] | null;
+
+  // allow picking POIs from this floor
+  onPickPoi?: (poi: PointOfInterest) => void;
 };
 
-export default function FloorPlanViewer({ floor }: Readonly<Props>) {
+const normalizeName = (s: string) => s.trim().toLowerCase().replace(/\s+/g, "");
+
+export default function FloorPlanViewer({
+  floor,
+  routePath,
+  onPickPoi,
+}: Readonly<Props>) {
+  const nav = useIndoorNavigationStore();
+
   const { width: SCREEN_WIDTH } = useWindowDimensions();
-  const { dimensions, svgText, error, isLoading } = useSvgDimensions(
-    floor?.imgPath,
-  );
+  const { dimensions, svgText, error, isLoading } = useSvgDimensions(floor?.imgPath);
 
   if (!floor) {
     return (
@@ -50,10 +66,24 @@ export default function FloorPlanViewer({ floor }: Readonly<Props>) {
   const DISPLAY_WIDTH = SCREEN_WIDTH - 32;
   const DISPLAY_HEIGHT = DISPLAY_WIDTH * (dimensions.height / dimensions.width);
 
+  // ✅ Find destination POI on this floor (used for BLUE highlight + optional route clipping)
+  const destinationPoi =
+    nav.mode === "ITINERARY" && nav.end && nav.end.floor === floor.number
+      ? floor.pois.find(
+          (poi) => normalizeName(poi.name ?? "") === normalizeName(nav.end?.label ?? ""),
+        ) ?? null
+      : null;
+
+  // ✅ Find destination polygon on this floor (so the route can clip to the room border)
+  const endPolygon =
+    destinationPoi && (destinationPoi.polygon?.length ?? 0) > 2
+      ? destinationPoi.polygon
+      : undefined;
+
   return (
     <View style={styles.container}>
       <ReactNativeZoomableView
-        key={floor?.number}
+        key={floor.number}
         maxZoom={5}
         minZoom={1}
         zoomStep={0.5}
@@ -78,14 +108,17 @@ export default function FloorPlanViewer({ floor }: Readonly<Props>) {
             preserveAspectRatio="xMidYMid meet"
           />
 
+          {/* ✅ room polygons (destination gets blue highlight) */}
           <PolygonOverlay
             pois={floor.pois}
             width={DISPLAY_WIDTH}
             height={DISPLAY_HEIGHT}
+            destinationPoi={destinationPoi}
           />
 
+          {/* draw POI icons (visual only) */}
           <View style={StyleSheet.absoluteFill} pointerEvents="none">
-            {floor.pois.map((poi, index) => (
+            {floor.pois.map((poi) => (
               <PoiMarker
                 key={`poi-${poi.name}-${poi.position.x}-${poi.position.y}`}
                 poi={poi}
@@ -94,6 +127,27 @@ export default function FloorPlanViewer({ floor }: Readonly<Props>) {
               />
             ))}
           </View>
+
+          {/* tap targets (interactive) */}
+          {onPickPoi ? (
+            <PoiPickOverlay
+              pois={floor.pois}
+              width={DISPLAY_WIDTH}
+              height={DISPLAY_HEIGHT}
+              onPickPoi={onPickPoi}
+              allowTypes={["room"]} // ✅ only rooms selectable
+            />
+          ) : null}
+
+          {/* route overlay (visual only) */}
+          {routePath && routePath.length >= 2 ? (
+            <IndoorPathOverlay
+              path={routePath}
+              width={DISPLAY_WIDTH}
+              height={DISPLAY_HEIGHT}
+              endPolygon={endPolygon} // ✅ makes route touch destination border
+            />
+          ) : null}
         </View>
       </ReactNativeZoomableView>
     </View>
