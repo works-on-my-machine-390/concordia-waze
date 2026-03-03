@@ -570,3 +570,25 @@ func TestDirectionsService_NonShuttle_AlwaysLeaveNow(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "Leave now", resp2.DepartureMessage)
 }
+
+func TestDirectionsService_Shuttle_LeaveNow_Auto(t *testing.T) {
+	f := &fakeDirectionsClient{
+		resp: domain.DirectionsResponse{
+			Mode: "walking",
+			Steps: []domain.DirectionStep{
+				{Duration: "1 min", Distance: "0.1 km"},
+			},
+		},
+	}
+
+	// Shuttle leaves in 2 mins. Walk is 1 min.
+	// Ideal leave time = now + 1 min.
+	// This falls within the "Leave now" threshold (<= now + 1 min).
+	nearFuture := time.Now().Add(2 * time.Minute).Format("15:04")
+	repo := &fakeShuttleRepo{times: []string{nearFuture}}
+	s := NewDirectionsService(f).WithShuttleRepo(repo)
+
+	resp, err := s.GetDirectionsWithSchedule(domain.LatLng{}, domain.LatLng{}, "shuttle", "", "")
+	assert.NoError(t, err)
+	assert.Contains(t, resp.DepartureMessage, "Leave now to catch")
+}
