@@ -731,3 +731,84 @@ func TestEncodePolyline_Empty(t *testing.T) {
 	assert.Equal(t, "", encodePolyline(nil))
 	assert.Equal(t, "", encodePolyline([]domain.LatLng{}))
 }
+
+func TestDirectionsService_NonShuttle_ReturnsLeaveNowMessage(t *testing.T) {
+	f := &fakeDirectionsClient{
+		resp: domain.DirectionsResponse{
+			Mode: "walking",
+			Steps: []domain.DirectionStep{
+				{Instruction: "Walk", Duration: "5 mins"},
+			},
+		},
+	}
+	s := NewDirectionsService(f)
+
+	// Case 1: GetDirections (legacy)
+	resp, err := s.GetDirections(domain.LatLng{}, domain.LatLng{}, "walking")
+	assert.NoError(t, err)
+	assert.Equal(t, "Leave now", resp.DepartureMessage)
+
+	// Case 2: GetDirectionsWithSchedule (explicit)
+	resp, err = s.GetDirectionsWithSchedule(domain.LatLng{}, domain.LatLng{}, "walking", "", "")
+	assert.NoError(t, err)
+	assert.Equal(t, "Leave now", resp.DepartureMessage)
+}
+
+func TestDirectionsService_Shuttle_UserTime_Boundary(t *testing.T) {
+	f := &fakeDirectionsClient{
+		resp: domain.DirectionsResponse{
+			Mode: "walking",
+			Steps: []domain.DirectionStep{
+				{Duration: "10 mins", Distance: "0.5 km"},
+			},
+		},
+	}
+	// Shuttle at 10:00. Walk 10 mins. Leave at 09:50.
+	repo := &fakeShuttleRepo{times: []string{"10:00"}}
+	s := NewDirectionsService(f).WithShuttleRepo(repo)
+
+	// Boundary: 1 minute before leave time.
+	// LeaveAt = 09:50.
+	// Threshold = 09:49.
+
+	// Case A: User asks for 09:49. ref >= threshold. -> "Leave now"
+	resp, err := s.GetDirectionsWithSchedule(domain.LatLng{}, domain.LatLng{}, "shuttle", "monday", "09:49")
+	assert.NoError(t, err)
+	assert.Contains(t, resp.DepartureMessage, "Leave now to catch the 10:00 shuttle")
+
+	// Case B: User asks for 09:48. ref < threshold. -> "Depart at 09:50"
+	resp, err = s.GetDirectionsWithSchedule(domain.LatLng{}, domain.LatLng{}, "shuttle", "monday", "09:48")
+	assert.NoError(t, err)
+	assert.Contains(t, resp.DepartureMessage, "Depart at 09:50 to catch the 10:00 shuttle")
+}
+
+func TestDirectionsService_Shuttle_Auto_Boundary(t *testing.T) {
+	f := &fakeDirectionsClient{
+		resp: domain.DirectionsResponse{
+			Mode: "walking",
+			Steps: []domain.DirectionStep{
+				{Duration: "5 mins", Distance: "0.5 km"},
+			},
+		},
+	}
+	s := NewDirectionsService(f)
+
+	// Walk is 5 mins.
+	// We want to test the boundary: leaveAtTime > now + 1 min.
+
+	// Case A: LeaveAt = now + 2m. (Future -> "Leave at")
+	// NextDep = LeaveAt + 5m = now + 7m.
+	depTimeA := time.Now().Add(7 * time.Minute).Format("15:04")
+	s.WithShuttleRepo(&fakeShuttleRepo{times: []string{depTimeA}})
+	resp, err := s.GetDirectionsWithSchedule(domain.LatLng{}, domain.LatLng{}, "shuttle", "", "")
+	assert.NoError(t, err)
+	assert.Contains(t, resp.DepartureMessage, "Leave at")
+
+	// Case B: LeaveAt = now. (Close -> "Leave now")
+	// NextDep = now + 5m.
+	depTimeB := time.Now().Add(5 * time.Minute).Format("15:04")
+	s.WithShuttleRepo(&fakeShuttleRepo{times: []string{depTimeB}})
+	resp, err = s.GetDirectionsWithSchedule(domain.LatLng{}, domain.LatLng{}, "shuttle", "", "")
+	assert.NoError(t, err)
+	assert.Contains(t, resp.DepartureMessage, "Leave now")
+}
