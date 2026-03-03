@@ -688,3 +688,46 @@ func TestFormatDuration_Negative(t *testing.T) {
 	d := -5 * time.Minute
 	assert.Equal(t, "5 mins", formatDuration(d))
 }
+
+func TestGetDirectionsWithSchedule_InvalidDayTime(t *testing.T) {
+	f := &fakeDirectionsClient{}
+	s := NewDirectionsService(f)
+
+	_, err := s.GetDirectionsWithSchedule(domain.LatLng{}, domain.LatLng{}, "shuttle", "invalidday", "10:00")
+	assert.Error(t, err)
+	assert.Equal(t, "invalid day", err.Error())
+
+	_, err = s.GetDirectionsWithSchedule(domain.LatLng{}, domain.LatLng{}, "shuttle", "monday", "25:00")
+	assert.Error(t, err)
+	assert.Equal(t, "invalid time", err.Error())
+}
+
+func TestGetShuttleDirectionsManual_RepoError(t *testing.T) {
+	f := &fakeDirectionsClient{}
+	repo := &fakeShuttleRepo{
+		err: errors.New("repo error"),
+	}
+	s := NewDirectionsService(f).WithShuttleRepo(repo)
+
+	_, err := s.GetShuttleDirectionsManual(domain.LatLng{}, domain.LatLng{}, "monday", "10:00")
+	assert.Error(t, err)
+	assert.Equal(t, "No shuttle available at this time.", err.Error())
+}
+
+func TestPickNextDepartureAt_SkipsInvalidTimes(t *testing.T) {
+	now := time.Date(2026, 2, 18, 10, 0, 0, 0, time.UTC)
+	times := []string{"09:00", "invalid", "11:00"}
+
+	next := pickNextDepartureAt(now, times)
+	assert.Equal(t, "11:00", next)
+}
+
+func TestParseGoogleDuration_Mixed(t *testing.T) {
+	d := parseGoogleDuration("1 hour garbage 5 mins")
+	assert.Equal(t, 1*time.Hour+5*time.Minute, d)
+}
+
+func TestEncodePolyline_Empty(t *testing.T) {
+	assert.Equal(t, "", encodePolyline(nil))
+	assert.Equal(t, "", encodePolyline([]domain.LatLng{}))
+}
