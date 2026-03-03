@@ -52,7 +52,6 @@ describe("RoomPolygon", () => {
       <RoomPolygon polygon={polygon} {...defaultProps} />,
     );
 
-    expect(getByTestId("svg")).toBeTruthy();
     expect(getByTestId("polygon")).toBeTruthy();
   });
 
@@ -68,7 +67,6 @@ describe("RoomPolygon", () => {
       <RoomPolygon polygon={polygon} {...defaultProps} />,
     );
 
-    expect(getByTestId("svg")).toBeTruthy();
     expect(getByTestId("polygon")).toBeTruthy();
   });
 
@@ -86,7 +84,7 @@ describe("RoomPolygon", () => {
     expect(getByLabelText("polygon-0,0 1000,0 500,800")).toBeTruthy();
   });
 
-  test("uses correct SVG dimensions", () => {
+  test("scales coordinates based on dimensions", () => {
     const polygon: Coordinate[] = [
       { x: 0.1, y: 0.1 },
       { x: 0.2, y: 0.2 },
@@ -97,7 +95,7 @@ describe("RoomPolygon", () => {
       <RoomPolygon polygon={polygon} width={500} height={600} />,
     );
 
-    expect(getByLabelText("svg-500x600")).toBeTruthy();
+    expect(getByLabelText("polygon-50,60 100,120 150,180")).toBeTruthy();
   });
 
   test("applies correct polygon styling", () => {
