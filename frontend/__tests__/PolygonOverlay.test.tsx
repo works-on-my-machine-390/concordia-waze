@@ -1,16 +1,18 @@
 import type { PointOfInterest } from "@/hooks/queries/indoorMapQueries";
 import { renderWithProviders } from "@/test_utils/renderUtils";
+import { fireEvent } from "@testing-library/react-native";
 import PolygonOverlay from "../components/indoor/PolygonOverlay";
 
 jest.mock("../components/indoor/RoomPolygon", () => {
-  const { View, Text } = require("react-native");
-  return function MockRoomPolygon({ polygon, width, height }: any) {
+  const { Pressable, Text } = require("react-native");
+  return function MockRoomPolygon({ polygon, width, height, isSelected, onPress }: any) {
     return (
-      <View testID="room-polygon">
+      <Pressable testID="room-polygon" onPress={onPress}>
         <Text>
           {polygon.length} points, {width}x{height}
+          {isSelected && " (selected)"}
         </Text>
-      </View>
+      </Pressable>
     );
   };
 });
@@ -141,5 +143,52 @@ describe("PolygonOverlay", () => {
     );
 
     expect(queryAllByTestId("room-polygon")).toHaveLength(0);
+  });
+
+  test("calls onSelectPoi with poi name when polygon is pressed", () => {
+    const pois = [
+      createPoiWithPolygon("Room 101", 4),
+      createPoiWithPolygon("Room 102", 5),
+    ];
+    const mockOnSelectPoi = jest.fn();
+
+    const { getAllByTestId } = renderWithProviders(
+      <PolygonOverlay
+        pois={pois}
+        {...defaultProps}
+        onSelectPoi={mockOnSelectPoi}
+      />,
+    );
+
+    const polygons = getAllByTestId("room-polygon");
+    expect(polygons).toHaveLength(2);
+
+    // Press the first polygon
+    fireEvent.press(polygons[0]);
+    expect(mockOnSelectPoi).toHaveBeenCalledWith("Room 101");
+    expect(mockOnSelectPoi).toHaveBeenCalledTimes(1);
+
+    // Press the second polygon
+    fireEvent.press(polygons[1]);
+    expect(mockOnSelectPoi).toHaveBeenCalledWith("Room 102");
+    expect(mockOnSelectPoi).toHaveBeenCalledTimes(2);
+  });
+
+  test("passes isSelected prop correctly to RoomPolygon", () => {
+    const pois = [
+      createPoiWithPolygon("Room 101", 4),
+      createPoiWithPolygon("Room 102", 5),
+    ];
+
+    const { getByText } = renderWithProviders(
+      <PolygonOverlay
+        pois={pois}
+        {...defaultProps}
+        selectedPoiName="Room 101"
+      />,
+    );
+
+    expect(getByText("4 points, 1000x1000 (selected)")).toBeTruthy();
+    expect(getByText("5 points, 1000x1000")).toBeTruthy();
   });
 });

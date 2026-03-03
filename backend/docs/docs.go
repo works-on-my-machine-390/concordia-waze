@@ -2345,6 +2345,12 @@ const docTemplate = `{
                 "transit_line": {
                     "type": "string"
                 },
+                "transit_line_color": {
+                    "type": "string"
+                },
+                "transit_line_text_color": {
+                    "type": "string"
+                },
                 "transit_type": {
                     "type": "string"
                 },

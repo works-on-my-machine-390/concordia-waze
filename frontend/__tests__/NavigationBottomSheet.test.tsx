@@ -1,4 +1,5 @@
 import { getIsCrossCampus } from "@/app/utils/mapUtils";
+import { useGetAllModesDirections } from "@/hooks/queries/navigationQueries";
 import { MapMode, useMapStore } from "@/hooks/useMapStore";
 import { useNavigationStore } from "@/hooks/useNavigationStore";
 import { fireEvent, render, waitFor } from "@testing-library/react-native";
@@ -6,6 +7,21 @@ import NavigationBottomSheet from "../components/NavigationBottomSheet";
 
 jest.mock("@/app/utils/mapUtils", () => ({
   getIsCrossCampus: jest.fn(),
+}));
+
+jest.mock("@/hooks/queries/navigationQueries", () => ({
+  TransitMode: {
+    DRIVING: "DRIVING",
+    TRANSIT: "TRANSIT",
+    WALKING: "WALKING",
+    BICYCLING: "BICYCLING",
+    SHUTTLE: "SHUTTLE",
+  },
+  useGetAllModesDirections: jest.fn(),
+}));
+
+jest.mock("react-native-safe-area-context", () => ({
+  useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }),
 }));
 
 jest.mock("react-native-gesture-handler", () => {
@@ -23,6 +39,9 @@ jest.mock("@gorhom/bottom-sheet", () => {
     default: React.forwardRef(({ children }: any, _ref: any) => (
       <View testID="navigation-bottom-sheet">{children}</View>
     )),
+    BottomSheetScrollView: ({ children }: any) => (
+      <View testID="navigation-bottom-sheet-scroll">{children}</View>
+    ),
   };
 });
 
@@ -39,6 +58,7 @@ jest.mock("../app/icons", () => {
 
 describe("NavigationBottomSheet", () => {
   const mockedGetIsCrossCampus = getIsCrossCampus as jest.Mock;
+  const mockedUseGetAllModesDirections = useGetAllModesDirections as jest.Mock;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -53,9 +73,18 @@ describe("NavigationBottomSheet", () => {
     useNavigationStore.setState({
       startLocation: undefined,
       endLocation: undefined,
+      transitMode: undefined,
+      currentDirections: undefined,
     });
 
     mockedGetIsCrossCampus.mockReturnValue(false);
+    mockedUseGetAllModesDirections.mockReturnValue([
+      { data: { mode: "DRIVING", duration: "5 min" } },
+      { data: { mode: "TRANSIT", duration: "8 min" } },
+      { data: { mode: "WALKING", duration: "12 min" } },
+      { data: { mode: "BICYCLING", duration: "4 min" } },
+      { data: { mode: "SHUTTLE", duration: "20 min" } },
+    ]);
   });
 
   test("shows prompt when start location is not selected", () => {

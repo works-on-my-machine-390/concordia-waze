@@ -15,6 +15,7 @@ import PoiMarker from "./PoiMarker";
 import PoiPickOverlay from "./PoiPickOverlay";
 import PolygonOverlay from "./PolygonOverlay";
 import { useIndoorNavigationStore } from "@/hooks/useIndoorNavigationStore";
+import { useState } from "react";
 
 type Props = {
   floor: Floor | undefined;
@@ -36,8 +37,11 @@ export default function FloorPlanViewer({
   const nav = useIndoorNavigationStore();
 
   const { width: SCREEN_WIDTH } = useWindowDimensions();
-  const { dimensions, svgText, error, isLoading } = useSvgDimensions(floor?.imgPath);
+  const { dimensions, svgText, error, isLoading } = useSvgDimensions(
+    floor?.imgPath,
+  );
 
+  const [selectedPoiName, setSelectedPoiName] = useState<string | undefined>();
   if (!floor) {
     return (
       <View style={styles.emptyContainer}>
@@ -113,17 +117,18 @@ export default function FloorPlanViewer({
             pois={floor.pois}
             width={DISPLAY_WIDTH}
             height={DISPLAY_HEIGHT}
-            destinationPoi={destinationPoi}
+            selectedPoiName={selectedPoiName}
+            onSelectPoi={setSelectedPoiName}
           />
-
-          {/* draw POI icons (visual only) */}
-          <View style={StyleSheet.absoluteFill} pointerEvents="none">
-            {floor.pois.map((poi) => (
+          <View style={StyleSheet.absoluteFill}>
+            
+            {floor.pois.map((poi, index) => (
               <PoiMarker
                 key={`poi-${poi.name}-${poi.position.x}-${poi.position.y}`}
                 poi={poi}
                 width={DISPLAY_WIDTH}
                 height={DISPLAY_HEIGHT}
+                onPress={() => setSelectedPoiName(poi.name)}
               />
             ))}
           </View>
