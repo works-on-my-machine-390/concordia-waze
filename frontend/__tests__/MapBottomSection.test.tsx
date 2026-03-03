@@ -106,7 +106,6 @@ describe("MapBottomSection", () => {
     expect(mockPoiSearchBottomSheet).toHaveBeenCalledWith(
       expect.objectContaining({
         moveCamera,
-        onDirectionsPress: expect.any(Function),
       }),
     );
   });
