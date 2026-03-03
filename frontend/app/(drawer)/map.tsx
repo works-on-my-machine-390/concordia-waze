@@ -26,6 +26,7 @@ import {
   DEFAULT_MAP_DELTA,
 } from "../constants";
 import { getDistance } from "../utils/mapUtils";
+import NavigationPolylines from "@/components/NavigationPolylines";
 
 export type MapQueryParamsModel = {
   selected?: string;
@@ -96,6 +97,12 @@ export default function MainMap() {
   };
 
   useEffect(() => {
+    if (mapState.currentMode !== MapMode.NAVIGATION) {
+      navigationState.clearState();
+    }
+  }, [mapState.currentMode]);
+
+  useEffect(() => {
     if (buildingListQuery.data) {
       setBuildingsByCampus((prev) => ({
         ...prev,
@@ -151,8 +158,9 @@ export default function MainMap() {
   }, [params.campus]);
 
   const buildingsToRender = useMemo(() => {
-    return buildingsByCampus[campus] || [];
-  }, [campus, buildingsByCampus]);
+    // we were previously rendering one campus at a time
+    return Object.values(buildingsByCampus).flat();
+  }, [buildingsByCampus]);
 
   const mapStyle = [
     {
@@ -321,6 +329,9 @@ export default function MainMap() {
       params: {
         campus,
         editMode: "start",
+        // not sending camLat and camLng here deliberately,
+        // since the search page does not need these params
+        // as POI search is not enabled for start location editing.
       },
     });
   };
@@ -331,6 +342,8 @@ export default function MainMap() {
       params: {
         campus,
         editMode: "end",
+        camLat: String((cameraCenter || CAMPUS_COORDS[campus]).latitude),
+        camLng: String((cameraCenter || CAMPUS_COORDS[campus]).longitude),
       },
     });
   };
@@ -361,6 +374,9 @@ export default function MainMap() {
         onRegionChangeComplete={handleRegionChangeComplete}
       >
         <CampusBuildingPolygons buildings={buildingsToRender} />
+        {mapState.currentMode === MapMode.NAVIGATION && (
+          <NavigationPolylines showEndPoint />
+        )}
         {mapState.currentMode === MapMode.POI && <PoiOutdoorMarkers />}
         <ShuttleBusMarkers />
       </MapView>

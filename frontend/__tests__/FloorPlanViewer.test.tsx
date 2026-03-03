@@ -1,6 +1,7 @@
 import type { Floor } from "@/hooks/queries/indoorMapQueries";
 import { useSvgDimensions } from "@/hooks/useSvgDimensions";
 import { renderWithProviders } from "@/test_utils/renderUtils";
+import { fireEvent } from "@testing-library/react-native";
 import FloorPlanViewer from "../components/indoor/FloorPlanViewer";
 
 // Mock dependencies
@@ -19,15 +20,23 @@ jest.mock("@openspacelabs/react-native-zoomable-view", () => {
   };
 });
 jest.mock("../components/indoor/PolygonOverlay", () => {
-  const { View } = require("react-native");
-  return function MockPolygonOverlay() {
-    return <View testID="polygon-overlay" />;
+  const { View, Text } = require("react-native");
+  return function MockPolygonOverlay({ selectedPoiName, onSelectPoi }: any) {
+    return (
+      <View testID="polygon-overlay">
+        {selectedPoiName && <Text testID="selected-poi">{selectedPoiName}</Text>}
+      </View>
+    );
   };
 });
 jest.mock("../components/indoor/PoiMarker", () => {
-  const { View } = require("react-native");
-  return function MockPoiMarker() {
-    return <View testID="poi-marker" />;
+  const { Pressable, Text } = require("react-native");
+  return function MockPoiMarker({ poi, onPress }: any) {
+    return (
+      <Pressable testID="poi-marker" onPress={onPress}>
+        <Text>{poi.name}</Text>
+      </Pressable>
+    );
   };
 });
 
@@ -193,5 +202,32 @@ describe("FloorPlanViewer", () => {
     );
 
     expect(getByTestId("zoomable-view")).toBeTruthy();
+  });
+
+  test("updates selectedPoiName when POI marker is pressed", () => {
+    (useSvgDimensions as jest.Mock).mockReturnValue({
+      dimensions: { width: 1000, height: 1000 },
+      svgText: "<svg></svg>",
+      error: false,
+      isLoading: false,
+    });
+
+    const { getAllByTestId, getByTestId, queryByTestId } = renderWithProviders(
+      <FloorPlanViewer floor={mockFloor} />,
+    );
+
+    const poiMarkers = getAllByTestId("poi-marker");
+    expect(poiMarkers).toHaveLength(2);
+
+    // Initially, no POI should be selected
+    expect(queryByTestId("selected-poi")).toBeNull();
+
+    // Press the first POI marker (Room 101)
+    fireEvent.press(poiMarkers[0]);
+
+    // Verify the selectedPoiName is passed to PolygonOverlay
+    const selectedPoi = getByTestId("selected-poi");
+    expect(selectedPoi).toBeTruthy();
+    expect(selectedPoi).toHaveTextContent("Room 101");
   });
 });

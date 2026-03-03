@@ -390,7 +390,7 @@ export default function SearchPage() {
   const renderHeaderComponent = () => {
     // search nearby and recent searches are mutually exclusive,
     // so nearby gets priority when query is present
-    if (query.trim().length > 0) {
+    if (query.trim().length > 0 && editMode !== "start") {
       return (
         <SearchNearbyButton onPress={handleSearchNearbyPressed} query={query} />
       );
@@ -479,7 +479,7 @@ export default function SearchPage() {
               )}
             </View>
           </View>
-          <SearchNearbySuggestions onClick={handleSearchNearbyPressed} />
+          {editMode !== "start" && <SearchNearbySuggestions onClick={handleSearchNearbyPressed} />}
         </View>
 
         <FlatList
