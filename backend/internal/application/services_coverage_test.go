@@ -2,6 +2,8 @@ package application
 
 import (
 	"errors"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -96,6 +98,51 @@ func (f *fakeFloorRepo) GetBuildingFloors(code string) ([]domain.Floor, error) {
 		return nil, domain.ErrNotFound
 	}
 	return m, nil
+}
+
+type countingPlacesClient struct {
+	placeID     string
+	hours       domain.OpeningHours
+	err         error
+	FindCalls   int
+	HoursCalls  int
+	images      []string
+	TextCalls   int
+	TextResults []domain.Building
+}
+
+func (c *countingPlacesClient) FindPlaceID(name string, lat, lng float64) (string, error) {
+	c.FindCalls++
+	if c.err != nil {
+		return "", c.err
+	}
+	return c.placeID, nil
+}
+
+func (c *countingPlacesClient) GetOpeningHours(placeID string) (domain.OpeningHours, error) {
+	c.HoursCalls++
+	if c.err != nil {
+		return nil, c.err
+	}
+	return c.hours, nil
+}
+
+func (c *countingPlacesClient) GetPhotoURLs(placeID string) ([]string, error) {
+	if c.err != nil {
+		return nil, c.err
+	}
+	return c.images, nil
+}
+
+func (c *countingPlacesClient) TextSearchPlaces(input string, lat, lng float64, maxDistanceInMeters int, rankPreference string) ([]domain.Building, error) {
+	c.TextCalls++
+	if c.err != nil {
+		return nil, c.err
+	}
+	if c.TextResults != nil {
+		return c.TextResults, nil
+	}
+	return []domain.Building{}, nil
 }
 
 func TestBuildingService_GetBuilding_Success(t *testing.T) {
@@ -494,4 +541,106 @@ func TestBuildingService_GetBuildingFloors_RepoError(t *testing.T) {
 	if err.Error() != "boom" {
 		t.Fatalf("expected repo error 'boom', got %v", err)
 	}
+}
+
+func TestCache_PersistAndHitAvoidsAPI(t *testing.T) {
+	repo := &fakeBuildingRepo{
+		b: &domain.Building{
+			Code:      "MB",
+			LongName:  "John Molson Building",
+			Latitude:  45.497000,
+			Longitude: -73.579200,
+		},
+	}
+
+	// First places client behaves normally and will populate the cache.
+	fp := &fakePlacesClient{
+		placeID: "place-123",
+		hours: domain.OpeningHours{
+			"monday": {Open: "08:00", Close: "18:00"},
+		},
+	}
+
+	cacheDir := t.TempDir()
+	svc := NewBuildingService(repo, nil, fp, cacheDir)
+
+	b, err := svc.GetBuilding("MB")
+	if err != nil {
+		t.Fatalf("unexpected error on first call: %v", err)
+	}
+	if b.OpeningHours == nil {
+		t.Fatalf("expected OpeningHours attached on first call")
+	}
+	if b.OpeningHours["monday"].Open != "08:00" {
+		t.Fatalf("unexpected opening hours: %+v", b.OpeningHours)
+	}
+
+	// Now create a new service that loads the cache from disk but has a places client that would error if called.
+	placesThatMustNotBeCalled := &fakePlacesClient{
+		err: errors.New("places should not be called when cache present"),
+	}
+	svc2 := NewBuildingService(repo, nil, placesThatMustNotBeCalled, cacheDir)
+
+	// If the cache was correctly persisted and loaded, this call should NOT invoke the places client and should succeed.
+	b2, err := svc2.GetBuilding("MB")
+	if err != nil {
+		t.Fatalf("expected cached lookup to succeed without calling places client, got error: %v", err)
+	}
+	if b2.OpeningHours == nil {
+		t.Fatalf("expected OpeningHours attached from cache")
+	}
+	assert.Equal(t, "08:00", b2.OpeningHours["monday"].Open)
+}
+
+func TestCache_MissForDifferentBuildingTriggersAPI_CountsCalls(t *testing.T) {
+	repo := &fakeBuildingRepo{}
+	cacheDir := t.TempDir()
+
+	// Populate cache for MB
+	repo.b = &domain.Building{
+		Code:      "MB",
+		LongName:  "John Molson Building",
+		Latitude:  45.497000,
+		Longitude: -73.579200,
+	}
+	placesMB := &countingPlacesClient{
+		placeID: "place-mb",
+		hours: domain.OpeningHours{
+			"monday": {Open: "08:00", Close: "18:00"},
+		},
+	}
+	svc := NewBuildingService(repo, nil, placesMB, cacheDir)
+	if _, err := svc.GetBuilding("MB"); err != nil {
+		t.Fatalf("unexpected error populating MB cache: %v", err)
+	}
+	placeidPath := filepath.Join(cacheDir, "placeid_cache.json")
+	if _, err := os.Stat(placeidPath); err != nil {
+		t.Fatalf("expected placeid cache file, stat error: %v", err)
+	}
+
+	// Now request a different building
+	// The counting places client verifies that it is invoked
+	repo.b = &domain.Building{
+		Code:      "LB",
+		LongName:  "Library Building",
+		Latitude:  45.498000,
+		Longitude: -73.580000,
+	}
+	placesLB := &countingPlacesClient{
+		placeID: "place-lb",
+		hours: domain.OpeningHours{
+			"tuesday": {Open: "09:00", Close: "17:00"},
+		},
+	}
+	svc2 := NewBuildingService(repo, nil, placesLB, cacheDir)
+	b, err := svc2.GetBuilding("LB")
+	if err != nil {
+		t.Fatalf("unexpected error fetching LB: %v", err)
+	}
+	// verify building returned and hours attached from LB places client
+	if b.OpeningHours == nil {
+		t.Fatalf("expected OpeningHours from LB places client, got nil")
+	}
+	assert.Equal(t, 1, placesLB.FindCalls, "expected FindPlaceID called once for LB")
+	assert.Equal(t, 1, placesLB.HoursCalls, "expected GetOpeningHours called once for LB")
 }
