@@ -7,7 +7,7 @@ export type PickMode = "start" | "end";
 export type SelectedPoint = {
   label: string;
   floor: number;
-  coord: Coordinates; // normalized 0..1
+  coord: Coordinates;
 };
 
 type IndoorNavigationState = {
@@ -22,7 +22,9 @@ type IndoorNavigationState = {
   routeSegments: FloorSegment[] | null;
   totalDistance: number | null;
 
-  // actions
+  currentFloor: number | null;
+  setCurrentFloor: (f: number | null) => void;
+
   setSelectedRoom: (p: SelectedPoint | null) => void;
 
   enterItineraryFromSelected: () => void;
@@ -32,11 +34,16 @@ type IndoorNavigationState = {
   setStart: (p: SelectedPoint | null) => void;
   setEnd: (p: SelectedPoint | null) => void;
 
-  setRoute: (segments: FloorSegment[] | null, totalDistance: number | null) => void;
+  setRoute: (
+    segments: FloorSegment[] | null,
+    totalDistance: number | null
+  ) => void;
   clearRoute: () => void;
 };
 
-export const useIndoorNavigationStore = create<IndoorNavigationState>((set, get) => ({
+export const useIndoorNavigationStore = create<
+  IndoorNavigationState
+>((set, get) => ({
   mode: "BROWSE",
   pickMode: "start",
 
@@ -48,9 +55,11 @@ export const useIndoorNavigationStore = create<IndoorNavigationState>((set, get)
   routeSegments: null,
   totalDistance: null,
 
+  currentFloor: null,
+  setCurrentFloor: (f) => set({ currentFloor: f }),
+
   setSelectedRoom: (p) => set({ selectedRoom: p }),
 
-  //uses selectedRoom as START automatically
   enterItineraryFromSelected: () => {
     const sel = get().selectedRoom;
     if (!sel) return;
@@ -73,13 +82,15 @@ export const useIndoorNavigationStore = create<IndoorNavigationState>((set, get)
       end: null,
       routeSegments: null,
       totalDistance: null,
-      // keep selectedRoom so the button stays available after exiting
+      selectedRoom: null,
     }),
 
   setPickMode: (m) => set({ pickMode: m }),
   setStart: (p) => set({ start: p }),
   setEnd: (p) => set({ end: p }),
 
-  setRoute: (segments, totalDistance) => set({ routeSegments: segments, totalDistance }),
+  setRoute: (segments, totalDistance) =>
+    set({ routeSegments: segments, totalDistance }),
+
   clearRoute: () => set({ routeSegments: null, totalDistance: null }),
 }));

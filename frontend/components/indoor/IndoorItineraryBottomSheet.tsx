@@ -13,14 +13,11 @@ type Props = {
   buildingCode: string;
 };
 
-export default function IndoorItineraryBottomSheet({
-  buildingCode,
-}: Readonly<Props>) {
+export default function IndoorItineraryBottomSheet({ buildingCode }: Readonly<Props>) {
   const nav = useIndoorNavigationStore();
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
-  // fixed height like mockup
   const snapPoints = useMemo(() => [ITINERARY_SHEET_HEIGHT], []);
 
   if (nav.mode !== "ITINERARY") return null;
@@ -41,12 +38,14 @@ export default function IndoorItineraryBottomSheet({
     });
   };
 
+  const distanceLabel =
+    nav.totalDistance != null ? `(${nav.totalDistance.toFixed(1)} m)` : "";
+
   return (
     <BottomSheet
       index={0}
       snapPoints={snapPoints}
       enableDynamicSizing={false}
-      // ✅ anchored full-width (NOT detached)
       bottomInset={0}
       backgroundStyle={styles.sheet}
       handleIndicatorStyle={styles.handleIndicator}
@@ -54,8 +53,7 @@ export default function IndoorItineraryBottomSheet({
     >
       <View style={styles.headerRow}>
         <Text style={styles.title}>
-          Walk{" "}
-          {nav.totalDistance != null ? `(${Math.round(nav.totalDistance)} m)` : ""}
+          Walk {distanceLabel}
         </Text>
 
         <View style={styles.rightActions}>
@@ -76,10 +74,8 @@ export default function IndoorItineraryBottomSheet({
       </View>
 
       <View style={styles.divider} />
-
       <Text style={styles.sub}>Tap rooms on the map to set Start/End.</Text>
 
-      {/* ✅ little padding so it doesn't collide with iPhone home bar */}
       <View style={{ height: Math.max(insets.bottom, 10) }} />
     </BottomSheet>
   );

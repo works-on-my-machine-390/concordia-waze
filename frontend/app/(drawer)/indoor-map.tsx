@@ -11,6 +11,7 @@ import { GetDirectionsIcon } from "@/app/icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useIndoorItineraryController } from "@/hooks/useIndoorItineraryController";
 import { useIndoorNavigationStore } from "@/hooks/useIndoorNavigationStore";
+import { useEffect } from "react";
 
 export default function IndoorMapPage() {
   const router = useRouter();
@@ -19,16 +20,41 @@ export default function IndoorMapPage() {
   const params = useLocalSearchParams<{ buildingCode?: string }>();
   const buildingCode = params.buildingCode ?? "";
 
-  // controller now just fetches route when start+end exist
   const ctrl = useIndoorItineraryController(buildingCode);
-
-  //store used for selection + entering itinerary from selected room
   const nav = useIndoorNavigationStore();
 
-  const handleBackToOutdoor = () => router.push("/map");
+  const hardReset = () => {
+    // if you added a reset() in store, use it
+    if (typeof (nav as any).reset === "function") {
+      (nav as any).reset();
+      return;
+    }
 
-  const showItineraryButton =
-    nav.mode === "BROWSE" && nav.selectedRoom != null;
+    // otherwise, reset with existing actions
+    nav.exitItinerary(); // sets mode=BROWSE and clears start/end/route
+    nav.setSelectedRoom(null);
+    nav.setPickMode("start");
+    nav.setStart(null);
+    nav.setEnd(null);
+    nav.clearRoute();
+    nav.setCurrentFloor?.(null);
+  };
+
+  // Reset when entering this screen for a new building, and also on unmount.
+  useEffect(() => {
+    hardReset();
+    return () => {
+      hardReset();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [buildingCode]);
+
+  const handleBackToOutdoor = () => {
+    hardReset();
+    router.replace("/map");
+  };
+
+  const showItineraryButton = nav.mode === "BROWSE" && nav.selectedRoom != null;
 
   return (
     <View style={styles.container}>
@@ -36,7 +62,9 @@ export default function IndoorMapPage() {
         buildingCode={buildingCode}
         routeSegments={ctrl.routeSegments}
         preferredFloorNumber={
-          nav.mode === "ITINERARY" ? nav.start?.floor ?? null : null
+          nav.mode === "ITINERARY"
+            ? nav.start?.floor ?? nav.currentFloor ?? null
+            : nav.currentFloor ?? null
         }
         floorSelectorBottomOffset={
           nav.mode === "ITINERARY"
@@ -56,7 +84,6 @@ export default function IndoorMapPage() {
         />
       )}
 
-      {/*show only after user selected a room (browse mode) */}
       {showItineraryButton ? (
         <TouchableOpacity
           style={[

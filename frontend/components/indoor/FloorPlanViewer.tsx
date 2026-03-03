@@ -18,7 +18,6 @@ import { useIndoorNavigationStore } from "@/hooks/useIndoorNavigationStore";
 type Props = {
   floor: Floor | undefined;
 
-  // if current floor has a path to draw
   routePath?: Coordinates[] | null;
 
   selectedPoiName?: string;
@@ -68,7 +67,6 @@ export default function FloorPlanViewer({
   const DISPLAY_WIDTH = SCREEN_WIDTH - 32;
   const DISPLAY_HEIGHT = DISPLAY_WIDTH * (dimensions.height / dimensions.width);
 
-  //Find destination POI on this floor (used for route clipping to border)
   const destinationPoi =
     nav.mode === "ITINERARY" && nav.end && nav.end.floor === floor.number
       ? floor.pois.find(
@@ -77,7 +75,6 @@ export default function FloorPlanViewer({
         ) ?? null
       : null;
 
-  // ✅ destination polygon used by IndoorPathOverlay to snap dotted end to border
   const endPolygon =
     destinationPoi && (destinationPoi.polygon?.length ?? 0) > 2
       ? destinationPoi.polygon
@@ -111,18 +108,17 @@ export default function FloorPlanViewer({
             preserveAspectRatio="xMidYMid meet"
           />
 
-          {/* teammate polygons: pressable + highlight */}
+          {}
           <PolygonOverlay
             pois={floor.pois}
             width={DISPLAY_WIDTH}
             height={DISPLAY_HEIGHT}
             selectedPoiName={selectedPoiName}
             onSelectPoi={onSelectPoiName}
-            // If you merged my earlier suggestion, you can also pass:
             // destinationPoiName={destinationPoi?.name ?? null}
           />
 
-          {/* POI markers are visual only */}
+          {}
           <View style={StyleSheet.absoluteFill} pointerEvents="none">
             {floor.pois.map((poi) => (
               <PoiMarker
@@ -134,7 +130,7 @@ export default function FloorPlanViewer({
             ))}
           </View>
 
-          {/* route overlay */}
+          {}
           {routePath && routePath.length >= 2 ? (
             <IndoorPathOverlay
               path={routePath}

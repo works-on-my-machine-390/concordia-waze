@@ -9,12 +9,9 @@ type Props = {
   width: number;
   height: number;
 
-  // ✅ teammate feature: selected polygon via tap
   selectedPoiName?: string;
   onSelectPoi?: (name: string) => void;
 
-  // ✅ NEW (keeps your feature without removing hers):
-  // if provided, this room is highlighted (ex: itinerary destination)
   destinationPoiName?: string | null;
 };
 
@@ -29,7 +26,6 @@ const PolygonOverlay = memo(
     onSelectPoi,
     destinationPoiName = null,
   }: Props) => {
-    // ✅ destination highlight has priority over manual selection
     const effectiveSelectedName =
       destinationPoiName && destinationPoiName.trim().length > 0
         ? destinationPoiName
@@ -41,7 +37,7 @@ const PolygonOverlay = memo(
 
     return (
       <View style={styles.overlay} pointerEvents="box-none">
-        {/* ✅ KEEP her: all polygons in ONE SVG so they are pressable */}
+        {}
         <Svg width={width} height={height}>
           {pois
             .filter((poi) => (poi.polygon?.length ?? 0) > 2)
@@ -56,8 +52,8 @@ const PolygonOverlay = memo(
                   polygon={poi.polygon}
                   width={width}
                   height={height}
-                  isSelected={isSelected} // ✅ her API
-                  onPress={() => onSelectPoi?.(poi.name)} // ✅ her behavior
+                  isSelected={isSelected} 
+                  onPress={() => onSelectPoi?.(poi.name)}
                 />
               );
             })}

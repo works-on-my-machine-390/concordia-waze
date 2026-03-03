@@ -1,7 +1,10 @@
 import FloorPlanViewer from "@/components/indoor/FloorPlanViewer";
 import FloorSelector from "@/components/indoor/FloorSelector";
 import { useGetBuildingFloors } from "@/hooks/queries/indoorMapQueries";
-import type { FloorSegment, Coordinates } from "@/hooks/queries/indoorDirectionsQueries";
+import type {
+  FloorSegment,
+  Coordinates,
+} from "@/hooks/queries/indoorDirectionsQueries";
 import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { useIndoorNavigationStore } from "@/hooks/useIndoorNavigationStore";
@@ -15,11 +18,9 @@ export type SelectedPoint = {
 type Props = {
   buildingCode: string;
 
-  // route segments from backend
   routeSegments?: FloorSegment[] | null;
   preferredFloorNumber?: number | null;
 
-  // allows parent to push floor selector up (ex: when itinerary sheet open)
   floorSelectorBottomOffset?: number;
 };
 
@@ -39,10 +40,18 @@ export default function IndoorMapContainer({
 
     if (preferredFloorNumber != null) {
       setSelectedFloor(preferredFloorNumber);
+      nav.setCurrentFloor?.(preferredFloorNumber);
+      return;
+    }
+
+    const last = nav.currentFloor ?? null;
+    if (last != null && data.floors.some((f) => f.number === last)) {
+      setSelectedFloor(last);
       return;
     }
 
     setSelectedFloor(data.floors[0].number);
+    nav.setCurrentFloor?.(data.floors[0].number);
   }, [buildingCode, data?.floors, preferredFloorNumber]);
 
   const currentFloor =
@@ -56,7 +65,6 @@ export default function IndoorMapContainer({
     return seg?.path ?? null;
   }, [routeSegments, selectedFloor]);
 
-  //  user clicks polygon -> we get name here
   const handleSelectPoiName = (name: string) => {
     if (!currentFloor) return;
 
@@ -74,24 +82,19 @@ export default function IndoorMapContainer({
       return;
     }
 
-    // ITINERARY: start already chosen when entering
     if (nav.start) {
       nav.setEnd(point);
-      nav.clearRoute(); // trigger new backend call via controller
+      nav.clearRoute(); 
     } else {
-      // fallback safety: if start missing, set it
       nav.setStart(point);
       nav.setPickMode("end");
       nav.clearRoute();
     }
   };
 
-  //highlight:
-  // - In itinerary: highlight the END (second room) if picked, else highlight START
-  // - In browse: highlight the selectedRoom
   const highlightedPoiName =
     nav.mode === "ITINERARY"
-      ? (nav.end?.label ?? nav.start?.label)
+      ? nav.end?.label ?? nav.start?.label
       : nav.selectedRoom?.label;
 
   if (isLoading) {
@@ -136,7 +139,7 @@ export default function IndoorMapContainer({
         key={selectedFloor}
         floor={currentFloor}
         routePath={routePathForCurrentFloor}
-        // ✅ teammate selection props
+        // teammate selection props
         selectedPoiName={highlightedPoiName}
         onSelectPoiName={handleSelectPoiName}
       />
@@ -144,7 +147,10 @@ export default function IndoorMapContainer({
       <FloorSelector
         floors={data.floors}
         selectedFloor={selectedFloor}
-        onSelectFloor={setSelectedFloor}
+        onSelectFloor={(floorNum) => {
+          setSelectedFloor(floorNum);
+          nav.setCurrentFloor?.(floorNum);
+        }}
         bottomOffset={floorSelectorBottomOffset}
       />
     </View>

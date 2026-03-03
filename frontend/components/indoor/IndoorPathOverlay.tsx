@@ -8,7 +8,6 @@ type Props = {
   width: number;
   height: number;
 
-  // destination room polygon (normalized 0..1 coords)
   endPolygon?: Coordinates[];
 };
 
@@ -18,7 +17,6 @@ function dist2(ax: number, ay: number, bx: number, by: number) {
   return dx * dx + dy * dy;
 }
 
-// ✅ Force Manhattan turns: no diagonal segments (A->B becomes A->elbow->B)
 function orthogonalizePath(points: { x: number; y: number }[]) {
   if (points.length < 2) return points;
 
@@ -31,20 +29,17 @@ function orthogonalizePath(points: { x: number; y: number }[]) {
     const dx = b.x - a.x;
     const dy = b.y - a.y;
 
-    // already horizontal or vertical
     if (Math.abs(dx) < 0.001 || Math.abs(dy) < 0.001) {
       out.push(b);
       continue;
     }
 
-    // choose elbow: go along dominant axis first (cleaner-looking)
-    const elbow1 = { x: b.x, y: a.y }; // horizontal then vertical
-    const elbow2 = { x: a.x, y: b.y }; // vertical then horizontal
+    const elbow1 = { x: b.x, y: a.y }; 
+    const elbow2 = { x: a.x, y: b.y }; 
 
     const preferHorizontalFirst = Math.abs(dx) >= Math.abs(dy);
     const elbow = preferHorizontalFirst ? elbow1 : elbow2;
 
-    // avoid duplicate elbow if it matches a
     if (dist2(a.x, a.y, elbow.x, elbow.y) > 0.001) out.push(elbow);
     out.push(b);
   }
@@ -52,7 +47,6 @@ function orthogonalizePath(points: { x: number; y: number }[]) {
   return out;
 }
 
-// remove micro-vertices so the dots look like straight segments
 function simplifyOrthogonalPath(points: { x: number; y: number }[]) {
   if (points.length <= 2) return points;
 
@@ -83,7 +77,6 @@ function simplifyOrthogonalPath(points: { x: number; y: number }[]) {
   return result;
 }
 
-// Closest point on segment AB to point P
 function closestPointOnSegment(
   px: number,
   py: number,
@@ -107,7 +100,6 @@ function closestPointOnSegment(
   return { x: ax + t * abx, y: ay + t * aby };
 }
 
-// ✅ Guaranteed: snap endpoint to closest point on polygon BORDER
 function snapEndToClosestPolygonBorder(
   end: { x: number; y: number },
   polyPx: { x: number; y: number }[],
@@ -144,10 +136,8 @@ export default function IndoorPathOverlay({
   const pts = useMemo(() => {
     const scaled = path.map((p) => ({ x: p.x * width, y: p.y * height }));
 
-    // ✅ force right-angle turns
     const ortho = orthogonalizePath(scaled);
 
-    // ✅ then simplify extra points
     return simplifyOrthogonalPath(ortho);
   }, [path, width, height]);
 
@@ -159,7 +149,6 @@ export default function IndoorPathOverlay({
     const out = [...pts];
     const end = out[out.length - 1];
 
-    // ✅ snap to border closest point (always works)
     out[out.length - 1] = snapEndToClosestPolygonBorder(end, polyPx);
 
     return out;
@@ -199,7 +188,6 @@ export default function IndoorPathOverlay({
       if (carry >= spacing) carry = 0;
     }
 
-    // ✅ force final dot exactly at snapped endpoint so it "touches"
     const endPt = finalPts[finalPts.length - 1];
     out.push({ x: endPt.x, y: endPt.y });
 

@@ -4,7 +4,7 @@ import { COLORS } from "@/app/constants";
 import { CircleIcon, LocationIcon } from "@/app/icons";
 import { Ionicons } from "@expo/vector-icons";
 import { DrawerActions } from "@react-navigation/native";
-import { useNavigation, useRouter } from "expo-router";
+import { useNavigation } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function IndoorItineraryHeader() {
@@ -12,11 +12,14 @@ export default function IndoorItineraryHeader() {
   const insets = useSafeAreaInsets();
 
   const navigation = useNavigation();
-  const router = useRouter();
 
   const handleBack = () => {
-    indoor.exitItinerary(); // ✅ reset to BROWSE so next building opens in indoor view
-    router.push("/map");
+    indoor.exitItinerary();
+
+    indoor.setSelectedRoom(null);
+
+    // (optional) also clear pick mode back to start if you want:
+    // indoor.setPickMode("start");
   };
 
   const startText = indoor.start?.label || "Select start";
@@ -26,15 +29,14 @@ export default function IndoorItineraryHeader() {
     <View
       style={[
         styles.container,
-        // match outdoor behavior but respect safe area
-        { paddingTop: insets.top + 10 },
+        { paddingTop: insets.top + 10 }, // respect safe area
       ]}
       testID="indoor-itinerary-header"
       accessibilityLabel="Indoor itinerary header"
       pointerEvents="box-none"
     >
       <View style={styles.headerRow} pointerEvents="box-none">
-        {/* Left buttons column (same as your mockup) */}
+        {/* Left buttons column */}
         <View style={styles.leftButtons} pointerEvents="auto">
           <Pressable
             style={styles.iconButton}
@@ -48,7 +50,7 @@ export default function IndoorItineraryHeader() {
           </Pressable>
         </View>
 
-        {/* Card (IDENTICAL to NavigationHeader.tsx) */}
+        {/* Card (identical structure to NavigationHeader.tsx) */}
         <View style={styles.card} pointerEvents="auto">
           <View style={styles.locationsContainer}>
             {/* Start location */}
@@ -71,7 +73,7 @@ export default function IndoorItineraryHeader() {
               </View>
             </Pressable>
 
-            {/* Divider row with dots on the left */}
+            {/* Divider row */}
             <View style={styles.dividerRow}>
               <View style={styles.dotsConnector}>
                 <View style={styles.dot} />
@@ -107,8 +109,6 @@ export default function IndoorItineraryHeader() {
   );
 }
 
-// ✅ Copied 1:1 from NavigationHeader.tsx (card + rows)
-// Added only headerRow / leftButtons / iconButton wrappers
 const styles = StyleSheet.create({
   container: {
     position: "absolute",
@@ -139,7 +139,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
 
-    // same shadow style vibe as outdoor card
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
