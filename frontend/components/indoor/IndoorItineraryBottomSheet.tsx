@@ -5,54 +5,87 @@ import { Ionicons } from "@expo/vector-icons";
 import { COLORS } from "@/app/constants";
 import { useIndoorNavigationStore } from "@/hooks/useIndoorNavigationStore";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 
-export const ITINERARY_SHEET_HEIGHT = 140; // used by FloorSelector offset
+export const ITINERARY_SHEET_HEIGHT = 140;
 
-export default function IndoorItineraryBottomSheet() {
+type Props = {
+  buildingCode: string;
+};
+
+export default function IndoorItineraryBottomSheet({
+  buildingCode,
+}: Readonly<Props>) {
   const nav = useIndoorNavigationStore();
   const insets = useSafeAreaInsets();
+  const router = useRouter();
 
   // fixed height like mockup
   const snapPoints = useMemo(() => [ITINERARY_SHEET_HEIGHT], []);
 
   if (nav.mode !== "ITINERARY") return null;
 
+  const canGo =
+    !!buildingCode &&
+    !!nav.start &&
+    !!nav.end &&
+    !!nav.routeSegments &&
+    nav.routeSegments.length > 0;
+
+  const handleGo = () => {
+    if (!canGo) return;
+
+    router.push({
+      pathname: "/(drawer)/indoor-navigation",
+      params: { buildingCode },
+    });
+  };
+
   return (
     <BottomSheet
       index={0}
       snapPoints={snapPoints}
       enableDynamicSizing={false}
-      detached
-      bottomInset={Math.max(insets.bottom, 8)}
+      // ✅ anchored full-width (NOT detached)
+      bottomInset={0}
       backgroundStyle={styles.sheet}
-      containerStyle={styles.sheetContainer}
-      handleIndicatorStyle={styles.handleIndicator}   // ✅ shows the small grab bar
-      handleStyle={styles.handle}                     // ✅ small top padding
+      handleIndicatorStyle={styles.handleIndicator}
+      handleStyle={styles.handle}
     >
       <View style={styles.headerRow}>
         <Text style={styles.title}>
           Walk{" "}
-{     nav.totalDistance != null ? `(${nav.totalDistance.toFixed(1)} m)` : ""}        </Text>
+          {nav.totalDistance != null ? `(${Math.round(nav.totalDistance)} m)` : ""}
+        </Text>
 
-        <Pressable onPress={() => nav.exitItinerary()} style={styles.close}>
-          <Ionicons name="close" size={22} color={COLORS.maroon} />
-        </Pressable>
+        <View style={styles.rightActions}>
+          <Pressable
+            onPress={handleGo}
+            disabled={!canGo}
+            style={[styles.goBtn, !canGo && styles.goBtnDisabled]}
+          >
+            <Text style={[styles.goText, !canGo && styles.goTextDisabled]}>
+              GO
+            </Text>
+          </Pressable>
+
+          <Pressable onPress={() => nav.exitItinerary()} style={styles.close}>
+            <Ionicons name="close" size={22} color={COLORS.maroon} />
+          </Pressable>
+        </View>
       </View>
 
       <View style={styles.divider} />
 
       <Text style={styles.sub}>Tap rooms on the map to set Start/End.</Text>
+
+      {/* ✅ little padding so it doesn't collide with iPhone home bar */}
+      <View style={{ height: Math.max(insets.bottom, 10) }} />
     </BottomSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  sheetContainer: {
-    overflow: "visible",
-    // ✅ sheet should be UNDER the floor selector
-    zIndex: 50,
-    elevation: 50,
-  },
   sheet: {
     backgroundColor: "white",
     shadowColor: "#000",
@@ -82,22 +115,52 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     justifyContent: "space-between",
   },
+
+  rightActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+
   title: {
     fontSize: 18,
     fontWeight: "500",
     color: "#111",
   },
+
+  goBtn: {
+    height: 34,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.maroon,
+  },
+  goBtnDisabled: {
+    backgroundColor: "#E6E6E6",
+  },
+  goText: {
+    color: "white",
+    fontWeight: "800",
+    letterSpacing: 0.5,
+  },
+  goTextDisabled: {
+    color: "#999",
+  },
+
   divider: {
     height: 1,
     backgroundColor: "#CCCCCC",
     marginHorizontal: 16,
   },
+
   sub: {
     paddingHorizontal: 16,
     paddingTop: 12,
     color: "#666",
     fontWeight: "600",
   },
+
   close: {
     width: 34,
     height: 34,

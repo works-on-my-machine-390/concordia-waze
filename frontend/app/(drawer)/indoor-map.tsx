@@ -64,7 +64,7 @@ export default function IndoorMapPage() {
         </TouchableOpacity>
       ) : null}
 
-      <IndoorItineraryBottomSheet />
+        <IndoorItineraryBottomSheet buildingCode={buildingCode} />
     </View>
   );
 }
