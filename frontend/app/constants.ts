@@ -56,3 +56,4 @@ export const CAMPUS_COORDS = {
 };
 
 export const QUERY_RETRY_DELAY_MS = 3000;
+export const BUILDINGS_WITH_INDOOR_MAPS = ['CC', 'H', 'LB', 'MB', 'VL'] as const;

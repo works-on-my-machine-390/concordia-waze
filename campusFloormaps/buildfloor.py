@@ -8,8 +8,8 @@ from pathlib import Path
 
 EPS = 1e-7
 
-DATA_DIR    = Path(r"") # enter appropriate path
-OUTPUT_PATH = Path(r"") # enter appropriate path
+DATA_DIR    = Path(r"C:\Users\amal_\gitStuff\concordia-waze\campusFloormaps\Data") # enter appropriate path
+OUTPUT_PATH = Path(r"C:\Users\amal_\gitStuff\concordia-waze\backend\resource\floor_information.json") # enter appropriate path
 
 # ── Vec2 helpers ─────────────────────────────────────────────────────────────
 
@@ -171,7 +171,11 @@ def get_floor(properties):
     if "floor" not in properties or properties["floor"] is None:
         return None
     try:
-        return int(round(float(properties["floor"])))
+        val = int(round(float(properties["floor"])))
+        # floor 0 in the GeoJSON means basement S2 → map to -2
+        if val == 0:
+            return -2
+        return val
     except (TypeError, ValueError):
         return None
 
@@ -441,10 +445,14 @@ def build_building(building_code, building_dir):
 
         # 5) Find .points file and SVG
         # Naming convention: VL_1.points, VL_1.svg
-        # Handles both floor 1 and floor -2 (basement = S2 in your data)
-        floor_str = str(floor_num)
-        if floor_num < 0:
-            floor_str = f"S{abs(floor_num)}"
+        # Handles both floor 1 and floor -2 (basement = S2 in data)
+        FLOOR_NUM_TO_STR = {
+            -2: "S2",
+            -1: "S1",
+            # add more basement floors here if needed
+        }
+
+        floor_str = FLOOR_NUM_TO_STR.get(floor_num, str(floor_num))
 
         points_file = building_dir / f"{building_code}_{floor_str}.points"
         svg_file    = building_dir / "floormaps" / \

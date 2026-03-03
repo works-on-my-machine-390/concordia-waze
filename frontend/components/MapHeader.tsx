@@ -1,8 +1,9 @@
+import SearchPill from "@/components/shared/SearchPill";
 import { CampusCode } from "@/hooks/queries/buildingQueries";
 import { Ionicons } from "@expo/vector-icons";
 import { DrawerActions } from "@react-navigation/native";
 import { useNavigation, useRouter } from "expo-router";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { colors, SHADOW } from "../app/styles/theme";
 
 type Props = Readonly<{
@@ -54,26 +55,12 @@ export function MapHeader({
         </Pressable>
 
         {/* search section */}
-        <Pressable
-          style={styles.searchPill}
+        <SearchPill
+          value={searchText}
+          placeholder="Where to…"
           onPress={openSearch}
-          testID="open-search"
-        >
-          <Ionicons name="search" size={26} color={colors.maroon} />
-          <TextInput
-            value={searchText}
-            placeholder="Where to…"
-            placeholderTextColor="#818181"
-            style={styles.searchInput}
-            pointerEvents="none"
-            editable={false}
-          />
-          {searchText.length > 0 && (
-            <Pressable onPress={onSearchClear}>
-              <Ionicons name="close-circle" size={20} color="#818181" />
-            </Pressable>
-          )}
-        </Pressable>
+          onClear={onSearchClear || (() => {})}
+        />
       </View>
       {/* campus selection sections */}
       <View style={styles.chipsRow}>
@@ -149,25 +136,6 @@ const styles = StyleSheet.create({
 
   iconText: {
     fontSize: 18,
-  },
-
-  searchPill: {
-    flex: 1,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "white",
-    paddingHorizontal: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    ...SHADOW,
-  },
-
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: "#111",
-    paddingVertical: 0,
   },
 
   chipsRow: {

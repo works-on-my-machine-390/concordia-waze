@@ -1,0 +1,90 @@
+import {
+  BathroomIcon,
+  ElevatorIcon,
+  FireEscapeIcon,
+  LockersIcon,
+  StairsIcon,
+  StudySpotIcon,
+  SittingAreaIcon,
+  SecurityIcon,
+  SlopeUpIcon,
+  CirculationDeskIcon,
+  ReferenceDeskIcon,
+} from "@/app/icons";
+import type { PointOfInterest } from "@/hooks/queries/indoorMapQueries";
+import { StyleSheet, View } from "react-native";
+
+type Props = {
+  poi: PointOfInterest;
+  width: number;
+  height: number;
+};
+
+const ICON_SIZE = 20;
+
+const getIconComponent = (type: string) => {
+  // eslint-disable-next-line sonarjs/prefer-string-replace-all
+  const normalizedType = type.toLowerCase().replace(/\s+/g, "_"); //sonarqube wants me to use replaceAll() but the ts config has lib version before replaceAll() was added
+
+  switch (normalizedType) {
+    case "stairs":
+      return StairsIcon;
+    case "bathroom":
+      return BathroomIcon;
+    case "elevator":
+      return ElevatorIcon;
+    case "fire_escape":
+      return FireEscapeIcon;
+    case "study_spot":
+      return StudySpotIcon;
+    case "lockers":
+      return LockersIcon;
+    case "sitting_area":
+      return SittingAreaIcon;
+    case "campus_security":
+      return SecurityIcon;
+    case "ramp":
+      return SlopeUpIcon;
+    case "circulation_desk":
+      return CirculationDeskIcon;
+    case "reference_desk":
+      return ReferenceDeskIcon;
+    default:
+      return null;
+  }
+};
+
+export default function PoiMarker({ poi, width, height }: Readonly<Props>) {
+  const IconComponent = getIconComponent(poi.type);
+
+  if (!IconComponent) {
+    return null;
+  }
+
+  const x = poi.position.x * width;
+  const y = poi.position.y * height;
+
+  return (
+    <View
+      style={[
+        styles.marker,
+        {
+          left: x - ICON_SIZE / 2,
+          top: y - ICON_SIZE / 2,
+        },
+      ]}
+    >
+      <IconComponent size={ICON_SIZE} color="#912338" />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  marker: {
+    position: "absolute",
+    width: ICON_SIZE,
+    height: ICON_SIZE,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+});
