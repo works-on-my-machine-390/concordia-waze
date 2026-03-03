@@ -230,7 +230,7 @@ func TestDirectionsService_GetDirectionsWithSchedule_NonShuttleWithUserTime(t *t
 
 	resp, err := s.GetDirectionsWithSchedule(domain.LatLng{}, domain.LatLng{}, "walking", "", "14:30")
 	assert.NoError(t, err)
-	assert.Contains(t, resp.DepartureMessage, "Depart at")
+	assert.Equal(t, "Leave now", resp.DepartureMessage)
 }
 
 func TestParseOptionalDayTime_InvalidDayOrTime(t *testing.T) {
@@ -486,4 +486,87 @@ func TestGetShuttleDirectionsManual_InvalidDeparture(t *testing.T) {
 	_, err := s.GetShuttleDirectionsManual(start, end, "monday", "10:05")
 	assert.Error(t, err)
 	assert.Equal(t, "invalid shuttle departure", err.Error())
+}
+
+func TestDirectionsService_Shuttle_FutureIdealTime_Auto(t *testing.T) {
+	f := &fakeDirectionsClient{
+		resp: domain.DirectionsResponse{
+			Mode: "walking",
+			Steps: []domain.DirectionStep{
+				{Duration: "5 mins", Distance: "0.5 km"},
+			},
+		},
+	}
+
+	// Shuttle leaves in 2 hours
+	futureTime := time.Now().Add(2 * time.Hour).Format("15:04")
+	repo := &fakeShuttleRepo{
+		times: []string{futureTime},
+	}
+	s := NewDirectionsService(f).WithShuttleRepo(repo)
+
+	resp, err := s.GetDirectionsWithSchedule(domain.LatLng{}, domain.LatLng{}, "shuttle", "", "")
+	assert.NoError(t, err)
+	// Should say "Leave at HH:MM" because it's in the future
+	assert.Contains(t, resp.DepartureMessage, "Leave at")
+	assert.Contains(t, resp.DepartureMessage, "to catch the")
+}
+
+func TestDirectionsService_Shuttle_LeaveNow_UserTime(t *testing.T) {
+	f := &fakeDirectionsClient{
+		resp: domain.DirectionsResponse{
+			Mode: "walking",
+			Steps: []domain.DirectionStep{
+				{Duration: "10 mins", Distance: "0.5 km"},
+			},
+		},
+	}
+
+	// Shuttle leaves at 10:00
+	repo := &fakeShuttleRepo{times: []string{"10:00"}}
+	s := NewDirectionsService(f).WithShuttleRepo(repo)
+
+	// Ideal leave time = 10:00 - 10m = 09:50.
+	// User requests 09:50.
+	// Should say "Leave now"
+	resp, err := s.GetDirectionsWithSchedule(domain.LatLng{}, domain.LatLng{}, "shuttle", "monday", "09:50")
+	assert.NoError(t, err)
+	assert.Contains(t, resp.DepartureMessage, "Leave now to catch")
+}
+
+func TestDirectionsService_Shuttle_DepartAt_UserTime(t *testing.T) {
+	f := &fakeDirectionsClient{
+		resp: domain.DirectionsResponse{
+			Mode: "walking",
+			Steps: []domain.DirectionStep{
+				{Duration: "10 mins", Distance: "0.5 km"},
+			},
+		},
+	}
+
+	// Shuttle leaves at 10:00
+	repo := &fakeShuttleRepo{times: []string{"10:00"}}
+	s := NewDirectionsService(f).WithShuttleRepo(repo)
+
+	// Ideal leave time = 09:50.
+	// User requests 09:00 (well before).
+	// Should say "Depart at 09:50"
+	resp, err := s.GetDirectionsWithSchedule(domain.LatLng{}, domain.LatLng{}, "shuttle", "monday", "09:00")
+	assert.NoError(t, err)
+	assert.Contains(t, resp.DepartureMessage, "Depart at 09:50")
+}
+
+func TestDirectionsService_NonShuttle_AlwaysLeaveNow(t *testing.T) {
+	f := &fakeDirectionsClient{resp: domain.DirectionsResponse{Mode: "driving"}}
+	s := NewDirectionsService(f)
+
+	// Even with time provided
+	resp, err := s.GetDirectionsWithSchedule(domain.LatLng{}, domain.LatLng{}, "driving", "", "15:00")
+	assert.NoError(t, err)
+	assert.Equal(t, "Leave now", resp.DepartureMessage)
+
+	// Without time
+	resp2, err := s.GetDirectionsWithSchedule(domain.LatLng{}, domain.LatLng{}, "driving", "", "")
+	assert.NoError(t, err)
+	assert.Equal(t, "Leave now", resp2.DepartureMessage)
 }

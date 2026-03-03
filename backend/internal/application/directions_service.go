@@ -88,22 +88,8 @@ func (s *DirectionsService) GetDirectionsWithSchedule(start, end domain.LatLng, 
 		return domain.DirectionsResponse{}, err
 	}
 
-	// Departure message for non-shuttle:
-	// - if time provided: "Depart at HH:MM"
-	// - else: "Leave now at HH:MM"
-	if userProvidedTime {
-		// validate time input already happens in parseOptionalDayTime only for shuttle,
-		// so for non-shuttle we parse just to avoid weird inputs.
-		parsed, err := time.Parse("15:04", strings.TrimSpace(at))
-		if err != nil {
-			return domain.DirectionsResponse{}, errors.New("invalid time")
-		}
-		now := time.Now()
-		ref := time.Date(now.Year(), now.Month(), now.Day(), parsed.Hour(), parsed.Minute(), 0, 0, now.Location())
-		resp.DepartureMessage = "Depart at " + ref.Format("15:04")
-	} else {
-		resp.DepartureMessage = "Leave now at " + time.Now().Format("15:04")
-	}
+	// Departure message for non-shuttle: always "Leave now"
+	resp.DepartureMessage = "Leave now"
 
 	return resp, nil
 }
