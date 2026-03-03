@@ -137,7 +137,7 @@ export const useGetAllModesDirections = (
   startDateTime: Date,
 ) => {
   let modes = Object.values(TransitMode);
-  if (getIsCrossCampus(startLocation, endLocation)) {
+  if (!getIsCrossCampus(startLocation, endLocation)) {
     modes = modes.filter((mode) => mode !== TransitMode.SHUTTLE);
   }
 
