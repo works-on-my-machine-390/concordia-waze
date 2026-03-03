@@ -329,6 +329,9 @@ export default function MainMap() {
       params: {
         campus,
         editMode: "start",
+        // not sending camLat and camLng here deliberately,
+        // since the search page does not need these params
+        // as POI search is not enabled for start location editing.
       },
     });
   };
@@ -339,6 +342,8 @@ export default function MainMap() {
       params: {
         campus,
         editMode: "end",
+        camLat: String((cameraCenter || CAMPUS_COORDS[campus]).latitude),
+        camLng: String((cameraCenter || CAMPUS_COORDS[campus]).longitude),
       },
     });
   };
@@ -369,7 +374,9 @@ export default function MainMap() {
         onRegionChangeComplete={handleRegionChangeComplete}
       >
         <CampusBuildingPolygons buildings={buildingsToRender} />
-        {mapState.currentMode === MapMode.NAVIGATION && <NavigationPolylines showEndPoint />}
+        {mapState.currentMode === MapMode.NAVIGATION && (
+          <NavigationPolylines showEndPoint />
+        )}
         {mapState.currentMode === MapMode.POI && <PoiOutdoorMarkers />}
         <ShuttleBusMarkers />
       </MapView>

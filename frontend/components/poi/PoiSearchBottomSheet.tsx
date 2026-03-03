@@ -95,8 +95,11 @@ export default function PoiSearchBottomSheet(
   const handleDirectionsPressed = (result: PoiSearchResultModel) => {
     setCurrentMode(MapMode.NAVIGATION);
 
-    findAndSetStartLocation();
+    console.log(navigationState.startLocation, !navigationState.startLocation);
 
+    if (!navigationState.startLocation) {
+      findAndSetStartLocation();
+    }
     navigationState.setEndLocation({
       latitude: result.latitude,
       longitude: result.longitude,

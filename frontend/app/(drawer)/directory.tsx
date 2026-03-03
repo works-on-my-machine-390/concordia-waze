@@ -54,7 +54,6 @@ export default function Directory() {
     coordinates?: { latitude: number; longitude: number },
     campus?: CampusCode,
   ) => {
-    console.log(coordinates);
     router.replace({
       pathname: "/map",
       params: {
