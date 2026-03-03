@@ -409,7 +409,12 @@ func TestGetShuttleDirectionsManual_Success(t *testing.T) {
 		resp: domain.DirectionsResponse{
 			Mode: "walking",
 			Steps: []domain.DirectionStep{
-				{Duration: "5 mins", Distance: "0.5 km"},
+				{
+					Duration: "5 mins",
+					Distance: "0.5 km",
+					Start:    domain.LatLng{Lat: 45.0, Lng: -73.0},
+					End:      domain.LatLng{Lat: 45.01, Lng: -73.01},
+				},
 			},
 		},
 	}
