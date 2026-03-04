@@ -3,7 +3,7 @@ import type { Floor } from "@/hooks/queries/indoorMapQueries";
 import { useCallback, useMemo } from "react";
 import { Text, View } from "react-native";
 import { COLORS } from "../../app/constants";
-import { ElevatorIcon, SlopeUpIcon } from "../../app/icons";
+import { ElevatorIcon, SlopeUpIcon, WheelchairIcon } from "../../app/icons";
 import MetroAccessibleChip from "../MetroAccessibleChip";
 import { BottomSheetStyles } from "../BuildingBottomSheet";
 
@@ -59,6 +59,7 @@ export default function IndoorFloorBottomSheet(
 
         <View style={BottomSheetStyles.iconsContainer}>
           <View style={BottomSheetStyles.accessibilityIconsContainer}>
+            {hasElevator || hasRamp ? (<WheelchairIcon color={COLORS.accessibilityIcon} size={28} />) : null}
             {hasElevator && <ElevatorIcon color={COLORS.accessibilityIcon} size={28} />}
             {hasRamp && <SlopeUpIcon color={COLORS.accessibilityIcon} size={28} />}
             {metroAccessible && <MetroAccessibleChip />}

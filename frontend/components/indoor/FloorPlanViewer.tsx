@@ -115,6 +115,8 @@ export default function FloorPlanViewer({
         buildingName={buildingName}
         buildingCode={buildingCode}
         metroAccessible={metroAccessible}
+        selectedPoiName={selectedPoiName}
+        onClearSelectedPoi={() => setSelectedPoiName(undefined)}
       />
     </View>
   );

@@ -1,12 +1,15 @@
 import type { Floor } from "@/hooks/queries/indoorMapQueries";
 import { StyleSheet, View } from "react-native";
 import IndoorFloorBottomSheet from "./IndoorFloorBottomSheet";
+import IndoorRoomBottomSheet from "./IndoorRoomBottomSheet";
 
 export type IndoorBottomSheetSectionProps = {
   floor: Floor | undefined;
   buildingCode: string;
   buildingName: string;
   metroAccessible?: boolean;
+  selectedPoiName?: string;
+  onClearSelectedPoi: () => void;
 };
 
 /**
@@ -15,17 +18,28 @@ export type IndoorBottomSheetSectionProps = {
 export default function IndoorBottomSheetSection(
   props: Readonly<IndoorBottomSheetSectionProps>,
 ) {
-  const { floor, buildingCode, buildingName, metroAccessible } = props;
+  const { floor, buildingCode, buildingName, metroAccessible, selectedPoiName, onClearSelectedPoi } = props;
+
+  const selectedPoi = selectedPoiName
+    ? floor?.pois.find((poi) => poi.name === selectedPoiName)
+    : undefined;
 
   return (
     <View style={indoorBottomSheetStyles.bottomSheetContainer}>
- 
-      {floor && (
+      {floor && !selectedPoi && (
         <IndoorFloorBottomSheet
           floor={floor}
           buildingName={buildingName}
           buildingCode={buildingCode}
           metroAccessible={metroAccessible}
+        />
+      )}
+      {selectedPoi && (
+        <IndoorRoomBottomSheet
+          roomCode={selectedPoi.name}
+          buildingCode={buildingCode}
+          roomType={selectedPoi.type}
+          onClose={onClearSelectedPoi}
         />
       )}
     </View>
