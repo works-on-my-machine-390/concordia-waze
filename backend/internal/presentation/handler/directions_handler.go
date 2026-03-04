@@ -83,9 +83,9 @@ func (h *DirectionsHandler) writeDirectionsError(c *gin.Context, err error) {
 	}
 
 	// special case: shuttle not available => only message
-	if err.Error() == "no shuttle available" {
+	if err.Error() == "No shuttle available at this time." {
 		c.JSON(http.StatusOK, gin.H{
-			"message": "No shuttle available for the selected time and day",
+			"message": "No shuttle available at this time.",
 		})
 		return
 	}

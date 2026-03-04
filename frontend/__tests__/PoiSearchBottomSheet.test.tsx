@@ -4,9 +4,10 @@ import {
   useGetNearbyPoi,
 } from "@/hooks/queries/poiQueries";
 import { useMapStore } from "@/hooks/useMapStore";
-import { fireEvent, render } from "@testing-library/react-native";
+import { fireEvent } from "@testing-library/react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import PoiSearchBottomSheet from "../components/poi/PoiSearchBottomSheet";
+import { renderWithProviders } from "../test_utils/renderUtils";
 
 jest.mock("expo-router", () => ({
   useRouter: jest.fn(),
@@ -169,8 +170,8 @@ describe("PoiSearchBottomSheet", () => {
       refetch: mockRefetch,
     });
 
-    const { getByTestId, queryAllByTestId } = render(
-      <PoiSearchBottomSheet onDirectionsPress={jest.fn()} />,
+    const { getByTestId, queryAllByTestId } = renderWithProviders(
+      <PoiSearchBottomSheet />,
     );
 
     expect(getByTestId("poi-bottom-sheet")).toBeTruthy();
@@ -181,11 +182,8 @@ describe("PoiSearchBottomSheet", () => {
   test("pressing result updates camera params and invokes moveCamera", () => {
     const moveCamera = jest.fn();
 
-    const { getByLabelText } = render(
-      <PoiSearchBottomSheet
-        onDirectionsPress={jest.fn()}
-        moveCamera={moveCamera}
-      />,
+    const { getByLabelText } = renderWithProviders(
+      <PoiSearchBottomSheet moveCamera={moveCamera} />,
     );
 
     fireEvent.press(getByLabelText("result-poi-far"));
@@ -200,24 +198,8 @@ describe("PoiSearchBottomSheet", () => {
     });
   });
 
-  test("pressing directions forwards selected result", () => {
-    const onDirectionsPress = jest.fn();
-
-    const { getByTestId } = render(
-      <PoiSearchBottomSheet onDirectionsPress={onDirectionsPress} />,
-    );
-
-    fireEvent.press(getByTestId("directions-poi-near"));
-
-    expect(onDirectionsPress).toHaveBeenCalledWith(
-      expect.objectContaining({ code: "poi-near", name: "Near Place" }),
-    );
-  });
-
   test("pressing rank filter triggers query refetch", () => {
-    const { getByTestId } = render(
-      <PoiSearchBottomSheet onDirectionsPress={jest.fn()} />,
-    );
+    const { getByTestId } = renderWithProviders(<PoiSearchBottomSheet />);
 
     fireEvent.press(getByTestId("rank-filter"));
 
@@ -237,9 +219,7 @@ describe("PoiSearchBottomSheet", () => {
       userLocation: { coords: { latitude: 45.5, longitude: -73.57 } },
     });
 
-    const { getAllByTestId } = render(
-      <PoiSearchBottomSheet onDirectionsPress={jest.fn()} />,
-    );
+    const { getAllByTestId } = renderWithProviders(<PoiSearchBottomSheet />);
 
     const rows = getAllByTestId("poi-result-row");
     expect(rows[0].props.accessibilityLabel).toBe("result-poi-near");
