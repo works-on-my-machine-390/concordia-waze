@@ -11,13 +11,22 @@ import {
 import { SvgXml } from "react-native-svg";
 import PoiMarker from "./PoiMarker";
 import PolygonOverlay from "./PolygonOverlay";
+import IndoorBottomSheetSection from "./IndoorBottomSheetSection";
 import { useState } from "react";
 
 type Props = {
   floor: Floor | undefined;
+  buildingCode: string;
+  buildingName: string;
+  metroAccessible?: boolean; 
 };
 
-export default function FloorPlanViewer({ floor }: Readonly<Props>) {
+export default function FloorPlanViewer({
+  floor,
+  buildingCode,
+  buildingName,
+  metroAccessible,
+}: Readonly<Props>) {
   const { width: SCREEN_WIDTH } = useWindowDimensions();
   const { dimensions, svgText, error, isLoading } = useSvgDimensions(
     floor?.imgPath,
@@ -101,6 +110,12 @@ export default function FloorPlanViewer({ floor }: Readonly<Props>) {
           </View>
         </View>
       </ReactNativeZoomableView>
+      <IndoorBottomSheetSection
+        floor={floor}
+        buildingName={buildingName}
+        buildingCode={buildingCode}
+        metroAccessible={metroAccessible}
+      />
     </View>
   );
 }
