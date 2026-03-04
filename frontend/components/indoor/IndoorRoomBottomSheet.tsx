@@ -24,7 +24,20 @@ export default function IndoorRoomBottomSheet(
   const snapPoints = useMemo(() => ["15%", "50%"], []);
   const handleSheetChanges = useCallback((_index: number) => {}, []);
 
-  const displayRoomCode = `${buildingCode}${roomCode.replace(/^Room\s*/i, "")}`;
+  const isRoom = roomType?.toLowerCase() === "room";
+
+  const isNumericRoom = /^Room\s*\d+/i.test(roomCode);
+  const displayRoomCode = isNumericRoom
+    ? `${buildingCode}${roomCode.replace(/^Room\s*/i, "")}`
+    : roomCode;
+
+  const displayTitle = isRoom
+    ? displayRoomCode
+    : (roomType
+        ? roomType.charAt(0).toUpperCase() + roomType.slice(1).toLowerCase()
+        : roomCode);
+
+  const displaySubtitle = isRoom ? "Room" : null;
 
   return (
     <BottomSheet
@@ -51,11 +64,11 @@ export default function IndoorRoomBottomSheet(
           </View>
         </TouchableOpacity>
 
-        {/* Room code + type */}
+        {/* Title + optional subtitle */}
         <View style={BottomSheetStyles.textContainer}>
-          <Text style={BottomSheetStyles.name}>{displayRoomCode}</Text>
-          {!!roomType && (
-            <Text style={IndoorRoomStyles.roomType}>{roomType}</Text>
+          <Text style={BottomSheetStyles.name}>{displayTitle}</Text>
+          {!!displaySubtitle && (
+            <Text style={IndoorRoomStyles.roomType}>{displaySubtitle}</Text>
           )}
         </View>
 
