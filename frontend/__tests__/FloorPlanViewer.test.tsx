@@ -230,4 +230,31 @@ describe("FloorPlanViewer", () => {
     expect(selectedPoi).toBeTruthy();
     expect(selectedPoi).toHaveTextContent("Room 101");
   });
+
+  test("clears selectedPoiName when close button is pressed", () => {
+    (useSvgDimensions as jest.Mock).mockReturnValue({
+      dimensions: { width: 1000, height: 1000 },
+      svgText: "<svg></svg>",
+      error: false,
+      isLoading: false,
+    });
+
+    const { getAllByTestId, getByTestId, queryByTestId } = renderWithProviders(
+      <FloorPlanViewer floor={mockFloor} buildingCode="CC" buildingName="CC Building" />,
+    );
+
+    const poiMarkers = getAllByTestId("poi-marker");
+
+    // Select a POI
+    fireEvent.press(poiMarkers[0]);
+    expect(getByTestId("selected-poi")).toBeTruthy();
+    expect(getByTestId("selected-poi")).toHaveTextContent("Room 101");
+
+    // Find and press the close button
+    const closeButton = getByTestId("indoor-room-close-button");
+    fireEvent.press(closeButton);
+
+    // Verify selectedPoiName is cleared
+    expect(queryByTestId("selected-poi")).toBeNull();
+  });
 });
