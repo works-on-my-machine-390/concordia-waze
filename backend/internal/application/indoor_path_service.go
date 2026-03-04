@@ -466,11 +466,6 @@ func newGraphFromFloor(f domain.Floor, requireAccessible bool) (*graph, error) {
 
 	adj := make([][]neighbor, n)
 	for _, e := range f.Edges {
-		// Filter out inaccessible edges when accessibility is required
-		if requireAccessible && !e.Accessible {
-			continue
-		}
-
 		u, v := e.StartVertex, e.EndVertex
 		if u < 0 || v < 0 || u >= n || v >= n {
 			return nil, errors.New("edge references invalid vertex index")

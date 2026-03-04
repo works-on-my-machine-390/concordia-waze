@@ -6,9 +6,8 @@ type Coordinates struct {
 }
 
 type Edge struct {
-	StartVertex int  `json:"startVertex"`
-	EndVertex   int  `json:"endVertex"`
-	Accessible  bool `json:"accessible"` // true if wheelchair accessible (default: true when omitted)
+	StartVertex int `json:"startVertex"`
+	EndVertex   int `json:"endVertex"`
 }
 
 type PointOfInterest struct {
