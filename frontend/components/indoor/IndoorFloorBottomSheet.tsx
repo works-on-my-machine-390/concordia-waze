@@ -19,7 +19,7 @@ export default function IndoorFloorBottomSheet(
 ) {
   const { buildingName, buildingCode, floor, metroAccessible } = props;
 
-  const snapPoints = useMemo(() => ["15%", "50%"], []);
+  const snapPoints = useMemo(() => ["15%"], []);
   const handleSheetChanges = useCallback((_index: number) => {}, []);
 
   const hasElevator = floor.pois.some(

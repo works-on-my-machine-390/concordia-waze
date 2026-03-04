@@ -21,7 +21,7 @@ export default function IndoorRoomBottomSheet(
 ) {
   const { roomCode, buildingCode, roomType, onClose } = props;
 
-  const snapPoints = useMemo(() => ["15%", "50%"], []);
+  const snapPoints = useMemo(() => ["15%"], []);
   const handleSheetChanges = useCallback((_index: number) => {}, []);
 
   const isRoom = roomType?.toLowerCase() === "room";
@@ -31,18 +31,24 @@ export default function IndoorRoomBottomSheet(
     /^[\d.]+$/.test(roomCode.trim()) ||
     /^S\d[\d.]*$/i.test(roomCode.trim());
 
+  const needsSpaceSeparator = isNumericRoom && /^S\d/i.test(roomCode.trim());
+  const separator = needsSpaceSeparator ? " " : "";
+
   const displayRoomCode = isNumericRoom
-    ? `${buildingCode}${/^S\d/i.test(roomCode.trim()) ? " " : ""}${roomCode.replace(/^Room\s*/i, "").trim()}`
+    ? `${buildingCode}${separator}${roomCode.replace(/^Room\s*/i, "").trim()}`
     : roomCode;
 
   const capitalizeRoomType = (type: string): string =>
     type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
 
-  const displayTitle = isRoom
-    ? displayRoomCode
-    : roomType
-      ? capitalizeRoomType(roomType)
-      : roomCode;
+  let displayTitle: string;
+  if (isRoom) {
+    displayTitle = displayRoomCode;
+  } else if (roomType) {
+    displayTitle = capitalizeRoomType(roomType);
+  } else {
+    displayTitle = roomCode;
+  }
 
   const displaySubtitle = isRoom ? "Room" : null;
 
