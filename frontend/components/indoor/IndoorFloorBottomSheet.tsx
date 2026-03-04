@@ -17,17 +17,15 @@ export type IndoorFloorBottomSheetProps = {
 export default function IndoorFloorBottomSheet(
   props: Readonly<IndoorFloorBottomSheetProps>,
 ) {
-  const { buildingName, buildingCode, floor, metroAccessible} = props;
+  const { buildingName, buildingCode, floor, metroAccessible } = props;
 
   const snapPoints = useMemo(() => ["15%", "50%"], []);
   const handleSheetChanges = useCallback((_index: number) => {}, []);
 
   const hasElevator = floor.pois.some(
-    (poi) => poi.type.toLowerCase() === "elevator"
+    (poi) => poi.type.toLowerCase() === "elevator",
   );
-  const hasRamp = floor.pois.some(
-    (poi) => poi.type.toLowerCase() === "ramp"
-  );
+  const hasRamp = floor.pois.some((poi) => poi.type.toLowerCase() === "ramp");
 
   return (
     <BottomSheet
@@ -59,9 +57,15 @@ export default function IndoorFloorBottomSheet(
 
         <View style={BottomSheetStyles.iconsContainer}>
           <View style={BottomSheetStyles.accessibilityIconsContainer}>
-            {hasElevator || hasRamp ? (<WheelchairIcon color={COLORS.accessibilityIcon} size={28} />) : null}
-            {hasElevator && <ElevatorIcon color={COLORS.accessibilityIcon} size={28} />}
-            {hasRamp && <SlopeUpIcon color={COLORS.accessibilityIcon} size={28} />}
+            {hasElevator || hasRamp ? (
+              <WheelchairIcon color={COLORS.accessibilityIcon} size={28} />
+            ) : null}
+            {hasElevator && (
+              <ElevatorIcon color={COLORS.accessibilityIcon} size={28} />
+            )}
+            {hasRamp && (
+              <SlopeUpIcon color={COLORS.accessibilityIcon} size={28} />
+            )}
             {metroAccessible && <MetroAccessibleChip />}
           </View>
         </View>

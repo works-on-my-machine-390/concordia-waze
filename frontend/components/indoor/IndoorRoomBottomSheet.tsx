@@ -26,9 +26,13 @@ export default function IndoorRoomBottomSheet(
 
   const isRoom = roomType?.toLowerCase() === "room";
 
-  const isNumericRoom = /^Room\s*\d+/i.test(roomCode);
+  const isNumericRoom =
+    /^Room\s*\d+/i.test(roomCode) ||
+    /^[\d.]+$/.test(roomCode.trim()) ||
+    /^S\d[\d.]*$/i.test(roomCode.trim());
+
   const displayRoomCode = isNumericRoom
-    ? `${buildingCode}${roomCode.replace(/^Room\s*/i, "")}`
+    ? `${buildingCode}${/^S\d/i.test(roomCode.trim()) ? " " : ""}${roomCode.replace(/^Room\s*/i, "").trim()}`
     : roomCode;
 
   const capitalizeRoomType = (type: string): string =>

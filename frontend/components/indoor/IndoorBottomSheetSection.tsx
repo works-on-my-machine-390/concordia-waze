@@ -18,7 +18,14 @@ export type IndoorBottomSheetSectionProps = {
 export default function IndoorBottomSheetSection(
   props: Readonly<IndoorBottomSheetSectionProps>,
 ) {
-  const { floor, buildingCode, buildingName, metroAccessible, selectedPoiName, onClearSelectedPoi } = props;
+  const {
+    floor,
+    buildingCode,
+    buildingName,
+    metroAccessible,
+    selectedPoiName,
+    onClearSelectedPoi,
+  } = props;
 
   const selectedPoi = selectedPoiName
     ? floor?.pois.find((poi) => poi.name === selectedPoiName)

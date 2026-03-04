@@ -45,7 +45,7 @@ describe("IndoorRoomBottomSheet", () => {
     const { getByText: getText2 } = renderWithProviders(
       <IndoorRoomBottomSheet roomCode="105" buildingCode="MB" roomType="room" onClose={jest.fn()} />,
     );
-    expect(getText2("105")).toBeTruthy();
+    expect(getText2("MB105")).toBeTruthy();
   });
 
   test("renders action buttons and calls onClose", () => {
