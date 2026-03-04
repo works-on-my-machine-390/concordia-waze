@@ -86,7 +86,7 @@ describe("FloorPlanViewer", () => {
     });
 
     const { getByText } = renderWithProviders(
-      <FloorPlanViewer floor={undefined} />,
+      <FloorPlanViewer floor={undefined} buildingCode="CC" buildingName="CC Building" />,
     );
 
     expect(getByText("No floor plan available")).toBeTruthy();
@@ -101,7 +101,7 @@ describe("FloorPlanViewer", () => {
     });
 
     const { getByText } = renderWithProviders(
-      <FloorPlanViewer floor={mockFloor} />,
+      <FloorPlanViewer floor={mockFloor} buildingCode="CC" buildingName="CC Building" />,
     );
 
     expect(getByText("Failed to load floor plan")).toBeTruthy();
@@ -116,7 +116,7 @@ describe("FloorPlanViewer", () => {
     });
 
     const { getByText } = renderWithProviders(
-      <FloorPlanViewer floor={mockFloor} />,
+      <FloorPlanViewer floor={mockFloor} buildingCode="CC" buildingName="CC Building" />,
     );
 
     expect(getByText("Loading floor plan...")).toBeTruthy();
@@ -131,7 +131,7 @@ describe("FloorPlanViewer", () => {
     });
 
     const { getByText } = renderWithProviders(
-      <FloorPlanViewer floor={mockFloor} />,
+      <FloorPlanViewer floor={mockFloor} buildingCode="CC" buildingName="CC Building" />,
     );
 
     expect(getByText("Loading floor plan...")).toBeTruthy();
@@ -146,7 +146,7 @@ describe("FloorPlanViewer", () => {
     });
 
     const { getByText } = renderWithProviders(
-      <FloorPlanViewer floor={mockFloor} />,
+      <FloorPlanViewer floor={mockFloor} buildingCode="CC" buildingName="CC Building" />,
     );
 
     expect(getByText("Loading floor plan...")).toBeTruthy();
@@ -161,7 +161,7 @@ describe("FloorPlanViewer", () => {
     });
 
     const { getByTestId, getAllByTestId } = renderWithProviders(
-      <FloorPlanViewer floor={mockFloor} />,
+      <FloorPlanViewer floor={mockFloor} buildingCode="CC" buildingName="CC Building" />,
     );
 
     expect(getByTestId("zoomable-view")).toBeTruthy();
@@ -178,11 +178,11 @@ describe("FloorPlanViewer", () => {
     });
 
     const { rerender, getByTestId } = renderWithProviders(
-      <FloorPlanViewer floor={mockFloor} />,
+      <FloorPlanViewer floor={mockFloor} buildingCode="CC" buildingName="CC Building" />,
     );
 
     const newFloor = { ...mockFloor, number: 2 };
-    rerender(<FloorPlanViewer floor={newFloor} />);
+    rerender(<FloorPlanViewer floor={newFloor} buildingCode="CC" buildingName="CC Building" />);
 
     jest.advanceTimersByTime(150);
 
@@ -198,7 +198,7 @@ describe("FloorPlanViewer", () => {
     });
 
     const { getByTestId } = renderWithProviders(
-      <FloorPlanViewer floor={mockFloor} />,
+      <FloorPlanViewer floor={mockFloor} buildingCode="CC" buildingName="CC Building" />,
     );
 
     expect(getByTestId("zoomable-view")).toBeTruthy();
@@ -213,7 +213,7 @@ describe("FloorPlanViewer", () => {
     });
 
     const { getAllByTestId, getByTestId, queryByTestId } = renderWithProviders(
-      <FloorPlanViewer floor={mockFloor} />,
+      <FloorPlanViewer floor={mockFloor} buildingCode="CC" buildingName="CC Building" />,
     );
 
     const poiMarkers = getAllByTestId("poi-marker");
