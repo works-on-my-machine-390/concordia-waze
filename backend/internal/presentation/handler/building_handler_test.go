@@ -108,7 +108,8 @@ func TestBuildingHandler_GetBuilding_Success200(t *testing.T) {
 		},
 	}
 
-	svc := application.NewBuildingService(repo, nil, fp)
+	cacheDir := t.TempDir()
+	svc := application.NewBuildingService(repo, nil, fp, cacheDir)
 	h := NewBuildingHandler(svc)
 
 	r := gin.New()
@@ -144,7 +145,8 @@ func TestBuildingHandler_GetBuilding_NotFound404(t *testing.T) {
 		},
 	}
 
-	svc := application.NewBuildingService(repo, nil, fp)
+	cacheDir := t.TempDir()
+	svc := application.NewBuildingService(repo, nil, fp, cacheDir)
 	h := NewBuildingHandler(svc)
 
 	r := gin.New()
@@ -175,7 +177,8 @@ func TestBuildingHandler_GetBuilding_InternalError500(t *testing.T) {
 		},
 	}
 
-	svc := application.NewBuildingService(repo, nil, fp)
+	cacheDir := t.TempDir()
+	svc := application.NewBuildingService(repo, nil, fp, cacheDir)
 	h := NewBuildingHandler(svc)
 
 	r := gin.New()
@@ -205,7 +208,8 @@ func TestBuildingHandler_GetAllBuildingsByCampus_Success200(t *testing.T) {
 		},
 	}
 
-	svc := application.NewBuildingService(repo, nil, nil)
+	cacheDir := t.TempDir()
+	svc := application.NewBuildingService(repo, nil, nil, cacheDir)
 	h := NewBuildingHandler(svc)
 
 	r := gin.New()
@@ -237,7 +241,8 @@ func TestBuildingHandler_GetFloorsByBuilding_Success200(t *testing.T) {
 	}
 	frepo := &fakeFloorRepo{floors: floorMap}
 
-	svc := application.NewBuildingService(repo, frepo, nil)
+	cacheDir := t.TempDir()
+	svc := application.NewBuildingService(repo, frepo, nil, cacheDir)
 	h := NewBuildingHandler(svc)
 
 	r := gin.New()
@@ -263,7 +268,8 @@ func TestBuildingHandler_GetFloorsByBuilding_NotFound500(t *testing.T) {
 	repo := &fakeBuildingRepo{}
 	frepo := &fakeFloorRepo{floors: map[string][]domain.Floor{}}
 
-	svc := application.NewBuildingService(repo, frepo, nil)
+	cacheDir := t.TempDir()
+	svc := application.NewBuildingService(repo, frepo, nil, cacheDir)
 	h := NewBuildingHandler(svc)
 
 	r := gin.New()
@@ -288,7 +294,8 @@ func TestBuildingHandler_GetFloorsByBuilding_RepoError500(t *testing.T) {
 	repo := &fakeBuildingRepo{}
 	frepo := &fakeFloorRepo{err: errors.New("boom")}
 
-	svc := application.NewBuildingService(repo, frepo, nil)
+	cacheDir := t.TempDir()
+	svc := application.NewBuildingService(repo, frepo, nil, cacheDir)
 	h := NewBuildingHandler(svc)
 
 	r := gin.New()
