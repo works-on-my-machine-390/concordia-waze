@@ -12,11 +12,11 @@ type PlacesClient interface {
 }
 
 type HoursService struct {
-	buildingSvc BuildingService
+	buildingSvc *BuildingService
 	places      PlacesClient
 }
 
-func NewHoursService(buildingSvc BuildingService, places PlacesClient) *HoursService {
+func NewHoursService(buildingSvc *BuildingService, places PlacesClient) *HoursService {
 	return &HoursService{buildingSvc: buildingSvc, places: places}
 }
 
