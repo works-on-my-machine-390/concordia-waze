@@ -44,7 +44,7 @@ export default function FloorSelector({
 const styles = StyleSheet.create({
   container: {
     position: "absolute",
-    bottom: 24,
+    bottom: 150,
     left: 16,
     gap: 12,
     zIndex: 10,

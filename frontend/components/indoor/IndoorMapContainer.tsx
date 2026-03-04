@@ -1,6 +1,7 @@
 import FloorPlanViewer from "@/components/indoor/FloorPlanViewer";
 import FloorSelector from "@/components/indoor/FloorSelector";
 import { useGetBuildingFloors } from "@/hooks/queries/indoorMapQueries";
+import { useGetBuildingDetails } from "@/hooks/queries/buildingQueries";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 
@@ -11,6 +12,7 @@ type Props = {
 export default function IndoorMapContainer({ buildingCode }: Readonly<Props>) {
   const [selectedFloor, setSelectedFloor] = useState<number | null>(null);
   const { data, isLoading, error } = useGetBuildingFloors(buildingCode);
+  const { data: buildingData } = useGetBuildingDetails(buildingCode);
 
   useEffect(() => {
     if (data?.floors && data.floors.length > 0) {
@@ -59,11 +61,17 @@ export default function IndoorMapContainer({ buildingCode }: Readonly<Props>) {
 
   return (
     <View style={styles.container}>
-      <FloorPlanViewer key={selectedFloor} floor={currentFloor} />
       <FloorSelector
         floors={data.floors}
         selectedFloor={selectedFloor}
         onSelectFloor={setSelectedFloor}
+      />
+      <FloorPlanViewer
+        key={selectedFloor}
+        floor={currentFloor}
+        buildingCode={buildingCode}
+        buildingName={buildingData?.long_name || ""}
+        metroAccessible={buildingData?.metro_accessible}
       />
     </View>
   );
