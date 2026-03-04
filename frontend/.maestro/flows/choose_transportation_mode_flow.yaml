@@ -1,0 +1,56 @@
+appId: host.exp.Exponent
+---
+# 1) Continue as guest
+- tapOn: "Use without account"
+
+# 2) Wait for map to load (short)
+- extendedWaitUntil:
+    visible: "SGW"
+    timeout: 8000
+
+# 3) Tap search bar
+- tapOn:
+    text: ".*Where to.*"
+
+# 4) Search ER and pick result
+- inputText: "ER"
+- extendedWaitUntil:
+    visible: "ER - ER Building"
+    timeout: 8000
+
+- tapOn: ER - ER Building
+- tapOn: ER - ER Building
+
+# 5) Confirm ER sheet is open
+- extendedWaitUntil:
+    visible:
+      text: ".*ER Building.*"
+    timeout: 8000
+
+# 6) Tap the maroon directions ICON (point cluster)
+# Based on your screenshot, the icon is around the mid-right above the bottom sheet.
+- tapOn: Open map settings
+
+- tapOn: 4 mins
+
+- tapOn: , 4 mins
+
+- tapOn:
+    text: 1 min
+    index: 1
+
+- swipe:
+    from:
+      text: "^(Bike|Drive)$"
+    direction: UP
+    duration: 250
+
+# ... your taps ...
+- tapOn: "4 mins"
+- tapOn: ", 4 mins"
+- tapOn:
+    text: "1 min"
+    index: 1
+
+- tapOn:
+    id: close-navigation
