@@ -34,16 +34,11 @@ type IndoorNavigationState = {
   setStart: (p: SelectedPoint | null) => void;
   setEnd: (p: SelectedPoint | null) => void;
 
-  setRoute: (
-    segments: FloorSegment[] | null,
-    totalDistance: number | null
-  ) => void;
+  setRoute: (segments: FloorSegment[] | null, totalDistance: number | null) => void;
   clearRoute: () => void;
 };
 
-export const useIndoorNavigationStore = create<
-  IndoorNavigationState
->((set, get) => ({
+export const useIndoorNavigationStore = create<IndoorNavigationState>((set, get) => ({
   mode: "BROWSE",
   pickMode: "start",
 
@@ -89,8 +84,7 @@ export const useIndoorNavigationStore = create<
   setStart: (p) => set({ start: p }),
   setEnd: (p) => set({ end: p }),
 
-  setRoute: (segments, totalDistance) =>
-    set({ routeSegments: segments, totalDistance }),
+  setRoute: (segments, totalDistance) => set({ routeSegments: segments, totalDistance }),
 
   clearRoute: () => set({ routeSegments: null, totalDistance: null }),
 }));

@@ -9,6 +9,10 @@ type Props = {
   height: number;
 
   endPolygon?: Coordinates[];
+
+  // ✅ optional overrides for POIs (normalized coords 0..1 like path)
+  startOverride?: Coordinates;
+  endOverride?: Coordinates;
 };
 
 function dist2(ax: number, ay: number, bx: number, by: number) {
@@ -34,8 +38,8 @@ function orthogonalizePath(points: { x: number; y: number }[]) {
       continue;
     }
 
-    const elbow1 = { x: b.x, y: a.y }; 
-    const elbow2 = { x: a.x, y: b.y }; 
+    const elbow1 = { x: b.x, y: a.y };
+    const elbow2 = { x: a.x, y: b.y };
 
     const preferHorizontalFirst = Math.abs(dx) >= Math.abs(dy);
     const elbow = preferHorizontalFirst ? elbow1 : elbow2;
@@ -130,16 +134,26 @@ export default function IndoorPathOverlay({
   width,
   height,
   endPolygon,
+  startOverride,
+  endOverride,
 }: Readonly<Props>) {
   if (!path || path.length < 2) return null;
 
+  // ✅ apply overrides BEFORE scaling/orthogonalizing
+  const adjustedPath = useMemo(() => {
+    const out = [...path];
+    if (startOverride) out[0] = startOverride;
+    if (endOverride) out[out.length - 1] = endOverride;
+    return out;
+  }, [path, startOverride, endOverride]);
+
   const pts = useMemo(() => {
-    const scaled = path.map((p) => ({ x: p.x * width, y: p.y * height }));
+    const scaled = adjustedPath.map((p) => ({ x: p.x * width, y: p.y * height }));
 
     const ortho = orthogonalizePath(scaled);
 
     return simplifyOrthogonalPath(ortho);
-  }, [path, width, height]);
+  }, [adjustedPath, width, height]);
 
   const finalPts = useMemo(() => {
     if (!endPolygon || endPolygon.length < 3 || pts.length < 2) return pts;
@@ -149,6 +163,7 @@ export default function IndoorPathOverlay({
     const out = [...pts];
     const end = out[out.length - 1];
 
+    // ✅ rooms still snap end to polygon border
     out[out.length - 1] = snapEndToClosestPolygonBorder(end, polyPx);
 
     return out;

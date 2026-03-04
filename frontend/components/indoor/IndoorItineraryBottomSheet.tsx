@@ -7,13 +7,15 @@ import { useIndoorNavigationStore } from "@/hooks/useIndoorNavigationStore";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 
-export const ITINERARY_SHEET_HEIGHT = 140;
+export const ITINERARY_SHEET_HEIGHT = 165;
 
 type Props = {
   buildingCode: string;
 };
 
-export default function IndoorItineraryBottomSheet({ buildingCode }: Readonly<Props>) {
+export default function IndoorItineraryBottomSheet({
+  buildingCode,
+}: Readonly<Props>) {
   const nav = useIndoorNavigationStore();
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -41,6 +43,27 @@ export default function IndoorItineraryBottomSheet({ buildingCode }: Readonly<Pr
   const distanceLabel =
     nav.totalDistance != null ? `(${nav.totalDistance.toFixed(1)} m)` : "";
 
+  // ✅ Floor-change message logic
+  const startFloor = nav.start?.floor ?? null;
+  const endFloor = nav.end?.floor ?? null;
+  const currentFloor = nav.currentFloor;
+
+  let floorMsg = "";
+  if (
+    startFloor != null &&
+    endFloor != null &&
+    startFloor !== endFloor &&
+    currentFloor != null
+  ) {
+    if (currentFloor === startFloor) {
+      floorMsg = `Floor change needed — go to Floor ${endFloor}.`;
+    } else if (currentFloor === endFloor) {
+      floorMsg = `Start is on Floor ${startFloor}.`;
+    } else {
+      floorMsg = `Route spans Floors ${startFloor} → ${endFloor}.`;
+    }
+  }
+
   return (
     <BottomSheet
       index={0}
@@ -52,9 +75,7 @@ export default function IndoorItineraryBottomSheet({ buildingCode }: Readonly<Pr
       handleStyle={styles.handle}
     >
       <View style={styles.headerRow}>
-        <Text style={styles.title}>
-          Walk {distanceLabel}
-        </Text>
+        <Text style={styles.title}>Walk {distanceLabel}</Text>
 
         <View style={styles.rightActions}>
           <Pressable
@@ -74,6 +95,9 @@ export default function IndoorItineraryBottomSheet({ buildingCode }: Readonly<Pr
       </View>
 
       <View style={styles.divider} />
+
+      {floorMsg ? <Text style={styles.floorMsg}>{floorMsg}</Text> : null}
+
       <Text style={styles.sub}>Tap rooms on the map to set Start/End.</Text>
 
       <View style={{ height: Math.max(insets.bottom, 10) }} />
@@ -148,6 +172,13 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: "#CCCCCC",
     marginHorizontal: 16,
+  },
+
+  floorMsg: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    color: "#1E73FF",
+    fontWeight: "700",
   },
 
   sub: {
