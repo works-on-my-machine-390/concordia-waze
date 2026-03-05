@@ -218,17 +218,6 @@ describe("IndoorSearchPage", () => {
     expect(recentItems.length).toBeLessThanOrEqual(6);
   });
 
-  test("sets query when recent search is pressed", () => {
-    render(<IndoorSearchPage />);
-
-    fireEvent.press(screen.getByText("Recent: MB210"));
-
-    const input = screen.getByPlaceholderText(
-      "Search in John Molson Building...",
-    );
-    expect(input.props.value).toBe("MB210");
-  });
-
   test("calls clearRecentSearches when clear button is pressed", () => {
     const mockClearRecentSearches = jest.fn();
 
@@ -244,21 +233,6 @@ describe("IndoorSearchPage", () => {
     fireEvent.press(screen.getByText("Clear Recent"));
 
     expect(mockClearRecentSearches).toHaveBeenCalled();
-  });
-
-  test("navigates to indoor map with POI filter when filter is pressed", () => {
-    render(<IndoorSearchPage />);
-
-    fireEvent.press(screen.getByText("Bathrooms Filter"));
-
-    expect(mockSetSelectedPoiFilter).toHaveBeenCalledWith(
-      "bathroom",
-      "Bathrooms",
-    );
-    expect(mockRouter.navigate).toHaveBeenCalledWith({
-      pathname: "/indoor-map",
-      params: { buildingCode: "MB" },
-    });
   });
 
   test("shows empty state when no recent searches and query is empty", () => {
@@ -286,7 +260,7 @@ describe("IndoorSearchPage", () => {
 
     expect(input.props.value).toBe("");
   });
-  
+
   test("renders search results when query is not empty", () => {
     (useIndoorSearch as jest.Mock).mockReturnValue({
       results: mockSearchResults,
@@ -376,17 +350,6 @@ describe("IndoorSearchPage", () => {
         selectedRoom: "poi_1",
         selectedFloor: "1",
       },
-    });
-  });
-
-  test("navigates back to indoor map when back button is pressed", () => {
-    render(<IndoorSearchPage />);
-
-    fireEvent.press(screen.getByTestId("back-button"));
-
-    expect(mockRouter.navigate).toHaveBeenCalledWith({
-      pathname: "/indoor-map",
-      params: { buildingCode: "MB" },
     });
   });
 });

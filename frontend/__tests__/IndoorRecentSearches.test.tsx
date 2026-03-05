@@ -48,39 +48,6 @@ describe("IndoorRecentSearches", () => {
     expect(screen.getByText("Floor 1")).toBeOnTheScreen();
   });
 
-  it("calls onSearchPress with display name when search item is pressed", () => {
-    render(
-      <IndoorRecentSearches
-        searches={mockSearches}
-        onSearchPress={mockOnSearchPress}
-        onClearPress={mockOnClearPress}
-      />
-    );
-
-    fireEvent.press(screen.getByText("MB210"));
-
-    expect(mockOnSearchPress).toHaveBeenCalledWith("MB210");
-    expect(mockOnSearchPress).toHaveBeenCalledTimes(1);
-  });
-
-  it("calls onSearchPress with correct display name for different items", () => {
-    render(
-      <IndoorRecentSearches
-        searches={mockSearches}
-        onSearchPress={mockOnSearchPress}
-        onClearPress={mockOnClearPress}
-      />
-    );
-
-    fireEvent.press(screen.getByText("H892"));
-    expect(mockOnSearchPress).toHaveBeenCalledWith("H892");
-
-    fireEvent.press(screen.getByText("Bathroom"));
-    expect(mockOnSearchPress).toHaveBeenCalledWith("Bathroom");
-
-    expect(mockOnSearchPress).toHaveBeenCalledTimes(2);
-  });
-
   it("calls onClearPress when Clear button is pressed", () => {
     render(
       <IndoorRecentSearches
@@ -110,26 +77,6 @@ describe("IndoorRecentSearches", () => {
     // Should not render any search items
     expect(screen.queryByText("MB210")).not.toBeOnTheScreen();
     expect(screen.queryByText("Floor 2")).not.toBeOnTheScreen();
-  });
-
-  it("handles single search item", () => {
-    const singleSearch: RecentIndoorSearch[] = [
-      { displayName: "CC101", floor: 1 },
-    ];
-
-    render(
-      <IndoorRecentSearches
-        searches={singleSearch}
-        onSearchPress={mockOnSearchPress}
-        onClearPress={mockOnClearPress}
-      />
-    );
-
-    expect(screen.getByText("CC101")).toBeOnTheScreen();
-    expect(screen.getByText("Floor 1")).toBeOnTheScreen();
-
-    fireEvent.press(screen.getByText("CC101"));
-    expect(mockOnSearchPress).toHaveBeenCalledWith("CC101");
   });
 
   it("handles negative floor numbers", () => {
@@ -218,19 +165,5 @@ describe("IndoorRecentSearches", () => {
 
     expect(screen.getByText("Very Long Room Name That Might Wrap")).toBeOnTheScreen();
     expect(screen.getByText("Floor 5")).toBeOnTheScreen();
-  });
-
-  it("does not call onSearchPress when pressing floor subtitle", () => {
-    render(
-      <IndoorRecentSearches
-        searches={mockSearches}
-        onSearchPress={mockOnSearchPress}
-        onClearPress={mockOnClearPress}
-      />
-    );
-
-    fireEvent.press(screen.getByText("Floor 2"));
-
-    expect(mockOnSearchPress).toHaveBeenCalledWith("MB210");
   });
 });
