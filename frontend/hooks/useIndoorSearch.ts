@@ -114,11 +114,21 @@ export const useIndoorSearch = (
     const q = query.trim().toLowerCase();
     if (!q) return [];
 
+    const buildingCodeLower = buildingCode.toLowerCase();
+    let cleanedQuery = q;
+
+    if (q.startsWith(buildingCodeLower)) {
+      const afterCode = q.slice(buildingCodeLower.length).trim();
+      if (/^[\d.]+$/.test(afterCode) || /^s\d/i.test(afterCode)) {
+        cleanedQuery = afterCode;
+      }
+    }
+
     const matches: Array<IndoorSearchResult & { score: number }> = [];
 
     for (const floor of floors) {
       for (const poi of floor.pois) {
-        const score = calculateSearchScore(poi, q);
+        const score = calculateSearchScore(poi, cleanedQuery);
 
         if (score > 0) {
           matches.push({
@@ -132,7 +142,7 @@ export const useIndoorSearch = (
     }
 
     return matches.sort((a, b) => b.score - a.score);
-  }, [floors, query]);
+  }, [floors, query, buildingCode]);
 
   const addRecentSearch = async (
     roomName: string,
