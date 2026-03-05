@@ -130,10 +130,7 @@ export default function IndoorSearchPage() {
             <Pressable
               style={styles.backButton}
               onPress={() => {
-                router.navigate({
-                  pathname: "/indoor-map",
-                  params: { buildingCode: params.buildingCode },
-                });
+                router.back();
               }}
             >
               <Ionicons name="arrow-back" size={26} color={colors.maroon} />
