@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 type Props = {
   searches: RecentIndoorSearch[];
-  onSearchPress: (search: string) => void;
+  onSearchPress: (search: RecentIndoorSearch) => void;
   onClearPress: () => void;
 };
 
@@ -25,7 +25,7 @@ export default function IndoorRecentSearches({
         <Pressable
           key={`${search.displayName}-${search.floor}-${index}`}
           style={styles.resultItem}
-          onPress={() => onSearchPress(search.displayName)}
+          onPress={() => onSearchPress(search)}
         >
           <Text style={styles.resultTitle}>{search.displayName}</Text>
           <Text style={styles.resultSubtitle}>Floor {search.floor}</Text>

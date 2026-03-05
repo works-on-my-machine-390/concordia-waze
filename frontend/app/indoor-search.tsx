@@ -1,10 +1,11 @@
 import { colors, SHADOW } from "@/app/styles/theme";
+import { formatIndoorPoiName } from "@/app/utils/indoorNameFormattingUtils";
 import IndoorPoiFilters from "@/components/indoor/IndoorPoiFilters";
 import IndoorRecentSearches from "@/components/indoor/IndoorRecentSearches";
 import IndoorSearchResults from "@/components/indoor/IndoorSearchResults";
 import SearchPill from "@/components/shared/SearchPill";
 import { useGetBuildingFloors } from "@/hooks/queries/indoorMapQueries";
-import { useIndoorSearch } from "@/hooks/useIndoorSearch";
+import { RecentIndoorSearch, useIndoorSearch } from "@/hooks/useIndoorSearch";
 import { useIndoorSearchStore } from "@/hooks/useIndoorSearchStore";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
@@ -51,11 +52,11 @@ export default function IndoorSearchPage() {
     for (const item of recentSearches) {
       const key = `${item.displayName}-${item.floor}`;
 
-      if (seen.has(key)) continue; 
+      if (seen.has(key)) continue;
       seen.add(key);
 
       items.push(item);
-      if (items.length >= 6) break; 
+      if (items.length >= 6) break;
     }
 
     return items;
@@ -69,10 +70,6 @@ export default function IndoorSearchPage() {
     const floor = floors.find((f) => f.number === floorNumber);
     const poi = floor?.pois.find((p) => p.name === roomCode);
 
-    if (poi?.type.toLowerCase() === "room") {
-      addRecentSearch(displayName, roomCode, floorNumber);
-    }
-
     router.navigate({
       pathname: "/indoor-map",
       params: {
@@ -81,10 +78,35 @@ export default function IndoorSearchPage() {
         selectedFloor: floorNumber.toString(),
       },
     });
+
+    if (poi?.type.toLowerCase() === "room") {
+      addRecentSearch(displayName, roomCode, floorNumber);
+    }
   };
 
-  const handleRecentSearchPress = (search: string) => {
-    setQuery(search);
+  const handleRecentSearchPress = (search: RecentIndoorSearch) => {
+    const floor = floors.find((f) => f.number === search.floor);
+
+    const poi = floor?.pois.find(
+      (p) =>
+        formatIndoorPoiName(p.name, p.type, buildingCode) ===
+        search.displayName,
+    );
+
+    if (poi) {
+      addRecentSearch(search.displayName, poi.name, search.floor);
+
+      router.navigate({
+        pathname: "/indoor-map",
+        params: {
+          buildingCode,
+          selectedRoom: poi.name,
+          selectedFloor: search.floor.toString(),
+        },
+      });
+    } else {
+      setQuery(search.displayName);
+    }
   };
 
   const handleFilterPress = (type: string, label: string) => {
@@ -95,7 +117,7 @@ export default function IndoorSearchPage() {
     });
   };
 
-  const showRecent = query.trim().length === 0 && recentItems.length > 0; 
+  const showRecent = query.trim().length === 0 && recentItems.length > 0;
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
@@ -113,7 +135,6 @@ export default function IndoorSearchPage() {
                   params: { buildingCode: params.buildingCode },
                 });
               }}
-              testID="back-button"
             >
               <Ionicons name="arrow-back" size={26} color={colors.maroon} />
             </Pressable>
@@ -143,7 +164,7 @@ export default function IndoorSearchPage() {
               {/* Recent Searches */}
               {showRecent && (
                 <IndoorRecentSearches
-                  searches={recentItems} 
+                  searches={recentItems}
                   onSearchPress={handleRecentSearchPress}
                   onClearPress={clearRecentSearches}
                 />
