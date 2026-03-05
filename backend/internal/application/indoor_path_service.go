@@ -69,18 +69,21 @@ type IndoorPathRequest struct {
 
 	StartRoom string `json:"startRoom"`
 	EndRoom   string `json:"endRoom"`
+
+	RequireAccessible bool `json:"requireAccessible"` // filter out inaccessible edges
 }
 
 // MultiFloorPathRequest for pathfinding across different floors in same building
 type MultiFloorPathRequest struct {
-	BuildingCode   string              `json:"buildingCode"`
-	StartFloor     int                 `json:"startFloor"`
-	EndFloor       int                 `json:"endFloor"`
-	StartCoord     *domain.Coordinates `json:"start"`
-	EndCoord       *domain.Coordinates `json:"end"`
-	StartRoom      string              `json:"startRoom"`
-	EndRoom        string              `json:"endRoom"`
-	PreferElevator bool                `json:"preferElevator"`
+	BuildingCode      string              `json:"buildingCode"`
+	StartFloor        int                 `json:"startFloor"`
+	EndFloor          int                 `json:"endFloor"`
+	StartCoord        *domain.Coordinates `json:"start"`
+	EndCoord          *domain.Coordinates `json:"end"`
+	StartRoom         string              `json:"startRoom"`
+	EndRoom           string              `json:"endRoom"`
+	PreferElevator    bool                `json:"preferElevator"`
+	RequireAccessible bool                `json:"requireAccessible"` // filter out inaccessible edges
 }
 
 // FloorSegment represents a path segment on a single floor
@@ -126,7 +129,7 @@ func (s *IndoorPathService) ShortestPath(req IndoorPathRequest) (*IndoorPathResu
 		return nil, errors.New("floor not found for building")
 	}
 
-	g, err := newGraphFromFloor(*floor)
+	g, err := newGraphFromFloor(*floor, req.RequireAccessible)
 	if err != nil {
 		return nil, err
 	}
@@ -200,20 +203,31 @@ func (s *IndoorPathService) MultiFloorShortestPath(req MultiFloorPathRequest) (*
 
 	// Find transition points (stairs/elevator) on both floors using enum
 	preferredType := TransitionStairs
-	if req.PreferElevator {
+	if req.PreferElevator || req.RequireAccessible {
 		preferredType = TransitionElevator
 	}
 
-	transitionType, startTransition, endTransition := s.findBestTransitions(
-		startFloor, endFloor, startPoint, endPoint, preferredType,
-	)
+	// When accessibility required, only allow elevator (no stairs fallback)
+	var transitionType TransitionType
+	var startTransition, endTransition *domain.Coordinates
+	if req.RequireAccessible {
+		startTransition = s.findClosestTransitionPoint(startFloor, TransitionElevator, startPoint)
+		endTransition = s.findClosestTransitionPoint(endFloor, TransitionElevator, endPoint)
+		if startTransition != nil && endTransition != nil {
+			transitionType = TransitionElevator
+		}
+	} else {
+		transitionType, startTransition, endTransition = s.findBestTransitions(
+			startFloor, endFloor, startPoint, endPoint, preferredType,
+		)
+	}
 
 	if startTransition == nil || endTransition == nil {
 		return nil, errors.New("no transition point (stairs/elevator) found on floor")
 	}
 
 	// Calculate path on start floor: from start point to transition
-	startGraph, err := newGraphFromFloor(*startFloor)
+	startGraph, err := newGraphFromFloor(*startFloor, req.RequireAccessible)
 	if err != nil {
 		return nil, err
 	}
@@ -227,7 +241,7 @@ func (s *IndoorPathService) MultiFloorShortestPath(req MultiFloorPathRequest) (*
 	}
 
 	// Calculate path on end floor: from transition to end point
-	endGraph, err := newGraphFromFloor(*endFloor)
+	endGraph, err := newGraphFromFloor(*endFloor, req.RequireAccessible)
 	if err != nil {
 		return nil, err
 	}
@@ -282,7 +296,7 @@ func (s *IndoorPathService) resolveCoordinate(coord *domain.Coordinates, buildin
 
 // sameFloorPath handles navigation when start and end are on the same floor
 func (s *IndoorPathService) sameFloorPath(req MultiFloorPathRequest, floor *domain.Floor) (*MultiFloorPathResult, error) {
-	g, err := newGraphFromFloor(*floor)
+	g, err := newGraphFromFloor(*floor, req.RequireAccessible)
 	if err != nil {
 		return nil, err
 	}
@@ -444,7 +458,7 @@ type neighbor struct {
 	weight float64
 }
 
-func newGraphFromFloor(f domain.Floor) (*graph, error) {
+func newGraphFromFloor(f domain.Floor, requireAccessible bool) (*graph, error) {
 	n := len(f.Vertices)
 	if n == 0 {
 		return nil, errors.New("floor has no vertices")
