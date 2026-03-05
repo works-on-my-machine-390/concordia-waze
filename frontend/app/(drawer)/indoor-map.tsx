@@ -1,24 +1,29 @@
 import IndoorMapContainer from "@/components/indoor/IndoorMapContainer";
 import IndoorMapHeader from "@/components/indoor/IndoorMapHeader";
+import { useGetBuildingDetails } from "@/hooks/queries/buildingQueries";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 
 export default function IndoorMapPage() {
   const router = useRouter();
   const params = useLocalSearchParams<{
     buildingCode?: string;
+    selectedRoom?: string;
+    selectedFloor?: string;
   }>();
 
-  const buildingCode = params.buildingCode;
-  const [searchText, setSearchText] = useState("");
+  const buildingCode = params.buildingCode || "";
+
+  const { data: buildingData } = useGetBuildingDetails(buildingCode);
 
   const handleSearchPress = () => {
-    //searching for rooms, not doing anything rn
-  };
-
-  const handleSearchClear = () => {
-    setSearchText("");
+    router.push({
+      pathname: "/indoor-search",
+      params: {
+        buildingCode,
+        buildingName: buildingData?.long_name || buildingCode,
+      },
+    });
   };
 
   const handleBackToOutdoor = () => {
@@ -27,12 +32,18 @@ export default function IndoorMapPage() {
 
   return (
     <View style={styles.mapContainer}>
-      <IndoorMapContainer buildingCode={buildingCode} />
+      <IndoorMapContainer
+        buildingCode={buildingCode}
+        selectedRoomFromSearch={params.selectedRoom}
+        selectedFloorFromSearch={
+          params.selectedFloor
+            ? Number.parseInt(params.selectedFloor)
+            : undefined
+        }
+      />
 
       <IndoorMapHeader
-        searchText={searchText}
         onSearchPress={handleSearchPress}
-        onSearchClear={handleSearchClear}
         onBackToOutdoor={handleBackToOutdoor}
       />
     </View>

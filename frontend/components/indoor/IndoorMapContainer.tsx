@@ -1,24 +1,36 @@
 import FloorPlanViewer from "@/components/indoor/FloorPlanViewer";
 import FloorSelector from "@/components/indoor/FloorSelector";
-import { useGetBuildingFloors } from "@/hooks/queries/indoorMapQueries";
 import { useGetBuildingDetails } from "@/hooks/queries/buildingQueries";
+import { useGetBuildingFloors } from "@/hooks/queries/indoorMapQueries";
+import { useIndoorSearchStore } from "@/hooks/useIndoorSearchStore";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 
 type Props = {
   buildingCode: string;
+  selectedRoomFromSearch?: string;
+  selectedFloorFromSearch?: number;
 };
 
-export default function IndoorMapContainer({ buildingCode }: Readonly<Props>) {
+export default function IndoorMapContainer({
+  buildingCode,
+  selectedRoomFromSearch,
+  selectedFloorFromSearch,
+}: Readonly<Props>) {
   const [selectedFloor, setSelectedFloor] = useState<number | null>(null);
   const { data, isLoading, error } = useGetBuildingFloors(buildingCode);
   const { data: buildingData } = useGetBuildingDetails(buildingCode);
+  const { clearSelectedPoiFilter } = useIndoorSearchStore();
 
   useEffect(() => {
     if (data?.floors && data.floors.length > 0) {
-      setSelectedFloor(data.floors[0].number);
+      if (selectedFloorFromSearch) {
+        setSelectedFloor(selectedFloorFromSearch);
+      } else {
+        setSelectedFloor(data.floors[0].number);
+      }
     }
-  }, [buildingCode, data?.floors]);
+  }, [buildingCode, data?.floors, selectedFloorFromSearch]);
 
   if (isLoading) {
     return (
@@ -64,7 +76,10 @@ export default function IndoorMapContainer({ buildingCode }: Readonly<Props>) {
       <FloorSelector
         floors={data.floors}
         selectedFloor={selectedFloor}
-        onSelectFloor={setSelectedFloor}
+        onSelectFloor={(floor) => {
+          clearSelectedPoiFilter();
+          setSelectedFloor(floor);
+        }}
       />
       <FloorPlanViewer
         key={selectedFloor}
@@ -72,6 +87,7 @@ export default function IndoorMapContainer({ buildingCode }: Readonly<Props>) {
         buildingCode={buildingCode}
         buildingName={buildingData?.long_name || ""}
         metroAccessible={buildingData?.metro_accessible}
+        initialSelectedRoom={selectedRoomFromSearch}
       />
     </View>
   );

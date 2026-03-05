@@ -7,16 +7,12 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { MenuIcon } from "../../app/icons";
 
 type Props = {
-  searchText: string;
   onSearchPress: () => void;
-  onSearchClear: () => void;
   onBackToOutdoor: () => void;
 };
 
 export default function IndoorMapHeader({
-  searchText,
   onSearchPress,
-  onSearchClear,
   onBackToOutdoor,
 }: Readonly<Props>) {
   const navigation = useNavigation();
@@ -28,19 +24,15 @@ export default function IndoorMapHeader({
   return (
     <View style={styles.wrapper} pointerEvents="box-none">
       <View style={styles.headerRow}>
-        {/* Menu button */}
         <MenuIcon onPress={handleMenuPress} color={colors.maroon} />
 
-        {/* Search bar */}
         <SearchPill
-          value={searchText}
           placeholder="Search rooms..."
           onPress={onSearchPress}
-          onClear={onSearchClear}
+          onClear={() => {}}
         />
       </View>
 
-      {/* Back to outdoor button */}
       <Pressable style={styles.backButton} onPress={onBackToOutdoor}>
         <Ionicons name="arrow-back" size={24} color={colors.maroon} />
       </Pressable>

@@ -3,28 +3,40 @@ import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, TextInput } from "react-native";
 
 type Props = {
-  value: string;
+  value?: string;
   placeholder: string;
-  onPress: () => void;
+  onPress?: () => void;
   onClear: () => void;
+  editable?: boolean;
+  onChangeText?: (text: string) => void;
+  autoFocus?: boolean;
 };
 
 export default function SearchPill({
-  value,
+  value = "",
   placeholder,
   onPress,
   onClear,
+  editable = false,
+  onChangeText,
+  autoFocus = false,
 }: Readonly<Props>) {
   return (
-    <Pressable style={styles.searchPill} onPress={onPress}>
-      <Ionicons name="search" size={26} color={colors.maroon} />
+    <Pressable
+      style={styles.searchPill}
+      onPress={editable ? undefined : onPress}
+      disabled={editable}
+    >
+      <Ionicons name="search" size={22} color={colors.maroon} />
       <TextInput
         value={value}
         placeholder={placeholder}
         placeholderTextColor="#818181"
         style={styles.searchInput}
-        pointerEvents="none"
-        editable={false}
+        pointerEvents={editable ? "auto" : "none"}
+        editable={editable}
+        onChangeText={onChangeText}
+        autoFocus={autoFocus}
       />
       {value.length > 0 && (
         <Pressable onPress={onClear}>
