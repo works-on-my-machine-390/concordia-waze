@@ -46,6 +46,7 @@ export default function FloorSelector({
 const styles = StyleSheet.create({
   container: {
     position: "absolute",
+    bottom: 150,
     left: 16,
     gap: 10,          // tighter stack like mockup
     zIndex: 2000,     // ✅ above bottom sheet

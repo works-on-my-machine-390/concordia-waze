@@ -1,10 +1,8 @@
 import FloorPlanViewer from "@/components/indoor/FloorPlanViewer";
 import FloorSelector from "@/components/indoor/FloorSelector";
 import { useGetBuildingFloors } from "@/hooks/queries/indoorMapQueries";
-import type {
-  FloorSegment,
-  Coordinates,
-} from "@/hooks/queries/indoorDirectionsQueries";
+import { useGetBuildingDetails } from "@/hooks/queries/buildingQueries";
+import type { FloorSegment, Coordinates } from "@/hooks/queries/indoorDirectionsQueries";
 import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { useIndoorNavigationStore } from "@/hooks/useIndoorNavigationStore";
@@ -57,6 +55,21 @@ const findNearestTransitionPoi = (
   return best;
 };
 
+// Optional but recommended (prevents tiny “stub” dotted segments)
+const cleanPath = (pts: Coordinates[]) => {
+  if (pts.length < 2) return pts;
+
+  const out: Coordinates[] = [pts[0]];
+  for (let i = 1; i < pts.length; i++) {
+    const prev = out[out.length - 1];
+    const curr = pts[i];
+    const dx = prev.x - curr.x;
+    const dy = prev.y - curr.y;
+    if (dx * dx + dy * dy > 0.0000005) out.push(curr);
+  }
+  return out;
+};
+
 export default function IndoorMapContainer({
   buildingCode,
   routeSegments = null,
@@ -66,7 +79,9 @@ export default function IndoorMapContainer({
   const nav = useIndoorNavigationStore();
 
   const [selectedFloor, setSelectedFloor] = useState<number | null>(null);
+
   const { data, isLoading, error } = useGetBuildingFloors(buildingCode);
+  const { data: buildingData } = useGetBuildingDetails(buildingCode);
 
   useEffect(() => {
     if (!data?.floors?.length) return;
@@ -92,16 +107,21 @@ export default function IndoorMapContainer({
       ? data?.floors?.find((f) => f.number === selectedFloor) ?? data?.floors?.[0]
       : undefined;
 
-  // ✅ Multi-floor transition handling: adjust path endpoints to nearest stairs/elevator POIs
-  //    and provide extraHighlightedPoiNames to highlight them in blue.
+  // ✅ path for current floor + extra highlighted transition POIs
   const { routePathForCurrentFloor, extraHighlightedPoiNames } = useMemo(() => {
     if (!routeSegments || selectedFloor == null || !data?.floors?.length) {
-      return { routePathForCurrentFloor: null as Coordinates[] | null, extraHighlightedPoiNames: [] as string[] };
+      return {
+        routePathForCurrentFloor: null as Coordinates[] | null,
+        extraHighlightedPoiNames: [] as string[],
+      };
     }
 
     const idx = routeSegments.findIndex((s) => s.floorNumber === selectedFloor);
     if (idx === -1) {
-      return { routePathForCurrentFloor: null as Coordinates[] | null, extraHighlightedPoiNames: [] as string[] };
+      return {
+        routePathForCurrentFloor: null as Coordinates[] | null,
+        extraHighlightedPoiNames: [] as string[],
+      };
     }
 
     const seg = routeSegments[idx];
@@ -110,7 +130,7 @@ export default function IndoorMapContainer({
       return { routePathForCurrentFloor: path, extraHighlightedPoiNames: [] as string[] };
     }
 
-    // Only apply this if route spans multiple floors
+    // Only apply snapping/highlighting if route spans multiple floors
     if (routeSegments.length < 2) {
       return { routePathForCurrentFloor: path, extraHighlightedPoiNames: [] as string[] };
     }
@@ -122,8 +142,7 @@ export default function IndoorMapContainer({
     const adjusted = [...path];
     const extraNames: string[] = [];
 
-    // If this is NOT the first segment, the route comes IN from a transition on this floor.
-    // Make the path START touch the nearest stairs/elevator POI.
+    // incoming transition (start of segment) if not first segment
     if (idx > 0) {
       const startPt = adjusted[0];
       const nearest = findNearestTransitionPoi(pois as any, startPt);
@@ -133,25 +152,28 @@ export default function IndoorMapContainer({
       }
     }
 
-    // If this is NOT the last segment, the route goes OUT via a transition on this floor.
-    // Make the path END touch the nearest stairs/elevator POI.
+    // outgoing transition (end of segment) if not last segment
     if (idx < routeSegments.length - 1) {
       const endPt = adjusted[adjusted.length - 1];
       const nearest = findNearestTransitionPoi(pois as any, endPt);
       if (nearest?.name) {
         extraNames.push(nearest.name);
-        adjusted[adjusted.length - 1] = { x: nearest.position.x, y: nearest.position.y };
+        adjusted[adjusted.length - 1] = {
+          x: nearest.position.x,
+          y: nearest.position.y,
+        };
       }
     }
 
-    // De-dupe names (in case start and end pick same POI)
     const unique = Array.from(new Set(extraNames.map(normalizeName))).map((nrm) => {
-      // map back to original casing if possible
       const found = extraNames.find((x) => normalizeName(x) === nrm);
       return found ?? nrm;
     });
 
-    return { routePathForCurrentFloor: adjusted, extraHighlightedPoiNames: unique };
+    return {
+      routePathForCurrentFloor: cleanPath(adjusted),
+      extraHighlightedPoiNames: unique,
+    };
   }, [routeSegments, selectedFloor, data?.floors]);
 
   const handleSelectPoiName = (name: string) => {
@@ -227,10 +249,15 @@ export default function IndoorMapContainer({
       <FloorPlanViewer
         key={selectedFloor}
         floor={currentFloor}
+        // ✅ itinerary stuff
         routePath={routePathForCurrentFloor}
         selectedPoiName={highlightedPoiName}
         onSelectPoiName={handleSelectPoiName}
         extraHighlightedPoiNames={extraHighlightedPoiNames}
+        // ✅ teammate bottom sheet stuff
+        buildingCode={buildingCode}
+        buildingName={buildingData?.long_name || ""}
+        metroAccessible={buildingData?.metro_accessible}
       />
 
       <FloorSelector

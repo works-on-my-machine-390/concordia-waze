@@ -164,7 +164,7 @@ func TestDirectionsService_ShuttleMode_ComposesWalkingLegsAndShuttleStep(t *test
 	assert.NotEmpty(t, shuttleRepo.lastCampus)
 }
 
-func TestDirectionsService_ShuttleMode_StillWorksWhenRepoMissingOrErrors(t *testing.T) {
+func TestDirectionsService_ShuttleMode_ReturnsErrorWhenRepoMissingOrErrors(t *testing.T) {
 	f := &fakeDirectionsClient{
 		resp: domain.DirectionsResponse{
 			Mode: "walking",
@@ -177,10 +177,51 @@ func TestDirectionsService_ShuttleMode_StillWorksWhenRepoMissingOrErrors(t *test
 	shuttleRepo := &fakeShuttleRepo{err: errors.New("no schedule")}
 	s := NewDirectionsService(f).WithShuttleRepo(shuttleRepo)
 
-	resp, err := s.GetDirections(domain.LatLng{Lat: 1, Lng: 2}, domain.LatLng{Lat: 3, Lng: 4}, "shuttle")
+	_, err := s.GetDirections(domain.LatLng{Lat: 1, Lng: 2}, domain.LatLng{Lat: 3, Lng: 4}, "shuttle")
+	assert.Error(t, err)
+	assert.Equal(t, "No shuttle available at this time.", err.Error())
+}
+
+func TestDirectionsService_ShuttleMode_OutsideHours(t *testing.T) {
+	f := &fakeDirectionsClient{
+		resp: domain.DirectionsResponse{
+			Mode: "walking",
+			Steps: []domain.DirectionStep{
+				{Instruction: "Walk segment", Distance: "0.2 km", Duration: "2 mins"},
+			},
+		},
+	}
+
+	// Schedule only has morning shuttle
+	shuttleRepo := &fakeShuttleRepo{
+		times: []string{"09:00", "10:00"},
+	}
+	s := NewDirectionsService(f).WithShuttleRepo(shuttleRepo)
+
+	// Request at 20:00
+	_, err := s.GetDirectionsWithSchedule(domain.LatLng{}, domain.LatLng{}, "shuttle", "monday", "20:00")
+	assert.Error(t, err)
+	assert.Equal(t, "No shuttle available at this time.", err.Error())
+}
+
+func TestDirectionsService_ShuttleMode_InsideHours(t *testing.T) {
+	f := &fakeDirectionsClient{
+		resp: domain.DirectionsResponse{
+			Mode: "walking",
+			Steps: []domain.DirectionStep{
+				{Instruction: "Walk segment", Distance: "0.2 km", Duration: "2 mins"},
+			},
+		},
+	}
+
+	shuttleRepo := &fakeShuttleRepo{
+		times: []string{"09:00", "20:00"},
+	}
+	s := NewDirectionsService(f).WithShuttleRepo(shuttleRepo)
+
+	resp, err := s.GetDirectionsWithSchedule(domain.LatLng{}, domain.LatLng{}, "shuttle", "monday", "10:00")
 	assert.NoError(t, err)
 	assert.Equal(t, "shuttle", resp.Mode)
-	assert.NotEmpty(t, resp.Steps)
 }
 
 func TestDirectionsService_GetDirectionsWithSchedule_NonShuttleWithUserTime(t *testing.T) {
@@ -306,7 +347,7 @@ func TestManualShuttle_NoRepo(t *testing.T) {
 
 	_, err := s.GetShuttleDirectionsManual(domain.LatLng{}, domain.LatLng{}, "monday", "10:00")
 	assert.Error(t, err)
-	assert.Equal(t, "no shuttle available", err.Error())
+	assert.Equal(t, "No shuttle available at this time.", err.Error())
 }
 
 func TestFormatDuration(t *testing.T) {

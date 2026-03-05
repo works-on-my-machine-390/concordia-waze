@@ -10,22 +10,29 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { SvgXml } from "react-native-svg";
+import { useMemo, useState } from "react";
+
 import IndoorPathOverlay from "./IndoorPathOverlay";
 import PoiMarker from "./PoiMarker";
 import PolygonOverlay from "./PolygonOverlay";
+import IndoorBottomSheetSection from "./IndoorBottomSheetSection";
+
 import { useIndoorNavigationStore } from "@/hooks/useIndoorNavigationStore";
-import { useMemo } from "react";
 
 type Props = {
+  // existing
   floor: Floor | undefined;
 
+  // itinerary/path support (your stuff)
   routePath?: Coordinates[] | null;
-
   selectedPoiName?: string;
   onSelectPoiName?: (name: string) => void;
-
-  // ✅ additional POIs to highlight (e.g., stairs/elevator transition points)
   extraHighlightedPoiNames?: string[];
+
+  // browse bottom sheet support (their stuff)
+  buildingCode?: string;
+  buildingName?: string;
+  metroAccessible?: boolean;
 };
 
 const normalizeName = (s: string) => s.trim().toLowerCase().replace(/\s+/g, "");
@@ -36,8 +43,22 @@ export default function FloorPlanViewer({
   selectedPoiName,
   onSelectPoiName,
   extraHighlightedPoiNames = [],
+  buildingCode,
+  buildingName,
+  metroAccessible,
 }: Readonly<Props>) {
   const nav = useIndoorNavigationStore();
+
+  // Local selection only for the Browse bottom sheet "clear" action.
+  // We do NOT force you to use this state for itinerary selection.
+  const [localSelectedPoiName, setLocalSelectedPoiName] = useState<string | undefined>(
+    undefined,
+  );
+
+  // Determine which selected name to show:
+  // - if parent passes selectedPoiName, use it
+  // - otherwise, use local one (browse)
+  const effectiveSelectedPoiName = selectedPoiName ?? localSelectedPoiName;
 
   const { width: SCREEN_WIDTH } = useWindowDimensions();
   const { dimensions, svgText, error, isLoading } = useSvgDimensions(
@@ -109,6 +130,20 @@ export default function FloorPlanViewer({
     return new Set(extraHighlightedPoiNames.map((n) => normalizeName(n)));
   }, [extraHighlightedPoiNames]);
 
+  const handlePoiPress = (name: string) => {
+    // If parent provided handler (itinerary logic), use it
+    if (onSelectPoiName) {
+      onSelectPoiName(name);
+      return;
+    }
+
+    // Otherwise fallback to local selection for browse bottom sheet
+    setLocalSelectedPoiName(name);
+  };
+
+  const showBottomSheetSection =
+    !!buildingCode && !!buildingName; // keep it safe (only render if we have required props)
+
   return (
     <View style={styles.container}>
       <ReactNativeZoomableView
@@ -141,8 +176,8 @@ export default function FloorPlanViewer({
             pois={floor.pois}
             width={DISPLAY_WIDTH}
             height={DISPLAY_HEIGHT}
-            selectedPoiName={selectedPoiName}
-            onSelectPoi={onSelectPoiName}
+            selectedPoiName={effectiveSelectedPoiName}
+            onSelectPoi={handlePoiPress}
           />
 
           <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
@@ -151,7 +186,8 @@ export default function FloorPlanViewer({
               const nrm = normalizeName(poiName);
 
               const highlighted =
-                (!!selectedPoiName && nrm === normalizeName(selectedPoiName)) ||
+                (!!effectiveSelectedPoiName &&
+                  nrm === normalizeName(effectiveSelectedPoiName)) ||
                 extraSet.has(nrm);
 
               return (
@@ -163,7 +199,7 @@ export default function FloorPlanViewer({
                   highlighted={highlighted}
                   onPress={() => {
                     const name = poi.name ?? "";
-                    if (name && onSelectPoiName) onSelectPoiName(name);
+                    if (name) handlePoiPress(name);
                   }}
                 />
               );
@@ -177,11 +213,28 @@ export default function FloorPlanViewer({
               height={DISPLAY_HEIGHT}
               endPolygon={endPolygon} // ✅ rooms keep same behavior
               startOverride={startOverride} // ✅ POIs only (selected start)
-              endOverride={endOverride}     // ✅ POIs only (selected dest)
+              endOverride={endOverride} // ✅ POIs only (selected dest)
             />
           ) : null}
         </View>
       </ReactNativeZoomableView>
+
+      {showBottomSheetSection ? (
+        <IndoorBottomSheetSection
+          floor={floor}
+          buildingName={buildingName!}
+          buildingCode={buildingCode!}
+          metroAccessible={metroAccessible}
+          selectedPoiName={effectiveSelectedPoiName}
+          onClearSelectedPoi={() => {
+            // If parent controls selection, clear by telling parent (best-effort)
+            if (onSelectPoiName) {
+              onSelectPoiName(""); // depends on your parent logic; safer is local clear only
+            }
+            setLocalSelectedPoiName(undefined);
+          }}
+        />
+      ) : null}
     </View>
   );
 }

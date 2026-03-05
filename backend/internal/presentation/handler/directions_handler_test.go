@@ -56,7 +56,15 @@ func (r *fakeBuildingReader) GetAllBuildingsByCampus() (map[string][]domain.Buil
 	return result, nil
 }
 
-func setupHandler(fetcher *fakeDirectionsFetcher) *DirectionsHandler {
+type mockShuttleRepo struct {
+	times []string
+}
+
+func (m *mockShuttleRepo) GetDepartures(day, campus string) ([]string, error) {
+	return m.times, nil
+}
+
+func setupHandler(fetcher *fakeDirectionsFetcher, t *testing.T) *DirectionsHandler {
 	svc := application.NewDirectionsService(fetcher)
 
 	buildingReader := &fakeBuildingReader{
@@ -66,7 +74,8 @@ func setupHandler(fetcher *fakeDirectionsFetcher) *DirectionsHandler {
 		},
 	}
 
-	bSvc := application.NewBuildingService(buildingReader, nil, nil)
+	cacheDir := t.TempDir()
+	bSvc := application.NewBuildingService(buildingReader, nil, nil, cacheDir)
 	return NewDirectionsHandler(svc, bSvc)
 }
 
@@ -74,7 +83,7 @@ func setupHandler(fetcher *fakeDirectionsFetcher) *DirectionsHandler {
 
 func TestInvalidStartLat(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	h := setupHandler(&fakeDirectionsFetcher{})
+	h := setupHandler(&fakeDirectionsFetcher{}, t)
 	r := gin.New()
 	r.GET("/directions", h.GetDirections)
 
@@ -91,7 +100,7 @@ func TestInvalidStartLat(t *testing.T) {
 
 func TestInvalidMode(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	h := setupHandler(&fakeDirectionsFetcher{})
+	h := setupHandler(&fakeDirectionsFetcher{}, t)
 	r := gin.New()
 	r.GET("/directions", h.GetDirections)
 
@@ -111,7 +120,7 @@ func TestInvalidMode(t *testing.T) {
 func TestShuttle_InvalidDay(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	h := setupHandler(&fakeDirectionsFetcher{})
+	h := setupHandler(&fakeDirectionsFetcher{}, t)
 	r := gin.New()
 	r.GET("/directions", h.GetDirections)
 
@@ -128,7 +137,7 @@ func TestShuttle_InvalidDay(t *testing.T) {
 func TestShuttle_InvalidTime(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
-	h := setupHandler(&fakeDirectionsFetcher{})
+	h := setupHandler(&fakeDirectionsFetcher{}, t)
 	r := gin.New()
 	r.GET("/directions", h.GetDirections)
 
@@ -152,7 +161,20 @@ func TestShuttle_SameCampusAccepted(t *testing.T) {
 		},
 	}
 
-	h := setupHandler(fetcher)
+	svc := application.NewDirectionsService(fetcher)
+	svc.WithShuttleRepo(&mockShuttleRepo{times: []string{"00:00", "23:59"}})
+
+	buildingReader := &fakeBuildingReader{
+		buildings: map[string]*domain.Building{
+			"B":  {Code: "B", Latitude: 45.497856, Longitude: -73.579588, Name: "Building B"},
+			"VL": {Code: "VL", Latitude: 45.459026, Longitude: -73.638606, Name: "VL Building"},
+		},
+	}
+
+	cacheDir := t.TempDir()
+	bSvc := application.NewBuildingService(buildingReader, nil, nil, cacheDir)
+	h := NewDirectionsHandler(svc, bSvc)
+
 	r := gin.New()
 	r.GET("/directions", h.GetDirections)
 
@@ -179,7 +201,7 @@ func TestShuttle_AutoMode_NoScheduleRepo(t *testing.T) {
 		},
 	}
 
-	h := setupHandler(fetcher)
+	h := setupHandler(fetcher, t)
 	r := gin.New()
 	r.GET("/directions", h.GetDirections)
 
@@ -190,8 +212,8 @@ func TestShuttle_AutoMode_NoScheduleRepo(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	assert.Equal(t, 200, w.Code)
-	assert.Contains(t, w.Body.String(), "Take the Concordia Shuttle Bus")
+	assert.Equal(t, 200, w.Code) // The handler returns 200 OK with a message for no shuttle
+	assert.Contains(t, w.Body.String(), "No shuttle available at this time.")
 }
 
 func TestBuildingsEndpoint_Success(t *testing.T) {
@@ -201,7 +223,7 @@ func TestBuildingsEndpoint_Success(t *testing.T) {
 		resp: domain.DirectionsResponse{Mode: "walking"},
 	}
 
-	h := setupHandler(fetcher)
+	h := setupHandler(fetcher, t)
 	r := gin.New()
 	r.GET("/directions/buildings", h.GetDirectionsByBuildings)
 
@@ -222,7 +244,7 @@ func TestInternalError(t *testing.T) {
 		err: errors.New("unexpected failure"),
 	}
 
-	h := setupHandler(fetcher)
+	h := setupHandler(fetcher, t)
 	r := gin.New()
 	r.GET("/directions", h.GetDirections)
 
