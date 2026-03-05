@@ -1,4 +1,5 @@
 import type { Floor } from "@/hooks/queries/indoorMapQueries";
+import { useIndoorSearchStore } from "@/hooks/useIndoorSearchStore";
 import { useSvgDimensions } from "@/hooks/useSvgDimensions";
 import { ReactNativeZoomableView } from "@openspacelabs/react-native-zoomable-view";
 import { useEffect, useState } from "react";
@@ -34,6 +35,7 @@ export default function FloorPlanViewer({
     floor?.imgPath,
   );
   const [selectedPoiName, setSelectedPoiName] = useState<string | undefined>();
+  const { clearSelectedPoiFilter } = useIndoorSearchStore();
 
   useEffect(() => {
     if (initialSelectedRoom && floor) {
@@ -41,6 +43,7 @@ export default function FloorPlanViewer({
         (poi) => poi.name === initialSelectedRoom,
       );
       if (roomExists) {
+        clearSelectedPoiFilter();
         setSelectedPoiName(initialSelectedRoom);
       }
     }
@@ -107,7 +110,10 @@ export default function FloorPlanViewer({
             width={DISPLAY_WIDTH}
             height={DISPLAY_HEIGHT}
             selectedPoiName={selectedPoiName}
-            onSelectPoi={setSelectedPoiName}
+            onSelectPoi={(name) => {
+              clearSelectedPoiFilter();
+              setSelectedPoiName(name);
+            }}
           />
 
           <View style={StyleSheet.absoluteFill}>
@@ -117,7 +123,10 @@ export default function FloorPlanViewer({
                 poi={poi}
                 width={DISPLAY_WIDTH}
                 height={DISPLAY_HEIGHT}
-                onPress={() => setSelectedPoiName(poi.name)}
+                onPress={() => {
+                  clearSelectedPoiFilter();
+                  setSelectedPoiName(poi.name);
+                }}
               />
             ))}
           </View>
