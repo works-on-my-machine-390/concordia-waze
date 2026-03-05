@@ -1,6 +1,8 @@
 import type { Floor } from "@/hooks/queries/indoorMapQueries";
+import { useIndoorSearchStore } from "@/hooks/useIndoorSearchStore";
 import { useSvgDimensions } from "@/hooks/useSvgDimensions";
 import { ReactNativeZoomableView } from "@openspacelabs/react-native-zoomable-view";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   StyleSheet,
@@ -9,16 +11,16 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { SvgXml } from "react-native-svg";
+import IndoorBottomSheetSection from "./IndoorBottomSheetSection";
 import PoiMarker from "./PoiMarker";
 import PolygonOverlay from "./PolygonOverlay";
-import IndoorBottomSheetSection from "./IndoorBottomSheetSection";
-import { useState } from "react";
 
 type Props = {
   floor: Floor | undefined;
   buildingCode: string;
   buildingName: string;
-  metroAccessible?: boolean; 
+  metroAccessible?: boolean;
+  initialSelectedRoom?: string;
 };
 
 export default function FloorPlanViewer({
@@ -26,12 +28,26 @@ export default function FloorPlanViewer({
   buildingCode,
   buildingName,
   metroAccessible,
+  initialSelectedRoom,
 }: Readonly<Props>) {
   const { width: SCREEN_WIDTH } = useWindowDimensions();
   const { dimensions, svgText, error, isLoading } = useSvgDimensions(
     floor?.imgPath,
   );
   const [selectedPoiName, setSelectedPoiName] = useState<string | undefined>();
+  const { clearSelectedPoiFilter } = useIndoorSearchStore();
+
+  useEffect(() => {
+    if (initialSelectedRoom && floor) {
+      const roomExists = floor.pois.some(
+        (poi) => poi.name === initialSelectedRoom,
+      );
+      if (roomExists) {
+        clearSelectedPoiFilter();
+        setSelectedPoiName(initialSelectedRoom);
+      }
+    }
+  }, [initialSelectedRoom, floor]);
 
   if (!floor) {
     return (
@@ -94,7 +110,10 @@ export default function FloorPlanViewer({
             width={DISPLAY_WIDTH}
             height={DISPLAY_HEIGHT}
             selectedPoiName={selectedPoiName}
-            onSelectPoi={setSelectedPoiName}
+            onSelectPoi={(name) => {
+              clearSelectedPoiFilter();
+              setSelectedPoiName(name);
+            }}
           />
 
           <View style={StyleSheet.absoluteFill}>
@@ -104,7 +123,10 @@ export default function FloorPlanViewer({
                 poi={poi}
                 width={DISPLAY_WIDTH}
                 height={DISPLAY_HEIGHT}
-                onPress={() => setSelectedPoiName(poi.name)}
+                onPress={() => {
+                  clearSelectedPoiFilter();
+                  setSelectedPoiName(poi.name);
+                }}
               />
             ))}
           </View>
