@@ -55,7 +55,7 @@ const styles = StyleSheet.create({
     paddingTop: 16,
   },
   sectionTitle: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "700",
     color: COLORS.textSecondary,
     textTransform: "uppercase",
@@ -63,10 +63,9 @@ const styles = StyleSheet.create({
   poiItem: {
     paddingVertical: 12,
     paddingHorizontal: 12,
-    backgroundColor: "white",
-    borderRadius: 8,
     marginBottom: 8,
-    borderWidth: 1,
+    borderWidth: 1.5,
+    borderRadius: 10,
     borderColor: "#E5E5E5",
   },
   poiName: {

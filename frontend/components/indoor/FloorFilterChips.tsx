@@ -16,43 +16,45 @@ export default function FloorFilterChips({
 
   return (
     <View style={styles.filterContainer}>
-      <Text style={styles.filterLabel}>Filter by floor:</Text>
-      <View style={styles.floorChips}>
-        <Pressable
-          style={[
-            styles.floorChip,
-            selectedFloor === null && styles.floorChipActive,
-          ]}
-          onPress={() => onSelectFloor(null)}
-        >
-          <Text
-            style={[
-              styles.floorChipText,
-              selectedFloor === null && styles.floorChipTextActive,
-            ]}
-          >
-            All
-          </Text>
-        </Pressable>
-        {availableFloors.map((floorNum) => (
+      <View style={styles.filterRow}>
+        <Text style={styles.filterLabel}>Filter by floor:</Text>
+        <View style={styles.floorChips}>
           <Pressable
-            key={floorNum}
             style={[
               styles.floorChip,
-              selectedFloor === floorNum && styles.floorChipActive,
+              selectedFloor === null && styles.floorChipActive,
             ]}
-            onPress={() => onSelectFloor(floorNum)}
+            onPress={() => onSelectFloor(null)}
           >
             <Text
               style={[
                 styles.floorChipText,
-                selectedFloor === floorNum && styles.floorChipTextActive,
+                selectedFloor === null && styles.floorChipTextActive,
               ]}
             >
-              {floorNum}
+              All
             </Text>
           </Pressable>
-        ))}
+          {availableFloors.map((floorNum) => (
+            <Pressable
+              key={floorNum}
+              style={[
+                styles.floorChip,
+                selectedFloor === floorNum && styles.floorChipActive,
+              ]}
+              onPress={() => onSelectFloor(floorNum)}
+            >
+              <Text
+                style={[
+                  styles.floorChipText,
+                  selectedFloor === floorNum && styles.floorChipTextActive,
+                ]}
+              >
+                {floorNum}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
       </View>
     </View>
   );
@@ -65,16 +67,21 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#E5E5E5",
   },
+    filterRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
   filterLabel: {
-    fontSize: 13,
+    fontSize: 16,
     fontWeight: "600",
     color: COLORS.textSecondary,
-    marginBottom: 8,
   },
   floorChips: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
+    flex: 1,
   },
   floorChip: {
     paddingHorizontal: 12,

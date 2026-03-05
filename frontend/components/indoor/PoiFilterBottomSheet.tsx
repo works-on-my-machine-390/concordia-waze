@@ -137,7 +137,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   title: {
-    fontSize: 20,
+    fontSize: 28,
     fontWeight: "700",
     color: COLORS.textPrimary,
   },
