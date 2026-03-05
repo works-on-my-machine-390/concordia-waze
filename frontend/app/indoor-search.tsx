@@ -8,7 +8,7 @@ import { useIndoorSearch } from "@/hooks/useIndoorSearch";
 import { useIndoorSearchStore } from "@/hooks/useIndoorSearchStore";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -44,6 +44,23 @@ export default function IndoorSearchPage() {
   const { results, recentSearches, addRecentSearch, clearRecentSearches } =
     useIndoorSearch(floors, query, buildingCode);
 
+  const recentItems = useMemo(() => {
+    const seen = new Set<string>();
+    const items: typeof recentSearches = [];
+
+    for (const item of recentSearches) {
+      const key = `${item.displayName}-${item.floor}`;
+
+      if (seen.has(key)) continue; 
+      seen.add(key);
+
+      items.push(item);
+      if (items.length >= 6) break; 
+    }
+
+    return items;
+  }, [recentSearches]);
+
   const handleResultSelect = (
     roomCode: string,
     floorNumber: number,
@@ -78,7 +95,7 @@ export default function IndoorSearchPage() {
     });
   };
 
-  const showRecent = query.trim().length === 0 && recentSearches.length > 0;
+  const showRecent = query.trim().length === 0 && recentItems.length > 0; 
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
@@ -126,7 +143,7 @@ export default function IndoorSearchPage() {
               {/* Recent Searches */}
               {showRecent && (
                 <IndoorRecentSearches
-                  searches={recentSearches}
+                  searches={recentItems} 
                   onSearchPress={handleRecentSearchPress}
                   onClearPress={clearRecentSearches}
                 />
