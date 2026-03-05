@@ -1,0 +1,84 @@
+appId: host.exp.Exponent
+---
+# 1) Continue as guest (skip login and enter app as a guest user)
+- tapOn: "Use without account"
+
+# 2) Wait until the map screen is loaded (SGW campus label visible)
+- extendedWaitUntil:
+    visible: "SGW"
+    timeout: 8000
+
+# 3) Open the Map Settings panel (icon button)
+- tapOn: 
+
+# 4) Expand the Map Settings bottom sheet to reveal more options
+- swipe:
+    from:
+      text: "Map Settings"
+    direction: UP
+    duration: 250
+
+# 5) Wait until the toggle options are visible (ensures the settings list is loaded)
+- extendedWaitUntil:
+    visible: "Show Shuttle Stops"
+    timeout: 4000
+
+# 6) Tap the toggle switch (point tap on the second switch row in this sheet)
+- tapOn:
+    point: "92%, 54%"
+
+# 7) Collapse the Map Settings bottom sheet and return to the map
+- swipe:
+    from:
+      text: "Map Settings"
+    direction: DOWN
+    duration: 250
+
+# 8) Tap the main search bar ("Where to...") to start a location search
+- tapOn:
+    text: ".*Where to.*"
+- waitForAnimationToEnd
+
+# 9) Enter a nearby search query
+- inputText: "restaurants"
+
+# 10) Wait for the "Search nearby..." action to appear (nearby search CTA)
+- extendedWaitUntil:
+    visible: Search nearby for "restaurants"
+    timeout: 8000
+
+# 11) Trigger the nearby search (double-tap to ensure it fires)
+- doubleTapOn: Search nearby for "restaurants"
+
+# 12) Expand the "Nearby results" bottom sheet to show the list
+- swipe:
+    from:
+      text: "Nearby results"
+    direction: UP
+    duration: 250
+
+# 13) Scroll down the results list (load additional entries)
+- scroll
+- waitForAnimationToEnd
+
+# 14) Open the sort dropdown (currently set to "Relevance")
+- tapOn: Relevance
+
+# 15) Select the "Distance" sort option by tapping its menu position (point tap)
+- tapOn:
+    point: "18%, 48%"
+
+# 16) Scroll back up in the results list (swipe down within the list area)
+- swipe:
+    from:
+      point: "50%, 60%"
+    direction: DOWN
+    duration: 300
+- waitForAnimationToEnd
+
+# 17) Collapse the "Nearby results" bottom sheet and return to the map view
+- swipe:
+    from:
+      text: "Nearby results"
+    direction: DOWN
+    duration: 250
