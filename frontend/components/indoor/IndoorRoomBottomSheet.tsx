@@ -14,12 +14,25 @@ export type IndoorRoomBottomSheetProps = {
   buildingCode: string;
   roomType?: string | null;
   onClose: () => void;
+
+  // ✅ NEW: callback for starting itinerary / preview
+  onDirectionsPress?: () => void;
+
+  // ✅ optional: allow disabling the directions button
+  directionsDisabled?: boolean;
 };
 
 export default function IndoorRoomBottomSheet(
   props: Readonly<IndoorRoomBottomSheetProps>,
 ) {
-  const { roomCode, buildingCode, roomType, onClose } = props;
+  const {
+    roomCode,
+    buildingCode,
+    roomType,
+    onClose,
+    onDirectionsPress,
+    directionsDisabled = false,
+  } = props;
 
   const snapPoints = useMemo(() => ["15%"], []);
   const handleSheetChanges = useCallback((_index: number) => {}, []);
@@ -52,6 +65,10 @@ export default function IndoorRoomBottomSheet(
 
   const displaySubtitle = isRoom ? "Room" : null;
 
+  // ✅ show + enable logic
+  const showDirectionsButton = !!onDirectionsPress; // parent decides if it should exist
+  const canPressDirections = showDirectionsButton && !directionsDisabled;
+
   return (
     <BottomSheet
       handleComponent={null}
@@ -71,11 +88,31 @@ export default function IndoorRoomBottomSheet(
 
       <View style={BottomSheetStyles.headerContainer}>
         {/* Floating navigate button */}
-        <TouchableOpacity testID="indoor-room-navigate-button">
-          <View style={BottomSheetStyles.floatingIcon}>
-            <GetDirectionsIcon size={90} color={COLORS.maroon} />
-          </View>
-        </TouchableOpacity>
+        {showDirectionsButton ? (
+          <TouchableOpacity
+  testID="indoor-room-navigate-button"
+  onPress={() => {
+    if (onDirectionsPress) {
+      onDirectionsPress(); // start itinerary
+    }
+    onClose(); // close bottom sheet
+  }}
+  disabled={!canPressDirections}
+  activeOpacity={0.8}
+>
+            <View
+              style={[
+                BottomSheetStyles.floatingIcon,
+                !canPressDirections && styles.disabledFloating,
+              ]}
+            >
+              <GetDirectionsIcon
+                size={90}
+                color={canPressDirections ? COLORS.maroon : "#BDBDBD"}
+              />
+            </View>
+          </TouchableOpacity>
+        ) : null}
 
         {/* Title + optional subtitle */}
         <View style={BottomSheetStyles.textContainer}>
@@ -117,5 +154,11 @@ const IndoorRoomStyles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginBottom: 4,
     textTransform: "capitalize",
+  },
+});
+
+const styles = StyleSheet.create({
+  disabledFloating: {
+    opacity: 0.6,
   },
 });

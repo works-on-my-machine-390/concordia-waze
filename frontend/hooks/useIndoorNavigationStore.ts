@@ -55,7 +55,7 @@ export const useIndoorNavigationStore = create<IndoorNavigationState>((set, get)
 
   setSelectedRoom: (p) => set({ selectedRoom: p }),
 
-  enterItineraryFromSelected: () => {
+ enterItineraryFromSelected: () => {
     const sel = get().selectedRoom;
     if (!sel) return;
 

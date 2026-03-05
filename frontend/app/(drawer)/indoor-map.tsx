@@ -6,12 +6,14 @@ import IndoorItineraryBottomSheet, {
 } from "@/components/indoor/IndoorItineraryBottomSheet";
 
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
-import { GetDirectionsIcon } from "@/app/icons";
+import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useIndoorItineraryController } from "@/hooks/useIndoorItineraryController";
 import { useIndoorNavigationStore } from "@/hooks/useIndoorNavigationStore";
 import { useEffect } from "react";
+
+// ✅ matches your browse bottom sheets ("15%") well; tune if needed
+const BROWSE_SHEET_HEIGHT = 160    ;
 
 export default function IndoorMapPage() {
   const router = useRouter();
@@ -24,14 +26,12 @@ export default function IndoorMapPage() {
   const nav = useIndoorNavigationStore();
 
   const hardReset = () => {
-    // if you added a reset() in store, use it
     if (typeof (nav as any).reset === "function") {
       (nav as any).reset();
       return;
     }
 
-    // otherwise, reset with existing actions
-    nav.exitItinerary(); // sets mode=BROWSE and clears start/end/route
+    nav.exitItinerary();
     nav.setSelectedRoom(null);
     nav.setPickMode("start");
     nav.setStart(null);
@@ -40,12 +40,9 @@ export default function IndoorMapPage() {
     nav.setCurrentFloor?.(null);
   };
 
-  // Reset when entering this screen for a new building, and also on unmount.
   useEffect(() => {
     hardReset();
-    return () => {
-      hardReset();
-    };
+    return () => hardReset();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [buildingCode]);
 
@@ -54,7 +51,10 @@ export default function IndoorMapPage() {
     router.replace("/map");
   };
 
-  const showItineraryButton = nav.mode === "BROWSE" && nav.selectedRoom != null;
+  const selectorOffset =
+    nav.mode === "ITINERARY"
+      ? ITINERARY_SHEET_HEIGHT + Math.max(insets.bottom, 8) + 24
+      : BROWSE_SHEET_HEIGHT + Math.max(insets.bottom, 8) + 24;
 
   return (
     <View style={styles.container}>
@@ -66,11 +66,10 @@ export default function IndoorMapPage() {
             ? nav.start?.floor ?? nav.currentFloor ?? null
             : nav.currentFloor ?? null
         }
-        floorSelectorBottomOffset={
-          nav.mode === "ITINERARY"
-            ? ITINERARY_SHEET_HEIGHT + Math.max(insets.bottom, 8) + 24
-            : 24
-        }
+        // ✅ moves up for BOTH:
+        // - itinerary bottom sheet
+        // - browse (floor/room) bottom sheets
+        floorSelectorBottomOffset={selectorOffset}
       />
 
       {nav.mode === "ITINERARY" ? (
@@ -84,22 +83,6 @@ export default function IndoorMapPage() {
         />
       )}
 
-      {showItineraryButton ? (
-        <TouchableOpacity
-          style={[
-            styles.floatingIcon,
-            {
-              right: 16,
-              bottom: Math.max(insets.bottom, 12) + 110,
-            },
-          ]}
-          onPress={nav.enterItineraryFromSelected}
-          activeOpacity={0.85}
-        >
-          <GetDirectionsIcon size={90} color={"#912338"} />
-        </TouchableOpacity>
-      ) : null}
-
       <IndoorItineraryBottomSheet buildingCode={buildingCode} />
     </View>
   );
@@ -107,11 +90,4 @@ export default function IndoorMapPage() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, position: "relative" },
-  floatingIcon: {
-    position: "absolute",
-    zIndex: 300,
-    elevation: 300,
-    borderRadius: 20,
-    padding: 6,
-  },
 });

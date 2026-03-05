@@ -20,22 +20,20 @@ import IndoorBottomSheetSection from "./IndoorBottomSheetSection";
 import { useIndoorNavigationStore } from "@/hooks/useIndoorNavigationStore";
 
 type Props = {
-  // existing
   floor: Floor | undefined;
 
-  // itinerary/path support (your stuff)
   routePath?: Coordinates[] | null;
   selectedPoiName?: string;
   onSelectPoiName?: (name: string) => void;
   extraHighlightedPoiNames?: string[];
 
-  // browse bottom sheet support (their stuff)
   buildingCode?: string;
   buildingName?: string;
   metroAccessible?: boolean;
 };
 
-const normalizeName = (s: string) => s.trim().toLowerCase().replace(/\s+/g, "");
+const normalizeName = (s: string) =>
+  s.trim().toLowerCase().replace(/\s+/g, "");
 
 export default function FloorPlanViewer({
   floor,
@@ -49,16 +47,15 @@ export default function FloorPlanViewer({
 }: Readonly<Props>) {
   const nav = useIndoorNavigationStore();
 
-  // Local selection only for the Browse bottom sheet "clear" action.
-  // We do NOT force you to use this state for itinerary selection.
-  const [localSelectedPoiName, setLocalSelectedPoiName] = useState<string | undefined>(
-    undefined,
-  );
+  const [localSelectedPoiName, setLocalSelectedPoiName] = useState<
+    string | undefined
+  >(undefined);
 
-  // Determine which selected name to show:
-  // - if parent passes selectedPoiName, use it
-  // - otherwise, use local one (browse)
   const effectiveSelectedPoiName = selectedPoiName ?? localSelectedPoiName;
+
+  // ✅ Bottom sheet should only appear in BROWSE mode
+  const bottomSheetSelectedPoiName =
+    nav.mode === "BROWSE" ? effectiveSelectedPoiName : undefined;
 
   const { width: SCREEN_WIDTH } = useWindowDimensions();
   const { dimensions, svgText, error, isLoading } = useSvgDimensions(
@@ -97,7 +94,8 @@ export default function FloorPlanViewer({
     nav.mode === "ITINERARY" && nav.end && nav.end.floor === floor.number
       ? floor.pois.find(
           (poi) =>
-            normalizeName(poi.name ?? "") === normalizeName(nav.end?.label ?? ""),
+            normalizeName(poi.name ?? "") ===
+            normalizeName(nav.end?.label ?? ""),
         ) ?? null
       : null;
 
@@ -106,12 +104,12 @@ export default function FloorPlanViewer({
       ? destinationPoi.polygon
       : undefined;
 
-  // ✅ POI endpoint overrides (ONLY when POI has no polygon)
   const startPoi =
     nav.mode === "ITINERARY" && nav.start && nav.start.floor === floor.number
       ? floor.pois.find(
           (poi) =>
-            normalizeName(poi.name ?? "") === normalizeName(nav.start?.label ?? ""),
+            normalizeName(poi.name ?? "") ===
+            normalizeName(nav.start?.label ?? ""),
         ) ?? null
       : null;
 
@@ -125,24 +123,20 @@ export default function FloorPlanViewer({
       ? { x: destinationPoi.position.x, y: destinationPoi.position.y }
       : undefined;
 
-  // normalize extra highlight set once
   const extraSet = useMemo(() => {
     return new Set(extraHighlightedPoiNames.map((n) => normalizeName(n)));
   }, [extraHighlightedPoiNames]);
 
   const handlePoiPress = (name: string) => {
-    // If parent provided handler (itinerary logic), use it
     if (onSelectPoiName) {
       onSelectPoiName(name);
       return;
     }
 
-    // Otherwise fallback to local selection for browse bottom sheet
     setLocalSelectedPoiName(name);
   };
 
-  const showBottomSheetSection =
-    !!buildingCode && !!buildingName; // keep it safe (only render if we have required props)
+  const showBottomSheetSection = !!buildingCode && !!buildingName;
 
   return (
     <View style={styles.container}>
@@ -211,9 +205,9 @@ export default function FloorPlanViewer({
               path={routePath}
               width={DISPLAY_WIDTH}
               height={DISPLAY_HEIGHT}
-              endPolygon={endPolygon} // ✅ rooms keep same behavior
-              startOverride={startOverride} // ✅ POIs only (selected start)
-              endOverride={endOverride} // ✅ POIs only (selected dest)
+              endPolygon={endPolygon}
+              startOverride={startOverride}
+              endOverride={endOverride}
             />
           ) : null}
         </View>
@@ -225,14 +219,17 @@ export default function FloorPlanViewer({
           buildingName={buildingName!}
           buildingCode={buildingCode!}
           metroAccessible={metroAccessible}
-          selectedPoiName={effectiveSelectedPoiName}
+          selectedPoiName={bottomSheetSelectedPoiName}
           onClearSelectedPoi={() => {
-            // If parent controls selection, clear by telling parent (best-effort)
-            if (onSelectPoiName) {
-              onSelectPoiName(""); // depends on your parent logic; safer is local clear only
-            }
             setLocalSelectedPoiName(undefined);
+            nav.setSelectedRoom(null);
           }}
+          onDirectionsPress={() => {
+            nav.enterItineraryFromSelected();
+            setLocalSelectedPoiName(undefined);
+            nav.setSelectedRoom(null);
+          }}
+          directionsDisabled={!nav.selectedRoom}
         />
       ) : null}
     </View>

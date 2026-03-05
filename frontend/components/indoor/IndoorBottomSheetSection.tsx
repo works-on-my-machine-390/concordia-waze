@@ -2,22 +2,29 @@ import type { Floor } from "@/hooks/queries/indoorMapQueries";
 import { StyleSheet, View } from "react-native";
 import IndoorFloorBottomSheet from "./IndoorFloorBottomSheet";
 import IndoorRoomBottomSheet from "./IndoorRoomBottomSheet";
+import { useIndoorNavigationStore } from "@/hooks/useIndoorNavigationStore";
 
 export type IndoorBottomSheetSectionProps = {
   floor: Floor | undefined;
   buildingCode: string;
   buildingName: string;
   metroAccessible?: boolean;
+
   selectedPoiName?: string;
   onClearSelectedPoi: () => void;
+
+  onDirectionsPress?: () => void;
+  directionsDisabled?: boolean;
 };
 
-/**
- * Collection of all bottom sheets used on the indoor map page.
- */
 export default function IndoorBottomSheetSection(
   props: Readonly<IndoorBottomSheetSectionProps>,
 ) {
+  const nav = useIndoorNavigationStore();
+
+  // ✅ Hide BOTH room + floor bottom sheets while in itinerary
+  if (nav.mode === "ITINERARY") return null;
+
   const {
     floor,
     buildingCode,
@@ -25,6 +32,8 @@ export default function IndoorBottomSheetSection(
     metroAccessible,
     selectedPoiName,
     onClearSelectedPoi,
+    onDirectionsPress,
+    directionsDisabled = false,
   } = props;
 
   const selectedPoi = selectedPoiName
@@ -41,12 +50,15 @@ export default function IndoorBottomSheetSection(
           metroAccessible={metroAccessible}
         />
       )}
+
       {selectedPoi && (
         <IndoorRoomBottomSheet
           roomCode={selectedPoi.name}
           buildingCode={buildingCode}
           roomType={selectedPoi.type}
           onClose={onClearSelectedPoi}
+          onDirectionsPress={onDirectionsPress}
+          directionsDisabled={directionsDisabled}
         />
       )}
     </View>

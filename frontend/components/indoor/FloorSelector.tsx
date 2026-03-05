@@ -1,3 +1,4 @@
+// FloorSelector.tsx
 import type { Floor } from "@/hooks/queries/indoorMapQueries";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
@@ -6,7 +7,7 @@ type Props = {
   selectedFloor: number;
   onSelectFloor: (floorNumber: number) => void;
 
-  // ✅ NEW: lets parent push the selector upward (ex: when bottom sheet is open)
+  // lets parent push the selector upward (ex: when bottom sheet is open)
   bottomOffset?: number;
 };
 
@@ -46,11 +47,10 @@ export default function FloorSelector({
 const styles = StyleSheet.create({
   container: {
     position: "absolute",
-    bottom: 150,
     left: 16,
-    gap: 10,          // tighter stack like mockup
-    zIndex: 2000,     // ✅ above bottom sheet
-    elevation: 2000,  // ✅ android
+    gap: 10,
+    zIndex: 2000,
+    elevation: 2000,
   },
   floorButton: {
     width: 56,
