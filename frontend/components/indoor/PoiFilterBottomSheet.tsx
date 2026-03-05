@@ -38,7 +38,7 @@ export default function PoiFilterBottomSheet({
   const [selectedFloorFilter, setSelectedFloorFilter] = useState<number | null>(
     null,
   );
-  const snapPoints = useMemo(() => ["25%", "50%", "90%"], []);
+  const snapPoints = useMemo(() => ["15%", "50%", "90%"], []);
 
   const sections: Section[] = useMemo(() => {
     const floorGroups: Record<number, PoiItem[]> = {};
