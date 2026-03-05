@@ -739,7 +739,7 @@ func TestNewGraphFromFloor_EmptyVertices_ReturnsError(t *testing.T) {
 		Edges:       []domain.Edge{},
 	}
 
-	_, err := newGraphFromFloor(floor)
+	_, err := newGraphFromFloor(floor, false)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "no vertices")
 }
@@ -757,7 +757,7 @@ func TestNewGraphFromFloor_InvalidEdgeIndex_ReturnsError(t *testing.T) {
 		},
 	}
 
-	_, err := newGraphFromFloor(floor)
+	_, err := newGraphFromFloor(floor, false)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid vertex index")
 }
@@ -775,14 +775,14 @@ func TestNewGraphFromFloor_NegativeEdgeIndex_ReturnsError(t *testing.T) {
 		},
 	}
 
-	_, err := newGraphFromFloor(floor)
+	_, err := newGraphFromFloor(floor, false)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid vertex index")
 }
 
 func TestGraph_ShortestPath_SameStartAndGoal(t *testing.T) {
 	floor := createSimpleFloorWithStairs(1, "TestFloor")
-	g, err := newGraphFromFloor(floor)
+	g, err := newGraphFromFloor(floor, false)
 	assert.NoError(t, err)
 
 	path, dist, err := g.shortestPath(0, 0)
@@ -793,7 +793,7 @@ func TestGraph_ShortestPath_SameStartAndGoal(t *testing.T) {
 
 func TestGraph_ShortestPath_OutOfRange_ReturnsError(t *testing.T) {
 	floor := createSimpleFloorWithStairs(1, "TestFloor")
-	g, err := newGraphFromFloor(floor)
+	g, err := newGraphFromFloor(floor, false)
 	assert.NoError(t, err)
 
 	_, _, err = g.shortestPath(-1, 2)
@@ -820,7 +820,7 @@ func TestGraph_ShortestPath_NoPathExists_ReturnsError(t *testing.T) {
 		},
 	}
 
-	g, err := newGraphFromFloor(floor)
+	g, err := newGraphFromFloor(floor, false)
 	assert.NoError(t, err)
 
 	_, _, err = g.shortestPath(0, 2)
@@ -843,7 +843,7 @@ func TestGraph_NearestVertex(t *testing.T) {
 		},
 	}
 
-	g, err := newGraphFromFloor(floor)
+	g, err := newGraphFromFloor(floor, false)
 	assert.NoError(t, err)
 
 	// Point closest to vertex 2 (1,1)
@@ -857,7 +857,7 @@ func TestGraph_NearestVertex(t *testing.T) {
 
 func TestGraph_PathCoordinates(t *testing.T) {
 	floor := createSimpleFloorWithStairs(1, "Test")
-	g, err := newGraphFromFloor(floor)
+	g, err := newGraphFromFloor(floor, false)
 	assert.NoError(t, err)
 
 	coords := g.pathCoordinates([]int{0, 1, 2})
@@ -1284,7 +1284,7 @@ func TestGraph_NearestPointOnEdge_FindsCorrectEdge(t *testing.T) {
 		},
 	}
 
-	g, err := newGraphFromFloor(floor)
+	g, err := newGraphFromFloor(floor, false)
 	assert.NoError(t, err)
 
 	// Point (1, 0.5) should be closest to edge 0-1 at (1, 0)
@@ -1309,7 +1309,7 @@ func TestGraph_InsertVertexOnEdge_SplitsCorrectly(t *testing.T) {
 		},
 	}
 
-	g, err := newGraphFromFloor(floor)
+	g, err := newGraphFromFloor(floor, false)
 	assert.NoError(t, err)
 	assert.Len(t, g.pos, 2)
 
@@ -1366,7 +1366,7 @@ func TestGraph_NearestVertexWithSplit_UsesExistingVertexWhenClose(t *testing.T) 
 		},
 	}
 
-	g, err := newGraphFromFloor(floor)
+	g, err := newGraphFromFloor(floor, false)
 	assert.NoError(t, err)
 
 	// Point exactly at vertex 0 - should return vertex 0, not split
@@ -1388,7 +1388,7 @@ func TestGraph_NearestVertexWithSplit_SplitsEdgeWhenFarFromVertices(t *testing.T
 		},
 	}
 
-	g, err := newGraphFromFloor(floor)
+	g, err := newGraphFromFloor(floor, false)
 	assert.NoError(t, err)
 
 	// Point above the middle of the edge - should split the edge
@@ -1450,4 +1450,335 @@ func TestTransitionType_String(t *testing.T) {
 	assert.Equal(t, "none", TransitionNone.String())
 	assert.Equal(t, "stairs", TransitionStairs.String())
 	assert.Equal(t, "elevator", TransitionElevator.String())
+}
+
+// ========== RequireAccessible Tests ==========
+
+func TestMultiFloorShortestPath_RequireAccessible_UsesElevator(t *testing.T) {
+	// Both floors have elevators
+	floor1 := createSimpleFloorWithElevator(1, "Floor1")
+	floor2 := createSimpleFloorWithElevator(2, "Floor2")
+
+	floorRepo := &mockFloorRepoForPath{
+		floors: map[string][]domain.Floor{
+			"H": {floor1, floor2},
+		},
+	}
+	roomRepo := &mockIndoorRoomRepoForPath{rooms: map[string][]domain.IndoorRoom{}}
+
+	svc := NewIndoorPathService(floorRepo, roomRepo)
+
+	start := domain.Coordinates{X: 0.1, Y: 0.1}
+	end := domain.Coordinates{X: 0.9, Y: 0.9}
+
+	result, err := svc.MultiFloorShortestPath(MultiFloorPathRequest{
+		BuildingCode:      "H",
+		StartFloor:        1,
+		EndFloor:          2,
+		StartCoord:        &start,
+		EndCoord:          &end,
+		RequireAccessible: true,
+	})
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, TransitionElevator, result.TransitionType)
+	assert.Len(t, result.Segments, 2)
+}
+
+func TestMultiFloorShortestPath_RequireAccessible_NoElevatorOnStartFloor_ReturnsError(t *testing.T) {
+	// Floor 1 has only stairs, Floor 2 has elevator
+	floor1 := createSimpleFloorWithStairs(1, "Floor1")
+	floor2 := createSimpleFloorWithElevator(2, "Floor2")
+
+	floorRepo := &mockFloorRepoForPath{
+		floors: map[string][]domain.Floor{
+			"VL": {floor1, floor2},
+		},
+	}
+	roomRepo := &mockIndoorRoomRepoForPath{rooms: map[string][]domain.IndoorRoom{}}
+
+	svc := NewIndoorPathService(floorRepo, roomRepo)
+
+	start := domain.Coordinates{X: 0.1, Y: 0.1}
+	end := domain.Coordinates{X: 0.9, Y: 0.9}
+
+	result, err := svc.MultiFloorShortestPath(MultiFloorPathRequest{
+		BuildingCode:      "VL",
+		StartFloor:        1,
+		EndFloor:          2,
+		StartCoord:        &start,
+		EndCoord:          &end,
+		RequireAccessible: true,
+	})
+
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "no transition point")
+}
+
+func TestMultiFloorShortestPath_RequireAccessible_NoElevatorOnEndFloor_ReturnsError(t *testing.T) {
+	// Floor 1 has elevator, Floor 2 has only stairs
+	floor1 := createSimpleFloorWithElevator(1, "Floor1")
+	floor2 := createSimpleFloorWithStairs(2, "Floor2")
+
+	floorRepo := &mockFloorRepoForPath{
+		floors: map[string][]domain.Floor{
+			"VL": {floor1, floor2},
+		},
+	}
+	roomRepo := &mockIndoorRoomRepoForPath{rooms: map[string][]domain.IndoorRoom{}}
+
+	svc := NewIndoorPathService(floorRepo, roomRepo)
+
+	start := domain.Coordinates{X: 0.1, Y: 0.1}
+	end := domain.Coordinates{X: 0.9, Y: 0.9}
+
+	result, err := svc.MultiFloorShortestPath(MultiFloorPathRequest{
+		BuildingCode:      "VL",
+		StartFloor:        1,
+		EndFloor:          2,
+		StartCoord:        &start,
+		EndCoord:          &end,
+		RequireAccessible: true,
+	})
+
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "no transition point")
+}
+
+func TestMultiFloorShortestPath_RequireAccessible_BothFloorsHaveBoth_UsesElevator(t *testing.T) {
+	// Both floors have both stairs and elevator - should use elevator when RequireAccessible
+	floor1 := createSimpleFloorWithBothTransitions(1, "Floor1")
+	floor2 := createSimpleFloorWithBothTransitions(2, "Floor2")
+
+	floorRepo := &mockFloorRepoForPath{
+		floors: map[string][]domain.Floor{
+			"LB": {floor1, floor2},
+		},
+	}
+	roomRepo := &mockIndoorRoomRepoForPath{rooms: map[string][]domain.IndoorRoom{}}
+
+	svc := NewIndoorPathService(floorRepo, roomRepo)
+
+	start := domain.Coordinates{X: 0.1, Y: 0.1}
+	end := domain.Coordinates{X: 0.9, Y: 0.9}
+
+	result, err := svc.MultiFloorShortestPath(MultiFloorPathRequest{
+		BuildingCode:      "LB",
+		StartFloor:        1,
+		EndFloor:          2,
+		StartCoord:        &start,
+		EndCoord:          &end,
+		RequireAccessible: true,
+	})
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, TransitionElevator, result.TransitionType)
+}
+
+// ========== findClosestTransitionPoint Tests ==========
+
+func TestFindClosestTransitionPoint_ReturnsClosestStairs(t *testing.T) {
+	floor := domain.Floor{
+		FloorNumber: 1,
+		FloorName:   "Test",
+		POIs: []domain.PointOfInterest{
+			{Name: "stairs_far", Type: "stairs", Position: domain.Coordinates{X: 0.9, Y: 0.9}},
+			{Name: "stairs_close", Type: "stairs", Position: domain.Coordinates{X: 0.2, Y: 0.2}},
+			{Name: "elevator", Type: "elevator", Position: domain.Coordinates{X: 0.5, Y: 0.5}},
+		},
+	}
+
+	floorRepo := &mockFloorRepoForPath{floors: map[string][]domain.Floor{}}
+	roomRepo := &mockIndoorRoomRepoForPath{rooms: map[string][]domain.IndoorRoom{}}
+	svc := NewIndoorPathService(floorRepo, roomRepo)
+
+	refPoint := domain.Coordinates{X: 0.1, Y: 0.1}
+	result := svc.findClosestTransitionPoint(&floor, TransitionStairs, refPoint)
+
+	assert.NotNil(t, result)
+	// Should return the closer stairs at (0.2, 0.2)
+	assert.InDelta(t, 0.2, result.X, 0.001)
+	assert.InDelta(t, 0.2, result.Y, 0.001)
+}
+
+func TestFindClosestTransitionPoint_ReturnsClosestElevator(t *testing.T) {
+	floor := domain.Floor{
+		FloorNumber: 1,
+		FloorName:   "Test",
+		POIs: []domain.PointOfInterest{
+			{Name: "stairs", Type: "stairs", Position: domain.Coordinates{X: 0.1, Y: 0.1}},
+			{Name: "elevator_far", Type: "elevator", Position: domain.Coordinates{X: 0.9, Y: 0.9}},
+			{Name: "elevator_close", Type: "elevator", Position: domain.Coordinates{X: 0.3, Y: 0.3}},
+		},
+	}
+
+	floorRepo := &mockFloorRepoForPath{floors: map[string][]domain.Floor{}}
+	roomRepo := &mockIndoorRoomRepoForPath{rooms: map[string][]domain.IndoorRoom{}}
+	svc := NewIndoorPathService(floorRepo, roomRepo)
+
+	refPoint := domain.Coordinates{X: 0.2, Y: 0.2}
+	result := svc.findClosestTransitionPoint(&floor, TransitionElevator, refPoint)
+
+	assert.NotNil(t, result)
+	// Should return the closer elevator at (0.3, 0.3)
+	assert.InDelta(t, 0.3, result.X, 0.001)
+	assert.InDelta(t, 0.3, result.Y, 0.001)
+}
+
+func TestFindClosestTransitionPoint_NoMatchingType_ReturnsNil(t *testing.T) {
+	floor := domain.Floor{
+		FloorNumber: 1,
+		FloorName:   "Test",
+		POIs: []domain.PointOfInterest{
+			{Name: "stairs", Type: "stairs", Position: domain.Coordinates{X: 0.5, Y: 0.5}},
+		},
+	}
+
+	floorRepo := &mockFloorRepoForPath{floors: map[string][]domain.Floor{}}
+	roomRepo := &mockIndoorRoomRepoForPath{rooms: map[string][]domain.IndoorRoom{}}
+	svc := NewIndoorPathService(floorRepo, roomRepo)
+
+	refPoint := domain.Coordinates{X: 0.1, Y: 0.1}
+	result := svc.findClosestTransitionPoint(&floor, TransitionElevator, refPoint)
+
+	assert.Nil(t, result)
+}
+
+func TestFindClosestTransitionPoint_TransitionNone_ReturnsNil(t *testing.T) {
+	floor := domain.Floor{
+		FloorNumber: 1,
+		FloorName:   "Test",
+		POIs: []domain.PointOfInterest{
+			{Name: "stairs", Type: "stairs", Position: domain.Coordinates{X: 0.5, Y: 0.5}},
+			{Name: "elevator", Type: "elevator", Position: domain.Coordinates{X: 0.6, Y: 0.6}},
+		},
+	}
+
+	floorRepo := &mockFloorRepoForPath{floors: map[string][]domain.Floor{}}
+	roomRepo := &mockIndoorRoomRepoForPath{rooms: map[string][]domain.IndoorRoom{}}
+	svc := NewIndoorPathService(floorRepo, roomRepo)
+
+	refPoint := domain.Coordinates{X: 0.1, Y: 0.1}
+	result := svc.findClosestTransitionPoint(&floor, TransitionNone, refPoint)
+
+	assert.Nil(t, result)
+}
+
+// ========== Additional Edge Case Tests ==========
+
+func TestMultiFloorShortestPath_SameFloor_RequireAccessibleHasNoEffect(t *testing.T) {
+	// Same floor navigation should work regardless of RequireAccessible
+	floor := createSimpleFloorWithStairs(1, "Floor1")
+
+	floorRepo := &mockFloorRepoForPath{
+		floors: map[string][]domain.Floor{
+			"VL": {floor},
+		},
+	}
+	roomRepo := &mockIndoorRoomRepoForPath{rooms: map[string][]domain.IndoorRoom{}}
+
+	svc := NewIndoorPathService(floorRepo, roomRepo)
+
+	start := domain.Coordinates{X: 0, Y: 0}
+	end := domain.Coordinates{X: 1, Y: 1}
+
+	result, err := svc.MultiFloorShortestPath(MultiFloorPathRequest{
+		BuildingCode:      "VL",
+		StartFloor:        1,
+		EndFloor:          1,
+		StartCoord:        &start,
+		EndCoord:          &end,
+		RequireAccessible: true,
+	})
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, TransitionNone, result.TransitionType)
+}
+
+func TestCalculateTurnDirections_ZeroLengthSegment_ReturnsEmpty(t *testing.T) {
+	// Two identical points followed by a third
+	coords := []domain.Coordinates{
+		{X: 0, Y: 0},
+		{X: 0, Y: 0},
+		{X: 1, Y: 0},
+	}
+
+	directions := calculateTurnDirections(coords)
+	// Should handle gracefully without panicking
+	assert.NotNil(t, directions)
+}
+
+func TestClosestPointOnSegment_ZeroLengthSegment(t *testing.T) {
+	// Start and end are the same point
+	a := domain.Coordinates{X: 1, Y: 1}
+	b := domain.Coordinates{X: 1, Y: 1}
+	p := domain.Coordinates{X: 2, Y: 2}
+
+	closest := closestPointOnSegment(p, a, b)
+	// Should return the point itself (start)
+	assert.InDelta(t, 1.0, closest.X, 0.001)
+	assert.InDelta(t, 1.0, closest.Y, 0.001)
+}
+
+func TestGraph_NearestVertex_WithSingleVertex(t *testing.T) {
+	g := &graph{
+		pos: []domain.Coordinates{{X: 5, Y: 5}},
+		adj: make([][]neighbor, 1),
+	}
+
+	idx := g.nearestVertex(domain.Coordinates{X: 0, Y: 0})
+	assert.Equal(t, 0, idx)
+}
+
+func TestMultiFloorShortestPath_PreferElevator_WithBothAvailable(t *testing.T) {
+	// Both floors have both transitions
+	floor1 := createSimpleFloorWithBothTransitions(1, "Floor1")
+	floor2 := createSimpleFloorWithBothTransitions(2, "Floor2")
+
+	floorRepo := &mockFloorRepoForPath{
+		floors: map[string][]domain.Floor{
+			"LB": {floor1, floor2},
+		},
+	}
+	roomRepo := &mockIndoorRoomRepoForPath{rooms: map[string][]domain.IndoorRoom{}}
+
+	svc := NewIndoorPathService(floorRepo, roomRepo)
+
+	start := domain.Coordinates{X: 0.6, Y: 0.6}
+	end := domain.Coordinates{X: 0.8, Y: 0.8}
+
+	result, err := svc.MultiFloorShortestPath(MultiFloorPathRequest{
+		BuildingCode:   "LB",
+		StartFloor:     1,
+		EndFloor:       2,
+		StartCoord:     &start,
+		EndCoord:       &end,
+		PreferElevator: true,
+	})
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	// Should prefer elevator when requested
+	assert.Equal(t, TransitionElevator, result.TransitionType)
+}
+
+func TestEuclid_SamePoint_ReturnsZero(t *testing.T) {
+	a := domain.Coordinates{X: 5, Y: 5}
+	b := domain.Coordinates{X: 5, Y: 5}
+
+	dist := euclid(a, b)
+	assert.Equal(t, 0.0, dist)
+}
+
+func TestEuclid_StandardDistance(t *testing.T) {
+	a := domain.Coordinates{X: 0, Y: 0}
+	b := domain.Coordinates{X: 3, Y: 4}
+
+	dist := euclid(a, b)
+	assert.InDelta(t, 5.0, dist, 0.001)
 }
