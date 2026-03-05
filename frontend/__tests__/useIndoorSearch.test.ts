@@ -184,4 +184,61 @@ describe("useIndoorSearch", () => {
 
     expect(mutate).toHaveBeenCalled();
   });
+  test("deduplicates recent searches with same name and floor", async () => {
+    (useGetProfile as jest.Mock).mockReturnValue({ data: null });
+    (useGetUserHistory as jest.Mock).mockReturnValue({ data: [] });
+
+    (getGuestSearchHistory as jest.Mock).mockResolvedValue([
+      { query: "210", locations: "MB - Floor 2" },
+      { query: "210", locations: "MB - Floor 2" },
+      { query: "310", locations: "MB - Floor 3" },
+    ]);
+
+    (extractFloorFromAddress as jest.Mock).mockImplementation((loc) =>
+      loc.includes("Floor 2") ? 2 : 3,
+    );
+
+    const { result } = renderHook(() =>
+      useIndoorSearch(floors as any, "", "MB"),
+    );
+
+    await waitFor(() => expect(result.current.recentSearches.length).toBe(2));
+
+    expect(result.current.recentSearches[0].displayName).toBe("210");
+    expect(result.current.recentSearches[1].displayName).toBe("310");
+  });
+
+  test("caps recent searches at 6", async () => {
+    (useGetProfile as jest.Mock).mockReturnValue({ data: null });
+    (useGetUserHistory as jest.Mock).mockReturnValue({ data: [] });
+
+    (getGuestSearchHistory as jest.Mock).mockResolvedValue([
+      { query: "Room 1", locations: "MB - Floor 1" },
+      { query: "Room 2", locations: "MB - Floor 2" },
+      { query: "Room 3", locations: "MB - Floor 3" },
+      { query: "Room 4", locations: "MB - Floor 4" },
+      { query: "Room 5", locations: "MB - Floor 5" },
+      { query: "Room 6", locations: "MB - Floor 6" },
+      { query: "Room 7", locations: "MB - Floor 7" },
+    ]);
+
+    (extractFloorFromAddress as jest.Mock).mockImplementation((loc) =>
+      Number.parseInt(loc.match(/Floor (\d)/)?.[1] ?? "0"),
+    );
+
+    const { result } = renderHook(() =>
+      useIndoorSearch(floors as any, "", "MB"),
+    );
+
+    await waitFor(() => expect(result.current.recentSearches.length).toBe(6));
+
+    expect(result.current.recentSearches.map((s) => s.displayName)).toEqual([
+      "Room 1",
+      "Room 2",
+      "Room 3",
+      "Room 4",
+      "Room 5",
+      "Room 6",
+    ]);
+  });
 });

@@ -51,6 +51,23 @@ function calculateSearchScore(poi: PointOfInterest, query: string): number {
   );
 }
 
+function deduplicateSearches(
+  searches: RecentIndoorSearch[],
+): RecentIndoorSearch[] {
+  const seen = new Set<string>();
+  const items: RecentIndoorSearch[] = [];
+
+  for (const item of searches) {
+    const key = `${item.displayName}-${item.floor}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    items.push(item);
+    if (items.length >= 6) break;
+  }
+
+  return items;
+}
+
 export const useIndoorSearch = (
   floors: Floor[],
   query: string,
@@ -78,27 +95,25 @@ export const useIndoorSearch = (
               item.building_code === buildingCode &&
               item.destinationType === "room",
           )
-          .slice(0, 5)
           .map((item) => ({
             displayName: item.name,
             floor: extractFloorFromAddress(item.address),
           }));
 
         if (active) {
-          setRecentSearches(buildingSearches);
+          setRecentSearches(deduplicateSearches(buildingSearches));
         }
       } else {
         const items = await getGuestSearchHistory();
         const buildingSearches = items
           .filter((item) => item.locations?.includes(buildingCode))
-          .slice(0, 5)
           .map((item) => ({
             displayName: item.query,
             floor: extractFloorFromAddress(item.locations || ""),
           }));
 
         if (active) {
-          setRecentSearches(buildingSearches);
+          setRecentSearches(deduplicateSearches(buildingSearches));
         }
       }
     };

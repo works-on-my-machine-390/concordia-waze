@@ -179,45 +179,6 @@ describe("IndoorSearchPage", () => {
     expect(screen.getByText("Recent: MB220")).toBeOnTheScreen();
   });
 
-  test("deduplicates recent searches", () => {
-    const duplicateSearches = [
-      { displayName: "MB210", floor: 1 },
-      { displayName: "MB210", floor: 1 },
-      { displayName: "MB220", floor: 2 },
-    ];
-
-    (useIndoorSearch as jest.Mock).mockReturnValue({
-      results: [],
-      recentSearches: duplicateSearches,
-      addRecentSearch: jest.fn(),
-      clearRecentSearches: jest.fn(),
-    });
-
-    render(<IndoorSearchPage />);
-
-    const recentItems = screen.getAllByText(/^Recent:/);
-    expect(recentItems).toHaveLength(2);
-  });
-
-  test("limits recent searches to 6 items", () => {
-    const manySearches = Array.from({ length: 10 }, (_, i) => ({
-      displayName: `Room${i}`,
-      floor: 1,
-    }));
-
-    (useIndoorSearch as jest.Mock).mockReturnValue({
-      results: [],
-      recentSearches: manySearches,
-      addRecentSearch: jest.fn(),
-      clearRecentSearches: jest.fn(),
-    });
-
-    render(<IndoorSearchPage />);
-
-    const recentItems = screen.getAllByText(/^Recent:/);
-    expect(recentItems.length).toBeLessThanOrEqual(6);
-  });
-
   test("calls clearRecentSearches when clear button is pressed", () => {
     const mockClearRecentSearches = jest.fn();
 
