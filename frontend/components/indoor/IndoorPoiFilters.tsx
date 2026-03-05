@@ -60,7 +60,7 @@ export default function IndoorPoiFilters({ onFilterPress }: Readonly<Props>) {
           style={styles.chip}
           onPress={() => onFilterPress(filter.type, filter.label)}
         >
-          <filter.Icon size={14} color={COLORS.textPrimary} />
+          <filter.Icon size={16} color={COLORS.textPrimary} />
           <Text style={styles.chipText}>{filter.label}</Text>
         </Pressable>
       ))}
@@ -71,25 +71,22 @@ export default function IndoorPoiFilters({ onFilterPress }: Readonly<Props>) {
 const styles = StyleSheet.create({
   scrollView: {
     marginTop: 12,
-    paddingHorizontal: 16,
-    maxHeight: 40,
+    paddingHorizontal: 12,
   },
   contentContainer: {
-    paddingRight: 16,
     alignItems: "center",
   },
   chip: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: COLORS.bgDark,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderWidth: 1,
     borderColor: COLORS.border,
-    borderRadius: 14,
+    borderRadius: 16,
     marginRight: 8,
-    gap: 6,
-    height: 32,
+    gap: 8,
   },
   chipText: {
     color: COLORS.textPrimary,
