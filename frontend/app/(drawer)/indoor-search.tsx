@@ -49,7 +49,12 @@ export default function IndoorSearchPage() {
     floorNumber: number,
     displayName: string,
   ) => {
-    addRecentSearch(displayName, roomCode, floorNumber);
+    const floor = floors.find((f) => f.number === floorNumber);
+    const poi = floor?.pois.find((p) => p.name === roomCode);
+
+    if (poi?.type.toLowerCase() === "room") {
+      addRecentSearch(displayName, roomCode, floorNumber);
+    }
 
     router.navigate({
       pathname: "/indoor-map",
