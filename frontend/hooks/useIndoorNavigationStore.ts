@@ -55,19 +55,20 @@ export const useIndoorNavigationStore = create<IndoorNavigationState>((set, get)
 
   setSelectedRoom: (p) => set({ selectedRoom: p }),
 
- enterItineraryFromSelected: () => {
-    const sel = get().selectedRoom;
-    if (!sel) return;
+  enterItineraryFromSelected: () => {
+  const sel = get().selectedRoom;
+  if (!sel) return;
 
-    set({
-      mode: "ITINERARY",
-      pickMode: "end",
-      start: sel,
-      end: null,
-      routeSegments: null,
-      totalDistance: null,
-    });
-  },
+  set({
+    mode: "ITINERARY",
+    pickMode: "start",     // ✅ user will pick START next
+    start: null,           // ✅ not set yet
+    end: sel,              // ✅ clicked room becomes END
+    routeSegments: null,
+    totalDistance: null,
+    selectedRoom: null,    // ✅ close browse room sheet
+  });
+},
 
   exitItinerary: () =>
     set({

@@ -1,14 +1,18 @@
+// IndoorMapContainer.tsx
 import FloorPlanViewer from "@/components/indoor/FloorPlanViewer";
 import FloorSelector from "@/components/indoor/FloorSelector";
 import { useGetBuildingFloors } from "@/hooks/queries/indoorMapQueries";
 import { useGetBuildingDetails } from "@/hooks/queries/buildingQueries";
-import type { FloorSegment, Coordinates } from "@/hooks/queries/indoorDirectionsQueries";
+import type {
+  FloorSegment,
+  Coordinates,
+} from "@/hooks/queries/indoorDirectionsQueries";
 import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { useIndoorNavigationStore } from "@/hooks/useIndoorNavigationStore";
 
 export type SelectedPoint = {
-  label: string; // room name
+  label: string; // room name / poi name
   floor: number;
   coord: Coordinates; // normalized [0..1]
 };
@@ -22,7 +26,8 @@ type Props = {
   floorSelectorBottomOffset?: number;
 };
 
-const normalizeName = (s: string) => s.trim().toLowerCase().replace(/\s+/g, "");
+const normalizeName = (s: string) =>
+  s.trim().toLowerCase().replace(/\s+/g, "");
 const normalizeType = (s?: string) =>
   (s ?? "").trim().toLowerCase().replace(/\s+/g, "_");
 
@@ -38,7 +43,11 @@ const dist2 = (a: { x: number; y: number }, b: { x: number; y: number }) => {
 };
 
 const findNearestTransitionPoi = (
-  pois: { type?: string; name?: string | null; position: { x: number; y: number } }[],
+  pois: {
+    type?: string;
+    name?: string | null;
+    position: { x: number; y: number };
+  }[],
   point: { x: number; y: number },
 ) => {
   let best: (typeof pois)[number] | null = null;
@@ -104,7 +113,8 @@ export default function IndoorMapContainer({
 
   const currentFloor =
     selectedFloor != null
-      ? data?.floors?.find((f) => f.number === selectedFloor) ?? data?.floors?.[0]
+      ? data?.floors?.find((f) => f.number === selectedFloor) ??
+        data?.floors?.[0]
       : undefined;
 
   // ✅ path for current floor + extra highlighted transition POIs
@@ -127,12 +137,18 @@ export default function IndoorMapContainer({
     const seg = routeSegments[idx];
     const path = seg?.path ?? null;
     if (!path || path.length < 2) {
-      return { routePathForCurrentFloor: path, extraHighlightedPoiNames: [] as string[] };
+      return {
+        routePathForCurrentFloor: path,
+        extraHighlightedPoiNames: [] as string[],
+      };
     }
 
     // Only apply snapping/highlighting if route spans multiple floors
     if (routeSegments.length < 2) {
-      return { routePathForCurrentFloor: path, extraHighlightedPoiNames: [] as string[] };
+      return {
+        routePathForCurrentFloor: path,
+        extraHighlightedPoiNames: [] as string[],
+      };
     }
 
     const floorObj =
@@ -165,10 +181,12 @@ export default function IndoorMapContainer({
       }
     }
 
-    const unique = Array.from(new Set(extraNames.map(normalizeName))).map((nrm) => {
-      const found = extraNames.find((x) => normalizeName(x) === nrm);
-      return found ?? nrm;
-    });
+    const unique = Array.from(new Set(extraNames.map(normalizeName))).map(
+      (nrm) => {
+        const found = extraNames.find((x) => normalizeName(x) === nrm);
+        return found ?? nrm;
+      },
+    );
 
     return {
       routePathForCurrentFloor: cleanPath(adjusted),
@@ -188,21 +206,20 @@ export default function IndoorMapContainer({
       coord: { x: poi.position.x, y: poi.position.y },
     };
 
+    // ✅ Browse: selecting opens room sheet (and enables directions button)
     if (nav.mode === "BROWSE") {
       nav.setSelectedRoom(point);
       return;
     }
 
-    if (nav.start) {
-      nav.setEnd(point);
-      nav.clearRoute();
-    } else {
-      nav.setStart(point);
-      nav.setPickMode("end");
-      nav.clearRoute();
-    }
+    // ✅ ITINERARY: ALWAYS modify START ONLY (never change destination via taps)
+    nav.setStart(point);
+    nav.setPickMode("start");
+    nav.clearRoute();
   };
 
+  // Highlight rule (unchanged):
+  // - In itinerary, we highlight end if present; otherwise start
   const highlightedPoiName =
     nav.mode === "ITINERARY"
       ? nav.end?.label ?? nav.start?.label

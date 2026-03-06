@@ -1,4 +1,3 @@
-// FloorSelector.tsx
 import type { Floor } from "@/hooks/queries/indoorMapQueries";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
