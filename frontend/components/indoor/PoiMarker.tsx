@@ -13,21 +13,19 @@ import {
 } from "@/app/icons";
 import type { PointOfInterest } from "@/hooks/queries/indoorMapQueries";
 import { Pressable, StyleSheet, View } from "react-native";
+import { COLORS } from "../../app/constants";
 
 type Props = {
   poi: PointOfInterest;
   width: number;
   height: number;
   onPress?: () => void;
-  highlighted?: boolean; // ✅ add
+  highlighted?: boolean;
 };
 
 const ICON_SIZE = 20;
-const BLUE = "#1e6bff";
-const RED = "#912338";
 
 const getIconComponent = (type: string) => {
-  // eslint-disable-next-line sonarjs/prefer-string-replace-all
   const normalizedType = type.toLowerCase().replace(/\s+/g, "_");
 
   switch (normalizedType) {
@@ -81,7 +79,10 @@ export default function PoiMarker({
       ]}
     >
       {highlighted ? <View style={styles.halo} /> : null}
-      <IconComponent size={ICON_SIZE} color={highlighted ? BLUE : RED} />
+      <IconComponent
+        size={ICON_SIZE}
+        color={highlighted ? COLORS.selectionBlue : COLORS.maroon}
+      />
     </Pressable>
   );
 }

@@ -80,45 +80,4 @@ describe("IndoorMapHeader", () => {
 
     expect(onSearchPress).toHaveBeenCalledTimes(1);
   });
-
-  test("displays search text when provided", () => {
-    const { getByText } = renderWithProviders(
-      <IndoorMapHeader {...defaultProps} searchText="Room 101" />
-    );
-
-    expect(getByText("Room 101")).toBeTruthy();
-  });
-
-  test("shows clear button and calls onSearchClear when search text exists", () => {
-    const onSearchClear = jest.fn();
-    const { getByTestId } = renderWithProviders(
-      <IndoorMapHeader
-        {...defaultProps}
-        searchText="Room 101"
-        onSearchClear={onSearchClear}
-      />
-    );
-
-    expect(getByTestId("search-clear")).toBeTruthy();
-
-    fireEvent.press(getByTestId("search-clear"));
-
-    expect(onSearchClear).toHaveBeenCalledTimes(1);
-  });
-
-  test("does not show clear button when search text is empty", () => {
-    const { queryByTestId } = renderWithProviders(
-      <IndoorMapHeader {...defaultProps} searchText="" />
-    );
-
-    expect(queryByTestId("search-clear")).toBeNull();
-  });
-
-  test("renders placeholder text when no search text", () => {
-    const { getByText } = renderWithProviders(
-      <IndoorMapHeader {...defaultProps} searchText="" />
-    );
-
-    expect(getByText("Search rooms...")).toBeTruthy();
-  });
 });

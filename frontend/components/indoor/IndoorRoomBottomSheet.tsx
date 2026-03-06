@@ -8,6 +8,7 @@ import {
   GetDirectionsIcon,
 } from "../../app/icons";
 import { BottomSheetStyles } from "../BuildingBottomSheet";
+import { formatIndoorPoiName } from "../../app/utils/indoorNameFormattingUtils";
 
 export type IndoorRoomBottomSheetProps = {
   roomCode: string;
@@ -39,29 +40,11 @@ export default function IndoorRoomBottomSheet(
 
   const isRoom = roomType?.toLowerCase() === "room";
 
-  const isNumericRoom =
-    /^Room\s*\d+/i.test(roomCode) ||
-    /^[\d.]+$/.test(roomCode.trim()) ||
-    /^S\d[\d.]*$/i.test(roomCode.trim());
-
-  const needsSpaceSeparator = isNumericRoom && /^S\d/i.test(roomCode.trim());
-  const separator = needsSpaceSeparator ? " " : "";
-
-  const displayRoomCode = isNumericRoom
-    ? `${buildingCode}${separator}${roomCode.replace(/^Room\s*/i, "").trim()}`
-    : roomCode;
-
-  const capitalizeRoomType = (type: string): string =>
-    type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
-
-  let displayTitle: string;
-  if (isRoom) {
-    displayTitle = displayRoomCode;
-  } else if (roomType) {
-    displayTitle = capitalizeRoomType(roomType);
-  } else {
-    displayTitle = roomCode;
-  }
+  const displayTitle = formatIndoorPoiName(
+    roomCode,
+    roomType ?? "",
+    buildingCode,
+  );
 
   const displaySubtitle = isRoom ? "Room" : null;
 

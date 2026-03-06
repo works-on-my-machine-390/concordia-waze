@@ -1,29 +1,34 @@
 import IndoorMapContainer from "@/components/indoor/IndoorMapContainer";
 import IndoorMapHeader from "@/components/indoor/IndoorMapHeader";
-import IndoorItineraryHeader from "@/components/indoor/IndoorItineraryHeader";
 import IndoorItineraryBottomSheet, {
   ITINERARY_SHEET_HEIGHT,
 } from "@/components/indoor/IndoorItineraryBottomSheet";
+import IndoorItineraryHeader from "@/components/indoor/IndoorItineraryHeader";
 
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { StyleSheet, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useGetBuildingDetails } from "@/hooks/queries/buildingQueries";
 import { useIndoorItineraryController } from "@/hooks/useIndoorItineraryController";
 import { useIndoorNavigationStore } from "@/hooks/useIndoorNavigationStore";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect } from "react";
+import { StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-// ✅ matches your browse bottom sheets ("15%") well; tune if needed
-const BROWSE_SHEET_HEIGHT = 160    ;
+const BROWSE_SHEET_HEIGHT = 160;
 
 export default function IndoorMapPage() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-
-  const params = useLocalSearchParams<{ buildingCode?: string }>();
-  const buildingCode = params.buildingCode ?? "";
-
-  const ctrl = useIndoorItineraryController(buildingCode);
   const nav = useIndoorNavigationStore();
+
+  const params = useLocalSearchParams<{
+    buildingCode?: string;
+    selectedRoom?: string;
+    selectedFloor?: string;
+  }>();
+
+  const buildingCode = params.buildingCode ?? "";
+  const ctrl = useIndoorItineraryController(buildingCode);
+  const { data: buildingData } = useGetBuildingDetails(buildingCode);
 
   const hardReset = () => {
     if (typeof (nav as any).reset === "function") {
@@ -46,6 +51,16 @@ export default function IndoorMapPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [buildingCode]);
 
+  const handleSearchPress = () => {
+    router.push({
+      pathname: "/indoor-search",
+      params: {
+        buildingCode,
+        buildingName: buildingData?.long_name || buildingCode,
+      },
+    });
+  };
+
   const handleBackToOutdoor = () => {
     hardReset();
     router.replace("/map");
@@ -62,23 +77,26 @@ export default function IndoorMapPage() {
         buildingCode={buildingCode}
         routeSegments={ctrl.routeSegments}
         preferredFloorNumber={
-          nav.mode === "ITINERARY"
-            ? nav.start?.floor ?? nav.currentFloor ?? null
-            : nav.currentFloor ?? null
+          params.selectedFloor
+            ? Number.parseInt(params.selectedFloor, 10)
+            : nav.mode === "ITINERARY"
+              ? nav.start?.floor ?? nav.currentFloor ?? null
+              : nav.currentFloor ?? null
         }
-        // ✅ moves up for BOTH:
-        // - itinerary bottom sheet
-        // - browse (floor/room) bottom sheets
         floorSelectorBottomOffset={selectorOffset}
+        selectedRoomFromSearch={params.selectedRoom}
+        selectedFloorFromSearch={
+          params.selectedFloor
+            ? Number.parseInt(params.selectedFloor, 10)
+            : undefined
+        }
       />
 
       {nav.mode === "ITINERARY" ? (
         <IndoorItineraryHeader />
       ) : (
         <IndoorMapHeader
-          searchText={""}
-          onSearchPress={() => {}}
-          onSearchClear={() => {}}
+          onSearchPress={handleSearchPress}
           onBackToOutdoor={handleBackToOutdoor}
         />
       )}

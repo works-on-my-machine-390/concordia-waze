@@ -1,7 +1,9 @@
 import type { Floor } from "@/hooks/queries/indoorMapQueries";
 import type { Coordinates } from "@/hooks/queries/indoorDirectionsQueries";
+import { useIndoorSearchStore } from "@/hooks/useIndoorSearchStore";
 import { useSvgDimensions } from "@/hooks/useSvgDimensions";
 import { ReactNativeZoomableView } from "@openspacelabs/react-native-zoomable-view";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   StyleSheet,
@@ -10,12 +12,11 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { SvgXml } from "react-native-svg";
-import { useMemo, useState } from "react";
 
+import IndoorBottomSheetSection from "./IndoorBottomSheetSection";
 import IndoorPathOverlay from "./IndoorPathOverlay";
 import PoiMarker from "./PoiMarker";
 import PolygonOverlay from "./PolygonOverlay";
-import IndoorBottomSheetSection from "./IndoorBottomSheetSection";
 
 import { useIndoorNavigationStore } from "@/hooks/useIndoorNavigationStore";
 
@@ -30,6 +31,8 @@ type Props = {
   buildingCode?: string;
   buildingName?: string;
   metroAccessible?: boolean;
+
+  initialSelectedRoom?: string;
 };
 
 const normalizeName = (s: string) =>
@@ -44,23 +47,65 @@ export default function FloorPlanViewer({
   buildingCode,
   buildingName,
   metroAccessible,
+  initialSelectedRoom,
 }: Readonly<Props>) {
-  const nav = useIndoorNavigationStore();
+  const navMode = useIndoorNavigationStore((s) => s.mode);
+  const navEnd = useIndoorNavigationStore((s) => s.end);
+  const navStart = useIndoorNavigationStore((s) => s.start);
+  const navSelectedRoom = useIndoorNavigationStore((s) => s.selectedRoom);
+  const setSelectedRoom = useIndoorNavigationStore((s) => s.setSelectedRoom);
+  const enterItineraryFromSelected = useIndoorNavigationStore(
+    (s) => s.enterItineraryFromSelected,
+  );
+
+  const clearSelectedPoiFilter = useIndoorSearchStore(
+    (s) => s.clearSelectedPoiFilter,
+  );
 
   const [localSelectedPoiName, setLocalSelectedPoiName] = useState<
     string | undefined
   >(undefined);
 
-  const effectiveSelectedPoiName = selectedPoiName ?? localSelectedPoiName;
-
-  // ✅ Bottom sheet should only appear in BROWSE mode
-  const bottomSheetSelectedPoiName =
-    nav.mode === "BROWSE" ? effectiveSelectedPoiName : undefined;
-
   const { width: SCREEN_WIDTH } = useWindowDimensions();
   const { dimensions, svgText, error, isLoading } = useSvgDimensions(
     floor?.imgPath,
   );
+
+  const effectiveSelectedPoiName = selectedPoiName ?? localSelectedPoiName;
+
+  const bottomSheetSelectedPoiName =
+    navMode === "BROWSE" ? effectiveSelectedPoiName : undefined;
+
+  const extraSet = useMemo(() => {
+    return new Set(extraHighlightedPoiNames.map((n) => normalizeName(n)));
+  }, [extraHighlightedPoiNames]);
+
+  useEffect(() => {
+    if (!initialSelectedRoom || !floor || navMode !== "BROWSE") return;
+    if (localSelectedPoiName === initialSelectedRoom) return;
+
+    const poi = floor.pois.find((p) => p.name === initialSelectedRoom);
+    if (!poi) return;
+
+    clearSelectedPoiFilter();
+    setLocalSelectedPoiName(initialSelectedRoom);
+
+    if (navSelectedRoom?.label !== initialSelectedRoom) {
+      setSelectedRoom({
+        label: poi.name ?? "Room",
+        floor: floor.number,
+        coord: { x: poi.position.x, y: poi.position.y },
+      });
+    }
+  }, [
+    initialSelectedRoom,
+    floor,
+    navMode,
+    localSelectedPoiName,
+    navSelectedRoom?.label,
+    setSelectedRoom,
+    clearSelectedPoiFilter,
+  ]);
 
   if (!floor) {
     return (
@@ -91,11 +136,10 @@ export default function FloorPlanViewer({
   const DISPLAY_HEIGHT = DISPLAY_WIDTH * (dimensions.height / dimensions.width);
 
   const destinationPoi =
-    nav.mode === "ITINERARY" && nav.end && nav.end.floor === floor.number
+    navMode === "ITINERARY" && navEnd && navEnd.floor === floor.number
       ? floor.pois.find(
           (poi) =>
-            normalizeName(poi.name ?? "") ===
-            normalizeName(nav.end?.label ?? ""),
+            normalizeName(poi.name ?? "") === normalizeName(navEnd.label ?? ""),
         ) ?? null
       : null;
 
@@ -105,11 +149,11 @@ export default function FloorPlanViewer({
       : undefined;
 
   const startPoi =
-    nav.mode === "ITINERARY" && nav.start && nav.start.floor === floor.number
+    navMode === "ITINERARY" && navStart && navStart.floor === floor.number
       ? floor.pois.find(
           (poi) =>
             normalizeName(poi.name ?? "") ===
-            normalizeName(nav.start?.label ?? ""),
+            normalizeName(navStart.label ?? ""),
         ) ?? null
       : null;
 
@@ -123,17 +167,26 @@ export default function FloorPlanViewer({
       ? { x: destinationPoi.position.x, y: destinationPoi.position.y }
       : undefined;
 
-  const extraSet = useMemo(() => {
-    return new Set(extraHighlightedPoiNames.map((n) => normalizeName(n)));
-  }, [extraHighlightedPoiNames]);
-
   const handlePoiPress = (name: string) => {
+    clearSelectedPoiFilter();
+
     if (onSelectPoiName) {
       onSelectPoiName(name);
       return;
     }
 
     setLocalSelectedPoiName(name);
+
+    if (navMode === "BROWSE") {
+      const poi = floor.pois.find((p) => (p.name ?? "") === name);
+      if (poi) {
+        setSelectedRoom({
+          label: poi.name ?? "Room",
+          floor: floor.number,
+          coord: { x: poi.position.x, y: poi.position.y },
+        });
+      }
+    }
   };
 
   const showBottomSheetSection = !!buildingCode && !!buildingName;
@@ -216,20 +269,21 @@ export default function FloorPlanViewer({
       {showBottomSheetSection ? (
         <IndoorBottomSheetSection
           floor={floor}
-          buildingName={buildingName!}
-          buildingCode={buildingCode!}
+          buildingName={buildingName}
+          buildingCode={buildingCode}
           metroAccessible={metroAccessible}
           selectedPoiName={bottomSheetSelectedPoiName}
           onClearSelectedPoi={() => {
+            clearSelectedPoiFilter();
             setLocalSelectedPoiName(undefined);
-            nav.setSelectedRoom(null);
+            setSelectedRoom(null);
           }}
           onDirectionsPress={() => {
-            nav.enterItineraryFromSelected();
+            clearSelectedPoiFilter();
             setLocalSelectedPoiName(undefined);
-            nav.setSelectedRoom(null);
+            enterItineraryFromSelected();
           }}
-          directionsDisabled={!nav.selectedRoom}
+          directionsDisabled={!navSelectedRoom}
         />
       ) : null}
     </View>

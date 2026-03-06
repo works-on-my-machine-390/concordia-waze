@@ -1,33 +1,34 @@
-// IndoorMapContainer.tsx
 import FloorPlanViewer from "@/components/indoor/FloorPlanViewer";
 import FloorSelector from "@/components/indoor/FloorSelector";
-import { useGetBuildingFloors } from "@/hooks/queries/indoorMapQueries";
 import { useGetBuildingDetails } from "@/hooks/queries/buildingQueries";
 import type {
   FloorSegment,
   Coordinates,
 } from "@/hooks/queries/indoorDirectionsQueries";
+import { useGetBuildingFloors } from "@/hooks/queries/indoorMapQueries";
+import { useIndoorSearchStore } from "@/hooks/useIndoorSearchStore";
 import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { useIndoorNavigationStore } from "@/hooks/useIndoorNavigationStore";
 
 export type SelectedPoint = {
-  label: string; // room name / poi name
+  label: string;
   floor: number;
-  coord: Coordinates; // normalized [0..1]
+  coord: Coordinates;
 };
 
 type Props = {
   buildingCode: string;
-
   routeSegments?: FloorSegment[] | null;
   preferredFloorNumber?: number | null;
-
   floorSelectorBottomOffset?: number;
+  selectedRoomFromSearch?: string;
+  selectedFloorFromSearch?: number;
 };
 
 const normalizeName = (s: string) =>
   s.trim().toLowerCase().replace(/\s+/g, "");
+
 const normalizeType = (s?: string) =>
   (s ?? "").trim().toLowerCase().replace(/\s+/g, "_");
 
@@ -64,7 +65,6 @@ const findNearestTransitionPoi = (
   return best;
 };
 
-// Optional but recommended (prevents tiny “stub” dotted segments)
 const cleanPath = (pts: Coordinates[]) => {
   if (pts.length < 2) return pts;
 
@@ -84,8 +84,23 @@ export default function IndoorMapContainer({
   routeSegments = null,
   preferredFloorNumber = null,
   floorSelectorBottomOffset = 24,
+  selectedRoomFromSearch,
+  selectedFloorFromSearch,
 }: Readonly<Props>) {
-  const nav = useIndoorNavigationStore();
+  const navMode = useIndoorNavigationStore((s) => s.mode);
+  const navCurrentFloor = useIndoorNavigationStore((s) => s.currentFloor);
+  const navEnd = useIndoorNavigationStore((s) => s.end);
+  const navStart = useIndoorNavigationStore((s) => s.start);
+  const navSelectedRoom = useIndoorNavigationStore((s) => s.selectedRoom);
+  const setCurrentFloor = useIndoorNavigationStore((s) => s.setCurrentFloor);
+  const setSelectedRoom = useIndoorNavigationStore((s) => s.setSelectedRoom);
+  const setStart = useIndoorNavigationStore((s) => s.setStart);
+  const setPickMode = useIndoorNavigationStore((s) => s.setPickMode);
+  const clearRoute = useIndoorNavigationStore((s) => s.clearRoute);
+
+  const clearSelectedPoiFilter = useIndoorSearchStore(
+    (s) => s.clearSelectedPoiFilter,
+  );
 
   const [selectedFloor, setSelectedFloor] = useState<number | null>(null);
 
@@ -95,21 +110,33 @@ export default function IndoorMapContainer({
   useEffect(() => {
     if (!data?.floors?.length) return;
 
-    if (preferredFloorNumber != null) {
-      setSelectedFloor(preferredFloorNumber);
-      nav.setCurrentFloor?.(preferredFloorNumber);
-      return;
+    let nextFloor: number;
+
+    if (selectedFloorFromSearch != null) {
+      nextFloor = selectedFloorFromSearch;
+    } else if (preferredFloorNumber != null) {
+      nextFloor = preferredFloorNumber;
+    } else if (
+      navCurrentFloor != null &&
+      data.floors.some((f) => f.number === navCurrentFloor)
+    ) {
+      nextFloor = navCurrentFloor;
+    } else {
+      nextFloor = data.floors[0].number;
     }
 
-    const last = nav.currentFloor ?? null;
-    if (last != null && data.floors.some((f) => f.number === last)) {
-      setSelectedFloor(last);
-      return;
-    }
+    setSelectedFloor((prev) => (prev === nextFloor ? prev : nextFloor));
 
-    setSelectedFloor(data.floors[0].number);
-    nav.setCurrentFloor?.(data.floors[0].number);
-  }, [buildingCode, data?.floors, preferredFloorNumber]);
+    if (navCurrentFloor !== nextFloor) {
+      setCurrentFloor?.(nextFloor);
+    }
+  }, [
+    data?.floors,
+    selectedFloorFromSearch,
+    preferredFloorNumber,
+    navCurrentFloor,
+    setCurrentFloor,
+  ]);
 
   const currentFloor =
     selectedFloor != null
@@ -117,7 +144,6 @@ export default function IndoorMapContainer({
         data?.floors?.[0]
       : undefined;
 
-  // ✅ path for current floor + extra highlighted transition POIs
   const { routePathForCurrentFloor, extraHighlightedPoiNames } = useMemo(() => {
     if (!routeSegments || selectedFloor == null || !data?.floors?.length) {
       return {
@@ -143,7 +169,6 @@ export default function IndoorMapContainer({
       };
     }
 
-    // Only apply snapping/highlighting if route spans multiple floors
     if (routeSegments.length < 2) {
       return {
         routePathForCurrentFloor: path,
@@ -158,7 +183,6 @@ export default function IndoorMapContainer({
     const adjusted = [...path];
     const extraNames: string[] = [];
 
-    // incoming transition (start of segment) if not first segment
     if (idx > 0) {
       const startPt = adjusted[0];
       const nearest = findNearestTransitionPoi(pois as any, startPt);
@@ -168,7 +192,6 @@ export default function IndoorMapContainer({
       }
     }
 
-    // outgoing transition (end of segment) if not last segment
     if (idx < routeSegments.length - 1) {
       const endPt = adjusted[adjusted.length - 1];
       const nearest = findNearestTransitionPoi(pois as any, endPt);
@@ -206,24 +229,20 @@ export default function IndoorMapContainer({
       coord: { x: poi.position.x, y: poi.position.y },
     };
 
-    // ✅ Browse: selecting opens room sheet (and enables directions button)
-    if (nav.mode === "BROWSE") {
-      nav.setSelectedRoom(point);
+    if (navMode === "BROWSE") {
+      setSelectedRoom(point);
       return;
     }
 
-    // ✅ ITINERARY: ALWAYS modify START ONLY (never change destination via taps)
-    nav.setStart(point);
-    nav.setPickMode("start");
-    nav.clearRoute();
+    setStart(point);
+    setPickMode("start");
+    clearRoute();
   };
 
-  // Highlight rule (unchanged):
-  // - In itinerary, we highlight end if present; otherwise start
   const highlightedPoiName =
-    nav.mode === "ITINERARY"
-      ? nav.end?.label ?? nav.start?.label
-      : nav.selectedRoom?.label;
+    navMode === "ITINERARY"
+      ? navEnd?.label ?? navStart?.label
+      : navSelectedRoom?.label;
 
   if (isLoading) {
     return (
@@ -266,23 +285,23 @@ export default function IndoorMapContainer({
       <FloorPlanViewer
         key={selectedFloor}
         floor={currentFloor}
-        // ✅ itinerary stuff
         routePath={routePathForCurrentFloor}
         selectedPoiName={highlightedPoiName}
         onSelectPoiName={handleSelectPoiName}
         extraHighlightedPoiNames={extraHighlightedPoiNames}
-        // ✅ teammate bottom sheet stuff
         buildingCode={buildingCode}
         buildingName={buildingData?.long_name || ""}
         metroAccessible={buildingData?.metro_accessible}
+        initialSelectedRoom={selectedRoomFromSearch}
       />
 
       <FloorSelector
         floors={data.floors}
         selectedFloor={selectedFloor}
         onSelectFloor={(floorNum) => {
+          clearSelectedPoiFilter();
           setSelectedFloor(floorNum);
-          nav.setCurrentFloor?.(floorNum);
+          setCurrentFloor?.(floorNum);
         }}
         bottomOffset={floorSelectorBottomOffset}
       />
