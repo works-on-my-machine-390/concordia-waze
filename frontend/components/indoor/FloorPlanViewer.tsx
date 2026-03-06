@@ -37,13 +37,8 @@ export const ROUTE_STYLE_ACCESSIBLE = {
 /** detect backend error for no accessible route*/
 export function isNoAccessibleRouteError(error: unknown): boolean {
   if (!error) return false;
-  const msg =
-    error instanceof Error
-      ? error.message
-      : typeof error === "string"
-        ? error
-        : JSON.stringify(error);
-  return msg.toLowerCase().includes("no transition point");
+  const stringifiedError = typeof error === "string" ? error : JSON.stringify(error);
+  const msg = error instanceof Error ? error.message : stringifiedError;
 }
 
 type Props = {
@@ -72,7 +67,7 @@ export default function FloorPlanViewer({
   const [selectedPoiName, setSelectedPoiName] = useState<string | undefined>();
   const { clearSelectedPoiFilter } = useIndoorSearchStore();
 
-  // TODO #168
+  // PENDING #168: replace with useGetIndoorPath when indoor navigation is implemented
   const routeStyle = requireAccessible
     ? ROUTE_STYLE_ACCESSIBLE
     : ROUTE_STYLE_STANDARD;
