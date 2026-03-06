@@ -1,0 +1,33 @@
+appId: host.exp.Exponent
+---
+
+# 1) Continue as guest
+- tapOn: "Use without account"
+- waitForAnimationToEnd
+
+# 2) Assert map loads
+- assertVisible: "SGW"
+- waitForAnimationToEnd
+
+# 3) Tap on LB building on the map
+- tapOn:
+    point: "55%, 48%"
+- waitForAnimationToEnd
+
+# 4) Assert bottom sheet appears with building name
+- assertVisible: "Henry F. Hall Building (H)"
+- waitForAnimationToEnd
+
+# 5) Click and drag up on the bottom sheet title text
+- swipe:
+    from:
+      text: "Henry F. Hall Building (H)"
+    direction: UP
+    duration: 600
+- waitForAnimationToEnd
+
+# 6) Scroll through building info
+- scroll
+- waitForAnimationToEnd
+- scroll
+- waitForAnimationToEnd
