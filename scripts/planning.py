@@ -16,7 +16,7 @@ SPRINT_END    = "2026-03-22"
 NUM_PEOPLE    = 11
 # ──────────────────────────────────────────────────────────────────────────────
 
-# ─── Per-task deadlines ───────────────────────────────────────────────────────
+# ─── Per-task deadlines (issue number -> YYYY-MM-DD) ──────────────────────────
 TASK_DEADLINES = {
     252: "2026-03-11",
     270: "2026-03-11",
@@ -42,7 +42,71 @@ TASK_DEADLINES = {
     265: "2026-03-19",
     266: "2026-03-19",
     269: "2026-03-19",
+    272: "2026-03-22",
     273: "2026-03-22",
+}
+
+# ─── Explicit assignments (issue number -> person number) ─────────────────────
+#
+# Backend (P1-P5):
+#   P1 - schedule model (#252) + sync error handling (#263)
+#   P2 - favorites model (#270) + next class endpoint (#267)
+#   P3 - OAuth setup (#259) + Calendar API (#260) + uniqueness check (#271)
+#   P4 - schedule endpoints (#253) + partial updates (#255)
+#   P5 - parse events (#261) + store events (#262)
+#
+# Frontend (P6-P11):
+#   P6  - add class form (#248) + persist schedule (#250) + next class btn (#264)
+#   P7  - schedule display (#249) + connect UI (#251) + favorites icon (#268)
+#   P8  - sync button (#256) + OAuth callback (#257) + transport mode (#266)
+#   P9  - edit/delete UI (#254) + missing info prompt (#258)
+#   P10 - fetch next class (#265) + E2E tests (#273)
+#   P11 - favorites list (#269) + usability test (#272)
+#
+ASSIGNMENTS = {
+    # Backend
+    252: 1,
+    263: 1,
+    270: 2,
+    267: 2,
+    259: 3,
+    260: 3,
+    271: 3,
+    253: 4,
+    255: 4,
+    261: 5,
+    262: 5,
+    # Frontend
+    248: 6,
+    250: 6,
+    264: 6,
+    249: 7,
+    251: 7,
+    268: 7,
+    256: 8,
+    257: 8,
+    266: 8,
+    254: 9,
+    258: 9,
+    265: 10,
+    273: 10,
+    269: 11,
+    272: 11,
+}
+
+# ─── Role map ─────────────────────────────────────────────────────────────────
+PERSON_ROLES = {
+    1:  "Backend",
+    2:  "Backend",
+    3:  "Backend",
+    4:  "Backend",
+    5:  "Backend",
+    6:  "Frontend",
+    7:  "Frontend",
+    8:  "Frontend",
+    9:  "Frontend",
+    10: "Frontend / Testing",
+    11: "Frontend / Testing",
 }
 # ──────────────────────────────────────────────────────────────────────────────
 
@@ -80,15 +144,18 @@ def get_issues_by_label(owner, repo, label, milestone_number, headers):
     return issues
 
 
-# ─── Assignment helper ────────────────────────────────────────────────────────
+# ─── Assignment ───────────────────────────────────────────────────────────────
 
-def assign_tasks(issues_by_label, num_people, task_deadlines,
-                 sprint_start: datetime, sprint_end: datetime):
+def assign_tasks(issues_by_label, assignments, task_deadlines, sprint_end):
     ORDER      = ["backend", "frontend", "testing"]
     all_issues = []
+    seen       = set()
+
     for label in ORDER:
         for issue in issues_by_label.get(label, []):
-            all_issues.append((label, issue))
+            if issue["number"] not in seen:
+                all_issues.append((label, issue))
+                seen.add(issue["number"])
 
     def sort_key(item):
         _, issue = item
@@ -98,72 +165,68 @@ def assign_tasks(issues_by_label, num_people, task_deadlines,
 
     all_issues.sort(key=sort_key)
 
-    result         = []
-    person_counter = 1
-
+    result = []
     for label, issue in all_issues:
-        dl_str   = task_deadlines.get(issue["number"])
-        deadline = (
+        dl_str       = task_deadlines.get(issue["number"])
+        deadline     = (
             datetime.strptime(dl_str, "%Y-%m-%d").strftime("%b %d")
-            if dl_str
-            else sprint_end.strftime("%b %d")
+            if dl_str else sprint_end.strftime("%b %d")
         )
-        # Store the full YYYY-MM-DD alongside the display string
         deadline_iso = dl_str if dl_str else sprint_end.strftime("%Y-%m-%d")
+        person_num   = assignments.get(issue["number"])
+        person       = f"P{person_num}" if person_num else "UNASSIGNED"
 
         result.append({
             "number":       issue["number"],
             "title":        issue["title"],
             "label":        label,
-            "person":       f"P{person_counter}",
-            "deadline":     deadline,       # "Mar 11"  – display only
-            "deadline_iso": deadline_iso,   # "2026-03-11" – for sorting
+            "person":       person,
+            "deadline":     deadline,
+            "deadline_iso": deadline_iso,
         })
-        person_counter = (person_counter % num_people) + 1
 
     return result
 
 
 # ─── Markdown builder ─────────────────────────────────────────────────────────
 
-def build_markdown(issues_by_label, start: datetime, end: datetime,
-                   num_people: int) -> str:
-
+def build_markdown(issues_by_label, start, end):
     tasks = assign_tasks(
-        issues_by_label, num_people, TASK_DEADLINES, start, end
+        issues_by_label, ASSIGNMENTS, TASK_DEADLINES, end
     )
 
     lines = []
 
-    # ── Title ────────────────────────────────────────────────────────────────
+    # Title
     lines.append(
-        f"# Sprint Gantt Chart  ·  "
-        f"{start.strftime('%b %d')} – {end.strftime('%b %d, %Y')}"
+        f"# Sprint Plan  |  "
+        f"{start.strftime('%b %d')} - {end.strftime('%b %d, %Y')}"
     )
     lines.append("")
     lines.append(
-        f"> **Sprint duration:** {(end - start).days + 1} days  ·  "
-        f"**Team size:** {num_people} people  ·  "
-        f"**Final deadline:** {end.strftime('%b %d')}"
+        f"> Sprint duration: {(end - start).days + 1} days  |  "
+        f"Team size: {NUM_PEOPLE} people  |  "
+        f"Final deadline: {end.strftime('%b %d')}"
     )
     lines.append("")
 
-    # ── Main table ────────────────────────────────────────────────────────────
+    # Main table
     lines.append("## Task Assignment Table")
     lines.append("")
-    lines.append("| # | Task | Assigned To | Deadline |")
-    lines.append("|---|------|-------------|----------|")
+    lines.append("| # | Task | Label | Assigned To | Deadline |")
+    lines.append("|---|------|-------|-------------|----------|")
 
     for t in tasks:
         number   = f"`#{t['number']}`"
         title    = t["title"].replace("|", "\\|")
+        label    = f"`{t['label']}`"
         person   = f"**{t['person']}**"
         deadline = f"**{t['deadline']}**"
-        lines.append(f"| {number} | {title} | {person} | {deadline} |")
+        lines.append(f"| {number} | {title} | {label} | {person} | {deadline} |")
 
     lines.append("")
 
-    # ── Key Deadlines summary ─────────────────────────────────────────────────
+    # Key Deadlines
     lines.append("---")
     lines.append("")
     lines.append("## Key Deadlines")
@@ -171,35 +234,34 @@ def build_markdown(issues_by_label, start: datetime, end: datetime,
     lines.append("| Deadline | Issues |")
     lines.append("|----------|--------|")
 
-    # Group by ISO date to sort correctly, display the formatted string
-    deadline_map: dict[str, dict] = defaultdict(lambda: {"display": "", "issues": []})
+    deadline_map = defaultdict(lambda: {"display": "", "issues": []})
     for t in tasks:
         deadline_map[t["deadline_iso"]]["display"] = t["deadline"]
         deadline_map[t["deadline_iso"]]["issues"].append(f"`#{t['number']}`")
 
     for iso_date, entry in sorted(deadline_map.items()):
-        lines.append(
-            f"| **{entry['display']}** | {', '.join(entry['issues'])} |"
-        )
+        lines.append(f"| **{entry['display']}** | {', '.join(entry['issues'])} |")
 
     lines.append("")
 
-    # ── Person summary ────────────────────────────────────────────────────────
+    # Person Summary
     lines.append("---")
     lines.append("")
     lines.append("## Person Summary")
     lines.append("")
-    lines.append("| Person | Assigned Issues | Count |")
-    lines.append("|--------|-----------------|-------|")
+    lines.append("| Person | Role | Assigned Issues | Count |")
+    lines.append("|--------|------|-----------------|-------|")
 
-    person_map: dict[str, list[str]] = defaultdict(list)
+    person_map = defaultdict(list)
     for t in tasks:
         person_map[t["person"]].append(f"`#{t['number']}`")
 
-    for person in [f"P{n}" for n in range(1, num_people + 1)]:
-        issues_str = ", ".join(person_map.get(person, [])) or "—"
+    for n in range(1, NUM_PEOPLE + 1):
+        person     = f"P{n}"
+        role       = PERSON_ROLES.get(n, "-")
+        issues_str = ", ".join(person_map.get(person, [])) or "-"
         count      = len(person_map.get(person, []))
-        lines.append(f"| **{person}** | {issues_str} | {count} |")
+        lines.append(f"| **{person}** | {role} | {issues_str} | {count} |")
 
     lines.append("")
 
@@ -226,14 +288,12 @@ def main():
     if sprint_end <= sprint_start:
         raise ValueError("SPRINT_END must be after SPRINT_START.")
 
-    # ── Milestone ────────────────────────────────────────────────────────────
     print(f"Looking up milestone '{MILESTONE}'...")
     milestone_number = get_milestone_number(
         REPO_OWNER, REPO_NAME, MILESTONE, headers
     )
     print(f"Milestone #{milestone_number} found.")
 
-    # ── Fetch issues ─────────────────────────────────────────────────────────
     all_labels      = ["backend", "frontend", "testing"]
     issues_by_label = {}
     for label in all_labels:
@@ -242,24 +302,21 @@ def main():
             REPO_OWNER, REPO_NAME, label, milestone_number, headers
         )
         issues_by_label[label] = issues
-        print(f"{len(issues)} issue(s) found.")
+        print(f"-> {len(issues)} issue(s) found.")
 
-    # ── Build Markdown ───────────────────────────────────────────────────────
-    print(f"\nBuilding task table "
-          f"({sprint_start.strftime('%b %d')} → "
-          f"{sprint_end.strftime('%b %d, %Y')}, "
-          f"{NUM_PEOPLE} people)...")
-
-    md_content = build_markdown(
-        issues_by_label, sprint_start, sprint_end, NUM_PEOPLE
+    print(
+        f"\nBuilding task table "
+        f"({sprint_start.strftime('%b %d')} -> "
+        f"{sprint_end.strftime('%b %d, %Y')})..."
     )
 
-    # ── Write file ───────────────────────────────────────────────────────────
+    md_content = build_markdown(issues_by_label, sprint_start, sprint_end)
+
     os.makedirs(os.path.dirname(MD_FILE), exist_ok=True)
     with open(MD_FILE, "w", encoding="utf-8") as f:
         f.write(md_content)
 
-    print(f"\nSaved → '{MD_FILE}'")
+    print(f"\nSaved -> '{MD_FILE}'")
 
 
 if __name__ == "__main__":
