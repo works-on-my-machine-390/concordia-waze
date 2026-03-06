@@ -51,3 +51,58 @@ export const useGetBuildingFloors = (buildingCode: string) => {
     enabled: !!buildingCode,
   });
 };
+
+/**
+ * Indoor pathfinding types
+ */
+export type IndoorPathRequest = {
+  buildingCode: string;
+  startFloor: number;
+  endFloor: number;
+  start: Coordinate;
+  end: Coordinate;
+  startRoom?: string;
+  endRoom?: string;
+  requireAccessible?: boolean;
+};
+
+export type IndoorPathSegment = {
+  floor: number;
+  coordinates: Coordinate[];
+};
+
+export type IndoorPathResult = {
+  segments: IndoorPathSegment[];
+  transitionType: "stairs" | "elevator" | "none";
+  totalDistance: number;
+};
+
+/**
+ * Hook to get indoor path between two points
+ * Pass null to disable
+ */
+export const useGetIndoorPath = (request: IndoorPathRequest | null) => {
+  return useQuery<IndoorPathResult>({
+    queryKey: [
+      "indoorPath",
+      request?.buildingCode,
+      request?.startFloor,
+      request?.endFloor,
+      request?.start,
+      request?.end,
+      request?.startRoom,
+      request?.endRoom,
+      request?.requireAccessible,
+    ],
+    queryFn: async () => {
+      const apiClient = await api();
+      return apiClient
+        .url("/directions/indoor/multi-floor-path")
+        .post(request)
+        .json<IndoorPathResult>();
+    },
+    staleTime: 0,
+    enabled: !!request,
+    retry: false,
+  });
+};

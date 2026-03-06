@@ -5,15 +5,20 @@ import { DrawerActions } from "@react-navigation/native";
 import { useNavigation } from "expo-router";
 import { Pressable, StyleSheet, View } from "react-native";
 import { MenuIcon } from "../../app/icons";
+import AccessibilityToggle from "./AccessibilityToggle";
 
 type Props = {
   onSearchPress: () => void;
   onBackToOutdoor: () => void;
+  isAccessibilityMode: boolean;
+  onAccessibilityToggle: () => void;
 };
 
 export default function IndoorMapHeader({
   onSearchPress,
   onBackToOutdoor,
+  isAccessibilityMode,
+  onAccessibilityToggle,
 }: Readonly<Props>) {
   const navigation = useNavigation();
 
@@ -30,6 +35,11 @@ export default function IndoorMapHeader({
           placeholder="Search rooms..."
           onPress={onSearchPress}
           onClear={() => {}}
+        />
+
+        <AccessibilityToggle
+          isActive={isAccessibilityMode}
+          onToggle={onAccessibilityToggle}
         />
       </View>
 
