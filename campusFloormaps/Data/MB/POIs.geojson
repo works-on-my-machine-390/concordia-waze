@@ -29,6 +29,8 @@
 { "type": "Feature", "properties": { "fid": 24, "floor": 1, "type": "stairs" }, "geometry": { "type": "Point", "coordinates": [ -397065.814803463465068, 180722.336882987379795 ] } },
 { "type": "Feature", "properties": { "fid": 25, "floor": 1, "type": "stairs" }, "geometry": { "type": "Point", "coordinates": [ -397076.251377859967761, 180726.786585249472409 ] } },
 { "type": "Feature", "properties": { "fid": 26, "floor": 1, "type": "ramp" }, "geometry": { "type": "Point", "coordinates": [ -397068.241913788253441, 180718.615313822752796 ] } },
-{ "type": "Feature", "properties": { "fid": 27, "floor": 1, "type": "stairs" }, "geometry": { "type": "Point", "coordinates": [ -397053.679251839639619, 180720.718809437530581 ] } }
+{ "type": "Feature", "properties": { "fid": 27, "floor": 1, "type": "stairs" }, "geometry": { "type": "Point", "coordinates": [ -397053.679251839639619, 180720.718809437530581 ] } },
+{ "type": "Feature", "properties": { "fid": 28, "floor": 1, "type": "exit" }, "geometry": { "type": "Point", "coordinates": [ -397049.229549577576108, 180714.327418915636372 ] } },
+{ "type": "Feature", "properties": { "fid": 29, "floor": 1, "type": "exit" }, "geometry": { "type": "Point", "coordinates": [ -397099.713444332766812, 180751.866725272062467 ] } }
 ]
 }
