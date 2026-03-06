@@ -13,12 +13,14 @@ import {
 } from "@/app/icons";
 import type { PointOfInterest } from "@/hooks/queries/indoorMapQueries";
 import { Pressable, StyleSheet } from "react-native";
+import { COLORS } from "../../app/constants";
 
 type Props = {
   poi: PointOfInterest;
   width: number;
   height: number;
   onPress?: () => void;
+  isSelected?: boolean;
 };
 
 const ICON_SIZE = 20;
@@ -55,7 +57,7 @@ const getIconComponent = (type: string) => {
   }
 };
 
-export default function PoiMarker({ poi, width, height, onPress }: Readonly<Props>) {
+export default function PoiMarker({ poi, width, height, onPress, isSelected }: Readonly<Props>) {
   const IconComponent = getIconComponent(poi.type);
 
   if (!IconComponent) {
@@ -76,7 +78,7 @@ export default function PoiMarker({ poi, width, height, onPress }: Readonly<Prop
         },
       ]}
     >
-      <IconComponent size={ICON_SIZE} color="#912338" />
+      <IconComponent size={ICON_SIZE} color={isSelected ? COLORS.selectionBlue : COLORS.maroon} />
     </Pressable>
   );
 }
