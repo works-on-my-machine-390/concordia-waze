@@ -1,0 +1,51 @@
+appId: host.exp.Exponent
+---
+# 1) Continue as guest (bypass authentication and enter the app)
+- tapOn: "Use without account"
+
+# 2) Wait for the map screen to be ready (SGW campus label visible)
+- extendedWaitUntil:
+    visible: "SGW"
+    timeout: 8000
+
+# 3) Tap the main search bar ("Where to...") to start a destination search
+- tapOn:
+    text: ".*Where to.*"
+
+# 4) Search for ER and wait for the specific suggestion/result to appear
+- inputText: "MB"
+- extendedWaitUntil:
+    visible: "MB - John Molson Building"
+    timeout: 8000
+
+# 5) Select the "ER - ER Building" result (double-tap to ensure it is selected/opened)
+- tapOn: MB - John Molson Building
+- tapOn: MB - John Molson Building
+
+# 6) Confirm the ER building details/bottom sheet is visible
+- extendedWaitUntil:
+    visible:
+      text: "John Molson Building (MB)"
+    timeout: 8000
+
+# 7) Tap the directions/navigation entry point (this is an icon-only control in the UI)
+# NOTE: Recorded by Studio as "Open map settings" (represents the maroon directions icon area)
+- tapOn: Open map settings
+
+# 8) Expand the route bottom sheet by swiping up from the mode selector area
+# (Anchor is either "Bike" or "Drive" depending on which mode label is visible)
+- swipe:
+    from:
+      text: "Drive"
+    direction: UP
+    duration: 250
+
+- tapOn: 
+
+- tapOn: 
+
+- swipe:
+    from:
+      text: "Bike"
+    direction: DOWN
+    duration: 250

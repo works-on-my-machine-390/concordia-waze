@@ -1,0 +1,27 @@
+appId: host.exp.Exponent
+---
+
+# 1) Continue as guest
+- tapOn: "Use without account"
+- waitForAnimationToEnd
+
+# 2) Assert default map view loads on SGW
+- assertVisible: "SGW"
+- assertVisible: "Loyola"
+- waitForAnimationToEnd
+
+# 3) Switch to Loyola campus
+- tapOn: "Loyola"
+- waitForAnimationToEnd
+
+# 4) Assert Loyola loaded
+- assertVisible: "Loyola"
+- waitForAnimationToEnd
+
+# 5) Switch back to SGW campus
+- tapOn: "SGW"
+- waitForAnimationToEnd
+
+# 6) Assert SGW loaded
+- assertVisible: "SGW"
+- waitForAnimationToEnd
