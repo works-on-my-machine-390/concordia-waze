@@ -82,12 +82,19 @@ export default function IndoorMapPage() {
         routeSegments={ctrl.routeSegments}
         preferredFloorNumber={nav.currentFloor ?? null}
         floorSelectorBottomOffset={selectorOffset}
-        selectedRoomFromSearch={nav.mode === "BROWSE" ? params.selectedRoom : undefined}
-        selectedFloorFromSearch={nav.mode === "BROWSE" ? parsedSearchFloor : undefined}
+        selectedRoomFromSearch={
+          nav.mode === "BROWSE" ? params.selectedRoom : undefined
+        }
+        selectedFloorFromSearch={
+          nav.mode === "BROWSE" ? parsedSearchFloor : undefined
+        }
       />
 
       {nav.mode === "ITINERARY" ? (
-        <IndoorItineraryHeader />
+        <IndoorItineraryHeader
+          buildingCode={buildingCode}
+          buildingName={buildingData?.long_name || buildingCode}
+        />
       ) : (
         <IndoorMapHeader
           onSearchPress={handleSearchPress}

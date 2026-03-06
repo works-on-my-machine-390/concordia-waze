@@ -1,11 +1,15 @@
 import { create } from "zustand";
-import type { FloorSegment, Coordinates } from "@/hooks/queries/indoorDirectionsQueries";
+import type {
+  FloorSegment,
+  Coordinates,
+} from "@/hooks/queries/indoorDirectionsQueries";
 
 export type IndoorNavMode = "BROWSE" | "ITINERARY";
 export type PickMode = "start" | "end";
 
 export type SelectedPoint = {
   label: string;
+  displayLabel?: string;
   floor: number;
   coord: Coordinates;
 };
@@ -34,58 +38,64 @@ type IndoorNavigationState = {
   setStart: (p: SelectedPoint | null) => void;
   setEnd: (p: SelectedPoint | null) => void;
 
-  setRoute: (segments: FloorSegment[] | null, totalDistance: number | null) => void;
+  setRoute: (
+    segments: FloorSegment[] | null,
+    totalDistance: number | null,
+  ) => void;
   clearRoute: () => void;
 };
 
-export const useIndoorNavigationStore = create<IndoorNavigationState>((set, get) => ({
-  mode: "BROWSE",
-  pickMode: "start",
+export const useIndoorNavigationStore = create<IndoorNavigationState>(
+  (set, get) => ({
+    mode: "BROWSE",
+    pickMode: "start",
 
-  selectedRoom: null,
+    selectedRoom: null,
 
-  start: null,
-  end: null,
+    start: null,
+    end: null,
 
-  routeSegments: null,
-  totalDistance: null,
-
-  currentFloor: null,
-  setCurrentFloor: (f) => set({ currentFloor: f }),
-
-  setSelectedRoom: (p) => set({ selectedRoom: p }),
-
-  enterItineraryFromSelected: () => {
-  const sel = get().selectedRoom;
-  if (!sel) return;
-
-  set({
-    mode: "ITINERARY",
-    pickMode: "start",     // ✅ user will pick START next
-    start: null,           // ✅ not set yet
-    end: sel,              // ✅ clicked room becomes END
     routeSegments: null,
     totalDistance: null,
-    selectedRoom: null,    // ✅ close browse room sheet
-  });
-},
 
-  exitItinerary: () =>
-    set({
-      mode: "BROWSE",
-      pickMode: "start",
-      start: null,
-      end: null,
-      routeSegments: null,
-      totalDistance: null,
-      selectedRoom: null,
-    }),
+    currentFloor: null,
+    setCurrentFloor: (f) => set({ currentFloor: f }),
 
-  setPickMode: (m) => set({ pickMode: m }),
-  setStart: (p) => set({ start: p }),
-  setEnd: (p) => set({ end: p }),
+    setSelectedRoom: (p) => set({ selectedRoom: p }),
 
-  setRoute: (segments, totalDistance) => set({ routeSegments: segments, totalDistance }),
+    enterItineraryFromSelected: () => {
+      const sel = get().selectedRoom;
+      if (!sel) return;
 
-  clearRoute: () => set({ routeSegments: null, totalDistance: null }),
-}));
+      set({
+        mode: "ITINERARY",
+        pickMode: "start",
+        start: null,
+        end: sel,
+        routeSegments: null,
+        totalDistance: null,
+        selectedRoom: null,
+      });
+    },
+
+    exitItinerary: () =>
+      set({
+        mode: "BROWSE",
+        pickMode: "start",
+        start: null,
+        end: null,
+        routeSegments: null,
+        totalDistance: null,
+        selectedRoom: null,
+      }),
+
+    setPickMode: (m) => set({ pickMode: m }),
+    setStart: (p) => set({ start: p }),
+    setEnd: (p) => set({ end: p }),
+
+    setRoute: (segments, totalDistance) =>
+      set({ routeSegments: segments, totalDistance }),
+
+    clearRoute: () => set({ routeSegments: null, totalDistance: null }),
+  }),
+);

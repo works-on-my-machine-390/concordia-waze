@@ -7,6 +7,7 @@ import SearchPill from "@/components/shared/SearchPill";
 import { useGetBuildingFloors } from "@/hooks/queries/indoorMapQueries";
 import { RecentIndoorSearch, useIndoorSearch } from "@/hooks/useIndoorSearch";
 import { useIndoorSearchStore } from "@/hooks/useIndoorSearchStore";
+import { useIndoorNavigationStore } from "@/hooks/useIndoorNavigationStore";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
@@ -24,14 +25,19 @@ import { SafeAreaView } from "react-native-safe-area-context";
 type SearchParams = {
   buildingCode: string;
   buildingName: string;
+  itineraryField?: "start" | "end";
 };
 
 export default function IndoorSearchPage() {
   const router = useRouter();
   const params = useLocalSearchParams<SearchParams>();
-  const { buildingCode, buildingName } = params;
+  const { buildingCode, buildingName, itineraryField } = params;
 
   const [query, setQuery] = useState("");
+
+  const setStart = useIndoorNavigationStore((s) => s.setStart);
+  const setEnd = useIndoorNavigationStore((s) => s.setEnd);
+  const setCurrentFloor = useIndoorNavigationStore((s) => s.setCurrentFloor);
 
   useFocusEffect(
     useCallback(() => {
@@ -52,17 +58,39 @@ export default function IndoorSearchPage() {
   ) => {
     const floor = floors.find((f) => f.number === floorNumber);
     const poi = floor?.pois.find((p) => p.name === roomCode);
+    if (!poi) return;
 
-    router.navigate({
-      pathname: "/indoor-map",
-      params: {
-        buildingCode: params.buildingCode,
-        selectedRoom: roomCode,
-        selectedFloor: floorNumber.toString(),
-      },
-    });
+    if (itineraryField === "start" || itineraryField === "end") {
+      const selectedPoint = {
+        label: poi.name,
+        displayLabel: displayName,
+        floor: floorNumber,
+        coord: {
+          x: poi.position.x,
+          y: poi.position.y,
+        },
+      };
 
-    if (poi?.type.toLowerCase() === "room") {
+      if (itineraryField === "start") {
+        setStart(selectedPoint);
+      } else {
+        setEnd(selectedPoint);
+      }
+
+      setCurrentFloor(floorNumber);
+      router.back();
+    } else {
+      router.navigate({
+        pathname: "/indoor-map",
+        params: {
+          buildingCode: params.buildingCode,
+          selectedRoom: roomCode,
+          selectedFloor: floorNumber.toString(),
+        },
+      });
+    }
+
+    if (poi.type.toLowerCase() === "room") {
       addRecentSearch(displayName, roomCode, floorNumber);
     }
   };
@@ -79,14 +107,35 @@ export default function IndoorSearchPage() {
     if (poi) {
       addRecentSearch(search.displayName, poi.name, search.floor);
 
-      router.navigate({
-        pathname: "/indoor-map",
-        params: {
-          buildingCode,
-          selectedRoom: poi.name,
-          selectedFloor: search.floor.toString(),
-        },
-      });
+      if (itineraryField === "start" || itineraryField === "end") {
+        const selectedPoint = {
+          label: poi.name,
+          displayLabel: search.displayName,
+          floor: search.floor,
+          coord: {
+            x: poi.position.x,
+            y: poi.position.y,
+          },
+        };
+
+        if (itineraryField === "start") {
+          setStart(selectedPoint);
+        } else {
+          setEnd(selectedPoint);
+        }
+
+        setCurrentFloor(search.floor);
+        router.back();
+      } else {
+        router.navigate({
+          pathname: "/indoor-map",
+          params: {
+            buildingCode,
+            selectedRoom: poi.name,
+            selectedFloor: search.floor.toString(),
+          },
+        });
+      }
     } else {
       setQuery(search.displayName);
     }
@@ -121,7 +170,13 @@ export default function IndoorSearchPage() {
 
             <SearchPill
               value={query}
-              placeholder={`Search in ${buildingName}...`}
+              placeholder={
+                itineraryField === "start"
+                  ? `Choose start in ${buildingName}...`
+                  : itineraryField === "end"
+                    ? `Choose destination in ${buildingName}...`
+                    : `Search in ${buildingName}...`
+              }
               onClear={() => setQuery("")}
               editable={true}
               onChangeText={setQuery}
@@ -129,19 +184,16 @@ export default function IndoorSearchPage() {
             />
           </View>
 
-          {/* POI Filters */}
-          {query.trim().length === 0 && (
+          {query.trim().length === 0 && !itineraryField && (
             <IndoorPoiFilters onFilterPress={handleFilterPress} />
           )}
 
-          {/* Search content */}
           {isLoading ? (
             <View style={styles.center}>
               <ActivityIndicator size="large" />
             </View>
           ) : (
             <>
-              {/* Recent Searches */}
               {showRecent && (
                 <IndoorRecentSearches
                   searches={recentSearches}
@@ -150,7 +202,6 @@ export default function IndoorSearchPage() {
                 />
               )}
 
-              {/* Search Results */}
               {query.trim().length > 0 && (
                 <IndoorSearchResults
                   results={results}
@@ -159,7 +210,6 @@ export default function IndoorSearchPage() {
                 />
               )}
 
-              {/* Empty */}
               {!showRecent && query.trim().length === 0 && (
                 <View style={styles.center}>
                   <Text style={styles.emptyText}>Start typing to search</Text>

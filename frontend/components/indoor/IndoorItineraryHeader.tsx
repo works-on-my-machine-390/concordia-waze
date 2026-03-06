@@ -4,39 +4,41 @@ import { COLORS } from "@/app/constants";
 import { CircleIcon, LocationIcon } from "@/app/icons";
 import { Ionicons } from "@expo/vector-icons";
 import { DrawerActions } from "@react-navigation/native";
-import { useNavigation } from "expo-router";
+import { useNavigation, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-export default function IndoorItineraryHeader() {
+type Props = {
+  buildingCode: string;
+  buildingName: string;
+};
+
+export default function IndoorItineraryHeader({
+  buildingCode,
+  buildingName,
+}: Readonly<Props>) {
   const indoor = useIndoorNavigationStore();
   const insets = useSafeAreaInsets();
-
   const navigation = useNavigation();
+  const router = useRouter();
 
   const handleBack = () => {
     indoor.exitItinerary();
-
     indoor.setSelectedRoom(null);
-
-    // (optional) also clear pick mode back to start if you want:
-    // indoor.setPickMode("start");
   };
 
-  const startText = indoor.start?.label || "Select start";
-  const endText = indoor.end?.label || "Select destination";
+  const startText =
+    indoor.start?.displayLabel || indoor.start?.label || "Select start";
+  const endText =
+    indoor.end?.displayLabel || indoor.end?.label || "Select destination";
 
   return (
     <View
-      style={[
-        styles.container,
-        { paddingTop: insets.top + 10 }, // respect safe area
-      ]}
+      style={[styles.container, { paddingTop: insets.top + 10 }]}
       testID="indoor-itinerary-header"
       accessibilityLabel="Indoor itinerary header"
       pointerEvents="box-none"
     >
       <View style={styles.headerRow} pointerEvents="box-none">
-        {/* Left buttons column */}
         <View style={styles.leftButtons} pointerEvents="auto">
           <Pressable
             style={styles.iconButton}
@@ -50,13 +52,21 @@ export default function IndoorItineraryHeader() {
           </Pressable>
         </View>
 
-        {/* Card (identical structure to NavigationHeader.tsx) */}
         <View style={styles.card} pointerEvents="auto">
           <View style={styles.locationsContainer}>
-            {/* Start location */}
             <Pressable
               style={styles.locationRow}
-              onPress={() => indoor.setPickMode("start")}
+              onPress={() => {
+                indoor.setPickMode("start");
+                router.push({
+                  pathname: "/indoor-search",
+                  params: {
+                    buildingCode,
+                    buildingName,
+                    itineraryField: "start",
+                  },
+                });
+              }}
             >
               <View style={styles.iconContainer}>
                 <CircleIcon size={16} />
@@ -73,7 +83,6 @@ export default function IndoorItineraryHeader() {
               </View>
             </Pressable>
 
-            {/* Divider row */}
             <View style={styles.dividerRow}>
               <View style={styles.dotsConnector}>
                 <View style={styles.dot} />
@@ -83,10 +92,19 @@ export default function IndoorItineraryHeader() {
               <View style={styles.dividerLine} />
             </View>
 
-            {/* End location */}
             <Pressable
               style={styles.locationRow}
-              onPress={() => indoor.setPickMode("end")}
+              onPress={() => {
+                indoor.setPickMode("end");
+                router.push({
+                  pathname: "/indoor-search",
+                  params: {
+                    buildingCode,
+                    buildingName,
+                    itineraryField: "end",
+                  },
+                });
+              }}
             >
               <View style={styles.iconContainer}>
                 <LocationIcon size={20} color={COLORS.maroon} />
