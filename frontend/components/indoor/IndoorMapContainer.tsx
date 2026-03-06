@@ -112,15 +112,15 @@ export default function IndoorMapContainer({
 
     let nextFloor: number;
 
-    if (selectedFloorFromSearch != null) {
+    if (navMode === "BROWSE" && selectedFloorFromSearch != null) {
       nextFloor = selectedFloorFromSearch;
-    } else if (preferredFloorNumber != null) {
-      nextFloor = preferredFloorNumber;
     } else if (
       navCurrentFloor != null &&
       data.floors.some((f) => f.number === navCurrentFloor)
     ) {
       nextFloor = navCurrentFloor;
+    } else if (preferredFloorNumber != null) {
+      nextFloor = preferredFloorNumber;
     } else {
       nextFloor = data.floors[0].number;
     }
@@ -132,9 +132,10 @@ export default function IndoorMapContainer({
     }
   }, [
     data?.floors,
+    navMode,
     selectedFloorFromSearch,
-    preferredFloorNumber,
     navCurrentFloor,
+    preferredFloorNumber,
     setCurrentFloor,
   ]);
 

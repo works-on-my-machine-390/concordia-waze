@@ -71,25 +71,19 @@ export default function IndoorMapPage() {
       ? ITINERARY_SHEET_HEIGHT + Math.max(insets.bottom, 8) + 24
       : BROWSE_SHEET_HEIGHT + Math.max(insets.bottom, 8) + 24;
 
+  const parsedSearchFloor = params.selectedFloor
+    ? Number.parseInt(params.selectedFloor, 10)
+    : undefined;
+
   return (
     <View style={styles.container}>
       <IndoorMapContainer
         buildingCode={buildingCode}
         routeSegments={ctrl.routeSegments}
-        preferredFloorNumber={
-          params.selectedFloor
-            ? Number.parseInt(params.selectedFloor, 10)
-            : nav.mode === "ITINERARY"
-              ? nav.start?.floor ?? nav.currentFloor ?? null
-              : nav.currentFloor ?? null
-        }
+        preferredFloorNumber={nav.currentFloor ?? null}
         floorSelectorBottomOffset={selectorOffset}
-        selectedRoomFromSearch={params.selectedRoom}
-        selectedFloorFromSearch={
-          params.selectedFloor
-            ? Number.parseInt(params.selectedFloor, 10)
-            : undefined
-        }
+        selectedRoomFromSearch={nav.mode === "BROWSE" ? params.selectedRoom : undefined}
+        selectedFloorFromSearch={nav.mode === "BROWSE" ? parsedSearchFloor : undefined}
       />
 
       {nav.mode === "ITINERARY" ? (
