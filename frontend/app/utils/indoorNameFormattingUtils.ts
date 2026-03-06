@@ -21,7 +21,7 @@ export const formatIndoorPoiName = (
     return poiName;
   }
 
-  if (/^poi_\d+$/i.test(poiName)) {
+  if (/^poi_\d+$/i.test(poiName) && poiType.trim().length > 0) {
     return poiType
       .split("_")
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1))

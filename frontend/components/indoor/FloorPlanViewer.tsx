@@ -123,6 +123,7 @@ export default function FloorPlanViewer({
                 poi={poi}
                 width={DISPLAY_WIDTH}
                 height={DISPLAY_HEIGHT}
+                isSelected={poi.name === selectedPoiName}
                 onPress={() => {
                   clearSelectedPoiFilter();
                   setSelectedPoiName(poi.name);
