@@ -1,8 +1,8 @@
-# 📅 Sprint Gantt Chart  ·  Mar 09 – Mar 22, 2026
+# Sprint Gantt Chart  ·  Mar 09 – Mar 22, 2026
 
 > **Sprint duration:** 14 days  ·  **Team size:** 11 people  ·  **Final deadline:** Mar 22
 
-## 🗂️ Task Assignment Table
+## Task Assignment Table
 
 | # | Task | Assigned To | Deadline |
 |---|------|-------------|----------|
@@ -36,7 +36,7 @@
 
 ---
 
-## 📌 Key Deadlines
+## Key Deadlines
 
 | Deadline | Issues |
 |----------|--------|
@@ -49,7 +49,7 @@
 
 ---
 
-## 👥 Person Summary
+## Person Summary
 
 | Person | Assigned Issues | Count |
 |--------|-----------------|-------|
