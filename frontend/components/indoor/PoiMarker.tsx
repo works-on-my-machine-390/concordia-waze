@@ -21,6 +21,8 @@ type Props = {
   height: number;
   onPress?: () => void;
   highlighted?: boolean;
+  selected?: boolean;
+  isSelected?: boolean;
 };
 
 const ICON_SIZE = 20;
@@ -62,9 +64,13 @@ export default function PoiMarker({
   height,
   onPress,
   highlighted,
+  selected,
+  isSelected,
 }: Readonly<Props>) {
   const IconComponent = getIconComponent(poi.type);
   if (!IconComponent) return null;
+
+  const active = !!(highlighted || selected || isSelected);
 
   const x = poi.position.x * width;
   const y = poi.position.y * height;
@@ -78,10 +84,10 @@ export default function PoiMarker({
         { left: x - ICON_SIZE / 2, top: y - ICON_SIZE / 2 },
       ]}
     >
-      {highlighted ? <View style={styles.halo} /> : null}
+      {active ? <View style={styles.halo} /> : null}
       <IconComponent
         size={ICON_SIZE}
-        color={highlighted ? COLORS.selectionBlue : COLORS.maroon}
+        color={active ? COLORS.selectionBlue : COLORS.maroon}
       />
     </Pressable>
   );

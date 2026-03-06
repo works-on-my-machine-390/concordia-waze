@@ -15,11 +15,7 @@ export type IndoorRoomBottomSheetProps = {
   buildingCode: string;
   roomType?: string | null;
   onClose: () => void;
-
-  // ✅ NEW: callback for starting itinerary / preview
   onDirectionsPress?: () => void;
-
-  // ✅ optional: allow disabling the directions button
   directionsDisabled?: boolean;
 };
 
@@ -47,10 +43,7 @@ export default function IndoorRoomBottomSheet(
   );
 
   const displaySubtitle = isRoom ? "Room" : null;
-
-  // ✅ show + enable logic
-  const showDirectionsButton = !!onDirectionsPress; // parent decides if it should exist
-  const canPressDirections = showDirectionsButton && !directionsDisabled;
+  const canPressDirections = !directionsDisabled && !!onDirectionsPress;
 
   return (
     <BottomSheet
@@ -70,34 +63,30 @@ export default function IndoorRoomBottomSheet(
       </View>
 
       <View style={BottomSheetStyles.headerContainer}>
-        {/* Floating navigate button */}
-        {showDirectionsButton ? (
-          <TouchableOpacity
-  testID="indoor-room-navigate-button"
-  onPress={() => {
-    if (onDirectionsPress) {
-      onDirectionsPress(); // start itinerary
-    }
-    onClose(); // close bottom sheet
-  }}
-  disabled={!canPressDirections}
-  activeOpacity={0.8}
->
-            <View
-              style={[
-                BottomSheetStyles.floatingIcon,
-                !canPressDirections && styles.disabledFloating,
-              ]}
-            >
-              <GetDirectionsIcon
-                size={90}
-                color={canPressDirections ? COLORS.maroon : "#BDBDBD"}
-              />
-            </View>
-          </TouchableOpacity>
-        ) : null}
+        <TouchableOpacity
+          testID="indoor-room-navigate-button"
+          onPress={() => {
+            if (canPressDirections && onDirectionsPress) {
+              onDirectionsPress();
+            }
+            onClose();
+          }}
+          disabled={directionsDisabled}
+          activeOpacity={0.8}
+        >
+          <View
+            style={[
+              BottomSheetStyles.floatingIcon,
+              directionsDisabled && styles.disabledFloating,
+            ]}
+          >
+            <GetDirectionsIcon
+              size={90}
+              color={!directionsDisabled ? COLORS.maroon : "#BDBDBD"}
+            />
+          </View>
+        </TouchableOpacity>
 
-        {/* Title + optional subtitle */}
         <View style={BottomSheetStyles.textContainer}>
           <Text style={BottomSheetStyles.name}>{displayTitle}</Text>
           {!!displaySubtitle && (
@@ -105,17 +94,19 @@ export default function IndoorRoomBottomSheet(
           )}
         </View>
 
-        {/* Bottom row: favourite + close on right */}
         <View style={IndoorRoomStyles.iconsContainer}>
           <TouchableOpacity testID="indoor-room-favorite-button">
             <FavoriteEmptyIcon color={COLORS.maroon} />
           </TouchableOpacity>
+
           <TouchableOpacity
             onPress={onClose}
             style={BottomSheetStyles.closeIcon}
             testID="indoor-room-close-button"
           >
-            <CloseIcon size={28} />
+            <View testID="close-icon">
+              <CloseIcon size={28} />
+            </View>
           </TouchableOpacity>
         </View>
       </View>
