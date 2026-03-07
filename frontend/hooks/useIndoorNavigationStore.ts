@@ -28,6 +28,8 @@ type IndoorNavigationState = {
   totalDistance: number | null;
   transitionType: TransitionType | null;
 
+  routeError: string | null;
+
   currentFloor: number | null;
   setCurrentFloor: (f: number | null) => void;
 
@@ -45,6 +47,8 @@ type IndoorNavigationState = {
     totalDistance: number | null,
     transitionType?: TransitionType | null,
   ) => void;
+
+  setRouteError: (message: string | null) => void;
   clearRoute: () => void;
 };
 
@@ -61,6 +65,7 @@ export const useIndoorNavigationStore = create<IndoorNavigationState>(
     routeSegments: null,
     totalDistance: null,
     transitionType: null,
+    routeError: null,
 
     currentFloor: null,
     setCurrentFloor: (f) => set({ currentFloor: f }),
@@ -79,6 +84,7 @@ export const useIndoorNavigationStore = create<IndoorNavigationState>(
         routeSegments: null,
         totalDistance: null,
         transitionType: null,
+        routeError: null,
         selectedRoom: null,
       });
     },
@@ -92,18 +98,35 @@ export const useIndoorNavigationStore = create<IndoorNavigationState>(
         routeSegments: null,
         totalDistance: null,
         transitionType: null,
+        routeError: null,
         selectedRoom: null,
       }),
 
     setPickMode: (m) => set({ pickMode: m }),
-    setStart: (p) => set({ start: p }),
-    setEnd: (p) => set({ end: p }),
+
+    setStart: (p) =>
+      set({
+        start: p,
+        routeError: null,
+      }),
+
+    setEnd: (p) =>
+      set({
+        end: p,
+        routeError: null,
+      }),
 
     setRoute: (segments, totalDistance, transitionType = null) =>
       set({
         routeSegments: segments,
         totalDistance,
         transitionType,
+        routeError: null,
+      }),
+
+    setRouteError: (message) =>
+      set({
+        routeError: message,
       }),
 
     clearRoute: () =>
@@ -111,6 +134,7 @@ export const useIndoorNavigationStore = create<IndoorNavigationState>(
         routeSegments: null,
         totalDistance: null,
         transitionType: null,
+        routeError: null,
       }),
   }),
 );

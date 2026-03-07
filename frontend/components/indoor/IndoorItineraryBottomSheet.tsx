@@ -29,7 +29,8 @@ export default function IndoorItineraryBottomSheet({
     !!nav.start &&
     !!nav.end &&
     !!nav.routeSegments &&
-    nav.routeSegments.length > 0;
+    nav.routeSegments.length > 0 &&
+    !nav.routeError;
 
   const handleGo = () => {
     if (!canGo) return;
@@ -62,6 +63,10 @@ export default function IndoorItineraryBottomSheet({
       floorMsg = `Route spans Floors ${startFloor} → ${endFloor}.`;
     }
   }
+
+  const helperText = nav.routeError
+    ? nav.routeError
+    : "Tap rooms on the map to set Start/End.";
 
   return (
     <BottomSheet
@@ -97,7 +102,9 @@ export default function IndoorItineraryBottomSheet({
 
       {floorMsg ? <Text style={styles.floorMsg}>{floorMsg}</Text> : null}
 
-      <Text style={styles.sub}>Tap rooms on the map to set Start/End.</Text>
+      <Text style={[styles.sub, nav.routeError && styles.errorSub]}>
+        {helperText}
+      </Text>
 
       <View style={{ height: Math.max(insets.bottom, 10) }} />
     </BottomSheet>
@@ -185,6 +192,10 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     color: "#666",
     fontWeight: "600",
+  },
+
+  errorSub: {
+    color: "#B42318",
   },
 
   close: {

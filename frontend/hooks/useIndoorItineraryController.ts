@@ -14,17 +14,8 @@ const makeKey = (
 ) =>
   `${buildingCode}:${s.floor}:${s.coord.x},${s.coord.y}->${e.floor}:${e.coord.x},${e.coord.y}:elevator=${preferElevator}`;
 
-/**
- * Tune this once so the numbers "feel" like meters.
- * If too small: increase it. Too big: decrease it.
- */
 const METERS_PER_SVG_UNIT = 0.022;
 
-/**
- * Extract SVG width/height from xml. Works with:
- * - viewBox="0 0 W H"
- * - width="..." height="..."
- */
 function parseSvgSize(xml: string): { width: number; height: number } | null {
   const viewBoxMatch = xml.match(/viewBox\s*=\s*"[^"]*?\s([\d.]+)\s([\d.]+)"/i);
   if (viewBoxMatch) {
@@ -74,6 +65,17 @@ function computeMetersFromSegments(
   return totalSvgUnits * METERS_PER_SVG_UNIT;
 }
 
+function isNoAccessibleRouteError(error: unknown): boolean {
+  if (!error) return false;
+
+  if (error instanceof Error) {
+    return error.message.toLowerCase().includes("no transition point");
+  }
+
+  const raw = typeof error === "string" ? error : JSON.stringify(error);
+  return raw.toLowerCase().includes("no transition point");
+}
+
 export function useIndoorItineraryController(buildingCode: string) {
   const nav = useIndoorNavigationStore();
   const mutation = useIndoorMultiFloorPath();
@@ -118,6 +120,8 @@ export function useIndoorItineraryController(buildingCode: string) {
     if (lastKeyRef.current === key) return;
     lastKeyRef.current = key;
 
+    nav.setRouteError(null);
+
     mutation
       .mutateAsync({
         buildingCode,
@@ -147,8 +151,15 @@ export function useIndoorItineraryController(buildingCode: string) {
 
         nav.setRoute(res.segments, meters, res.transitionType);
       })
-      .catch(() => {
+      .catch((error) => {
         nav.clearRoute();
+
+        if (isAccessibilityMode && isNoAccessibleRouteError(error)) {
+          nav.setRouteError("No accessible indoor route is available for this trip.");
+          return;
+        }
+
+        nav.setRouteError("Unable to generate an indoor route.");
       });
   }, [
     canRequestRoute,
@@ -173,6 +184,7 @@ export function useIndoorItineraryController(buildingCode: string) {
     routeSegments: nav.routeSegments,
     totalDistance: nav.totalDistance,
     transitionType: nav.transitionType,
+    routeError: nav.routeError,
 
     isLoadingRoute: mutation.isPending,
     onPickPoint,
