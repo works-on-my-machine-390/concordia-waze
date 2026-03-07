@@ -1,4 +1,3 @@
-import { COLORS } from "@/app/constants";
 import type { IndoorNavigationStep } from "@/app/utils/indoorNavigationSteps";
 import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, Text, View } from "react-native";
@@ -14,6 +13,7 @@ export default function IndoorNavigationInstructionCard({
 }: Readonly<Props>) {
   if (!step) return null;
 
+  const isArrival = step.kind === "arrival";
   const distanceText = `${Math.max(1, Math.round(step.distanceMeters))} m`;
 
   return (
@@ -23,7 +23,9 @@ export default function IndoorNavigationInstructionCard({
       </View>
 
       <View style={styles.textWrap}>
-        <Text style={styles.distance}>{distanceText}</Text>
+        {!isArrival && (
+          <Text style={styles.distance}>{distanceText}</Text>
+        )}
         <Text style={styles.instruction}>{step.instruction}</Text>
       </View>
     </View>

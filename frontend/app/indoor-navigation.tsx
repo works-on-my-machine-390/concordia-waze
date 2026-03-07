@@ -100,31 +100,31 @@ export default function IndoorNavigationPage() {
       return undefined;
     }
 
-    // Arrival step: keep circle on destination
+    // First displayed step starts exactly from selected start POI
+    if (currentStepIndex === 0) {
+      return start?.coord;
+    }
+
+    // Keep the circle at the destination on the arrival step
     if (currentStep.kind === "arrival") {
       return currentStep.targetPoint;
     }
 
-    // First step: keep same positioning as itinerary preview (start room)
-    if (currentStepIndex === 0) {
-      return undefined;
-    }
-
     const previousStep = steps[currentStepIndex - 1];
-    if (!previousStep) return undefined;
+    if (!previousStep) return start?.coord;
 
-    // Same floor: current position is where previous step ended
+    // Same floor: continue from where the previous step ended
     if (previousStep.floorNumber === currentStep.floorNumber) {
       return previousStep.targetPoint;
     }
 
-    // Floor changed: current position should be start of the new floor segment
+    // Different floor: start from the first point of the current floor segment
     const currentSegment = routeSegments.find(
       (seg) => seg.floorNumber === currentStep.floorNumber,
     );
 
     return currentSegment?.path?.[0];
-  }, [currentStep, currentStepIndex, routeSegments, steps]);
+  }, [currentStep, currentStepIndex, routeSegments, steps, start]);
 
   const cleanupAndReturnToBrowse = () => {
     clearRoute();
@@ -193,6 +193,7 @@ export default function IndoorNavigationPage() {
           totalSteps={steps.length}
           onNext={handleNext}
           isLastStep={currentStepIndex === steps.length - 1}
+          isArrivalStep={currentStep.kind === "arrival"}
         />
       ) : null}
     </View>

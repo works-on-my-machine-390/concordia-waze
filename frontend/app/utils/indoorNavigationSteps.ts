@@ -8,7 +8,7 @@ import type { Floor } from "@/hooks/queries/indoorMapQueries";
 const METERS_PER_SVG_UNIT = 0.022;
 const WALKING_SPEED_MPS = 1.3;
 
-export type NavigationStepKind = "turn" | "transition" | "arrival";
+export type NavigationStepKind = "turn" | "transition" | "arrival" | "walk";
 
 export type IndoorNavigationStep = {
   id: string;
@@ -91,11 +91,14 @@ function detectTurn(
 
   const cross = dx1 * dy2 - dy1 * dx2;
   const dot = dx1 * dx2 + dy1 * dy2;
-  const cos = dot / (mag1 * mag2);
+  const cos = Math.max(-1, Math.min(1, dot / (mag1 * mag2)));
+  const angleDeg = (Math.acos(cos) * 180) / Math.PI;
 
-  if (Math.abs(cross) < 1e-6 || cos > 0.995) return "straight";
+  // Ignore tiny bends / geometry noise
+  if (angleDeg < 20) return "straight";
 
-  // screen coords: y grows downward, so sign is visually flipped
+  // SVG coordinates usually have Y going down, so this sign is correct
+  // for the current UI behavior.
   return cross < 0 ? "left" : "right";
 }
 
@@ -162,12 +165,15 @@ export async function buildIndoorNavigationSteps(args: {
     }
 
     let anchorIndex = 0;
+    let foundTurn = false;
 
     for (let i = 1; i < pts.length - 1; i++) {
       const turn = detectTurn(pts[i - 1], pts[i], pts[i + 1]);
       if (turn === "straight") continue;
 
+      foundTurn = true;
       const distToTurn = sumSlice(edgeMeters, anchorIndex, i - 1);
+
       if (distToTurn > 0.2) {
         const turnInfo = instructionForTurn(turn);
         rawSteps.push({
@@ -183,9 +189,14 @@ export async function buildIndoorNavigationSteps(args: {
       }
     }
 
-    const distToSegmentEnd = sumSlice(edgeMeters, anchorIndex, edgeMeters.length - 1);
+    const distToSegmentEnd = sumSlice(
+      edgeMeters,
+      anchorIndex,
+      edgeMeters.length - 1,
+    );
+    const isLastSegment = sIdx === segments.length - 1;
 
-    if (sIdx < segments.length - 1) {
+    if (!isLastSegment) {
       const nextFloor = segments[sIdx + 1].floorNumber;
 
       let transitionText = `Go to Floor ${nextFloor}`;
@@ -205,6 +216,20 @@ export async function buildIndoorNavigationSteps(args: {
         distanceMeters: Math.max(distToSegmentEnd, 0),
       });
     } else {
+      // Always add a real movement step before arrival if there is distance left.
+      // This fixes the bug where the UI jumps directly from the last turn to arrival.
+      if (distToSegmentEnd > 0.2) {
+        rawSteps.push({
+          id: `walk-${sIdx}-${anchorIndex}`,
+          floorNumber: seg.floorNumber,
+          targetPoint: pts[pts.length - 1],
+          kind: "walk",
+          iconName: "walk",
+          instruction: foundTurn ? "Continue straight" : "Head straight",
+          distanceMeters: distToSegmentEnd,
+        });
+      }
+
       rawSteps.push({
         id: `arrival-${sIdx}`,
         floorNumber: seg.floorNumber,
@@ -212,7 +237,7 @@ export async function buildIndoorNavigationSteps(args: {
         kind: "arrival",
         iconName: "location",
         instruction: "You have arrived",
-        distanceMeters: Math.max(distToSegmentEnd, 0),
+        distanceMeters: 0,
       });
     }
   }
@@ -233,13 +258,16 @@ export async function buildIndoorNavigationSteps(args: {
   }));
 
   let runningRemaining = 0;
-  const finalSteps = [...scaled].reverse().map((step) => {
-    runningRemaining += step.distanceMeters;
-    return {
-      ...step,
-      remainingDistanceMeters: runningRemaining,
-    };
-  }).reverse();
+  const finalSteps = [...scaled]
+    .reverse()
+    .map((step) => {
+      runningRemaining += step.distanceMeters;
+      return {
+        ...step,
+        remainingDistanceMeters: runningRemaining,
+      };
+    })
+    .reverse();
 
   return finalSteps;
 }

@@ -15,6 +15,7 @@ type Props = {
   totalSteps: number;
   onNext: () => void;
   isLastStep: boolean;
+  isArrivalStep: boolean;
 };
 
 export default function IndoorNavigationBottomSheet({
@@ -23,6 +24,7 @@ export default function IndoorNavigationBottomSheet({
   totalSteps,
   onNext,
   isLastStep,
+  isArrivalStep,
 }: Readonly<Props>) {
   const insets = useSafeAreaInsets();
   const snapPoints = useMemo(() => [NAV_SHEET_HEIGHT], []);
@@ -41,26 +43,34 @@ export default function IndoorNavigationBottomSheet({
       handleIndicatorStyle={styles.handleIndicator}
       handleStyle={styles.handle}
     >
-      <View style={styles.metricsRow}>
-        <View style={styles.metric}>
-          <Text style={styles.metricValue}>{arrivalTime}</Text>
-          <Text style={styles.metricLabel}>arrival</Text>
+      {isArrivalStep ? (
+        <View style={styles.arrivalContent}>
+          <Pressable style={styles.finishBtn} onPress={onNext}>
+            <Text style={styles.nextText}>FINISH</Text>
+          </Pressable>
         </View>
+      ) : (
+        <View style={styles.metricsRow}>
+          <View style={styles.metric}>
+            <Text style={styles.metricValue}>{arrivalTime}</Text>
+            <Text style={styles.metricLabel}>arrival</Text>
+          </View>
 
-        <View style={styles.metric}>
-          <Text style={styles.metricValue}>{durationMinutes}</Text>
-          <Text style={styles.metricLabel}>min.</Text>
+          <View style={styles.metric}>
+            <Text style={styles.metricValue}>{durationMinutes}</Text>
+            <Text style={styles.metricLabel}>min.</Text>
+          </View>
+
+          <View style={styles.metric}>
+            <Text style={styles.metricValue}>{roundedMeters}</Text>
+            <Text style={styles.metricLabel}>m</Text>
+          </View>
+
+          <Pressable style={styles.nextBtn} onPress={onNext}>
+            <Text style={styles.nextText}>{isLastStep ? "FINISH" : "NEXT"}</Text>
+          </Pressable>
         </View>
-
-        <View style={styles.metric}>
-          <Text style={styles.metricValue}>{roundedMeters}</Text>
-          <Text style={styles.metricLabel}>m</Text>
-        </View>
-
-        <Pressable style={styles.nextBtn} onPress={onNext}>
-          <Text style={styles.nextText}>{isLastStep ? "FINISH" : "NEXT"}</Text>
-        </Pressable>
-      </View>
+      )}
 
       <Text style={styles.stepCounter}>
         Step {Math.min(currentStepIndex + 1, totalSteps)} of {totalSteps}
@@ -122,6 +132,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  finishBtn: {
+    width: "100%",
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: "#912338",
+    alignItems: "center",
+    justifyContent: "center",
+  },
   nextText: {
     color: "white",
     fontWeight: "800",
@@ -133,5 +151,9 @@ const styles = StyleSheet.create({
     color: "#666",
     fontSize: 13,
     fontWeight: "600",
+  },
+  arrivalContent: {
+    paddingHorizontal: 18,
+    paddingTop: 10,
   },
 });
