@@ -41,13 +41,18 @@ export default function IndoorItineraryHeader({
       <View style={styles.headerRow} pointerEvents="box-none">
         <View style={styles.leftButtons} pointerEvents="auto">
           <Pressable
+            testID="open-drawer-btn"
             style={styles.iconButton}
             onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
           >
             <Ionicons name="menu" size={26} color={COLORS.maroon} />
           </Pressable>
 
-          <Pressable style={styles.iconButton} onPress={handleBack}>
+          <Pressable
+            testID="itinerary-back-btn"
+            style={styles.iconButton}
+            onPress={handleBack}
+          >
             <Ionicons name="arrow-back" size={26} color={COLORS.maroon} />
           </Pressable>
         </View>

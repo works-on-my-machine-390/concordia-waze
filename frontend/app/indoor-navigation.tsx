@@ -175,6 +175,7 @@ export default function IndoorNavigationPage() {
       />
 
       <Pressable
+        testID="indoor-nav-back-btn"
         style={[styles.backBtn, { top: insets.top + 12 }]}
         onPress={handleBack}
       >
