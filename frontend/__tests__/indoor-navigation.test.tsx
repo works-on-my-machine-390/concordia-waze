@@ -248,4 +248,62 @@ describe("IndoorNavigationPage", () => {
       params: { buildingCode: "VL" },
     });
   });
+  it("passes current step info correctly to bottom sheet on arrival step", () => {
+  useStateSpy
+    .mockImplementationOnce(() => [mockSteps, mockSetSteps] as any)
+    .mockImplementationOnce(() => [false, mockSetLoadingSteps] as any)
+    .mockImplementationOnce(() => [1, mockSetCurrentStepIndex] as any);
+
+  const screen = render(<IndoorNavigationPage />);
+
+  const bottomSheetProps = screen.getByTestId("nav-bottom-sheet").props.children;
+
+  expect(bottomSheetProps).toContain('"remainingDistanceMeters":0');
+  expect(bottomSheetProps).toContain('"currentStepIndex":1');
+  expect(bottomSheetProps).toContain('"totalSteps":2');
+  expect(bottomSheetProps).toContain('"isLastStep":true');
+  expect(bottomSheetProps).toContain('"isArrivalStep":true');
 });
+
+it("passes non-arrival step info correctly to bottom sheet", () => {
+  useStateSpy
+    .mockImplementationOnce(() => [mockSteps, mockSetSteps] as any)
+    .mockImplementationOnce(() => [false, mockSetLoadingSteps] as any)
+    .mockImplementationOnce(() => [0, mockSetCurrentStepIndex] as any);
+
+  const screen = render(<IndoorNavigationPage />);
+
+  const bottomSheetProps = screen.getByTestId("nav-bottom-sheet").props.children;
+
+  expect(bottomSheetProps).toContain('"remainingDistanceMeters":10');
+  expect(bottomSheetProps).toContain('"currentStepIndex":0');
+  expect(bottomSheetProps).toContain('"totalSteps":2');
+  expect(bottomSheetProps).toContain('"isLastStep":false');
+  expect(bottomSheetProps).toContain('"isArrivalStep":false');
+});
+
+it("renders no-step instruction safely when steps are empty", () => {
+  useStateSpy
+    .mockImplementationOnce(() => [[], mockSetSteps] as any)
+    .mockImplementationOnce(() => [false, mockSetLoadingSteps] as any)
+    .mockImplementationOnce(() => [0, mockSetCurrentStepIndex] as any);
+
+  const screen = render(<IndoorNavigationPage />);
+
+  expect(screen.getByTestId("instruction-card").props.children).toBe("no-step");
+});
+
+it("passes fallback preferred floor when no step exists", () => {
+  useStateSpy
+    .mockImplementationOnce(() => [[], mockSetSteps] as any)
+    .mockImplementationOnce(() => [false, mockSetLoadingSteps] as any)
+    .mockImplementationOnce(() => [0, mockSetCurrentStepIndex] as any);
+
+  const screen = render(<IndoorNavigationPage />);
+
+  expect(screen.getByTestId("nav-map-container").props.children).toContain(
+    '"preferredFloorNumber":2',
+  );
+});
+});
+

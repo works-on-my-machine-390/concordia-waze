@@ -308,6 +308,143 @@ describe("IndoorMapContainer", () => {
       expect(getAllByText("Floor 1").length).toBeGreaterThan(0);
     });
   });
+  test("passes extra highlighted POIs for current floor transition targets", async () => {
+  const floorsWithPois = {
+    floors: [
+      {
+        number: 1,
+        name: "Floor 1",
+        imgPath: "floormaps/H_1.svg",
+        vertices: [],
+        edges: [],
+        pois: [],
+      },
+      {
+        number: 2,
+        name: "Floor 2",
+        imgPath: "floormaps/H_2.svg",
+        vertices: [],
+        edges: [],
+        pois: [
+          {
+            name: "Stairs A",
+            type: "stairs",
+            position: { x: 0.2, y: 0.2 },
+          },
+          {
+            name: "Elevator A",
+            type: "elevator",
+            position: { x: 0.9, y: 0.9 },
+          },
+        ],
+      },
+    ],
+  };
+
+  (useGetBuildingFloors as jest.Mock).mockReturnValue({
+    data: floorsWithPois,
+    isLoading: false,
+    error: null,
+  });
+
+  const routeSegments = [
+    {
+      floorNumber: 1,
+      distance: 10,
+      path: [
+        { x: 0.1, y: 0.1 },
+        { x: 0.3, y: 0.3 },
+      ],
+    },
+    {
+      floorNumber: 2,
+      distance: 10,
+      path: [
+        { x: 0.21, y: 0.19 },
+        { x: 0.8, y: 0.8 },
+      ],
+    },
+  ];
+
+  const { getByTestId, getAllByText } = renderWithProviders(
+    <IndoorMapContainer
+      buildingCode="H"
+      routeSegments={routeSegments}
+      preferredFloorNumber={2}
+    />,
+  );
+
+  await waitFor(() => {
+    expect(getAllByText("Floor 2").length).toBeGreaterThan(0);
+  });
+
+  expect(getByTestId("extra-pois").props.children).not.toBe("[]");
+});
+
+test("passes no route when no segment matches current floor", async () => {
+  (useGetBuildingFloors as jest.Mock).mockReturnValue({
+    data: mockFloorsData,
+    isLoading: false,
+    error: null,
+  });
+
+  const routeSegments = [
+    {
+      floorNumber: 99,
+      distance: 10,
+      path: [
+        { x: 0.1, y: 0.1 },
+        { x: 0.3, y: 0.3 },
+      ],
+    },
+  ];
+
+  const { getByTestId, getAllByText } = renderWithProviders(
+    <IndoorMapContainer
+      buildingCode="H"
+      routeSegments={routeSegments}
+      preferredFloorNumber={1}
+    />,
+  );
+
+  await waitFor(() => {
+    expect(getAllByText("Floor 1").length).toBeGreaterThan(0);
+  });
+
+  expect(getByTestId("route-path")).toHaveTextContent("no-route");
+});
+
+test("does not show accessibility notice before callback fires", async () => {
+  (useGetBuildingFloors as jest.Mock).mockReturnValue({
+    data: mockFloorsData,
+    isLoading: false,
+    error: null,
+  });
+
+  const { getByTestId } = renderWithProviders(
+    <IndoorMapContainer buildingCode="H" />,
+  );
+
+  await waitFor(() => {
+    expect(getByTestId("no-accessible-route")).toHaveTextContent("false");
+  });
+});
+
+test("keeps floor selector visible by default", async () => {
+  (useGetBuildingFloors as jest.Mock).mockReturnValue({
+    data: mockFloorsData,
+    isLoading: false,
+    error: null,
+  });
+
+  const { getByTestId } = renderWithProviders(
+    <IndoorMapContainer buildingCode="H" />,
+  );
+
+  await waitFor(() => {
+    expect(getByTestId("floor-selector")).toBeTruthy();
+  });
+});
 });
 
 test("uses selectedFloorFromSearch in browse mode", async () => {
@@ -469,4 +606,72 @@ test("builds routePathForCurrentFloor when a same-floor segment exists", async (
   });
 
   expect(getByTestId("route-path").props.children).not.toBe("no-route");
+});
+
+test("passes requireAccessible false by default", async () => {
+  (useGetBuildingFloors as jest.Mock).mockReturnValue({
+    data: mockFloorsData,
+    isLoading: false,
+    error: null,
+  });
+
+  const { getByTestId } = renderWithProviders(
+    <IndoorMapContainer buildingCode="H" />,
+  );
+
+  await waitFor(() => {
+    expect(getByTestId("require-accessible")).toHaveTextContent("false");
+  });
+});
+
+test("passes empty extra highlighted POIs when there are no matching transition POIs", async () => {
+  const floorsWithoutMatchingPois = {
+    floors: [
+      {
+        number: 2,
+        name: "Floor 2",
+        imgPath: "floormaps/H_2.svg",
+        vertices: [],
+        edges: [],
+        pois: [
+          {
+            name: "Cafe",
+            type: "food",
+            position: { x: 0.2, y: 0.2 },
+          },
+        ],
+      },
+    ],
+  };
+
+  (useGetBuildingFloors as jest.Mock).mockReturnValue({
+    data: floorsWithoutMatchingPois,
+    isLoading: false,
+    error: null,
+  });
+
+  const routeSegments = [
+    {
+      floorNumber: 2,
+      distance: 10,
+      path: [
+        { x: 0.2, y: 0.2 },
+        { x: 0.8, y: 0.8 },
+      ],
+    },
+  ];
+
+  const { getByTestId, getAllByText } = renderWithProviders(
+    <IndoorMapContainer
+      buildingCode="H"
+      routeSegments={routeSegments}
+      preferredFloorNumber={2}
+    />,
+  );
+
+  await waitFor(() => {
+    expect(getAllByText("Floor 2").length).toBeGreaterThan(0);
+  });
+
+  expect(getByTestId("extra-pois").props.children).toBe("[]");
 });
