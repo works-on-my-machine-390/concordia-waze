@@ -92,7 +92,11 @@ export default function IndoorItineraryBottomSheet({
             </Text>
           </Pressable>
 
-          <Pressable onPress={() => nav.exitItinerary()} style={styles.close}>
+          <Pressable
+            testID="close-itinerary"
+            onPress={() => nav.exitItinerary()}
+            style={styles.close}
+          >
             <Ionicons name="close" size={22} color={COLORS.maroon} />
           </Pressable>
         </View>
