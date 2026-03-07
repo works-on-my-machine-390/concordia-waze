@@ -1,5 +1,5 @@
 import React from "react";
-import { fireEvent, render } from "@testing-library/react-native";
+import { cleanup, fireEvent, render } from "@testing-library/react-native";
 import IndoorNavigationPage from "@/app/indoor-navigation";
 
 const mockReplace = jest.fn();
@@ -149,17 +149,38 @@ describe("IndoorNavigationPage", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.clearAllTimers();
+    jest.useRealTimers();
 
     mockState.currentFloor = 1;
+    mockState.routeSegments = [
+      {
+        floorNumber: 2,
+        distance: 10,
+        path: [
+          { x: 0.1, y: 0.2 },
+          { x: 0.4, y: 0.2 },
+        ],
+      },
+    ] as any;
 
     useEffectSpy = jest.spyOn(React, "useEffect").mockImplementation(() => {});
-
     useStateSpy = jest.spyOn(React, "useState");
   });
 
   afterEach(() => {
-    useStateSpy.mockRestore();
-    useEffectSpy.mockRestore();
+    try {
+      useStateSpy?.mockRestore();
+    } catch {}
+
+    try {
+      useEffectSpy?.mockRestore();
+    } catch {}
+
+    jest.clearAllMocks();
+    jest.clearAllTimers();
+    jest.useRealTimers();
+    cleanup();
   });
 
   it("shows loader while loadingSteps is true", () => {
@@ -248,7 +269,85 @@ describe("IndoorNavigationPage", () => {
       params: { buildingCode: "VL" },
     });
   });
+
   it("passes current step info correctly to bottom sheet on arrival step", () => {
+    useStateSpy
+      .mockImplementationOnce(() => [mockSteps, mockSetSteps] as any)
+      .mockImplementationOnce(() => [false, mockSetLoadingSteps] as any)
+      .mockImplementationOnce(() => [1, mockSetCurrentStepIndex] as any);
+
+    const screen = render(<IndoorNavigationPage />);
+
+    const bottomSheetProps =
+      screen.getByTestId("nav-bottom-sheet").props.children;
+
+    expect(bottomSheetProps).toContain('"remainingDistanceMeters":0');
+    expect(bottomSheetProps).toContain('"currentStepIndex":1');
+    expect(bottomSheetProps).toContain('"totalSteps":2');
+    expect(bottomSheetProps).toContain('"isLastStep":true');
+    expect(bottomSheetProps).toContain('"isArrivalStep":true');
+  });
+
+  it("passes non-arrival step info correctly to bottom sheet", () => {
+    useStateSpy
+      .mockImplementationOnce(() => [mockSteps, mockSetSteps] as any)
+      .mockImplementationOnce(() => [false, mockSetLoadingSteps] as any)
+      .mockImplementationOnce(() => [0, mockSetCurrentStepIndex] as any);
+
+    const screen = render(<IndoorNavigationPage />);
+
+    const bottomSheetProps =
+      screen.getByTestId("nav-bottom-sheet").props.children;
+
+    expect(bottomSheetProps).toContain('"remainingDistanceMeters":10');
+    expect(bottomSheetProps).toContain('"currentStepIndex":0');
+    expect(bottomSheetProps).toContain('"totalSteps":2');
+    expect(bottomSheetProps).toContain('"isLastStep":false');
+    expect(bottomSheetProps).toContain('"isArrivalStep":false');
+  });
+
+  it("renders no-step instruction safely when steps are empty", () => {
+    useStateSpy
+      .mockImplementationOnce(() => [[], mockSetSteps] as any)
+      .mockImplementationOnce(() => [false, mockSetLoadingSteps] as any)
+      .mockImplementationOnce(() => [0, mockSetCurrentStepIndex] as any);
+
+    const screen = render(<IndoorNavigationPage />);
+
+    expect(screen.getByTestId("instruction-card").props.children).toBe(
+      "no-step",
+    );
+  });
+
+  it("passes fallback preferred floor when no step exists", () => {
+    useStateSpy
+      .mockImplementationOnce(() => [[], mockSetSteps] as any)
+      .mockImplementationOnce(() => [false, mockSetLoadingSteps] as any)
+      .mockImplementationOnce(() => [0, mockSetCurrentStepIndex] as any);
+
+    const screen = render(<IndoorNavigationPage />);
+
+    expect(screen.getByTestId("nav-map-container").props.children).toContain(
+      '"preferredFloorNumber":2',
+    );
+  });
+
+  it("passes hide flags to IndoorMapContainer", () => {
+  useStateSpy
+    .mockImplementationOnce(() => [mockSteps, mockSetSteps] as any)
+    .mockImplementationOnce(() => [false, mockSetLoadingSteps] as any)
+    .mockImplementationOnce(() => [0, mockSetCurrentStepIndex] as any);
+
+  const screen = render(<IndoorNavigationPage />);
+
+  const mapProps = screen.getByTestId("nav-map-container").props.children;
+
+  expect(mapProps).toContain('"disablePoiSelection":true');
+  expect(mapProps).toContain('"hideBottomSheetSection":true');
+  expect(mapProps).toContain('"hideFloorSelector":true');
+});
+
+it("passes current step index 1 to map container on second step", () => {
   useStateSpy
     .mockImplementationOnce(() => [mockSteps, mockSetSteps] as any)
     .mockImplementationOnce(() => [false, mockSetLoadingSteps] as any)
@@ -256,46 +355,29 @@ describe("IndoorNavigationPage", () => {
 
   const screen = render(<IndoorNavigationPage />);
 
-  const bottomSheetProps = screen.getByTestId("nav-bottom-sheet").props.children;
-
-  expect(bottomSheetProps).toContain('"remainingDistanceMeters":0');
-  expect(bottomSheetProps).toContain('"currentStepIndex":1');
-  expect(bottomSheetProps).toContain('"totalSteps":2');
-  expect(bottomSheetProps).toContain('"isLastStep":true');
-  expect(bottomSheetProps).toContain('"isArrivalStep":true');
+  expect(screen.getByTestId("nav-map-container").props.children).toContain(
+    '"navigationStepIndex":1',
+  );
 });
 
-it("passes non-arrival step info correctly to bottom sheet", () => {
+it("shows arrival instruction on the last step", () => {
   useStateSpy
     .mockImplementationOnce(() => [mockSteps, mockSetSteps] as any)
     .mockImplementationOnce(() => [false, mockSetLoadingSteps] as any)
-    .mockImplementationOnce(() => [0, mockSetCurrentStepIndex] as any);
+    .mockImplementationOnce(() => [1, mockSetCurrentStepIndex] as any);
 
   const screen = render(<IndoorNavigationPage />);
 
-  const bottomSheetProps = screen.getByTestId("nav-bottom-sheet").props.children;
-
-  expect(bottomSheetProps).toContain('"remainingDistanceMeters":10');
-  expect(bottomSheetProps).toContain('"currentStepIndex":0');
-  expect(bottomSheetProps).toContain('"totalSteps":2');
-  expect(bottomSheetProps).toContain('"isLastStep":false');
-  expect(bottomSheetProps).toContain('"isArrivalStep":false');
+  expect(screen.getByTestId("instruction-card").props.children).toBe(
+    "You have arrived",
+  );
 });
 
-it("renders no-step instruction safely when steps are empty", () => {
+it("keeps preferred floor from first step even when currentFloor is null", () => {
+  mockState.currentFloor = null;
+
   useStateSpy
-    .mockImplementationOnce(() => [[], mockSetSteps] as any)
-    .mockImplementationOnce(() => [false, mockSetLoadingSteps] as any)
-    .mockImplementationOnce(() => [0, mockSetCurrentStepIndex] as any);
-
-  const screen = render(<IndoorNavigationPage />);
-
-  expect(screen.getByTestId("instruction-card").props.children).toBe("no-step");
-});
-
-it("passes fallback preferred floor when no step exists", () => {
-  useStateSpy
-    .mockImplementationOnce(() => [[], mockSetSteps] as any)
+    .mockImplementationOnce(() => [mockSteps, mockSetSteps] as any)
     .mockImplementationOnce(() => [false, mockSetLoadingSteps] as any)
     .mockImplementationOnce(() => [0, mockSetCurrentStepIndex] as any);
 
@@ -305,5 +387,15 @@ it("passes fallback preferred floor when no step exists", () => {
     '"preferredFloorNumber":2',
   );
 });
-});
 
+it("does not render bottom sheet when steps are empty", () => {
+  useStateSpy
+    .mockImplementationOnce(() => [[], mockSetSteps] as any)
+    .mockImplementationOnce(() => [false, mockSetLoadingSteps] as any)
+    .mockImplementationOnce(() => [0, mockSetCurrentStepIndex] as any);
+
+  const screen = render(<IndoorNavigationPage />);
+
+  expect(screen.queryByTestId("nav-bottom-sheet")).toBeNull();
+});
+});
