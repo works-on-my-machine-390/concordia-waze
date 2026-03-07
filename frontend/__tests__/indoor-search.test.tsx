@@ -10,6 +10,20 @@ jest.mock("expo-router", () => ({
   useFocusEffect: jest.fn(),
 }));
 
+const mockSetStart = jest.fn();
+const mockSetEnd = jest.fn();
+const mockSetCurrentFloor = jest.fn();
+
+jest.mock("@/hooks/useIndoorNavigationStore", () => ({
+  useIndoorNavigationStore: jest.fn((selector) =>
+    selector({
+      setStart: mockSetStart,
+      setEnd: mockSetEnd,
+      setCurrentFloor: mockSetCurrentFloor,
+    }),
+  ),
+}));
+
 jest.mock("@/hooks/queries/indoorMapQueries");
 jest.mock("@/hooks/useIndoorSearch");
 
@@ -109,18 +123,18 @@ describe("IndoorSearchPage", () => {
   };
 
   const mockFloors = [
-    {
-      number: 1,
-      pois: [
-        { name: "210", type: "room" },
-        { name: "poi_1", type: "bathroom" },
-      ],
-    },
-    {
-      number: 2,
-      pois: [{ name: "220", type: "room" }],
-    },
-  ];
+  {
+    number: 1,
+    pois: [
+      { name: "210", type: "room", position: { x: 0.1, y: 0.2 } },
+      { name: "poi_1", type: "bathroom", position: { x: 0.3, y: 0.4 } },
+    ],
+  },
+  {
+    number: 2,
+    pois: [{ name: "220", type: "room", position: { x: 0.5, y: 0.6 } }],
+  },
+];
 
   const mockSearchResults = [
     {
@@ -253,6 +267,34 @@ describe("IndoorSearchPage", () => {
   expect(screen.UNSAFE_getByType(require("react-native").ActivityIndicator)).toBeTruthy();
 });
 
+test("sets itinerary start point and goes back when selecting a result", () => {
+  (ExpoRouter.useLocalSearchParams as jest.Mock).mockReturnValue({
+    buildingCode: "MB",
+    buildingName: "John Molson Building",
+    itineraryField: "start",
+  });
+
+  (useIndoorSearch as jest.Mock).mockReturnValue({
+    results: mockSearchResults,
+    recentSearches: mockRecentSearches,
+    addRecentSearch: jest.fn(),
+    clearRecentSearches: jest.fn(),
+  });
+
+  render(<IndoorSearchPage />);
+
+  const input = screen.getByPlaceholderText(
+    "Choose start in John Molson Building...",
+  );
+
+  fireEvent.changeText(input, "210");
+  fireEvent.press(screen.getByText("Result: 210"));
+
+  expect(mockSetStart).toHaveBeenCalled();
+  expect(mockSetCurrentFloor).toHaveBeenCalledWith(1);
+  expect(mockRouter.back).toHaveBeenCalled();
+});
+
 test("navigates back when back button is pressed", () => {
   render(<IndoorSearchPage />);
 
@@ -271,22 +313,6 @@ test("applies filter and navigates to indoor map", () => {
     pathname: "/indoor-map",
     params: { buildingCode: "MB" },
   });
-});
-
-test("sets start point and goes back when selecting a result in itinerary start mode", () => {
-  const mockSetStart = jest.fn();
-  const mockSetEnd = jest.fn();
-  const mockSetCurrentFloor = jest.fn();
-
-  jest.doMock("@/hooks/useIndoorNavigationStore", () => ({
-    useIndoorNavigationStore: jest.fn((selector) =>
-      selector({
-        setStart: mockSetStart,
-        setEnd: mockSetEnd,
-        setCurrentFloor: mockSetCurrentFloor,
-      }),
-    ),
-  }));
 });
 
 test("uses itinerary start placeholder", () => {
@@ -430,3 +456,4 @@ test("does nothing when selected result poi is missing", () => {
     });
   });
 });
+
