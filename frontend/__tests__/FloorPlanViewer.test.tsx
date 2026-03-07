@@ -519,3 +519,114 @@ describe("FloorPlanViewer", () => {
     expect(queryByTestId("selected-poi")).toBeNull();
   });
 });
+
+import { isNoAccessibleRouteError } from "../components/indoor/FloorPlanViewer";
+
+test("isNoAccessibleRouteError returns true for Error with matching message", () => {
+  expect(
+    isNoAccessibleRouteError(new Error("No transition point found")),
+  ).toBe(true);
+});
+
+test("isNoAccessibleRouteError returns true for string payload", () => {
+  expect(isNoAccessibleRouteError("no transition point available")).toBe(true);
+});
+
+test("isNoAccessibleRouteError returns false for unrelated error", () => {
+  expect(isNoAccessibleRouteError(new Error("network fail"))).toBe(false);
+  expect(isNoAccessibleRouteError(null)).toBe(false);
+});
+
+test("selectedPoiName prop overrides local selected state", () => {
+  (useSvgDimensions as jest.Mock).mockReturnValue({
+    dimensions: { width: 1000, height: 1000 },
+    svgText: "<svg></svg>",
+    error: false,
+    isLoading: false,
+  });
+
+  const { getByTestId } = renderWithProviders(
+    <FloorPlanViewer
+      floor={mockFloor}
+      buildingCode="CC"
+      buildingName="CC Building"
+      selectedPoiName="Bathroom"
+    />,
+  );
+
+  expect(getByTestId("selected-poi")).toHaveTextContent("Bathroom");
+});
+
+test("does not preselect initialSelectedRoom when poi does not exist", () => {
+  (useSvgDimensions as jest.Mock).mockReturnValue({
+    dimensions: { width: 1000, height: 1000 },
+    svgText: "<svg></svg>",
+    error: false,
+    isLoading: false,
+  });
+
+  const { queryByTestId } = renderWithProviders(
+    <FloorPlanViewer
+      floor={mockFloor}
+      buildingCode="CC"
+      buildingName="CC Building"
+      initialSelectedRoom="Missing Room"
+    />,
+  );
+
+  expect(queryByTestId("selected-poi")).toBeNull();
+});
+
+test("does not render route overlay when route path has less than 2 points", () => {
+  (useSvgDimensions as jest.Mock).mockReturnValue({
+    dimensions: { width: 1000, height: 1000 },
+    svgText: "<svg></svg>",
+    error: false,
+    isLoading: false,
+  });
+
+  const { queryByTestId } = renderWithProviders(
+    <FloorPlanViewer
+      floor={mockFloor}
+      buildingCode="CC"
+      buildingName="CC Building"
+      routePath={[{ x: 0.1, y: 0.1 }]}
+    />,
+  );
+
+  expect(queryByTestId("indoor-path-overlay")).toBeNull();
+});
+
+test("calls directions press from bottom sheet", () => {
+  const enterItineraryFromSelected = jest.fn();
+
+  const { useIndoorNavigationStore } = require("@/hooks/useIndoorNavigationStore");
+  useIndoorNavigationStore.mockImplementation((selector: any) =>
+    selector({
+      mode: "BROWSE",
+      end: null,
+      start: null,
+      selectedRoom: { label: "Room 101" },
+      setSelectedRoom: jest.fn(),
+      enterItineraryFromSelected,
+    }),
+  );
+
+  (useSvgDimensions as jest.Mock).mockReturnValue({
+    dimensions: { width: 1000, height: 1000 },
+    svgText: "<svg></svg>",
+    error: false,
+    isLoading: false,
+  });
+
+  const { getByTestId } = renderWithProviders(
+    <FloorPlanViewer
+      floor={mockFloor}
+      buildingCode="CC"
+      buildingName="CC Building"
+    />,
+  );
+
+  fireEvent.press(getByTestId("directions-press"));
+  expect(enterItineraryFromSelected).toHaveBeenCalled();
+});
