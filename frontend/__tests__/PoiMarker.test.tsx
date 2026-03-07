@@ -201,8 +201,18 @@ describe("PoiMarker", () => {
       <PoiMarker poi={poi} {...defaultProps} />,
     );
 
-    expect(getByLabelText("elevator-20-#912338")).toBeTruthy();
+    expect(getByLabelText("elevator-20-#7f2730")).toBeTruthy();
   });
+
+  test("changes icon color when selected", () => {
+    const poi = createPoi("elevator");
+    const { getByLabelText } = renderWithProviders(
+      <PoiMarker poi={poi} {...defaultProps} isSelected={true} />,
+    );
+
+    expect(getByLabelText("elevator-20-#4180c0")).toBeTruthy();
+  });
+
   test("renders sitting area icon for sitting_area type", () => {
     const poi = createPoi("sitting_area");
     const { getByTestId } = renderWithProviders(

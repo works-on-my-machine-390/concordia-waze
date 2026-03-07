@@ -1,0 +1,129 @@
+appId: host.exp.Exponent
+---
+# 1) Continue as guest (enter the app without logging in)
+- tapOn: "Use without account"
+- waitForAnimationToEnd
+
+# 2) Assert the map is loaded and visible on SGW campus
+- assertVisible: "SGW"
+- waitForAnimationToEnd
+
+# 3) Tap the main search bar ("Where to...") to start a building search
+- tapOn:
+    text: ".*Where to.*"
+
+# 4) Type a query to find the Hall building
+- inputText: "hall"
+
+# 5) Wait for the exact building suggestion to appear
+- extendedWaitUntil:
+    visible: H - Henry F. Hall Building
+    timeout: 8000
+
+# 6) Select the Hall building suggestion (double-tap to ensure it opens)
+- doubleTapOn: H - Henry F. Hall Building
+
+# 7) Verify the building bottom sheet opened for Hall
+- assertVisible: "Henry F. Hall Building (H)"
+- waitForAnimationToEnd
+
+# 8) Expand the building bottom sheet to reveal more information
+- swipe:
+    from:
+      text: "Henry F. Hall Building (H)"
+    direction: UP
+    duration: 600
+- waitForAnimationToEnd
+
+# 9) Scroll through the building information content
+- scroll
+- waitForAnimationToEnd
+- scroll
+- waitForAnimationToEnd
+
+# 10) Close the current building/details sheet (icon button)
+- tapOn: 
+
+# 11) Tap the main search bar again to start a new building search
+- tapOn:
+    text: ".*Where to.*"
+
+# 12) Type a query to find Grey Nuns Annex
+- inputText: "1211"
+
+# 13) Wait for the exact building suggestion to appear
+- extendedWaitUntil:
+    visible: GA - Grey Nuns Annex
+    timeout: 8000
+
+# 14) Select the Grey Nuns Annex suggestion (double-tap to ensure it opens)
+- doubleTapOn: GA - Grey Nuns Annex
+
+# 15) Verify the building bottom sheet opened for Grey Nuns Annex
+- assertVisible: "Grey Nuns Annex (GA)"
+- waitForAnimationToEnd
+
+# 16) Expand the building bottom sheet to reveal more information
+- swipe:
+    from:
+      text: "Grey Nuns Annex (GA)"
+    direction: UP
+    duration: 600
+- waitForAnimationToEnd
+
+# 17) Scroll through the building information content
+- scroll
+- waitForAnimationToEnd
+- scroll
+- waitForAnimationToEnd
+
+# 18) Close the current building/details sheet (icon button)
+- tapOn: 
+
+# 19) Tap the main search bar again to start a nearby search
+- tapOn:
+    text: ".*Where to.*"
+- waitForAnimationToEnd
+
+# 20) Type a query for nearby restaurants
+- inputText: "restaurants"
+
+# 21) Wait for the "Search nearby for ..." CTA to appear
+- extendedWaitUntil:
+    visible: Search nearby for "restaurants"
+    timeout: 8000
+
+# 22) Trigger the nearby search (double-tap to ensure it runs)
+- doubleTapOn: Search nearby for "restaurants"
+
+# 23) Expand the "Nearby results" bottom sheet to display the list of places
+- swipe:
+    from:
+      text: "Nearby results"
+    direction: UP
+    duration: 250
+
+# 24) Scroll down the results list to load/view more entries
+- scroll
+- waitForAnimationToEnd
+
+# 25) Collapse the "Nearby results" bottom sheet back to the map
+- swipe:
+    from:
+      text: "Nearby results"
+    direction: DOWN
+    duration: 250
+
+# 26) Close/dismiss the current search/results context (icon button)
+- tapOn: 
+
+# 27) Tap the main search bar again (prep for clearing / new action)
+- tapOn:
+    text: ".*Where to.*"
+
+# 28) Clear the current search input (double clear to ensure field is empty)
+- tapOn: Clear
+- tapOn: Clear
+
+# 29) Tap the final control/icon (as recorded by Maestro Studio)
+- tapOn: 
