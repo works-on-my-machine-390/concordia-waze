@@ -160,6 +160,7 @@ export default function IndoorSearchPage() {
         <View style={styles.page}>
           <View style={styles.header}>
             <Pressable
+              testID="indoor-search-back-button"
               style={styles.backButton}
               onPress={() => {
                 router.back();

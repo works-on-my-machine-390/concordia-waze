@@ -242,6 +242,122 @@ describe("IndoorSearchPage", () => {
     expect(screen.getByText("Result: 210")).toBeOnTheScreen();
   });
 
+  test("shows loading spinner while floors are loading", () => {
+  (useGetBuildingFloors as jest.Mock).mockReturnValue({
+    data: null,
+    isLoading: true,
+  });
+
+  render(<IndoorSearchPage />);
+
+  expect(screen.UNSAFE_getByType(require("react-native").ActivityIndicator)).toBeTruthy();
+});
+
+test("navigates back when back button is pressed", () => {
+  render(<IndoorSearchPage />);
+
+  fireEvent.press(screen.getByTestId("indoor-search-back-button"));
+
+  expect(mockRouter.back).toHaveBeenCalled();
+});
+
+test("applies filter and navigates to indoor map", () => {
+  render(<IndoorSearchPage />);
+
+  fireEvent.press(screen.getByText("Bathrooms Filter"));
+
+  expect(mockSetSelectedPoiFilter).toHaveBeenCalledWith("bathroom", "Bathrooms");
+  expect(mockRouter.navigate).toHaveBeenCalledWith({
+    pathname: "/indoor-map",
+    params: { buildingCode: "MB" },
+  });
+});
+
+test("sets start point and goes back when selecting a result in itinerary start mode", () => {
+  const mockSetStart = jest.fn();
+  const mockSetEnd = jest.fn();
+  const mockSetCurrentFloor = jest.fn();
+
+  jest.doMock("@/hooks/useIndoorNavigationStore", () => ({
+    useIndoorNavigationStore: jest.fn((selector) =>
+      selector({
+        setStart: mockSetStart,
+        setEnd: mockSetEnd,
+        setCurrentFloor: mockSetCurrentFloor,
+      }),
+    ),
+  }));
+});
+
+test("uses itinerary start placeholder", () => {
+  (ExpoRouter.useLocalSearchParams as jest.Mock).mockReturnValue({
+    buildingCode: "MB",
+    buildingName: "John Molson Building",
+    itineraryField: "start",
+  });
+
+  render(<IndoorSearchPage />);
+
+  expect(
+    screen.getByPlaceholderText("Choose start in John Molson Building..."),
+  ).toBeOnTheScreen();
+});
+
+test("uses itinerary end placeholder", () => {
+  (ExpoRouter.useLocalSearchParams as jest.Mock).mockReturnValue({
+    buildingCode: "MB",
+    buildingName: "John Molson Building",
+    itineraryField: "end",
+  });
+
+  render(<IndoorSearchPage />);
+
+  expect(
+    screen.getByPlaceholderText("Choose destination in John Molson Building..."),
+  ).toBeOnTheScreen();
+});
+
+test("renders missing recent search item", () => {
+  (useIndoorSearch as jest.Mock).mockReturnValue({
+    results: [],
+    recentSearches: [{ displayName: "Missing Room", floor: 99 }],
+    addRecentSearch: jest.fn(),
+    clearRecentSearches: jest.fn(),
+  });
+
+  render(<IndoorSearchPage />);
+
+  expect(screen.getByText("Recent: Missing Room")).toBeOnTheScreen();
+});
+
+test("does nothing when selected result poi is missing", () => {
+  const badResults = [
+    {
+      poi: { name: "999", type: "room" },
+      floor: { number: 1 },
+      type: "room",
+    },
+  ];
+
+  (useIndoorSearch as jest.Mock).mockReturnValue({
+    results: badResults,
+    recentSearches: [],
+    addRecentSearch: jest.fn(),
+    clearRecentSearches: jest.fn(),
+  });
+
+  render(<IndoorSearchPage />);
+
+  const input = screen.getByPlaceholderText(
+    "Search in John Molson Building...",
+  );
+  fireEvent.changeText(input, "999");
+  fireEvent.press(screen.getByText("Result: 999"));
+
+  expect(mockRouter.navigate).not.toHaveBeenCalled();
+  expect(mockRouter.back).not.toHaveBeenCalled();
+});
+
   test("navigates to indoor map and adds recent search when room result is selected", () => {
     const mockAddRecentSearch = jest.fn();
 
