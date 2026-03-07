@@ -1,5 +1,7 @@
-import type { Floor } from "@/hooks/queries/indoorMapQueries";
+import { COLORS, DIRECTION_COLORS } from "@/app/constants";
 import type { Coordinates } from "@/hooks/queries/indoorDirectionsQueries";
+import type { Floor } from "@/hooks/queries/indoorMapQueries";
+import { useIndoorNavigationStore } from "@/hooks/useIndoorNavigationStore";
 import { useIndoorSearchStore } from "@/hooks/useIndoorSearchStore";
 import { useSvgDimensions } from "@/hooks/useSvgDimensions";
 import { ReactNativeZoomableView } from "@openspacelabs/react-native-zoomable-view";
@@ -18,7 +20,33 @@ import IndoorPathOverlay from "./IndoorPathOverlay";
 import PoiMarker from "./PoiMarker";
 import PolygonOverlay from "./PolygonOverlay";
 
-import { useIndoorNavigationStore } from "@/hooks/useIndoorNavigationStore";
+/** Standard indoor route */
+export const ROUTE_STYLE_STANDARD = {
+  stroke: DIRECTION_COLORS.walking,
+  strokeWidth: 3,
+  strokeDasharray: undefined,
+  strokeLinecap: "round" as const,
+  strokeLinejoin: "round" as const,
+};
+
+/** Accessible indoor route */
+export const ROUTE_STYLE_ACCESSIBLE = {
+  stroke: COLORS.accessibilityIcon,
+  strokeWidth: 5,
+  strokeDasharray: "12 6",
+  strokeLinecap: "round" as const,
+  strokeLinejoin: "round" as const,
+};
+
+/** detect backend error for no accessible route */
+export function isNoAccessibleRouteError(error: unknown): boolean {
+  if (!error) return false;
+  if (error instanceof Error) {
+    return error.message.toLowerCase().includes("no transition point");
+  }
+  const raw = typeof error === "string" ? error : JSON.stringify(error);
+  return raw.toLowerCase().includes("no transition point");
+}
 
 type Props = {
   floor: Floor | undefined;
@@ -38,6 +66,9 @@ type Props = {
   navigationPathColor?: string;
   navigationStepIndex?: number;
   hideBottomSheetSection?: boolean;
+
+  requireAccessible?: boolean;
+  onAccessibilityRouteUnavailable?: () => void;
 };
 
 const normalizeName = (s: string) =>
@@ -58,6 +89,8 @@ export default function FloorPlanViewer({
   navigationPathColor,
   navigationStepIndex,
   hideBottomSheetSection = false,
+  requireAccessible = false,
+  onAccessibilityRouteUnavailable: _onAccessibilityRouteUnavailable,
 }: Readonly<Props>) {
   const navMode = useIndoorNavigationStore((s) => s.mode);
   const navEnd = useIndoorNavigationStore((s) => s.end);
@@ -89,6 +122,17 @@ export default function FloorPlanViewer({
   const extraSet = useMemo(() => {
     return new Set(extraHighlightedPoiNames.map((n) => normalizeName(n)));
   }, [extraHighlightedPoiNames]);
+
+  // For now accessibility mode only changes route styling here.
+  // The actual accessible path request can be plugged in later.
+  const routeStyle = requireAccessible
+    ? ROUTE_STYLE_ACCESSIBLE
+    : ROUTE_STYLE_STANDARD;
+
+  const resolvedPathColor = navigationPathColor ?? routeStyle.stroke;
+
+  void navigationStepIndex;
+  void _onAccessibilityRouteUnavailable;
 
   useEffect(() => {
     if (!initialSelectedRoom || !floor || navMode !== "BROWSE") return;
@@ -282,7 +326,7 @@ export default function FloorPlanViewer({
               endPolygon={endPolygon}
               startOverride={startOverride}
               endOverride={endOverride}
-              color={navigationPathColor}
+              color={resolvedPathColor}
             />
           ) : null}
         </View>

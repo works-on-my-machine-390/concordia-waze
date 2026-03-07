@@ -6,6 +6,7 @@ import IndoorItineraryBottomSheet, {
 import IndoorItineraryHeader from "@/components/indoor/IndoorItineraryHeader";
 
 import { useGetBuildingDetails } from "@/hooks/queries/buildingQueries";
+import { useAccessibilityMode } from "@/hooks/useAccessibilityMode";
 import { useIndoorItineraryController } from "@/hooks/useIndoorItineraryController";
 import { useIndoorNavigationStore } from "@/hooks/useIndoorNavigationStore";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -28,7 +29,10 @@ export default function IndoorMapPage() {
 
   const buildingCode = params.buildingCode ?? "";
   const ctrl = useIndoorItineraryController(buildingCode);
+
   const { data: buildingData } = useGetBuildingDetails(buildingCode);
+  const { isAccessibilityMode, toggleAccessibilityMode } =
+    useAccessibilityMode();
 
   const hardReset = () => {
     if (typeof (nav as any).reset === "function") {
@@ -88,21 +92,25 @@ export default function IndoorMapPage() {
         selectedFloorFromSearch={
           nav.mode === "BROWSE" ? parsedSearchFloor : undefined
         }
+        requireAccessible={isAccessibilityMode}
       />
 
       {nav.mode === "ITINERARY" ? (
-        <IndoorItineraryHeader
-          buildingCode={buildingCode}
-          buildingName={buildingData?.long_name || buildingCode}
-        />
+        <>
+          <IndoorItineraryHeader
+            buildingCode={buildingCode}
+            buildingName={buildingData?.long_name || buildingCode}
+          />
+          <IndoorItineraryBottomSheet buildingCode={buildingCode} />
+        </>
       ) : (
         <IndoorMapHeader
           onSearchPress={handleSearchPress}
           onBackToOutdoor={handleBackToOutdoor}
+          isAccessibilityMode={isAccessibilityMode}
+          onAccessibilityToggle={toggleAccessibilityMode}
         />
       )}
-
-      <IndoorItineraryBottomSheet buildingCode={buildingCode} />
     </View>
   );
 }

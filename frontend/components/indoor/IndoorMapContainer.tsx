@@ -1,15 +1,16 @@
 import FloorPlanViewer from "@/components/indoor/FloorPlanViewer";
 import FloorSelector from "@/components/indoor/FloorSelector";
+import NoAccessibleRouteNotice from "@/components/indoor/NoAccessibleRouteNotice";
 import { useGetBuildingDetails } from "@/hooks/queries/buildingQueries";
 import type {
-  FloorSegment,
   Coordinates,
+  FloorSegment,
 } from "@/hooks/queries/indoorDirectionsQueries";
 import { useGetBuildingFloors } from "@/hooks/queries/indoorMapQueries";
+import { useIndoorNavigationStore } from "@/hooks/useIndoorNavigationStore";
 import { useIndoorSearchStore } from "@/hooks/useIndoorSearchStore";
 import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
-import { useIndoorNavigationStore } from "@/hooks/useIndoorNavigationStore";
 
 export type SelectedPoint = {
   label: string;
@@ -24,12 +25,15 @@ type Props = {
   floorSelectorBottomOffset?: number;
   selectedRoomFromSearch?: string;
   selectedFloorFromSearch?: number;
+
   disablePoiSelection?: boolean;
   hideBottomSheetSection?: boolean;
   hideFloorSelector?: boolean;
   navigationStartOverride?: Coordinates;
   navigationPathColor?: string;
   navigationStepIndex?: number;
+
+  requireAccessible?: boolean;
 };
 
 const normalizeName = (s: string) =>
@@ -98,6 +102,7 @@ export default function IndoorMapContainer({
   navigationStartOverride,
   navigationPathColor,
   navigationStepIndex,
+  requireAccessible = false,
 }: Readonly<Props>) {
   const navMode = useIndoorNavigationStore((s) => s.mode);
   const navCurrentFloor = useIndoorNavigationStore((s) => s.currentFloor);
@@ -115,9 +120,15 @@ export default function IndoorMapContainer({
   );
 
   const [selectedFloor, setSelectedFloor] = useState<number | null>(null);
+  const [accessibilityRouteUnavailable, setAccessibilityRouteUnavailable] =
+    useState(false);
 
   const { data, isLoading, error } = useGetBuildingFloors(buildingCode);
   const { data: buildingData } = useGetBuildingDetails(buildingCode);
+
+  useEffect(() => {
+    setAccessibilityRouteUnavailable(false);
+  }, [requireAccessible]);
 
   useEffect(() => {
     if (!data?.floors?.length) return;
@@ -312,6 +323,10 @@ export default function IndoorMapContainer({
         navigationPathColor={navigationPathColor}
         navigationStepIndex={navigationStepIndex}
         hideBottomSheetSection={hideBottomSheetSection}
+        requireAccessible={requireAccessible}
+        onAccessibilityRouteUnavailable={() =>
+          setAccessibilityRouteUnavailable(true)
+        }
       />
 
       {!hideFloorSelector && (
@@ -326,6 +341,8 @@ export default function IndoorMapContainer({
           bottomOffset={floorSelectorBottomOffset}
         />
       )}
+
+      <NoAccessibleRouteNotice visible={accessibilityRouteUnavailable} />
     </View>
   );
 }
