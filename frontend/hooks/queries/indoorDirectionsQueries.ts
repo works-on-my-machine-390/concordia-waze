@@ -41,6 +41,7 @@ export function useIndoorMultiFloorPath() {
         .url("/directions/indoor/multi-floor-path")
         .post(body)
         .json<MultiFloorPathResult>();
+
       return res;
     },
   });

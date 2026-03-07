@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import type {
-  FloorSegment,
   Coordinates,
+  FloorSegment,
   TransitionType,
 } from "@/hooks/queries/indoorDirectionsQueries";
 
@@ -100,7 +100,11 @@ export const useIndoorNavigationStore = create<IndoorNavigationState>(
     setEnd: (p) => set({ end: p }),
 
     setRoute: (segments, totalDistance, transitionType = null) =>
-      set({ routeSegments: segments, totalDistance, transitionType }),
+      set({
+        routeSegments: segments,
+        totalDistance,
+        transitionType,
+      }),
 
     clearRoute: () =>
       set({

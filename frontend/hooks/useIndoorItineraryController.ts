@@ -1,16 +1,22 @@
 import { useEffect, useMemo, useRef } from "react";
+import { useAccessibilityMode } from "@/hooks/useAccessibilityMode";
 import { useIndoorNavigationStore } from "@/hooks/useIndoorNavigationStore";
 import { useIndoorMultiFloorPath } from "@/hooks/queries/indoorDirectionsQueries";
 import { useGetBuildingFloors } from "@/hooks/queries/indoorMapQueries";
 import type { SelectedPoint } from "@/hooks/useIndoorNavigationStore";
 import type { FloorSegment } from "@/hooks/queries/indoorDirectionsQueries";
 
-const makeKey = (buildingCode: string, s: SelectedPoint, e: SelectedPoint) =>
-  `${buildingCode}:${s.floor}:${s.coord.x},${s.coord.y}->${e.floor}:${e.coord.x},${e.coord.y}`;
+const makeKey = (
+  buildingCode: string,
+  s: SelectedPoint,
+  e: SelectedPoint,
+  preferElevator: boolean,
+) =>
+  `${buildingCode}:${s.floor}:${s.coord.x},${s.coord.y}->${e.floor}:${e.coord.x},${e.coord.y}:elevator=${preferElevator}`;
 
 /**
  * Tune this once so the numbers "feel" like meters.
- * If see too small: increase it. Too big: decrease it.
+ * If too small: increase it. Too big: decrease it.
  */
 const METERS_PER_SVG_UNIT = 0.022;
 
@@ -54,7 +60,6 @@ function computeMetersFromSegments(
 
   for (const seg of segments) {
     const size = svgSizeByFloor[seg.floorNumber];
-    // fallback if we can't parse: assume 1000x1000
     const W = size?.width ?? 1000;
     const H = size?.height ?? 1000;
 
@@ -72,6 +77,7 @@ function computeMetersFromSegments(
 export function useIndoorItineraryController(buildingCode: string) {
   const nav = useIndoorNavigationStore();
   const mutation = useIndoorMultiFloorPath();
+  const { isAccessibilityMode } = useAccessibilityMode();
 
   const { data: floorsData } = useGetBuildingFloors(buildingCode);
 
@@ -102,9 +108,14 @@ export function useIndoorItineraryController(buildingCode: string) {
   useEffect(() => {
     if (!canRequestRoute || !nav.start || !nav.end) return;
 
-    const key = makeKey(buildingCode, nav.start, nav.end);
-    if (lastKeyRef.current === key) return;
+    const key = makeKey(
+      buildingCode,
+      nav.start,
+      nav.end,
+      isAccessibilityMode,
+    );
 
+    if (lastKeyRef.current === key) return;
     lastKeyRef.current = key;
 
     mutation
@@ -114,11 +125,13 @@ export function useIndoorItineraryController(buildingCode: string) {
         endFloor: nav.end.floor,
         start: nav.start.coord,
         end: nav.end.coord,
-        preferElevator: false,
+        preferElevator: isAccessibilityMode,
       })
       .then(async (res) => {
-        const svgSizeByFloor: Record<number, { width: number; height: number } | null> =
-          {};
+        const svgSizeByFloor: Record<
+          number,
+          { width: number; height: number } | null
+        > = {};
 
         const floors = floorsData?.floors ?? [];
         await Promise.all(
@@ -127,14 +140,26 @@ export function useIndoorItineraryController(buildingCode: string) {
           }),
         );
 
-        const meters = computeMetersFromSegments(res.segments, svgSizeByFloor);
+        const meters =
+          res.totalDistance && res.totalDistance > 0
+            ? res.totalDistance
+            : computeMetersFromSegments(res.segments, svgSizeByFloor);
 
-        nav.setRoute(res.segments, meters);
+        nav.setRoute(res.segments, meters, res.transitionType);
       })
       .catch(() => {
         nav.clearRoute();
       });
-  }, [canRequestRoute, buildingCode, nav.start, nav.end, nav, mutation, floorsData]);
+  }, [
+    canRequestRoute,
+    buildingCode,
+    nav.start,
+    nav.end,
+    nav,
+    mutation,
+    floorsData,
+    isAccessibilityMode,
+  ]);
 
   return {
     mode: nav.mode,
@@ -147,6 +172,7 @@ export function useIndoorItineraryController(buildingCode: string) {
 
     routeSegments: nav.routeSegments,
     totalDistance: nav.totalDistance,
+    transitionType: nav.transitionType,
 
     isLoadingRoute: mutation.isPending,
     onPickPoint,
