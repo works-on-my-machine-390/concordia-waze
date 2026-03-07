@@ -1,3 +1,4 @@
+import { COLORS, DIRECTION_COLORS } from "@/app/constants";
 import type { Floor } from "@/hooks/queries/indoorMapQueries";
 import { useIndoorSearchStore } from "@/hooks/useIndoorSearchStore";
 import { useSvgDimensions } from "@/hooks/useSvgDimensions";
@@ -15,12 +16,42 @@ import IndoorBottomSheetSection from "./IndoorBottomSheetSection";
 import PoiMarker from "./PoiMarker";
 import PolygonOverlay from "./PolygonOverlay";
 
+/** Standard indoor route */
+export const ROUTE_STYLE_STANDARD = {
+  stroke: DIRECTION_COLORS.walking,
+  strokeWidth: 3,
+  strokeDasharray: undefined,
+  strokeLinecap: "round" as const,
+  strokeLinejoin: "round" as const,
+};
+
+/** Accessible indoor route*/
+export const ROUTE_STYLE_ACCESSIBLE = {
+  stroke: COLORS.accessibilityIcon,
+  strokeWidth: 5,
+  strokeDasharray: "12 6",
+  strokeLinecap: "round" as const,
+  strokeLinejoin: "round" as const,
+};
+
+/** detect backend error for no accessible route*/
+export function isNoAccessibleRouteError(error: unknown): boolean {
+  if (!error) return false;
+  if (error instanceof Error) {
+    return error.message.toLowerCase().includes("no transition point");
+  }
+  const raw = typeof error === "string" ? error : JSON.stringify(error);
+  return raw.toLowerCase().includes("no transition point");
+}
+
 type Props = {
   floor: Floor | undefined;
   buildingCode: string;
   buildingName: string;
   metroAccessible?: boolean;
   initialSelectedRoom?: string;
+  requireAccessible?: boolean;
+  onAccessibilityRouteUnavailable?: () => void;
 };
 
 export default function FloorPlanViewer({
@@ -29,6 +60,8 @@ export default function FloorPlanViewer({
   buildingName,
   metroAccessible,
   initialSelectedRoom,
+  requireAccessible = false,
+  onAccessibilityRouteUnavailable,
 }: Readonly<Props>) {
   const { width: SCREEN_WIDTH } = useWindowDimensions();
   const { dimensions, svgText, error, isLoading } = useSvgDimensions(
@@ -36,6 +69,11 @@ export default function FloorPlanViewer({
   );
   const [selectedPoiName, setSelectedPoiName] = useState<string | undefined>();
   const { clearSelectedPoiFilter } = useIndoorSearchStore();
+
+  // PENDING #168: replace with useGetIndoorPath when indoor navigation is implemented
+  const routeStyle = requireAccessible // NOSONAR
+    ? ROUTE_STYLE_ACCESSIBLE
+    : ROUTE_STYLE_STANDARD;
 
   useEffect(() => {
     if (initialSelectedRoom && floor) {
