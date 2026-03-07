@@ -144,10 +144,7 @@ export function useIndoorItineraryController(buildingCode: string) {
           }),
         );
 
-        const meters =
-          res.totalDistance && res.totalDistance > 0
-            ? res.totalDistance
-            : computeMetersFromSegments(res.segments, svgSizeByFloor);
+        const meters = computeMetersFromSegments(res.segments, svgSizeByFloor);
 
         nav.setRoute(res.segments, meters, res.transitionType);
       })

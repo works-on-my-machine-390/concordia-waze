@@ -224,7 +224,7 @@ describe("useIndoorItineraryController", () => {
     });
 
     const state = useIndoorNavigationStore.getState();
-    expect(state.totalDistance).toBe(42);
+    expect(state.totalDistance).toBeCloseTo(6.6, 5);
     expect(state.transitionType).toBe(TransitionType.Elevator);
     expect(state.routeError).toBeNull();
   });

@@ -13,6 +13,10 @@ describe("indoorNavigationSteps", () => {
     });
   });
 
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   it("builds walk + arrival for same-floor straight path", async () => {
     const steps = await buildIndoorNavigationSteps({
       segments: [
@@ -140,12 +144,11 @@ describe("indoorNavigationSteps", () => {
   });
 
   it("formatArrivalTimeFromNow returns hh:mm", () => {
-    jest.useFakeTimers().setSystemTime(new Date("2026-03-07T10:15:00"));
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date("2026-03-07T10:15:00"));
 
     const result = formatArrivalTimeFromNow(100);
 
     expect(result).toMatch(/^\d{2}:\d{2}$/);
-
-    jest.useRealTimers();
   });
 });

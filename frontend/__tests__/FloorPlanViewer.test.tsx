@@ -6,9 +6,11 @@ import FloorPlanViewer from "../components/indoor/FloorPlanViewer";
 
 // Mock dependencies
 jest.mock("@/hooks/useSvgDimensions");
+
 jest.mock("@openspacelabs/react-native-zoomable-view", () => {
   const React = require("react");
   const { View } = require("react-native");
+
   return {
     ReactNativeZoomableView: React.forwardRef(({ children }: any, ref: any) => {
       React.useImperativeHandle(ref, () => ({
@@ -19,18 +21,24 @@ jest.mock("@openspacelabs/react-native-zoomable-view", () => {
     }),
   };
 });
+
 jest.mock("../components/indoor/PolygonOverlay", () => {
   const { View, Text } = require("react-native");
-  return function MockPolygonOverlay({ selectedPoiName, onSelectPoi }: any) {
+
+  return function MockPolygonOverlay({ selectedPoiName }: any) {
     return (
       <View testID="polygon-overlay">
-        {selectedPoiName && <Text testID="selected-poi">{selectedPoiName}</Text>}
+        {selectedPoiName ? (
+          <Text testID="selected-poi">{selectedPoiName}</Text>
+        ) : null}
       </View>
     );
   };
 });
+
 jest.mock("../components/indoor/PoiMarker", () => {
   const { Pressable, Text } = require("react-native");
+
   return function MockPoiMarker({ poi, onPress }: any) {
     return (
       <Pressable testID="poi-marker" onPress={onPress}>
@@ -42,6 +50,7 @@ jest.mock("../components/indoor/PoiMarker", () => {
 
 jest.mock("../components/indoor/IndoorBottomSheetSection", () => {
   const { View, Text, Pressable } = require("react-native");
+
   return function MockIndoorBottomSheetSection({
     selectedPoiName,
     onClearSelectedPoi,
@@ -50,11 +59,15 @@ jest.mock("../components/indoor/IndoorBottomSheetSection", () => {
   }: any) {
     return (
       <View testID="indoor-bottom-sheet-section">
-        <Text testID="bottom-sheet-selected-poi">{selectedPoiName ?? "none"}</Text>
+        <Text testID="bottom-sheet-selected-poi">
+          {selectedPoiName ?? "none"}
+        </Text>
         <Text testID="directions-disabled">{String(directionsDisabled)}</Text>
+
         <Pressable testID="clear-selected-poi" onPress={onClearSelectedPoi}>
           <Text>clear</Text>
         </Pressable>
+
         <Pressable testID="directions-press" onPress={onDirectionsPress}>
           <Text>directions</Text>
         </Pressable>
@@ -65,6 +78,7 @@ jest.mock("../components/indoor/IndoorBottomSheetSection", () => {
 
 jest.mock("../components/indoor/IndoorPathOverlay", () => {
   const { View, Text } = require("react-native");
+
   return function MockIndoorPathOverlay({ color }: any) {
     return (
       <View testID="indoor-path-overlay">
@@ -141,7 +155,11 @@ describe("FloorPlanViewer", () => {
     });
 
     const { getByText } = renderWithProviders(
-      <FloorPlanViewer floor={undefined} buildingCode="CC" buildingName="CC Building" />,
+      <FloorPlanViewer
+        floor={undefined}
+        buildingCode="CC"
+        buildingName="CC Building"
+      />,
     );
 
     expect(getByText("No floor plan available")).toBeTruthy();
@@ -156,7 +174,11 @@ describe("FloorPlanViewer", () => {
     });
 
     const { getByText } = renderWithProviders(
-      <FloorPlanViewer floor={mockFloor} buildingCode="CC" buildingName="CC Building" />,
+      <FloorPlanViewer
+        floor={mockFloor}
+        buildingCode="CC"
+        buildingName="CC Building"
+      />,
     );
 
     expect(getByText("Failed to load floor plan")).toBeTruthy();
@@ -171,7 +193,11 @@ describe("FloorPlanViewer", () => {
     });
 
     const { getByText } = renderWithProviders(
-      <FloorPlanViewer floor={mockFloor} buildingCode="CC" buildingName="CC Building" />,
+      <FloorPlanViewer
+        floor={mockFloor}
+        buildingCode="CC"
+        buildingName="CC Building"
+      />,
     );
 
     expect(getByText("Loading floor plan...")).toBeTruthy();
@@ -186,7 +212,11 @@ describe("FloorPlanViewer", () => {
     });
 
     const { getByText } = renderWithProviders(
-      <FloorPlanViewer floor={mockFloor} buildingCode="CC" buildingName="CC Building" />,
+      <FloorPlanViewer
+        floor={mockFloor}
+        buildingCode="CC"
+        buildingName="CC Building"
+      />,
     );
 
     expect(getByText("Loading floor plan...")).toBeTruthy();
@@ -201,7 +231,11 @@ describe("FloorPlanViewer", () => {
     });
 
     const { getByText } = renderWithProviders(
-      <FloorPlanViewer floor={mockFloor} buildingCode="CC" buildingName="CC Building" />,
+      <FloorPlanViewer
+        floor={mockFloor}
+        buildingCode="CC"
+        buildingName="CC Building"
+      />,
     );
 
     expect(getByText("Loading floor plan...")).toBeTruthy();
@@ -216,7 +250,11 @@ describe("FloorPlanViewer", () => {
     });
 
     const { getByTestId, getAllByTestId } = renderWithProviders(
-      <FloorPlanViewer floor={mockFloor} buildingCode="CC" buildingName="CC Building" />,
+      <FloorPlanViewer
+        floor={mockFloor}
+        buildingCode="CC"
+        buildingName="CC Building"
+      />,
     );
 
     expect(getByTestId("zoomable-view")).toBeTruthy();
@@ -233,11 +271,22 @@ describe("FloorPlanViewer", () => {
     });
 
     const { rerender, getByTestId } = renderWithProviders(
-      <FloorPlanViewer floor={mockFloor} buildingCode="CC" buildingName="CC Building" />,
+      <FloorPlanViewer
+        floor={mockFloor}
+        buildingCode="CC"
+        buildingName="CC Building"
+      />,
     );
 
     const newFloor = { ...mockFloor, number: 2 };
-    rerender(<FloorPlanViewer floor={newFloor} buildingCode="CC" buildingName="CC Building" />);
+
+    rerender(
+      <FloorPlanViewer
+        floor={newFloor}
+        buildingCode="CC"
+        buildingName="CC Building"
+      />,
+    );
 
     jest.advanceTimersByTime(150);
 
@@ -253,7 +302,11 @@ describe("FloorPlanViewer", () => {
     });
 
     const { getByTestId } = renderWithProviders(
-      <FloorPlanViewer floor={mockFloor} buildingCode="CC" buildingName="CC Building" />,
+      <FloorPlanViewer
+        floor={mockFloor}
+        buildingCode="CC"
+        buildingName="CC Building"
+      />,
     );
 
     expect(getByTestId("zoomable-view")).toBeTruthy();
@@ -268,19 +321,20 @@ describe("FloorPlanViewer", () => {
     });
 
     const { getAllByTestId, getByTestId, queryByTestId } = renderWithProviders(
-      <FloorPlanViewer floor={mockFloor} buildingCode="CC" buildingName="CC Building" />,
+      <FloorPlanViewer
+        floor={mockFloor}
+        buildingCode="CC"
+        buildingName="CC Building"
+      />,
     );
 
     const poiMarkers = getAllByTestId("poi-marker");
     expect(poiMarkers).toHaveLength(2);
 
-    // Initially, no POI should be selected
     expect(queryByTestId("selected-poi")).toBeNull();
 
-    // Press the first POI marker (Room 101)
     fireEvent.press(poiMarkers[0]);
 
-    // Verify the selectedPoiName is passed to PolygonOverlay
     const selectedPoi = getByTestId("selected-poi");
     expect(selectedPoi).toBeTruthy();
     expect(selectedPoi).toHaveTextContent("Room 101");
@@ -295,173 +349,173 @@ describe("FloorPlanViewer", () => {
     });
 
     const { getAllByTestId, getByTestId, queryByTestId } = renderWithProviders(
-      <FloorPlanViewer floor={mockFloor} buildingCode="CC" buildingName="CC Building" />,
+      <FloorPlanViewer
+        floor={mockFloor}
+        buildingCode="CC"
+        buildingName="CC Building"
+      />,
     );
 
     const poiMarkers = getAllByTestId("poi-marker");
 
-    // Select a POI
     fireEvent.press(poiMarkers[0]);
     expect(getByTestId("selected-poi")).toBeTruthy();
     expect(getByTestId("selected-poi")).toHaveTextContent("Room 101");
 
-    // Find and press the close button
-    const closeButton = getByTestId("clear-selected-poi");
-    fireEvent.press(closeButton);
+    fireEvent.press(getByTestId("clear-selected-poi"));
 
-    // Verify selectedPoiName is cleared
     expect(queryByTestId("selected-poi")).toBeNull();
   });
-});
 
-test("calls onSelectPoiName when provided", () => {
-  const onSelectPoiName = jest.fn();
+  test("calls onSelectPoiName when provided", () => {
+    const onSelectPoiName = jest.fn();
 
-  (useSvgDimensions as jest.Mock).mockReturnValue({
-    dimensions: { width: 1000, height: 1000 },
-    svgText: "<svg></svg>",
-    error: false,
-    isLoading: false,
+    (useSvgDimensions as jest.Mock).mockReturnValue({
+      dimensions: { width: 1000, height: 1000 },
+      svgText: "<svg></svg>",
+      error: false,
+      isLoading: false,
+    });
+
+    const { getAllByTestId } = renderWithProviders(
+      <FloorPlanViewer
+        floor={mockFloor}
+        buildingCode="CC"
+        buildingName="CC Building"
+        onSelectPoiName={onSelectPoiName}
+      />,
+    );
+
+    fireEvent.press(getAllByTestId("poi-marker")[0]);
+
+    expect(onSelectPoiName).toHaveBeenCalledWith("Room 101");
   });
 
-  const { getAllByTestId } = renderWithProviders(
-    <FloorPlanViewer
-      floor={mockFloor}
-      buildingCode="CC"
-      buildingName="CC Building"
-      onSelectPoiName={onSelectPoiName}
-    />,
-  );
+  test("does not select poi when disablePoiSelection is true", () => {
+    (useSvgDimensions as jest.Mock).mockReturnValue({
+      dimensions: { width: 1000, height: 1000 },
+      svgText: "<svg></svg>",
+      error: false,
+      isLoading: false,
+    });
 
-  fireEvent.press(getAllByTestId("poi-marker")[0]);
+    const { getAllByTestId, queryByTestId } = renderWithProviders(
+      <FloorPlanViewer
+        floor={mockFloor}
+        buildingCode="CC"
+        buildingName="CC Building"
+        disablePoiSelection
+      />,
+    );
 
-  expect(onSelectPoiName).toHaveBeenCalledWith("Room 101");
-});
+    fireEvent.press(getAllByTestId("poi-marker")[0]);
 
-test("does not select poi when disablePoiSelection is true", () => {
-  (useSvgDimensions as jest.Mock).mockReturnValue({
-    dimensions: { width: 1000, height: 1000 },
-    svgText: "<svg></svg>",
-    error: false,
-    isLoading: false,
+    expect(queryByTestId("selected-poi")).toBeNull();
   });
 
-  const { getAllByTestId, queryByTestId } = renderWithProviders(
-    <FloorPlanViewer
-      floor={mockFloor}
-      buildingCode="CC"
-      buildingName="CC Building"
-      disablePoiSelection={true}
-    />,
-  );
+  test("preselects initialSelectedRoom in browse mode", () => {
+    (useSvgDimensions as jest.Mock).mockReturnValue({
+      dimensions: { width: 1000, height: 1000 },
+      svgText: "<svg></svg>",
+      error: false,
+      isLoading: false,
+    });
 
-  fireEvent.press(getAllByTestId("poi-marker")[0]);
+    const { getByTestId } = renderWithProviders(
+      <FloorPlanViewer
+        floor={mockFloor}
+        buildingCode="CC"
+        buildingName="CC Building"
+        initialSelectedRoom="Room 101"
+      />,
+    );
 
-  expect(queryByTestId("selected-poi")).toBeNull();
-});
-
-test("preselects initialSelectedRoom in browse mode", () => {
-  (useSvgDimensions as jest.Mock).mockReturnValue({
-    dimensions: { width: 1000, height: 1000 },
-    svgText: "<svg></svg>",
-    error: false,
-    isLoading: false,
+    expect(getByTestId("selected-poi")).toHaveTextContent("Room 101");
   });
 
-  const { getByTestId } = renderWithProviders(
-    <FloorPlanViewer
-      floor={mockFloor}
-      buildingCode="CC"
-      buildingName="CC Building"
-      initialSelectedRoom="Room 101"
-    />,
-  );
+  test("renders bottom sheet section when building props are provided", () => {
+    (useSvgDimensions as jest.Mock).mockReturnValue({
+      dimensions: { width: 1000, height: 1000 },
+      svgText: "<svg></svg>",
+      error: false,
+      isLoading: false,
+    });
 
-  expect(getByTestId("selected-poi")).toHaveTextContent("Room 101");
-});
+    const { getByTestId } = renderWithProviders(
+      <FloorPlanViewer
+        floor={mockFloor}
+        buildingCode="CC"
+        buildingName="CC Building"
+      />,
+    );
 
-test("renders bottom sheet section when building props are provided", () => {
-  (useSvgDimensions as jest.Mock).mockReturnValue({
-    dimensions: { width: 1000, height: 1000 },
-    svgText: "<svg></svg>",
-    error: false,
-    isLoading: false,
+    expect(getByTestId("indoor-bottom-sheet-section")).toBeTruthy();
   });
 
-  const { getByTestId } = renderWithProviders(
-    <FloorPlanViewer
-      floor={mockFloor}
-      buildingCode="CC"
-      buildingName="CC Building"
-    />,
-  );
+  test("hides bottom sheet section when hideBottomSheetSection is true", () => {
+    (useSvgDimensions as jest.Mock).mockReturnValue({
+      dimensions: { width: 1000, height: 1000 },
+      svgText: "<svg></svg>",
+      error: false,
+      isLoading: false,
+    });
 
-  expect(getByTestId("indoor-bottom-sheet-section")).toBeTruthy();
-});
+    const { queryByTestId } = renderWithProviders(
+      <FloorPlanViewer
+        floor={mockFloor}
+        buildingCode="CC"
+        buildingName="CC Building"
+        hideBottomSheetSection
+      />,
+    );
 
-test("hides bottom sheet section when hideBottomSheetSection is true", () => {
-  (useSvgDimensions as jest.Mock).mockReturnValue({
-    dimensions: { width: 1000, height: 1000 },
-    svgText: "<svg></svg>",
-    error: false,
-    isLoading: false,
+    expect(queryByTestId("indoor-bottom-sheet-section")).toBeNull();
   });
 
-  const { queryByTestId } = renderWithProviders(
-    <FloorPlanViewer
-      floor={mockFloor}
-      buildingCode="CC"
-      buildingName="CC Building"
-      hideBottomSheetSection={true}
-    />,
-  );
+  test("renders route overlay with accessible color when requireAccessible is true", () => {
+    (useSvgDimensions as jest.Mock).mockReturnValue({
+      dimensions: { width: 1000, height: 1000 },
+      svgText: "<svg></svg>",
+      error: false,
+      isLoading: false,
+    });
 
-  expect(queryByTestId("indoor-bottom-sheet-section")).toBeNull();
-});
+    const { getByTestId } = renderWithProviders(
+      <FloorPlanViewer
+        floor={mockFloor}
+        buildingCode="CC"
+        buildingName="CC Building"
+        routePath={[
+          { x: 0.1, y: 0.1 },
+          { x: 0.5, y: 0.5 },
+        ]}
+        requireAccessible
+      />,
+    );
 
-test("renders route overlay with accessible color when requireAccessible is true", () => {
-  (useSvgDimensions as jest.Mock).mockReturnValue({
-    dimensions: { width: 1000, height: 1000 },
-    svgText: "<svg></svg>",
-    error: false,
-    isLoading: false,
+    expect(getByTestId("indoor-path-overlay")).toBeTruthy();
   });
 
-  const { getByTestId } = renderWithProviders(
-    <FloorPlanViewer
-      floor={mockFloor}
-      buildingCode="CC"
-      buildingName="CC Building"
-      routePath={[
-        { x: 0.1, y: 0.1 },
-        { x: 0.5, y: 0.5 },
-      ]}
-      requireAccessible={true}
-    />,
-  );
+  test("clear button clears selected poi", () => {
+    (useSvgDimensions as jest.Mock).mockReturnValue({
+      dimensions: { width: 1000, height: 1000 },
+      svgText: "<svg></svg>",
+      error: false,
+      isLoading: false,
+    });
 
-  expect(getByTestId("indoor-path-overlay")).toBeTruthy();
-});
+    const { getAllByTestId, getByTestId, queryByTestId } = renderWithProviders(
+      <FloorPlanViewer
+        floor={mockFloor}
+        buildingCode="CC"
+        buildingName="CC Building"
+      />,
+    );
 
-test("clear button clears selected poi", () => {
-  (useSvgDimensions as jest.Mock).mockReturnValue({
-    dimensions: { width: 1000, height: 1000 },
-    svgText: "<svg></svg>",
-    error: false,
-    isLoading: false,
+    fireEvent.press(getAllByTestId("poi-marker")[0]);
+    expect(getByTestId("selected-poi")).toBeTruthy();
+
+    fireEvent.press(getByTestId("clear-selected-poi"));
+    expect(queryByTestId("selected-poi")).toBeNull();
   });
-
-  const { getAllByTestId, getByTestId, queryByTestId } = renderWithProviders(
-    <FloorPlanViewer
-      floor={mockFloor}
-      buildingCode="CC"
-      buildingName="CC Building"
-    />,
-  );
-
-  fireEvent.press(getAllByTestId("poi-marker")[0]);
-  expect(getByTestId("selected-poi")).toBeTruthy();
-
-  fireEvent.press(getByTestId("clear-selected-poi"));
-  expect(queryByTestId("selected-poi")).toBeNull();
 });
