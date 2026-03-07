@@ -24,30 +24,45 @@ const concordiaLogo = require("../assets/images/concordia_logo.png");
 
 export type NavigationBottomSheetProps = {};
 
+const normalizeMode = (mode?: string) => (mode ?? "").toUpperCase();
+
 export default function NavigationBottomSheet(
   props: Readonly<NavigationBottomSheetProps>,
 ) {
   const insets = useSafeAreaInsets();
 
-  const queries = useGetAllModesDirections(
-    useNavigationStore().startLocation,
-    useNavigationStore().endLocation,
-    new Date(),
-  );
-  const directionsData = queries.map((query) => query.data);
-
+  const navigationState = useNavigationStore();
   const closeSheet = useMapStore((state) => state.closeSheet);
 
-  const navigationState = useNavigationStore();
+  const queries = useGetAllModesDirections(
+    navigationState.startLocation,
+    navigationState.endLocation,
+    new Date(),
+  );
+
+  const directionsData = useMemo(
+    () => queries.map((query) => query.data).filter(Boolean),
+    [queries],
+  );
 
   const isCrossCampus = useMemo(() => {
-    if (!navigationState.startLocation || !navigationState.endLocation)
+    if (!navigationState.startLocation || !navigationState.endLocation) {
       return false;
+    }
+
     return getIsCrossCampus(
       navigationState.startLocation,
       navigationState.endLocation,
     );
   }, [navigationState.startLocation, navigationState.endLocation]);
+
+  const getDurationForMode = (mode: TransitMode) => {
+    return (
+      directionsData.find(
+        (data) => normalizeMode(data?.mode) === normalizeMode(mode),
+      )?.duration ?? ""
+    );
+  };
 
   const transitOptions = useMemo(() => {
     const baseOptions = [
@@ -55,47 +70,31 @@ export default function NavigationBottomSheet(
         mode: TransitMode.DRIVING,
         Icon: CarIcon,
         label: "Drive",
-        duration:
-          directionsData.find(
-            (data) => data?.mode.toUpperCase() === TransitMode.DRIVING,
-          )?.duration || "",
+        duration: getDurationForMode(TransitMode.DRIVING),
       },
       {
         mode: TransitMode.TRANSIT,
         Icon: TrainIcon,
         label: "Transit",
-        duration:
-          directionsData.find(
-            (data) => data?.mode.toUpperCase() === TransitMode.TRANSIT,
-          )?.duration || "",
+        duration: getDurationForMode(TransitMode.TRANSIT),
       },
       {
         mode: TransitMode.WALKING,
         Icon: WalkingIcon,
         label: "Walk",
-        duration:
-          directionsData.find(
-            (data) => data?.mode.toUpperCase() === TransitMode.WALKING,
-          )?.duration || "",
+        duration: getDurationForMode(TransitMode.WALKING),
       },
       {
         mode: TransitMode.BICYCLING,
         Icon: BikeIcon,
         label: "Bike",
-        duration:
-          directionsData.find(
-            (data) => data?.mode.toUpperCase() === TransitMode.BICYCLING,
-          )?.duration || "",
+        duration: getDurationForMode(TransitMode.BICYCLING),
       },
       {
         mode: TransitMode.SHUTTLE,
         image: concordiaLogo,
         label: "Shuttle",
-        // does not have a duration for now, see #240
-        duration:
-          directionsData.find(
-            (data) => data?.mode.toUpperCase() === TransitMode.SHUTTLE,
-          )?.duration || "",
+        duration: getDurationForMode(TransitMode.SHUTTLE),
       },
     ];
 
@@ -147,21 +146,24 @@ export default function NavigationBottomSheet(
         <View style={NavigationBottomSheetStyles.fakeHandleContainer}>
           <View style={NavigationBottomSheetStyles.fakeHandleBar} />
         </View>
+
         <View style={NavigationBottomSheetStyles.headerContainer}>
           <View style={NavigationBottomSheetStyles.navModeHeader}>
             <View>
               <Text style={NavigationBottomSheetStyles.transitModeTitle}>
                 {navigationState.startLocation
-                  ? selectedOption.label
+                  ? selectedOption?.label ?? "Navigation"
                   : "Please select a start location"}
               </Text>
+
               {!!navigationState.currentDirections &&
-                !!selectedOption.duration && (
+                !!selectedOption?.duration && (
                   <Text style={NavigationBottomSheetStyles.transitModeDuration}>
                     {selectedOption.duration}
                   </Text>
                 )}
             </View>
+
             <TouchableOpacity
               onPress={closeSheet}
               style={NavigationBottomSheetStyles.closeIcon}
@@ -184,6 +186,7 @@ export default function NavigationBottomSheet(
               {transitOptions.map(({ mode, Icon, image, duration }) => {
                 const selected = navigationState.transitMode === mode;
                 const disabled = mode === TransitMode.SHUTTLE && !isCrossCampus;
+
                 return (
                   <TouchableOpacity
                     key={mode}
@@ -213,6 +216,7 @@ export default function NavigationBottomSheet(
                         />
                       </View>
                     )}
+
                     {!!duration && (
                       <Text
                         style={[
@@ -299,6 +303,7 @@ const NavigationBottomSheetStyles = StyleSheet.create({
     fontWeight: "600",
     color: COLORS.textPrimary,
   },
+
   transitModeDuration: {
     fontSize: 14,
     color: COLORS.textSecondary,
@@ -328,6 +333,7 @@ const NavigationBottomSheetStyles = StyleSheet.create({
   transitChipSelected: {
     backgroundColor: COLORS.maroon,
   },
+
   transitChipDisabled: {
     backgroundColor: "#e0e0e0",
   },

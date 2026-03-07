@@ -2,6 +2,7 @@ import { create } from "zustand";
 import type {
   FloorSegment,
   Coordinates,
+  TransitionType,
 } from "@/hooks/queries/indoorDirectionsQueries";
 
 export type IndoorNavMode = "BROWSE" | "ITINERARY";
@@ -25,6 +26,7 @@ type IndoorNavigationState = {
 
   routeSegments: FloorSegment[] | null;
   totalDistance: number | null;
+  transitionType: TransitionType | null;
 
   currentFloor: number | null;
   setCurrentFloor: (f: number | null) => void;
@@ -41,6 +43,7 @@ type IndoorNavigationState = {
   setRoute: (
     segments: FloorSegment[] | null,
     totalDistance: number | null,
+    transitionType?: TransitionType | null,
   ) => void;
   clearRoute: () => void;
 };
@@ -57,6 +60,7 @@ export const useIndoorNavigationStore = create<IndoorNavigationState>(
 
     routeSegments: null,
     totalDistance: null,
+    transitionType: null,
 
     currentFloor: null,
     setCurrentFloor: (f) => set({ currentFloor: f }),
@@ -74,6 +78,7 @@ export const useIndoorNavigationStore = create<IndoorNavigationState>(
         end: sel,
         routeSegments: null,
         totalDistance: null,
+        transitionType: null,
         selectedRoom: null,
       });
     },
@@ -86,6 +91,7 @@ export const useIndoorNavigationStore = create<IndoorNavigationState>(
         end: null,
         routeSegments: null,
         totalDistance: null,
+        transitionType: null,
         selectedRoom: null,
       }),
 
@@ -93,9 +99,14 @@ export const useIndoorNavigationStore = create<IndoorNavigationState>(
     setStart: (p) => set({ start: p }),
     setEnd: (p) => set({ end: p }),
 
-    setRoute: (segments, totalDistance) =>
-      set({ routeSegments: segments, totalDistance }),
+    setRoute: (segments, totalDistance, transitionType = null) =>
+      set({ routeSegments: segments, totalDistance, transitionType }),
 
-    clearRoute: () => set({ routeSegments: null, totalDistance: null }),
+    clearRoute: () =>
+      set({
+        routeSegments: null,
+        totalDistance: null,
+        transitionType: null,
+      }),
   }),
 );

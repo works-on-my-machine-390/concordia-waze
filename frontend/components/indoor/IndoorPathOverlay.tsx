@@ -7,12 +7,10 @@ type Props = {
   path: Coordinates[];
   width: number;
   height: number;
-
   endPolygon?: Coordinates[];
-
-  // ✅ optional overrides for POIs (normalized coords 0..1 like path)
   startOverride?: Coordinates;
   endOverride?: Coordinates;
+  color?: string;
 };
 
 function dist2(ax: number, ay: number, bx: number, by: number) {
@@ -95,13 +93,19 @@ function closestPointOnSegment(
   const apy = py - ay;
 
   const ab2 = abx * abx + aby * aby;
-  if (ab2 < 1e-9) return { x: ax, y: ay };
+  if (ab2 < 1e-9) {
+    return { x: ax, y: ay, t: 0 };
+  }
 
   let t = (apx * abx + apy * aby) / ab2;
   if (t < 0) t = 0;
   if (t > 1) t = 1;
 
-  return { x: ax + t * abx, y: ay + t * aby };
+  return {
+    x: ax + t * abx,
+    y: ay + t * aby,
+    t,
+  };
 }
 
 function snapEndToClosestPolygonBorder(
@@ -122,11 +126,54 @@ function snapEndToClosestPolygonBorder(
 
     if (d2 < bestD2) {
       bestD2 = d2;
-      best = c;
+      best = { x: c.x, y: c.y };
     }
   }
 
   return best;
+}
+
+function trimPathFromStartOverride(
+  pts: { x: number; y: number }[],
+  startOverride?: { x: number; y: number },
+) {
+  if (!startOverride || pts.length < 2) return pts;
+
+  let bestSegIdx = 0;
+  let bestPoint = pts[0];
+  let bestD2 = Number.POSITIVE_INFINITY;
+
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1];
+    const b = pts[i];
+    const c = closestPointOnSegment(
+      startOverride.x,
+      startOverride.y,
+      a.x,
+      a.y,
+      b.x,
+      b.y,
+    );
+    const d2 = dist2(startOverride.x, startOverride.y, c.x, c.y);
+
+    if (d2 < bestD2) {
+      bestD2 = d2;
+      bestSegIdx = i - 1;
+      bestPoint = { x: c.x, y: c.y };
+    }
+  }
+
+  const trimmed = [bestPoint, ...pts.slice(bestSegIdx + 1)];
+
+  if (trimmed.length >= 2) {
+    const first = trimmed[0];
+    const second = trimmed[1];
+    if (dist2(first.x, first.y, second.x, second.y) < 0.0001) {
+      trimmed.shift();
+    }
+  }
+
+  return trimmed;
 }
 
 export default function IndoorPathOverlay({
@@ -136,46 +183,53 @@ export default function IndoorPathOverlay({
   endPolygon,
   startOverride,
   endOverride,
+  color = "#1E73FF",
 }: Readonly<Props>) {
   if (!path || path.length < 2) return null;
 
-  // ✅ apply overrides BEFORE scaling/orthogonalizing
   const adjustedPath = useMemo(() => {
     const out = [...path];
-    if (startOverride) out[0] = startOverride;
     if (endOverride) out[out.length - 1] = endOverride;
     return out;
-  }, [path, startOverride, endOverride]);
+  }, [path, endOverride]);
 
   const pts = useMemo(() => {
     const scaled = adjustedPath.map((p) => ({ x: p.x * width, y: p.y * height }));
-
     const ortho = orthogonalizePath(scaled);
+    const simplified = simplifyOrthogonalPath(ortho);
 
-    return simplifyOrthogonalPath(ortho);
-  }, [adjustedPath, width, height]);
+    const scaledStartOverride = startOverride
+      ? { x: startOverride.x * width, y: startOverride.y * height }
+      : undefined;
+
+    return trimPathFromStartOverride(simplified, scaledStartOverride);
+  }, [adjustedPath, width, height, startOverride]);
 
   const finalPts = useMemo(() => {
+    if (pts.length === 0) return pts;
     if (!endPolygon || endPolygon.length < 3 || pts.length < 2) return pts;
 
     const polyPx = endPolygon.map((p) => ({ x: p.x * width, y: p.y * height }));
 
     const out = [...pts];
     const end = out[out.length - 1];
-
-    // ✅ rooms still snap end to polygon border
     out[out.length - 1] = snapEndToClosestPolygonBorder(end, polyPx);
 
     return out;
   }, [endPolygon, pts, width, height]);
 
+  if (!finalPts || finalPts.length === 0) return null;
+
   const start = finalPts[0];
 
   const dots = useMemo(() => {
     const out: { x: number; y: number }[] = [];
-
     const spacing = 7;
     const radius = 2.5;
+
+    if (finalPts.length === 1) {
+      return { points: out, radius };
+    }
 
     let carry = 0;
 
@@ -188,7 +242,7 @@ export default function IndoorPathOverlay({
       const segLen = dist(a, b);
       if (segLen <= 0.001) continue;
 
-      let t = (spacing - carry) / segLen;
+      let t = i === 1 ? 0 : (spacing - carry) / segLen;
 
       while (t <= 1) {
         out.push({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
@@ -218,12 +272,11 @@ export default function IndoorPathOverlay({
             cx={p.x}
             cy={p.y}
             r={dots.radius}
-            fill="#1E73FF"
+            fill={color}
           />
         ))}
 
-        {/* start marker */}
-        <Circle cx={start.x} cy={start.y} r={15} fill="#1E73FF" opacity={0.25} />
+        <Circle cx={start.x} cy={start.y} r={15} fill={color} opacity={0.25} />
         <Circle
           cx={start.x}
           cy={start.y}
@@ -232,7 +285,7 @@ export default function IndoorPathOverlay({
           stroke="#FFFFFF"
           strokeWidth={6}
         />
-        <Circle cx={start.x} cy={start.y} r={7} fill="#1E73FF" />
+        <Circle cx={start.x} cy={start.y} r={7} fill={color} />
       </Svg>
     </View>
   );

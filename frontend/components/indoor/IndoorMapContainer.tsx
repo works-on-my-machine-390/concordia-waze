@@ -24,6 +24,12 @@ type Props = {
   floorSelectorBottomOffset?: number;
   selectedRoomFromSearch?: string;
   selectedFloorFromSearch?: number;
+  disablePoiSelection?: boolean;
+  hideBottomSheetSection?: boolean;
+  hideFloorSelector?: boolean;
+  navigationStartOverride?: Coordinates;
+  navigationPathColor?: string;
+  navigationStepIndex?: number;
 };
 
 const normalizeName = (s: string) =>
@@ -86,6 +92,12 @@ export default function IndoorMapContainer({
   floorSelectorBottomOffset = 24,
   selectedRoomFromSearch,
   selectedFloorFromSearch,
+  disablePoiSelection = false,
+  hideBottomSheetSection = false,
+  hideFloorSelector = false,
+  navigationStartOverride,
+  navigationPathColor,
+  navigationStepIndex,
 }: Readonly<Props>) {
   const navMode = useIndoorNavigationStore((s) => s.mode);
   const navCurrentFloor = useIndoorNavigationStore((s) => s.currentFloor);
@@ -219,6 +231,7 @@ export default function IndoorMapContainer({
   }, [routeSegments, selectedFloor, data?.floors]);
 
   const handleSelectPoiName = (name: string) => {
+    if (disablePoiSelection) return;
     if (!currentFloor) return;
 
     const poi = currentFloor.pois.find((p) => (p.name ?? "") === name);
@@ -294,18 +307,25 @@ export default function IndoorMapContainer({
         buildingName={buildingData?.long_name || ""}
         metroAccessible={buildingData?.metro_accessible}
         initialSelectedRoom={selectedRoomFromSearch}
+        disablePoiSelection={disablePoiSelection}
+        navigationStartOverride={navigationStartOverride}
+        navigationPathColor={navigationPathColor}
+        navigationStepIndex={navigationStepIndex}
+        hideBottomSheetSection={hideBottomSheetSection}
       />
 
-      <FloorSelector
-        floors={data.floors}
-        selectedFloor={selectedFloor}
-        onSelectFloor={(floorNum) => {
-          clearSelectedPoiFilter();
-          setSelectedFloor(floorNum);
-          setCurrentFloor?.(floorNum);
-        }}
-        bottomOffset={floorSelectorBottomOffset}
-      />
+      {!hideFloorSelector && (
+        <FloorSelector
+          floors={data.floors}
+          selectedFloor={selectedFloor}
+          onSelectFloor={(floorNum) => {
+            clearSelectedPoiFilter();
+            setSelectedFloor(floorNum);
+            setCurrentFloor?.(floorNum);
+          }}
+          bottomOffset={floorSelectorBottomOffset}
+        />
+      )}
     </View>
   );
 }

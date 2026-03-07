@@ -33,6 +33,11 @@ type Props = {
   metroAccessible?: boolean;
 
   initialSelectedRoom?: string;
+  disablePoiSelection?: boolean;
+  navigationStartOverride?: Coordinates;
+  navigationPathColor?: string;
+  navigationStepIndex?: number;
+  hideBottomSheetSection?: boolean;
 };
 
 const normalizeName = (s: string) =>
@@ -48,6 +53,11 @@ export default function FloorPlanViewer({
   buildingName,
   metroAccessible,
   initialSelectedRoom,
+  disablePoiSelection = false,
+  navigationStartOverride,
+  navigationPathColor,
+  navigationStepIndex,
+  hideBottomSheetSection = false,
 }: Readonly<Props>) {
   const navMode = useIndoorNavigationStore((s) => s.mode);
   const navEnd = useIndoorNavigationStore((s) => s.end);
@@ -158,9 +168,10 @@ export default function FloorPlanViewer({
       : null;
 
   const startOverride =
-    startPoi && (startPoi.polygon?.length ?? 0) <= 2
+    navigationStartOverride ??
+    (startPoi && (startPoi.polygon?.length ?? 0) <= 2
       ? { x: startPoi.position.x, y: startPoi.position.y }
-      : undefined;
+      : undefined);
 
   const endOverride =
     destinationPoi && (destinationPoi.polygon?.length ?? 0) <= 2
@@ -168,6 +179,8 @@ export default function FloorPlanViewer({
       : undefined;
 
   const handlePoiPress = (name: string) => {
+    if (disablePoiSelection) return;
+
     clearSelectedPoiFilter();
 
     if (onSelectPoiName) {
@@ -189,7 +202,11 @@ export default function FloorPlanViewer({
     }
   };
 
-  const showBottomSheetSection = !!buildingCode && !!buildingName;
+  const showBottomSheetSection =
+    !!buildingCode &&
+    !!buildingName &&
+    !disablePoiSelection &&
+    !hideBottomSheetSection;
 
   return (
     <View style={styles.container}>
@@ -224,7 +241,7 @@ export default function FloorPlanViewer({
             width={DISPLAY_WIDTH}
             height={DISPLAY_HEIGHT}
             selectedPoiName={effectiveSelectedPoiName}
-            onSelectPoi={handlePoiPress}
+            onSelectPoi={disablePoiSelection ? () => {} : handlePoiPress}
           />
 
           <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
@@ -244,10 +261,14 @@ export default function FloorPlanViewer({
                   width={DISPLAY_WIDTH}
                   height={DISPLAY_HEIGHT}
                   highlighted={highlighted}
-                  onPress={() => {
-                    const name = poi.name ?? "";
-                    if (name) handlePoiPress(name);
-                  }}
+                  onPress={
+                    disablePoiSelection
+                      ? undefined
+                      : () => {
+                          const name = poi.name ?? "";
+                          if (name) handlePoiPress(name);
+                        }
+                  }
                 />
               );
             })}
@@ -261,6 +282,7 @@ export default function FloorPlanViewer({
               endPolygon={endPolygon}
               startOverride={startOverride}
               endOverride={endOverride}
+              color={navigationPathColor}
             />
           ) : null}
         </View>

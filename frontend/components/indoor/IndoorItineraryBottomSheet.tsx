@@ -35,7 +35,7 @@ export default function IndoorItineraryBottomSheet({
     if (!canGo) return;
 
     router.push({
-      pathname: "/(drawer)/indoor-navigation",
+      pathname: "/indoor-navigation",
       params: { buildingCode },
     });
   };
@@ -43,7 +43,6 @@ export default function IndoorItineraryBottomSheet({
   const distanceLabel =
     nav.totalDistance != null ? `(${nav.totalDistance.toFixed(1)} m)` : "";
 
-  // ✅ Floor-change message logic
   const startFloor = nav.start?.floor ?? null;
   const endFloor = nav.end?.floor ?? null;
   const currentFloor = nav.currentFloor;
