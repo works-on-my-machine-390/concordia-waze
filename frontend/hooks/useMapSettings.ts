@@ -35,7 +35,7 @@ const INITIAL_MAP_SETTINGS: MapSettings = {
 
 type MapSettingsStore = {
   mapSettings: MapSettings;
-  updateSetting: (key: string, value: boolean) => void;
+  updateSetting: (key: MapSettingsKey, value: boolean) => void;
 };
 
 // Zustand store for managing map settings with persistence using AsyncStorage.
@@ -51,7 +51,7 @@ const useMapSettingsStore = create<MapSettingsStore>()(
         set((state) => ({
           mapSettings: {
             ...state.mapSettings,
-            [key as MapSettingsKey]: value,
+            [key]: value,
           },
         }));
       },
@@ -59,6 +59,16 @@ const useMapSettingsStore = create<MapSettingsStore>()(
     {
       name: "map-settings",
       storage: createJSONStorage(() => AsyncStorage),
+      merge: (persistedState: any, currentState) => {
+        return {
+          ...currentState,
+          ...persistedState,
+          mapSettings: {
+            ...currentState.mapSettings, // keep initial settings and newly added settings
+            ...persistedState?.mapSettings, // override with persisted values
+          },
+        };
+      },
     },
   ),
 );
