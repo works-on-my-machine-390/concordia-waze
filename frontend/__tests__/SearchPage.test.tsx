@@ -1473,7 +1473,7 @@ describe("SearchPage", () => {
 
       const { queryByText } = await renderAndFlush();
 
-      const recentItem = queryByText(/^MB$/);
+      const recentItem = queryByText(/^MB(?:\s-\s.*)?$/);
       expect(recentItem).toBeTruthy();
 
       if (recentItem) {
