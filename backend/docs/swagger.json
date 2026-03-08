@@ -428,177 +428,41 @@
             }
         },
         "/directions": {
-            "get": {
-                "description": "Returns route polyline + step instructions (walking/driving/transit/shuttle/bicycling)",
+            "post": {
+                "description": "Returns list of routes polyline + step instructions (walking/driving/transit/shuttle/bicycling)",
+                "consumes": [
+                    "application/json"
+                ],
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "directions"
                 ],
-                "summary": "Get directions between coordinates",
+                "summary": "Get directions between coordinates, adapts between indoor/outdoor as needed",
                 "parameters": [
                     {
-                        "type": "number",
-                        "description": "Start latitude",
-                        "name": "start_lat",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "number",
-                        "description": "Start longitude",
-                        "name": "start_lng",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "number",
-                        "description": "End latitude",
-                        "name": "end_lat",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "number",
-                        "description": "End longitude",
-                        "name": "end_lng",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Mode (walking, driving, transit, shuttle, bicycling)",
-                        "name": "mode",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Optional day for shuttle (monday..sunday) - automatic",
-                        "name": "day",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Optional time for shuttle (HH:MM 24h) - automatic",
-                        "name": "time",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Manual shuttle day (monday..sunday) - manual departure selection",
-                        "name": "shuttle_day",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Manual shuttle time (HH:MM 24h) - must exist in schedule",
-                        "name": "shuttle_time",
-                        "in": "query"
+                        "description": "Route request with start/end locations and preferences",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request_format.RouteRequest"
+                        }
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/domain.DirectionsResponse"
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/domain.DirectionsResponse"
+                            }
                         }
                     },
                     "400": {
                         "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/directions/buildings": {
-            "get": {
-                "description": "Uses building coordinates as origin/destination",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "directions"
-                ],
-                "summary": "Get directions by building codes",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Start building code",
-                        "name": "start_code",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "End building code",
-                        "name": "end_code",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Mode (walking, driving, transit, shuttle, bicycling)",
-                        "name": "mode",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Optional day for shuttle (monday..sunday) - automatic",
-                        "name": "day",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Optional time for shuttle (HH:MM 24h) - automatic",
-                        "name": "time",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Manual shuttle day (monday..sunday) - manual departure selection",
-                        "name": "shuttle_day",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Manual shuttle time (HH:MM 24h) - must exist in schedule",
-                        "name": "shuttle_time",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/domain.DirectionsResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -2066,6 +1930,10 @@
                 "preferElevator": {
                     "type": "boolean"
                 },
+                "requireAccessible": {
+                    "description": "filter out inaccessible edges",
+                    "type": "boolean"
+                },
                 "start": {
                     "$ref": "#/definitions/domain.Coordinates"
                 },
@@ -2421,6 +2289,17 @@
                 }
             }
         },
+        "domain.IndoorPosition": {
+            "type": "object",
+            "properties": {
+                "x": {
+                    "type": "number"
+                },
+                "y": {
+                    "type": "number"
+                }
+            }
+        },
         "domain.LatLng": {
             "type": "object",
             "properties": {
@@ -2535,6 +2414,79 @@
                 "password": {
                     "type": "string",
                     "minLength": 6
+                }
+            }
+        },
+        "request_format.RouteLocation": {
+            "type": "object",
+            "properties": {
+                "building": {
+                    "type": "string"
+                },
+                "floor_number": {
+                    "type": "integer"
+                },
+                "indoor_position": {
+                    "$ref": "#/definitions/domain.IndoorPosition"
+                },
+                "latitude": {
+                    "type": "number"
+                },
+                "longitude": {
+                    "type": "number"
+                },
+                "room": {
+                    "type": "string"
+                }
+            }
+        },
+        "request_format.RoutePreferences": {
+            "type": "object",
+            "properties": {
+                "day": {
+                    "type": "string",
+                    "enum": [
+                        "Monday",
+                        "Tuesday",
+                        "Wednesday",
+                        "Thursday",
+                        "Friday",
+                        "Saturday",
+                        "Sunday"
+                    ]
+                },
+                "mode": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "prefer_elevator": {
+                    "type": "boolean"
+                },
+                "require_accessible": {
+                    "type": "boolean"
+                },
+                "time": {
+                    "type": "string"
+                }
+            }
+        },
+        "request_format.RouteRequest": {
+            "type": "object",
+            "required": [
+                "end",
+                "start"
+            ],
+            "properties": {
+                "end": {
+                    "$ref": "#/definitions/request_format.RouteLocation"
+                },
+                "preferences": {
+                    "$ref": "#/definitions/request_format.RoutePreferences"
+                },
+                "start": {
+                    "$ref": "#/definitions/request_format.RouteLocation"
                 }
             }
         }

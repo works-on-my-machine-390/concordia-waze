@@ -2,6 +2,7 @@ package application
 
 import (
 	"errors"
+	"fmt"
 	"math"
 	"strings"
 
@@ -425,21 +426,26 @@ func (s *IndoorPathService) resolveEndpoints(req IndoorPathRequest, g *graph, fl
 
 func (s *IndoorPathService) roomCentroid(building string, floorNum int, room string) (*domain.Coordinates, error) {
 	rooms, err := s.rooms.GetByBuilding(building)
+	fmt.Println(rooms)
 	if err != nil {
 		return nil, err
 	}
 
 	target := normalizeRoom(room)
+	fmt.Println(target)
 	for _, r := range rooms {
 		if r.Floor != floorNum {
 			continue
 		}
+
+		room2 := normalizeRoom(r.Room)
+		fmt.Println(room2)
 		if normalizeRoom(r.Room) == target {
 			return &domain.Coordinates{X: r.Centroid.X, Y: r.Centroid.Y}, nil
 		}
 	}
 
-	return nil, errors.New("room not found on that floor")
+	return nil, fmt.Errorf("room '%s' not found on floor %d of building %s", room, floorNum, building)
 }
 
 func normalizeRoom(s string) string {
