@@ -17,13 +17,17 @@ const makeKey = (
 const METERS_PER_SVG_UNIT = 0.022;
 
 function parseSvgSize(xml: string): { width: number; height: number } | null {
-  const viewBoxMatch = xml.match(/viewBox\s*=\s*"[^"]*?\s([\d.]+)\s([\d.]+)"/i);
+  const viewBoxRegex = /viewBox\s*=\s*"[^"]*?\s([\d.]+)\s([\d.]+)"/i;
+  const viewBoxMatch = viewBoxRegex.exec(xml);
   if (viewBoxMatch) {
     return { width: Number(viewBoxMatch[1]), height: Number(viewBoxMatch[2]) };
   }
 
-  const wMatch = xml.match(/width\s*=\s*"([\d.]+)"/i);
-  const hMatch = xml.match(/height\s*=\s*"([\d.]+)"/i);
+  const widthRegex = /width\s*=\s*"([\d.]+)"/i;
+  const heightRegex = /height\s*=\s*"([\d.]+)"/i;
+  const wMatch = widthRegex.exec(xml);
+  const hMatch = heightRegex.exec(xml);
+
   if (wMatch && hMatch) {
     return { width: Number(wMatch[1]), height: Number(hMatch[1]) };
   }
@@ -58,7 +62,7 @@ function computeMetersFromSegments(
     for (let i = 1; i < pts.length; i++) {
       const dx = (pts[i].x - pts[i - 1].x) * W;
       const dy = (pts[i].y - pts[i - 1].y) * H;
-      totalSvgUnits += Math.sqrt(dx * dx + dy * dy);
+      totalSvgUnits += Math.hypot(dx, dy);
     }
   }
 

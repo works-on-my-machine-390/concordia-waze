@@ -167,13 +167,17 @@ export default function IndoorSearchPage() {
 
   const showRecent = query.trim().length === 0 && recentSearches.length > 0;
 
-  const searchPlaceholder =
-    itineraryField === "start"
-      ? `Choose start in ${buildingName}...`
-      : itineraryField === "end"
-        ? `Choose destination in ${buildingName}...`
-        : `Search in ${buildingName}...`;
+      const searchPlaceholder = (() => {
+      if (itineraryField === "start") {
+        return `Choose start in ${buildingName}...`;
+      }
 
+      if (itineraryField === "end") {
+        return `Choose destination in ${buildingName}...`;
+      }
+
+      return `Search in ${buildingName}...`;
+    })();
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
       <KeyboardAvoidingView

@@ -81,9 +81,9 @@ export default function IndoorRoomBottomSheet(
             ]}
           >
             <GetDirectionsIcon
-              size={90}
-              color={!directionsDisabled ? COLORS.maroon : "#BDBDBD"}
-            />
+            size={90}
+            color={directionsDisabled ? "#BDBDBD" : COLORS.maroon}
+          />
           </View>
         </TouchableOpacity>
 

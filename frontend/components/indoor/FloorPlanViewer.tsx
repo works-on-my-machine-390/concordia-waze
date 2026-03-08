@@ -135,6 +135,88 @@ function setBrowseSelectedRoom(params: {
   });
 }
 
+function getRouteOverlayData(params: {
+  floor: Floor;
+  navMode: string;
+  navStart?: { floor: number; label?: string | null } | null;
+  navEnd?: { floor: number; label?: string | null } | null;
+  navigationStartOverride?: Coordinates;
+}) {
+  const { floor, navMode, navStart, navEnd, navigationStartOverride } = params;
+
+  const isEndOnCurrentFloor =
+    navMode === "ITINERARY" && navEnd?.floor === floor.number;
+  const isStartOnCurrentFloor =
+    navMode === "ITINERARY" && navStart?.floor === floor.number;
+
+  const destinationPoi = isEndOnCurrentFloor
+    ? findPoiByName(floor, navEnd?.label)
+    : null;
+
+  const startPoi = isStartOnCurrentFloor
+    ? findPoiByName(floor, navStart?.label)
+    : null;
+
+  const endPolygon =
+    destinationPoi && (destinationPoi.polygon?.length ?? 0) > 2
+      ? destinationPoi.polygon
+      : undefined;
+
+  return {
+    endPolygon,
+    startOverride: navigationStartOverride ?? getPolygonOverride(startPoi),
+    endOverride: getPolygonOverride(destinationPoi),
+  };
+}
+
+function renderPoiMarkers(params: {
+  floor: Floor;
+  displayWidth: number;
+  displayHeight: number;
+  effectiveSelectedPoiName?: string;
+  extraSet: Set<string>;
+  disablePoiSelection: boolean;
+  handlePoiPress: (name: string) => void;
+}) {
+  const {
+    floor,
+    displayWidth,
+    displayHeight,
+    effectiveSelectedPoiName,
+    extraSet,
+    disablePoiSelection,
+    handlePoiPress,
+  } = params;
+
+  return floor.pois.map((poi) => {
+    const poiName = poi.name ?? "";
+    const normalizedPoiName = normalizeName(poiName);
+
+    const highlighted =
+      (!!effectiveSelectedPoiName &&
+        normalizedPoiName === normalizeName(effectiveSelectedPoiName)) ||
+      extraSet.has(normalizedPoiName);
+
+    return (
+      <PoiMarker
+        key={`poi-${poi.name}-${poi.position.x}-${poi.position.y}`}
+        poi={poi}
+        width={displayWidth}
+        height={displayHeight}
+        highlighted={highlighted}
+        onPress={
+          disablePoiSelection
+            ? undefined
+            : () => {
+                const name = poi.name ?? "";
+                if (name) handlePoiPress(name);
+              }
+        }
+      />
+    );
+  });
+}
+
 export default function FloorPlanViewer({
   floor,
   routePath,
@@ -225,26 +307,13 @@ export default function FloorPlanViewer({
   const displayWidth = screenWidth - 32;
   const displayHeight = displayWidth * (dimensions.height / dimensions.width);
 
-  const isEndOnCurrentFloor =
-    navMode === "ITINERARY" && navEnd?.floor === floor.number;
-  const isStartOnCurrentFloor =
-    navMode === "ITINERARY" && navStart?.floor === floor.number;
-
-  const destinationPoi = isEndOnCurrentFloor
-    ? findPoiByName(floor, navEnd?.label)
-    : null;
-
-  const startPoi = isStartOnCurrentFloor
-    ? findPoiByName(floor, navStart?.label)
-    : null;
-
-  const endPolygon =
-    destinationPoi && (destinationPoi.polygon?.length ?? 0) > 2
-      ? destinationPoi.polygon
-      : undefined;
-
-  const startOverride = navigationStartOverride ?? getPolygonOverride(startPoi);
-  const endOverride = getPolygonOverride(destinationPoi);
+  const { endPolygon, startOverride, endOverride } = getRouteOverlayData({
+    floor,
+    navMode,
+    navStart,
+    navEnd,
+    navigationStartOverride,
+  });
 
   const handlePoiPress = (name: string) => {
     if (disablePoiSelection) return;
@@ -269,6 +338,16 @@ export default function FloorPlanViewer({
     !!buildingName &&
     !disablePoiSelection &&
     !hideBottomSheetSection;
+
+  const poiMarkers = renderPoiMarkers({
+    floor,
+    displayWidth,
+    displayHeight,
+    effectiveSelectedPoiName,
+    extraSet,
+    disablePoiSelection,
+    handlePoiPress,
+  });
 
   return (
     <View style={styles.container}>
@@ -307,34 +386,7 @@ export default function FloorPlanViewer({
           />
 
           <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
-            {floor.pois.map((poi) => {
-              const poiName = poi.name ?? "";
-              const normalizedPoiName = normalizeName(poiName);
-
-              const highlighted =
-                (!!effectiveSelectedPoiName &&
-                  normalizedPoiName ===
-                    normalizeName(effectiveSelectedPoiName)) ||
-                extraSet.has(normalizedPoiName);
-
-              return (
-                <PoiMarker
-                  key={`poi-${poi.name}-${poi.position.x}-${poi.position.y}`}
-                  poi={poi}
-                  width={displayWidth}
-                  height={displayHeight}
-                  highlighted={highlighted}
-                  onPress={
-                    disablePoiSelection
-                      ? undefined
-                      : () => {
-                          const name = poi.name ?? "";
-                          if (name) handlePoiPress(name);
-                        }
-                  }
-                />
-              );
-            })}
+            {poiMarkers}
           </View>
 
           {routePath && routePath.length >= 2 ? (
