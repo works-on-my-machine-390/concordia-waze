@@ -5,19 +5,21 @@ type Props = {
   floors: Floor[];
   selectedFloor: number;
   onSelectFloor: (floorNumber: number) => void;
+
+  // lets parent push the selector upward (ex: when bottom sheet is open)
+  bottomOffset?: number;
 };
 
 export default function FloorSelector({
   floors,
   selectedFloor,
   onSelectFloor,
+  bottomOffset = 24,
 }: Readonly<Props>) {
-  if (floors.length === 0) {
-    return null;
-  }
+  if (floors.length === 0) return null;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { bottom: bottomOffset }]}>
       {floors.map((floor) => (
         <TouchableOpacity
           key={floor.number}
@@ -44,10 +46,10 @@ export default function FloorSelector({
 const styles = StyleSheet.create({
   container: {
     position: "absolute",
-    bottom: 150,
     left: 16,
-    gap: 12,
-    zIndex: 10,
+    gap: 10,
+    zIndex: 2000,
+    elevation: 2000,
   },
   floorButton: {
     width: 56,

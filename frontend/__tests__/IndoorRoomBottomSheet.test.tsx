@@ -74,3 +74,61 @@ describe("IndoorRoomBottomSheet", () => {
     expect(getText2("poi_2")).toBeTruthy();
   });
 });
+
+test("calls onDirectionsPress and onClose when navigate button is pressed", () => {
+  const mockOnClose = jest.fn();
+  const mockOnDirectionsPress = jest.fn();
+
+  const { getByTestId } = renderWithProviders(
+    <IndoorRoomBottomSheet
+      roomCode="Room 101"
+      buildingCode="CC"
+      roomType="room"
+      onClose={mockOnClose}
+      onDirectionsPress={mockOnDirectionsPress}
+    />,
+  );
+
+  fireEvent.press(getByTestId("indoor-room-navigate-button"));
+
+  expect(mockOnDirectionsPress).toHaveBeenCalled();
+  expect(mockOnClose).toHaveBeenCalled();
+});
+
+test("does not call handlers when directions are disabled", () => {
+  const mockOnClose = jest.fn();
+  const mockOnDirectionsPress = jest.fn();
+
+  const { getByTestId } = renderWithProviders(
+    <IndoorRoomBottomSheet
+      roomCode="Room 101"
+      buildingCode="CC"
+      roomType="room"
+      onClose={mockOnClose}
+      onDirectionsPress={mockOnDirectionsPress}
+      directionsDisabled={true}
+    />,
+  );
+
+  fireEvent.press(getByTestId("indoor-room-navigate-button"));
+
+  expect(mockOnDirectionsPress).not.toHaveBeenCalled();
+  expect(mockOnClose).not.toHaveBeenCalled();
+});
+
+test("only calls onClose when no onDirectionsPress is provided", () => {
+  const mockOnClose = jest.fn();
+
+  const { getByTestId } = renderWithProviders(
+    <IndoorRoomBottomSheet
+      roomCode="Room 101"
+      buildingCode="CC"
+      roomType="room"
+      onClose={mockOnClose}
+    />,
+  );
+
+  fireEvent.press(getByTestId("indoor-room-navigate-button"));
+
+  expect(mockOnClose).toHaveBeenCalled();
+});
