@@ -18,9 +18,7 @@ export default function RoomPolygon({
   isSelected,
   onPress,
 }: Readonly<Props>) {
-  if (polygon.length < 3) {
-    return null;
-  }
+  if (polygon.length < 3) return null;
 
   const points = polygon
     .map((coord) => `${coord.x * width},${coord.y * height}`)

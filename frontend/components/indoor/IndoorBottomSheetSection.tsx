@@ -1,27 +1,31 @@
 import type { Floor } from "@/hooks/queries/indoorMapQueries";
 import { useGetBuildingFloors } from "@/hooks/queries/indoorMapQueries";
 import { useIndoorSearchStore } from "@/hooks/useIndoorSearchStore";
+import { useIndoorNavigationStore } from "@/hooks/useIndoorNavigationStore";
 import { useRouter } from "expo-router";
 import { StyleSheet, View } from "react-native";
 import IndoorFloorBottomSheet from "./IndoorFloorBottomSheet";
-import IndoorRoomBottomSheet from "./IndoorRoomBottomSheet";
 import PoiFilterBottomSheet from "./PoiFilterBottomSheet";
+import IndoorRoomBottomSheet from "./IndoorRoomBottomSheet";
 
 export type IndoorBottomSheetSectionProps = {
   floor: Floor | undefined;
   buildingCode: string;
   buildingName: string;
   metroAccessible?: boolean;
+
   selectedPoiName?: string;
   onClearSelectedPoi: () => void;
+
+  onDirectionsPress?: () => void;
+  directionsDisabled?: boolean;
 };
 
-/**
- * Collection of all bottom sheets used on the indoor map page.
- */
 export default function IndoorBottomSheetSection(
   props: Readonly<IndoorBottomSheetSectionProps>,
 ) {
+  const navMode = useIndoorNavigationStore((s) => s.mode);
+
   const {
     floor,
     buildingCode,
@@ -29,9 +33,15 @@ export default function IndoorBottomSheetSection(
     metroAccessible,
     selectedPoiName,
     onClearSelectedPoi,
+    onDirectionsPress,
+    directionsDisabled = false,
   } = props;
 
-  const { selectedPoiFilter, clearSelectedPoiFilter } = useIndoorSearchStore();
+  const selectedPoiFilter = useIndoorSearchStore((s) => s.selectedPoiFilter);
+  const clearSelectedPoiFilter = useIndoorSearchStore(
+    (s) => s.clearSelectedPoiFilter,
+  );
+
   const { data } = useGetBuildingFloors(buildingCode);
   const floors = data?.floors || [];
   const router = useRouter();
@@ -52,6 +62,9 @@ export default function IndoorBottomSheetSection(
     });
   };
 
+  // ✅ early return only AFTER all hooks
+  if (navMode === "ITINERARY") return null;
+
   return (
     <View style={indoorBottomSheetStyles.bottomSheetContainer}>
       {floor && !selectedPoi && !selectedPoiFilter && (
@@ -62,14 +75,18 @@ export default function IndoorBottomSheetSection(
           metroAccessible={metroAccessible}
         />
       )}
+
       {selectedPoi && (
         <IndoorRoomBottomSheet
           roomCode={selectedPoi.name}
           buildingCode={buildingCode}
           roomType={selectedPoi.type}
           onClose={onClearSelectedPoi}
+          onDirectionsPress={onDirectionsPress}
+          directionsDisabled={directionsDisabled}
         />
       )}
+
       {selectedPoiFilter && (
         <PoiFilterBottomSheet
           poiType={selectedPoiFilter.type}
