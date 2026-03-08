@@ -6,13 +6,13 @@ import IndoorItineraryBottomSheet, {
 import IndoorItineraryHeader from "@/components/indoor/IndoorItineraryHeader";
 
 import { useGetBuildingDetails } from "@/hooks/queries/buildingQueries";
-import { useAccessibilityMode } from "@/hooks/useAccessibilityMode";
 import { useIndoorItineraryController } from "@/hooks/useIndoorItineraryController";
 import { useIndoorNavigationStore } from "@/hooks/useIndoorNavigationStore";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect } from "react";
 import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import useMapSettings, { MapSettings } from "@/hooks/useMapSettings";
 
 const BROWSE_SHEET_HEIGHT = 160;
 
@@ -31,8 +31,15 @@ export default function IndoorMapPage() {
   const ctrl = useIndoorItineraryController(buildingCode);
 
   const { data: buildingData } = useGetBuildingDetails(buildingCode);
-  const { isAccessibilityMode, toggleAccessibilityMode } =
-    useAccessibilityMode();
+  const { mapSettings, updateSetting } = useMapSettings();
+
+  const isAccessibilityMode = mapSettings.preferAccessibleRoutes;
+  const handleToggleAccessibilityMode = () => {
+    updateSetting(
+      MapSettings.preferAccessibleRoutes,
+      !mapSettings.preferAccessibleRoutes,
+    );
+  };
 
   const hardReset = () => {
     if (typeof (nav as any).reset === "function") {
@@ -108,7 +115,7 @@ export default function IndoorMapPage() {
           onSearchPress={handleSearchPress}
           onBackToOutdoor={handleBackToOutdoor}
           isAccessibilityMode={isAccessibilityMode}
-          onAccessibilityToggle={toggleAccessibilityMode}
+          onAccessibilityToggle={handleToggleAccessibilityMode}
         />
       )}
     </View>

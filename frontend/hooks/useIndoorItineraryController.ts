@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef } from "react";
-import { useAccessibilityMode } from "@/hooks/useAccessibilityMode";
+
 import { useIndoorNavigationStore } from "@/hooks/useIndoorNavigationStore";
 import { useIndoorMultiFloorPath } from "@/hooks/queries/indoorDirectionsQueries";
 import { useGetBuildingFloors } from "@/hooks/queries/indoorMapQueries";
 import type { SelectedPoint } from "@/hooks/useIndoorNavigationStore";
 import type { FloorSegment } from "@/hooks/queries/indoorDirectionsQueries";
+import useMapSettings from "./useMapSettings";
 
 const makeKey = (
   buildingCode: string,
@@ -83,7 +84,8 @@ function isNoAccessibleRouteError(error: unknown): boolean {
 export function useIndoorItineraryController(buildingCode: string) {
   const nav = useIndoorNavigationStore();
   const mutation = useIndoorMultiFloorPath();
-  const { isAccessibilityMode } = useAccessibilityMode();
+  const { mapSettings } = useMapSettings();
+  const isAccessibilityMode = mapSettings.preferAccessibleRoutes;
 
   const { data: floorsData } = useGetBuildingFloors(buildingCode);
 
