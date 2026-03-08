@@ -1,22 +1,59 @@
 import IndoorMapContainer from "@/components/indoor/IndoorMapContainer";
 import IndoorMapHeader from "@/components/indoor/IndoorMapHeader";
+import IndoorItineraryBottomSheet, {
+  ITINERARY_SHEET_HEIGHT,
+} from "@/components/indoor/IndoorItineraryBottomSheet";
+import IndoorItineraryHeader from "@/components/indoor/IndoorItineraryHeader";
+
 import { useGetBuildingDetails } from "@/hooks/queries/buildingQueries";
 import { useAccessibilityMode } from "@/hooks/useAccessibilityMode";
+import { useIndoorItineraryController } from "@/hooks/useIndoorItineraryController";
+import { useIndoorNavigationStore } from "@/hooks/useIndoorNavigationStore";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect } from "react";
 import { StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+const BROWSE_SHEET_HEIGHT = 160;
 
 export default function IndoorMapPage() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const nav = useIndoorNavigationStore();
+
   const params = useLocalSearchParams<{
     buildingCode?: string;
     selectedRoom?: string;
     selectedFloor?: string;
   }>();
 
-  const buildingCode = params.buildingCode || "";
+  const buildingCode = params.buildingCode ?? "";
+  const ctrl = useIndoorItineraryController(buildingCode);
+
   const { data: buildingData } = useGetBuildingDetails(buildingCode);
   const { isAccessibilityMode, toggleAccessibilityMode } =
     useAccessibilityMode();
+
+  const hardReset = () => {
+    if (typeof (nav as any).reset === "function") {
+      (nav as any).reset();
+      return;
+    }
+
+    nav.exitItinerary();
+    nav.setSelectedRoom(null);
+    nav.setPickMode("start");
+    nav.setStart(null);
+    nav.setEnd(null);
+    nav.clearRoute();
+    nav.setCurrentFloor?.(null);
+  };
+
+  useEffect(() => {
+    hardReset();
+    return () => hardReset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [buildingCode]);
 
   const handleSearchPress = () => {
     router.push({
@@ -29,35 +66,55 @@ export default function IndoorMapPage() {
   };
 
   const handleBackToOutdoor = () => {
-    router.push("/map");
+    hardReset();
+    router.replace("/map");
   };
 
+  const selectorOffset =
+    nav.mode === "ITINERARY"
+      ? ITINERARY_SHEET_HEIGHT + Math.max(insets.bottom, 8) + 24
+      : BROWSE_SHEET_HEIGHT + Math.max(insets.bottom, 8) + 24;
+
+  const parsedSearchFloor = params.selectedFloor
+    ? Number.parseInt(params.selectedFloor, 10)
+    : undefined;
+
   return (
-    <View style={styles.mapContainer}>
+    <View style={styles.container}>
       <IndoorMapContainer
         buildingCode={buildingCode}
-        selectedRoomFromSearch={params.selectedRoom}
-        selectedFloorFromSearch={
-          params.selectedFloor
-            ? Number.parseInt(params.selectedFloor)
-            : undefined
+        routeSegments={ctrl.routeSegments}
+        preferredFloorNumber={nav.currentFloor ?? null}
+        floorSelectorBottomOffset={selectorOffset}
+        selectedRoomFromSearch={
+          nav.mode === "BROWSE" ? params.selectedRoom : undefined
         }
-        requireAccessible={isAccessibilityMode}  
+        selectedFloorFromSearch={
+          nav.mode === "BROWSE" ? parsedSearchFloor : undefined
+        }
+        requireAccessible={isAccessibilityMode}
       />
 
-      <IndoorMapHeader
-        onSearchPress={handleSearchPress}
-        onBackToOutdoor={handleBackToOutdoor}
-        isAccessibilityMode={isAccessibilityMode}       
-        onAccessibilityToggle={toggleAccessibilityMode} 
-      />
+      {nav.mode === "ITINERARY" ? (
+        <>
+          <IndoorItineraryHeader
+            buildingCode={buildingCode}
+            buildingName={buildingData?.long_name || buildingCode}
+          />
+          <IndoorItineraryBottomSheet buildingCode={buildingCode} />
+        </>
+      ) : (
+        <IndoorMapHeader
+          onSearchPress={handleSearchPress}
+          onBackToOutdoor={handleBackToOutdoor}
+          isAccessibilityMode={isAccessibilityMode}
+          onAccessibilityToggle={toggleAccessibilityMode}
+        />
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  mapContainer: {
-    flex: 1,
-    position: "relative",
-  },
+  container: { flex: 1, position: "relative" },
 });

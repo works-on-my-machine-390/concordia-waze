@@ -12,7 +12,7 @@ import {
   ReferenceDeskIcon,
 } from "@/app/icons";
 import type { PointOfInterest } from "@/hooks/queries/indoorMapQueries";
-import { Pressable, StyleSheet } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { COLORS } from "../../app/constants";
 
 type Props = {
@@ -20,14 +20,15 @@ type Props = {
   width: number;
   height: number;
   onPress?: () => void;
+  highlighted?: boolean;
+  selected?: boolean;
   isSelected?: boolean;
 };
 
 const ICON_SIZE = 20;
 
 const getIconComponent = (type: string) => {
-  // eslint-disable-next-line sonarjs/prefer-string-replace-all
-  const normalizedType = type.toLowerCase().replace(/\s+/g, "_"); //sonarqube wants me to use replaceAll() but the ts config has lib version before replaceAll() was added
+  const normalizedType = type.toLowerCase().replace(/\s+/g, "_");
 
   switch (normalizedType) {
     case "stairs":
@@ -57,12 +58,19 @@ const getIconComponent = (type: string) => {
   }
 };
 
-export default function PoiMarker({ poi, width, height, onPress, isSelected }: Readonly<Props>) {
+export default function PoiMarker({
+  poi,
+  width,
+  height,
+  onPress,
+  highlighted,
+  selected,
+  isSelected,
+}: Readonly<Props>) {
   const IconComponent = getIconComponent(poi.type);
+  if (!IconComponent) return null;
 
-  if (!IconComponent) {
-    return null;
-  }
+  const active = !!(highlighted || selected || isSelected);
 
   const x = poi.position.x * width;
   const y = poi.position.y * height;
@@ -70,15 +78,17 @@ export default function PoiMarker({ poi, width, height, onPress, isSelected }: R
   return (
     <Pressable
       onPress={onPress}
+      hitSlop={10}
       style={[
         styles.marker,
-        {
-          left: x - ICON_SIZE / 2,
-          top: y - ICON_SIZE / 2,
-        },
+        { left: x - ICON_SIZE / 2, top: y - ICON_SIZE / 2 },
       ]}
     >
-      <IconComponent size={ICON_SIZE} color={isSelected ? COLORS.selectionBlue : COLORS.maroon} />
+      {active ? <View style={styles.halo} /> : null}
+      <IconComponent
+        size={ICON_SIZE}
+        color={active ? COLORS.selectionBlue : COLORS.maroon}
+      />
     </Pressable>
   );
 }
@@ -90,5 +100,12 @@ const styles = StyleSheet.create({
     height: ICON_SIZE,
     alignItems: "center",
     justifyContent: "center",
+  },
+  halo: {
+    position: "absolute",
+    width: ICON_SIZE + 14,
+    height: ICON_SIZE + 14,
+    borderRadius: (ICON_SIZE + 14) / 2,
+    backgroundColor: "rgba(30, 107, 255, 0.18)",
   },
 });
