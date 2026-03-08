@@ -1,22 +1,46 @@
 import FloorPlanViewer from "@/components/indoor/FloorPlanViewer";
 import FloorSelector from "@/components/indoor/FloorSelector";
+import NoAccessibleRouteNotice from "@/components/indoor/NoAccessibleRouteNotice";
+import { useGetBuildingDetails } from "@/hooks/queries/buildingQueries";
 import { useGetBuildingFloors } from "@/hooks/queries/indoorMapQueries";
+import { useIndoorSearchStore } from "@/hooks/useIndoorSearchStore";
 import { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 
 type Props = {
   buildingCode: string;
+  selectedRoomFromSearch?: string;
+  selectedFloorFromSearch?: number;
+  requireAccessible?: boolean;
 };
 
-export default function IndoorMapContainer({ buildingCode }: Readonly<Props>) {
+export default function IndoorMapContainer({
+  buildingCode,
+  selectedRoomFromSearch,
+  selectedFloorFromSearch,
+  requireAccessible = false,
+}: Readonly<Props>) {
   const [selectedFloor, setSelectedFloor] = useState<number | null>(null);
+  const [accessibilityRouteUnavailable, setAccessibilityRouteUnavailable] =
+    useState(false);
+
   const { data, isLoading, error } = useGetBuildingFloors(buildingCode);
+  const { data: buildingData } = useGetBuildingDetails(buildingCode);
+  const { clearSelectedPoiFilter } = useIndoorSearchStore();
+
+  useEffect(() => {
+    setAccessibilityRouteUnavailable(false);
+  }, [requireAccessible]);
 
   useEffect(() => {
     if (data?.floors && data.floors.length > 0) {
-      setSelectedFloor(data.floors[0].number);
+      if (selectedFloorFromSearch) {
+        setSelectedFloor(selectedFloorFromSearch);
+      } else {
+        setSelectedFloor(data.floors[0].number);
+      }
     }
-  }, [buildingCode, data?.floors]);
+  }, [buildingCode, data?.floors, selectedFloorFromSearch]);
 
   if (isLoading) {
     return (
@@ -59,12 +83,28 @@ export default function IndoorMapContainer({ buildingCode }: Readonly<Props>) {
 
   return (
     <View style={styles.container}>
-      <FloorPlanViewer key={selectedFloor} floor={currentFloor} />
       <FloorSelector
         floors={data.floors}
         selectedFloor={selectedFloor}
-        onSelectFloor={setSelectedFloor}
+        onSelectFloor={(floor) => {
+          clearSelectedPoiFilter();
+          setSelectedFloor(floor);
+        }}
       />
+      <FloorPlanViewer
+        key={selectedFloor}
+        floor={currentFloor}
+        buildingCode={buildingCode}
+        buildingName={buildingData?.long_name || ""}
+        metroAccessible={buildingData?.metro_accessible}
+        initialSelectedRoom={selectedRoomFromSearch}
+        requireAccessible={requireAccessible}
+        onAccessibilityRouteUnavailable={() =>
+          setAccessibilityRouteUnavailable(true)
+        }
+      />
+
+      <NoAccessibleRouteNotice visible={accessibilityRouteUnavailable} />
     </View>
   );
 }

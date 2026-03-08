@@ -1,0 +1,139 @@
+appId: host.exp.Exponent
+---
+# 1) Continue as guest (skip login and enter app as a guest user)
+- tapOn: "Use without account"
+
+# 2) Wait until the map screen is loaded (SGW campus label visible)
+- extendedWaitUntil:
+    visible: "SGW"
+    timeout: 8000
+
+# 3) Open the Map Settings panel (icon button)
+- tapOn: 
+
+# 4) Expand the Map Settings bottom sheet to reveal more options
+- swipe:
+    from:
+      text: "Map Settings"
+    direction: UP
+    duration: 250
+
+# 5) Wait until the "Show Shuttle Stops" toggle option is visible
+- extendedWaitUntil:
+    visible: "Show Shuttle Stops"
+    timeout: 4000
+
+# 6) Tap the toggle switch for "Show Shuttle Stops" (point tap on the switch control)
+- tapOn:
+    point: "92%, 41%"
+
+# 7) Collapse the Map Settings bottom sheet
+- swipe:
+    from:
+      text: "Map Settings"
+    direction: DOWN
+    duration: 250
+
+# 8) Tap the main search bar ("Where to...") to start a location search
+- tapOn:
+    text: ".*Where to.*"
+
+# 9) Type the query for the destination/building
+- inputText: "vanier"
+
+# 10) Wait for the specific search result to appear
+- extendedWaitUntil:
+    visible: "VL - Vanier Library Building"
+    timeout: 8000
+
+# 11) Select the Vanier Library search result (double-tap to ensure selection)
+- tapOn: VL - Vanier Library Building
+- tapOn: VL - Vanier Library Building
+
+# 12) Open the building details/actions panel (icon button)
+- tapOn: 
+
+# 13) Wait for the Shuttle section/button to become available
+- extendedWaitUntil:
+    visible: "Shuttle"
+    timeout: 8000
+
+# 14) Expand the Shuttle bottom sheet to view more shuttle information/options
+- swipe:
+    from:
+      text: "Shuttle"
+    direction: UP
+    duration: 250
+
+# 15) Collapse the Shuttle bottom sheet
+- swipe:
+    from:
+      text: "Shuttle"
+    direction: DOWN
+    duration: 250
+
+# 16) Close/exit the current navigation/context (as recorded by Maestro Studio)
+- tapOn: Close navigation
+
+# 17) Re-open the Map Settings panel (icon button)
+- tapOn: 
+
+# 18) Expand the Map Settings bottom sheet again
+- swipe:
+    from:
+      text: "Map Settings"
+    direction: UP
+    duration: 250
+
+# 19) Wait until map settings options are visible again
+- extendedWaitUntil:
+    visible: "Show Shuttle Stops"
+    timeout: 4000
+
+# 20) Toggle "Show Shuttle Stops" again
+- tapOn:
+    point: "92%, 41%"
+
+# 21) Toggle "Show Building Polygons" (second switch below Shuttle Stops)
+- tapOn:
+    point: "92%, 54%"
+
+# 22) Collapse the Map Settings bottom sheet
+- swipe:
+    from:
+      text: "Map Settings"
+    direction: DOWN
+    duration: 250
+
+# 23) Tap on "SGW" (switch focus back to the SGW campus chip/filter)
+- tapOn: "SGW"
+
+# 24) Open the Map Settings panel again
+- tapOn: 
+
+# 25) Expand the Map Settings bottom sheet
+- swipe:
+    from:
+      text: "Map Settings"
+    direction: UP
+    duration: 250
+
+# 26) Wait until map settings options are visible
+- extendedWaitUntil:
+    visible: "Show Shuttle Stops"
+    timeout: 4000
+
+# 27) Toggle "Show Shuttle Stops"
+- tapOn:
+    point: "92%, 41%"
+
+# 28) Toggle "Show Building Polygons"
+- tapOn:
+    point: "92%, 54%"
+
+# 29) Collapse the Map Settings bottom sheet (end state: back on map)
+- swipe:
+    from:
+      text: "Map Settings"
+    direction: DOWN
+    duration: 250

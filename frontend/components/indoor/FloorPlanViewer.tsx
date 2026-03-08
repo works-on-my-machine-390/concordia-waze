@@ -1,6 +1,9 @@
+import { COLORS, DIRECTION_COLORS } from "@/app/constants";
 import type { Floor } from "@/hooks/queries/indoorMapQueries";
+import { useIndoorSearchStore } from "@/hooks/useIndoorSearchStore";
 import { useSvgDimensions } from "@/hooks/useSvgDimensions";
 import { ReactNativeZoomableView } from "@openspacelabs/react-native-zoomable-view";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   StyleSheet,
@@ -9,20 +12,80 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { SvgXml } from "react-native-svg";
+import IndoorBottomSheetSection from "./IndoorBottomSheetSection";
 import PoiMarker from "./PoiMarker";
 import PolygonOverlay from "./PolygonOverlay";
-import { useState } from "react";
+
+/** Standard indoor route */
+export const ROUTE_STYLE_STANDARD = {
+  stroke: DIRECTION_COLORS.walking,
+  strokeWidth: 3,
+  strokeDasharray: undefined,
+  strokeLinecap: "round" as const,
+  strokeLinejoin: "round" as const,
+};
+
+/** Accessible indoor route*/
+export const ROUTE_STYLE_ACCESSIBLE = {
+  stroke: COLORS.accessibilityIcon,
+  strokeWidth: 5,
+  strokeDasharray: "12 6",
+  strokeLinecap: "round" as const,
+  strokeLinejoin: "round" as const,
+};
+
+/** detect backend error for no accessible route*/
+export function isNoAccessibleRouteError(error: unknown): boolean {
+  if (!error) return false;
+  if (error instanceof Error) {
+    return error.message.toLowerCase().includes("no transition point");
+  }
+  const raw = typeof error === "string" ? error : JSON.stringify(error);
+  return raw.toLowerCase().includes("no transition point");
+}
 
 type Props = {
   floor: Floor | undefined;
+  buildingCode: string;
+  buildingName: string;
+  metroAccessible?: boolean;
+  initialSelectedRoom?: string;
+  requireAccessible?: boolean;
+  onAccessibilityRouteUnavailable?: () => void;
 };
 
-export default function FloorPlanViewer({ floor }: Readonly<Props>) {
+export default function FloorPlanViewer({
+  floor,
+  buildingCode,
+  buildingName,
+  metroAccessible,
+  initialSelectedRoom,
+  requireAccessible = false,
+  onAccessibilityRouteUnavailable,
+}: Readonly<Props>) {
   const { width: SCREEN_WIDTH } = useWindowDimensions();
   const { dimensions, svgText, error, isLoading } = useSvgDimensions(
     floor?.imgPath,
   );
   const [selectedPoiName, setSelectedPoiName] = useState<string | undefined>();
+  const { clearSelectedPoiFilter } = useIndoorSearchStore();
+
+  // PENDING #168: replace with useGetIndoorPath when indoor navigation is implemented
+  const routeStyle = requireAccessible // NOSONAR
+    ? ROUTE_STYLE_ACCESSIBLE
+    : ROUTE_STYLE_STANDARD;
+
+  useEffect(() => {
+    if (initialSelectedRoom && floor) {
+      const roomExists = floor.pois.some(
+        (poi) => poi.name === initialSelectedRoom,
+      );
+      if (roomExists) {
+        clearSelectedPoiFilter();
+        setSelectedPoiName(initialSelectedRoom);
+      }
+    }
+  }, [initialSelectedRoom, floor]);
 
   if (!floor) {
     return (
@@ -85,7 +148,10 @@ export default function FloorPlanViewer({ floor }: Readonly<Props>) {
             width={DISPLAY_WIDTH}
             height={DISPLAY_HEIGHT}
             selectedPoiName={selectedPoiName}
-            onSelectPoi={setSelectedPoiName}
+            onSelectPoi={(name) => {
+              clearSelectedPoiFilter();
+              setSelectedPoiName(name);
+            }}
           />
 
           <View style={StyleSheet.absoluteFill}>
@@ -95,12 +161,24 @@ export default function FloorPlanViewer({ floor }: Readonly<Props>) {
                 poi={poi}
                 width={DISPLAY_WIDTH}
                 height={DISPLAY_HEIGHT}
-                onPress={() => setSelectedPoiName(poi.name)}
+                isSelected={poi.name === selectedPoiName}
+                onPress={() => {
+                  clearSelectedPoiFilter();
+                  setSelectedPoiName(poi.name);
+                }}
               />
             ))}
           </View>
         </View>
       </ReactNativeZoomableView>
+      <IndoorBottomSheetSection
+        floor={floor}
+        buildingName={buildingName}
+        buildingCode={buildingCode}
+        metroAccessible={metroAccessible}
+        selectedPoiName={selectedPoiName}
+        onClearSelectedPoi={() => setSelectedPoiName(undefined)}
+      />
     </View>
   );
 }

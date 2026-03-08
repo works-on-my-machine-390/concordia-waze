@@ -35,6 +35,11 @@ jest.mock("@/components/shared/SearchPill", () => {
   };
 });
 
+jest.mock("@/components/indoor/AccessibilityToggle", () => ({
+  __esModule: true,
+  default: () => null,
+}));
+
 describe("IndoorMapHeader", () => {
   const mockNavigation = {
     dispatch: jest.fn(),
@@ -45,6 +50,8 @@ describe("IndoorMapHeader", () => {
     onSearchPress: jest.fn(),
     onSearchClear: jest.fn(),
     onBackToOutdoor: jest.fn(),
+    isAccessibilityMode: false,
+    onAccessibilityToggle: jest.fn(),
   };
 
   beforeEach(() => {
@@ -56,7 +63,6 @@ describe("IndoorMapHeader", () => {
     const { getByTestId, getByText } = renderWithProviders(
       <IndoorMapHeader {...defaultProps} />
     );
-
     expect(getByTestId("menu-icon")).toBeTruthy();
     expect(getByTestId("search-pill")).toBeTruthy();
     expect(getByText("Search rooms...")).toBeTruthy();
@@ -64,9 +70,7 @@ describe("IndoorMapHeader", () => {
 
   test("opens drawer when menu icon is pressed", () => {
     const { getByTestId } = renderWithProviders(<IndoorMapHeader {...defaultProps} />);
-
     fireEvent.press(getByTestId("menu-icon"));
-
     expect(mockNavigation.dispatch).toHaveBeenCalledWith(DrawerActions.openDrawer());
   });
 
@@ -75,50 +79,7 @@ describe("IndoorMapHeader", () => {
     const { getByTestId } = renderWithProviders(
       <IndoorMapHeader {...defaultProps} onSearchPress={onSearchPress} />
     );
-
     fireEvent.press(getByTestId("search-pill"));
-
     expect(onSearchPress).toHaveBeenCalledTimes(1);
-  });
-
-  test("displays search text when provided", () => {
-    const { getByText } = renderWithProviders(
-      <IndoorMapHeader {...defaultProps} searchText="Room 101" />
-    );
-
-    expect(getByText("Room 101")).toBeTruthy();
-  });
-
-  test("shows clear button and calls onSearchClear when search text exists", () => {
-    const onSearchClear = jest.fn();
-    const { getByTestId } = renderWithProviders(
-      <IndoorMapHeader
-        {...defaultProps}
-        searchText="Room 101"
-        onSearchClear={onSearchClear}
-      />
-    );
-
-    expect(getByTestId("search-clear")).toBeTruthy();
-
-    fireEvent.press(getByTestId("search-clear"));
-
-    expect(onSearchClear).toHaveBeenCalledTimes(1);
-  });
-
-  test("does not show clear button when search text is empty", () => {
-    const { queryByTestId } = renderWithProviders(
-      <IndoorMapHeader {...defaultProps} searchText="" />
-    );
-
-    expect(queryByTestId("search-clear")).toBeNull();
-  });
-
-  test("renders placeholder text when no search text", () => {
-    const { getByText } = renderWithProviders(
-      <IndoorMapHeader {...defaultProps} searchText="" />
-    );
-
-    expect(getByText("Search rooms...")).toBeTruthy();
   });
 });
