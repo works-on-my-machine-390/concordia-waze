@@ -14,7 +14,7 @@ export default function MapSettingsBottomSheet(
   const { closeSheet } = useMapStore();
   const bottomSheetRef = useRef<BottomSheet>(null);
 
-  const snapPoints = ["20%", "70%"];
+  const snapPoints = ["40%", "70%"];
 
   const { mapSettings, updateSetting } = useMapSettings();
 
