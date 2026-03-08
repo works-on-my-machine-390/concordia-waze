@@ -1,4 +1,4 @@
-import useMapSettings from "@/hooks/useMapSettings";
+import useMapSettings, { MapSettings } from "@/hooks/useMapSettings";
 import { useMapStore } from "@/hooks/useMapStore";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { useRef } from "react";
@@ -14,7 +14,7 @@ export default function MapSettingsBottomSheet(
   const { closeSheet } = useMapStore();
   const bottomSheetRef = useRef<BottomSheet>(null);
 
-  const snapPoints = ["20%", "70%"];
+  const snapPoints = ["40%", "70%"];
 
   const { mapSettings, updateSetting } = useMapSettings();
 
@@ -47,7 +47,9 @@ export default function MapSettingsBottomSheet(
           <SettingListItem
             settingKey={key}
             value={value}
-            onChange={(newValue) => updateSetting(key, newValue)}
+            onChange={(newValue) =>
+              updateSetting(key as keyof MapSettings, newValue)
+            }
             key={key}
           />
         ))}
