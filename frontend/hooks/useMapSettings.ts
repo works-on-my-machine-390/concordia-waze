@@ -103,9 +103,9 @@ export const MapSettingsList: MapSettingRecord[] = [
   {
     key: MapSettings.preferAccessibleRoutes,
     controlType: "switch",
-    label: "Prefer Accessible Routes (Indoor Navigation)",
+    label: "Prefer Accessible Routes",
     description:
-      "When enabled, routes avoid stairs and elevators or ramps are used when changing floors",
+      "(For Indoor Navigation) When enabled, routes avoid stairs and elevators or ramps are used when changing floors.",
     defaultValue: false,
   },
 ];
