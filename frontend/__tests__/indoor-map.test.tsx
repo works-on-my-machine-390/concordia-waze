@@ -50,10 +50,16 @@ jest.mock("@/hooks/queries/buildingQueries", () => ({
   })),
 }));
 
-jest.mock("@/hooks/useAccessibilityMode", () => ({
-  useAccessibilityMode: jest.fn(() => ({
-    isAccessibilityMode: true,
-    toggleAccessibilityMode: mockToggleAccessibilityMode,
+jest.mock("@/hooks/useMapSettings", () => ({
+  __esModule: true,
+  MapSettings: {
+    preferAccessibleRoutes: "preferAccessibleRoutes",
+  },
+  default: jest.fn(() => ({
+    mapSettings: {
+      preferAccessibleRoutes: true,
+    },
+    updateSetting: mockToggleAccessibilityMode,
   })),
 }));
 
