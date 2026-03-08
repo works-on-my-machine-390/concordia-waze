@@ -73,6 +73,67 @@ type Props = {
 
 const normalizeName = (s: string) =>
   s.trim().toLowerCase().replace(/\s+/g, "");
+function renderStatus(message: string, loading = false) {
+  return (
+    <View style={styles.emptyContainer}>
+      {loading ? <ActivityIndicator size="large" /> : null}
+      <Text style={styles.emptyText}>{message}</Text>
+    </View>
+  );
+}
+
+function findPoiByName(floor: Floor, name?: string | null) {
+  if (!name) return null;
+
+  return (
+    floor.pois.find(
+      (poi) =>
+        normalizeName(poi.name ?? "") === normalizeName(name ?? ""),
+    ) ?? null
+  );
+}
+
+function findPoiByExactName(floor: Floor, name: string) {
+  return floor.pois.find((poi) => (poi.name ?? "") === name) ?? null;
+}
+
+function getPolygonOverride(
+  poi:
+    | {
+        polygon?: Coordinates[];
+        position: Coordinates;
+      }
+    | null
+    | undefined,
+) {
+  return poi && (poi.polygon?.length ?? 0) <= 2
+    ? { x: poi.position.x, y: poi.position.y }
+    : undefined;
+}
+
+function setBrowseSelectedRoom(params: {
+  floor: Floor;
+  poi:
+    | {
+        name?: string | null;
+        position: Coordinates;
+      }
+    | null;
+  setSelectedRoom: (value: {
+    label: string;
+    floor: number;
+    coord: Coordinates;
+  }) => void;
+}) {
+  const { floor, poi, setSelectedRoom } = params;
+  if (!poi) return;
+
+  setSelectedRoom({
+    label: poi.name ?? "Room",
+    floor: floor.number,
+    coord: { x: poi.position.x, y: poi.position.y },
+  });
+}
 
 export default function FloorPlanViewer({
   floor,
@@ -87,10 +148,8 @@ export default function FloorPlanViewer({
   disablePoiSelection = false,
   navigationStartOverride,
   navigationPathColor,
-  navigationStepIndex,
   hideBottomSheetSection = false,
   requireAccessible = false,
-  onAccessibilityRouteUnavailable: _onAccessibilityRouteUnavailable,
 }: Readonly<Props>) {
   const navMode = useIndoorNavigationStore((s) => s.mode);
   const navEnd = useIndoorNavigationStore((s) => s.end);
@@ -119,37 +178,29 @@ export default function FloorPlanViewer({
   const bottomSheetSelectedPoiName =
     navMode === "BROWSE" ? effectiveSelectedPoiName : undefined;
 
-  const extraSet = useMemo(() => {
-    return new Set(extraHighlightedPoiNames.map((n) => normalizeName(n)));
-  }, [extraHighlightedPoiNames]);
+  const extraSet = useMemo(
+    () => new Set(extraHighlightedPoiNames.map((name) => normalizeName(name))),
+    [extraHighlightedPoiNames],
+  );
 
-  // For now accessibility mode only changes route styling here.
-  // The actual accessible path request can be plugged in later.
   const routeStyle = requireAccessible
     ? ROUTE_STYLE_ACCESSIBLE
     : ROUTE_STYLE_STANDARD;
 
   const resolvedPathColor = navigationPathColor ?? routeStyle.stroke;
 
-  void navigationStepIndex;
-  void _onAccessibilityRouteUnavailable;
-
   useEffect(() => {
     if (!initialSelectedRoom || !floor || navMode !== "BROWSE") return;
     if (localSelectedPoiName === initialSelectedRoom) return;
 
-    const poi = floor.pois.find((p) => p.name === initialSelectedRoom);
+    const poi = findPoiByExactName(floor, initialSelectedRoom);
     if (!poi) return;
 
     clearSelectedPoiFilter();
     setLocalSelectedPoiName(initialSelectedRoom);
 
     if (navSelectedRoom?.label !== initialSelectedRoom) {
-      setSelectedRoom({
-        label: poi.name ?? "Room",
-        floor: floor.number,
-        coord: { x: poi.position.x, y: poi.position.y },
-      });
+      setBrowseSelectedRoom({ floor, poi, setSelectedRoom });
     }
   }, [
     initialSelectedRoom,
@@ -162,39 +213,23 @@ export default function FloorPlanViewer({
   ]);
 
   if (!floor) {
-    return (
-      <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>No floor plan available</Text>
-      </View>
-    );
+    return renderStatus("No floor plan available");
   }
 
   if (error) {
-    return (
-      <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>Failed to load floor plan</Text>
-      </View>
-    );
+    return renderStatus("Failed to load floor plan");
   }
 
   if (isLoading || !dimensions || !svgText) {
-    return (
-      <View style={styles.emptyContainer}>
-        <ActivityIndicator size="large" />
-        <Text style={styles.emptyText}>Loading floor plan...</Text>
-      </View>
-    );
+    return renderStatus("Loading floor plan...", true);
   }
 
   const DISPLAY_WIDTH = SCREEN_WIDTH - 32;
   const DISPLAY_HEIGHT = DISPLAY_WIDTH * (dimensions.height / dimensions.width);
 
   const destinationPoi =
-    navMode === "ITINERARY" && navEnd && navEnd.floor === floor.number
-      ? floor.pois.find(
-          (poi) =>
-            normalizeName(poi.name ?? "") === normalizeName(navEnd.label ?? ""),
-        ) ?? null
+    navMode === "ITINERARY" && navEnd?.floor === floor.number
+      ? findPoiByName(floor, navEnd?.label)
       : null;
 
   const endPolygon =
@@ -203,27 +238,17 @@ export default function FloorPlanViewer({
       : undefined;
 
   const startPoi =
-    navMode === "ITINERARY" && navStart && navStart.floor === floor.number
-      ? floor.pois.find(
-          (poi) =>
-            normalizeName(poi.name ?? "") ===
-            normalizeName(navStart.label ?? ""),
-        ) ?? null
+    navMode === "ITINERARY" && navStart?.floor === floor.number
+      ? findPoiByName(floor, navStart?.label)
       : null;
 
   const startOverride =
-    navigationStartOverride ??
-    (startPoi && (startPoi.polygon?.length ?? 0) <= 2
-      ? { x: startPoi.position.x, y: startPoi.position.y }
-      : undefined);
+    navigationStartOverride ?? getPolygonOverride(startPoi);
 
-  const endOverride =
-    destinationPoi && (destinationPoi.polygon?.length ?? 0) <= 2
-      ? { x: destinationPoi.position.x, y: destinationPoi.position.y }
-      : undefined;
+  const endOverride = getPolygonOverride(destinationPoi);
 
   const handlePoiPress = (name: string) => {
-    if (disablePoiSelection) return;
+    if (disablePoiSelection || !floor) return;
 
     clearSelectedPoiFilter();
 
@@ -234,16 +259,10 @@ export default function FloorPlanViewer({
 
     setLocalSelectedPoiName(name);
 
-    if (navMode === "BROWSE") {
-      const poi = floor.pois.find((p) => (p.name ?? "") === name);
-      if (poi) {
-        setSelectedRoom({
-          label: poi.name ?? "Room",
-          floor: floor.number,
-          coord: { x: poi.position.x, y: poi.position.y },
-        });
-      }
-    }
+    if (navMode !== "BROWSE") return;
+
+    const poi = findPoiByExactName(floor, name);
+    setBrowseSelectedRoom({ floor, poi, setSelectedRoom });
   };
 
   const showBottomSheetSection =
@@ -291,12 +310,13 @@ export default function FloorPlanViewer({
           <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
             {floor.pois.map((poi) => {
               const poiName = poi.name ?? "";
-              const nrm = normalizeName(poiName);
+              const normalizedPoiName = normalizeName(poiName);
 
               const highlighted =
                 (!!effectiveSelectedPoiName &&
-                  nrm === normalizeName(effectiveSelectedPoiName)) ||
-                extraSet.has(nrm);
+                  normalizedPoiName ===
+                    normalizeName(effectiveSelectedPoiName)) ||
+                extraSet.has(normalizedPoiName);
 
               return (
                 <PoiMarker

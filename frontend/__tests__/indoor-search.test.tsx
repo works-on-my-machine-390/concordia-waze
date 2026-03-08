@@ -505,163 +505,187 @@ describe("IndoorSearchPage", () => {
 
     expect(screen.getAllByText("Recent: MB210")).toHaveLength(2);
   });
-  test("sets itinerary end point and goes back when selecting a result", () => {
-  (ExpoRouter.useLocalSearchParams as jest.Mock).mockReturnValue({
-    buildingCode: "MB",
-    buildingName: "John Molson Building",
-    itineraryField: "end",
-  });
 
-  (useIndoorSearch as jest.Mock).mockReturnValue({
-    results: mockSearchResults,
-    recentSearches: mockRecentSearches,
-    addRecentSearch: jest.fn(),
-    clearRecentSearches: jest.fn(),
-  });
-
-  render(<IndoorSearchPage />);
-
-  const input = screen.getByPlaceholderText(
-    "Choose destination in John Molson Building...",
-  );
-
-  fireEvent.changeText(input, "210");
-  fireEvent.press(screen.getByText("Result: 210"));
-
-  expect(mockSetEnd).toHaveBeenCalled();
-  expect(mockSetCurrentFloor).toHaveBeenCalledWith(1);
-  expect(mockRouter.back).toHaveBeenCalled();
-});
-
-test("does not call setStart or setEnd in normal browse mode when selecting a result", () => {
-  (ExpoRouter.useLocalSearchParams as jest.Mock).mockReturnValue({
-    buildingCode: "MB",
-    buildingName: "John Molson Building",
-  });
-
-  (useIndoorSearch as jest.Mock).mockReturnValue({
-    results: mockSearchResults,
-    recentSearches: mockRecentSearches,
-    addRecentSearch: jest.fn(),
-    clearRecentSearches: jest.fn(),
-  });
-
-  render(<IndoorSearchPage />);
-
-  const input = screen.getByPlaceholderText(
-    "Search in John Molson Building...",
-  );
-
-  fireEvent.changeText(input, "210");
-  fireEvent.press(screen.getByText("Result: 210"));
-
-  expect(mockSetStart).not.toHaveBeenCalled();
-  expect(mockSetEnd).not.toHaveBeenCalled();
-  expect(mockRouter.navigate).toHaveBeenCalledWith({
-    pathname: "/indoor-map",
-    params: {
+  test("does not call setStart or setEnd in normal browse mode when selecting a result", () => {
+    (ExpoRouter.useLocalSearchParams as jest.Mock).mockReturnValue({
       buildingCode: "MB",
-      selectedRoom: "210",
-      selectedFloor: "1",
-    },
-  });
-});
+      buildingName: "John Molson Building",
+    });
 
-test("keeps POI filters hidden once a query is typed", () => {
-  render(<IndoorSearchPage />);
+    (useIndoorSearch as jest.Mock).mockReturnValue({
+      results: mockSearchResults,
+      recentSearches: mockRecentSearches,
+      addRecentSearch: jest.fn(),
+      clearRecentSearches: jest.fn(),
+    });
 
-  const input = screen.getByPlaceholderText(
-    "Search in John Molson Building...",
-  );
+    render(<IndoorSearchPage />);
 
-  fireEvent.changeText(input, "210");
+    const input = screen.getByPlaceholderText(
+      "Search in John Molson Building...",
+    );
 
-  expect(screen.queryByText("POI Filters")).toBeNull();
-  expect(screen.queryByText("Recent Searches")).toBeNull();
-  expect(screen.getByText("Search Results")).toBeOnTheScreen();
-});
-test("shows empty results section when query is typed and there are no matches", () => {
-  (useIndoorSearch as jest.Mock).mockReturnValue({
-    results: [],
-    recentSearches: mockRecentSearches,
-    addRecentSearch: jest.fn(),
-    clearRecentSearches: jest.fn(),
-  });
+    fireEvent.changeText(input, "210");
+    fireEvent.press(screen.getByText("Result: 210"));
 
-  render(<IndoorSearchPage />);
-
-  const input = screen.getByPlaceholderText(
-    "Search in John Molson Building...",
-  );
-
-  fireEvent.changeText(input, "zzz");
-
-  expect(screen.queryByText("POI Filters")).toBeNull();
-  expect(screen.queryByText("Recent Searches")).toBeNull();
-});
-
-test("pressing a recent search navigates to indoor map in browse mode", () => {
-  const mockAddRecentSearch = jest.fn();
-
-  (useIndoorSearch as jest.Mock).mockReturnValue({
-    results: [],
-    recentSearches: [{ displayName: "MB210", floor: 1 }],
-    addRecentSearch: mockAddRecentSearch,
-    clearRecentSearches: jest.fn(),
+    expect(mockSetStart).not.toHaveBeenCalled();
+    expect(mockSetEnd).not.toHaveBeenCalled();
+    expect(mockRouter.navigate).toHaveBeenCalledWith({
+      pathname: "/indoor-map",
+      params: {
+        buildingCode: "MB",
+        selectedRoom: "210",
+        selectedFloor: "1",
+      },
+    });
   });
 
-  render(<IndoorSearchPage />);
+  test("keeps POI filters hidden once a query is typed", () => {
+    render(<IndoorSearchPage />);
 
-  fireEvent.press(screen.getByText("Recent: MB210"));
+    const input = screen.getByPlaceholderText(
+      "Search in John Molson Building...",
+    );
 
-  expect(mockAddRecentSearch).toHaveBeenCalledWith("MB210", "210", 1);
-  expect(mockRouter.navigate).toHaveBeenCalledWith({
-    pathname: "/indoor-map",
-    params: {
+    fireEvent.changeText(input, "210");
+
+    expect(screen.queryByText("POI Filters")).toBeNull();
+    expect(screen.queryByText("Recent Searches")).toBeNull();
+    expect(screen.getByText("Search Results")).toBeOnTheScreen();
+  });
+
+  test("shows empty results section when query is typed and there are no matches", () => {
+    (useIndoorSearch as jest.Mock).mockReturnValue({
+      results: [],
+      recentSearches: mockRecentSearches,
+      addRecentSearch: jest.fn(),
+      clearRecentSearches: jest.fn(),
+    });
+
+    render(<IndoorSearchPage />);
+
+    const input = screen.getByPlaceholderText(
+      "Search in John Molson Building...",
+    );
+
+    fireEvent.changeText(input, "zzz");
+
+    expect(screen.queryByText("POI Filters")).toBeNull();
+    expect(screen.queryByText("Recent Searches")).toBeNull();
+  });
+
+  test("pressing a recent search navigates to indoor map in browse mode", () => {
+    const mockAddRecentSearch = jest.fn();
+
+    (useIndoorSearch as jest.Mock).mockReturnValue({
+      results: [],
+      recentSearches: [{ displayName: "MB210", floor: 1 }],
+      addRecentSearch: mockAddRecentSearch,
+      clearRecentSearches: jest.fn(),
+    });
+
+    render(<IndoorSearchPage />);
+
+    fireEvent.press(screen.getByText("Recent: MB210"));
+
+    expect(mockAddRecentSearch).toHaveBeenCalledWith("MB210", "210", 1);
+    expect(mockRouter.navigate).toHaveBeenCalledWith({
+      pathname: "/indoor-map",
+      params: {
+        buildingCode: "MB",
+        selectedRoom: "210",
+        selectedFloor: "1",
+      },
+    });
+  });
+
+  test("pressing a recent search sets query when poi is missing", () => {
+    (useIndoorSearch as jest.Mock).mockReturnValue({
+      results: [],
+      recentSearches: [{ displayName: "Missing Room", floor: 99 }],
+      addRecentSearch: jest.fn(),
+      clearRecentSearches: jest.fn(),
+    });
+
+    render(<IndoorSearchPage />);
+
+    fireEvent.press(screen.getByText("Recent: Missing Room"));
+
+    expect(
+      screen.getByPlaceholderText("Search in John Molson Building...").props.value,
+    ).toBe("Missing Room");
+  });
+
+  test("pressing a recent search sets itinerary start and goes back", () => {
+    (ExpoRouter.useLocalSearchParams as jest.Mock).mockReturnValue({
       buildingCode: "MB",
-      selectedRoom: "210",
-      selectedFloor: "1",
-    },
-  });
-});
+      buildingName: "John Molson Building",
+      itineraryField: "start",
+    });
 
-test("pressing a recent search sets query when poi is missing", () => {
-  (useIndoorSearch as jest.Mock).mockReturnValue({
-    results: [],
-    recentSearches: [{ displayName: "Missing Room", floor: 99 }],
-    addRecentSearch: jest.fn(),
-    clearRecentSearches: jest.fn(),
-  });
+    (useIndoorSearch as jest.Mock).mockReturnValue({
+      results: [],
+      recentSearches: [{ displayName: "MB210", floor: 1 }],
+      addRecentSearch: jest.fn(),
+      clearRecentSearches: jest.fn(),
+    });
 
-  render(<IndoorSearchPage />);
+    render(<IndoorSearchPage />);
 
-  fireEvent.press(screen.getByText("Recent: Missing Room"));
+    fireEvent.press(screen.getByText("Recent: MB210"));
 
-  expect(
-    screen.getByPlaceholderText("Search in John Molson Building...").props.value,
-  ).toBe("Missing Room");
-});
-
-test("pressing a recent search sets itinerary start and goes back", () => {
-  (ExpoRouter.useLocalSearchParams as jest.Mock).mockReturnValue({
-    buildingCode: "MB",
-    buildingName: "John Molson Building",
-    itineraryField: "start",
+    expect(mockSetStart).toHaveBeenCalled();
+    expect(mockSetCurrentFloor).toHaveBeenCalledWith(1);
+    expect(mockRouter.back).toHaveBeenCalled();
   });
 
-  (useIndoorSearch as jest.Mock).mockReturnValue({
-    results: [],
-    recentSearches: [{ displayName: "MB210", floor: 1 }],
-    addRecentSearch: jest.fn(),
-    clearRecentSearches: jest.fn(),
+  test("extracts room code from recent search display name when exact formatted match is unavailable", () => {
+    const mockAddRecentSearch = jest.fn();
+
+    (useIndoorSearch as jest.Mock).mockReturnValue({
+      results: [],
+      recentSearches: [{ displayName: "MB210", floor: 1 }],
+      addRecentSearch: mockAddRecentSearch,
+      clearRecentSearches: jest.fn(),
+    });
+
+    render(<IndoorSearchPage />);
+
+    fireEvent.press(screen.getByText("Recent: MB210"));
+
+    expect(mockAddRecentSearch).toHaveBeenCalledWith("MB210", "210", 1);
+    expect(mockRouter.navigate).toHaveBeenCalledWith({
+      pathname: "/indoor-map",
+      params: {
+        buildingCode: "MB",
+        selectedRoom: "210",
+        selectedFloor: "1",
+      },
+    });
   });
 
-  render(<IndoorSearchPage />);
+  test("extracts room code from recent search display name with a space after building code", () => {
+    const mockAddRecentSearch = jest.fn();
 
-  fireEvent.press(screen.getByText("Recent: MB210"));
+    (useIndoorSearch as jest.Mock).mockReturnValue({
+      results: [],
+      recentSearches: [{ displayName: "MB 210", floor: 1 }],
+      addRecentSearch: mockAddRecentSearch,
+      clearRecentSearches: jest.fn(),
+    });
 
-  expect(mockSetStart).toHaveBeenCalled();
-  expect(mockSetCurrentFloor).toHaveBeenCalledWith(1);
-  expect(mockRouter.back).toHaveBeenCalled();
-});
+    render(<IndoorSearchPage />);
+
+    fireEvent.press(screen.getByText("Recent: MB 210"));
+
+    expect(mockAddRecentSearch).toHaveBeenCalledWith("MB 210", "210", 1);
+    expect(mockRouter.navigate).toHaveBeenCalledWith({
+      pathname: "/indoor-map",
+      params: {
+        buildingCode: "MB",
+        selectedRoom: "210",
+        selectedFloor: "1",
+      },
+    });
+  });
 });

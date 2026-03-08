@@ -98,11 +98,27 @@ export default function IndoorSearchPage() {
   const handleRecentSearchPress = (search: RecentIndoorSearch) => {
     const floor = floors.find((f) => f.number === search.floor);
 
-    const poi = floor?.pois.find(
+    const normalizedDisplayName = search.displayName.trim().toLowerCase();
+
+    const poiByFormattedName = floor?.pois.find(
       (p) =>
-        formatIndoorPoiName(p.name, p.type, buildingCode) ===
-        search.displayName,
+        formatIndoorPoiName(p.name, p.type, buildingCode).trim().toLowerCase() ===
+        normalizedDisplayName,
     );
+
+    const extractedRoomCode = search.displayName
+      .trim()
+      .replace(new RegExp(`^${buildingCode}\\s*`, "i"), "")
+      .trim();
+
+    const poiByExtractedCode =
+      extractedRoomCode.length > 0
+        ? floor?.pois.find(
+            (p) => p.name.trim().toLowerCase() === extractedRoomCode.toLowerCase(),
+          )
+        : undefined;
+
+    const poi = poiByFormattedName ?? poiByExtractedCode;
 
     if (poi) {
       addRecentSearch(search.displayName, poi.name, search.floor);
@@ -151,6 +167,13 @@ export default function IndoorSearchPage() {
 
   const showRecent = query.trim().length === 0 && recentSearches.length > 0;
 
+  const searchPlaceholder =
+    itineraryField === "start"
+      ? `Choose start in ${buildingName}...`
+      : itineraryField === "end"
+        ? `Choose destination in ${buildingName}...`
+        : `Search in ${buildingName}...`;
+
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
       <KeyboardAvoidingView
@@ -171,13 +194,7 @@ export default function IndoorSearchPage() {
 
             <SearchPill
               value={query}
-              placeholder={
-                itineraryField === "start"
-                  ? `Choose start in ${buildingName}...`
-                  : itineraryField === "end"
-                    ? `Choose destination in ${buildingName}...`
-                    : `Search in ${buildingName}...`
-              }
+              placeholder={searchPlaceholder}
               onClear={() => setQuery("")}
               editable={true}
               onChangeText={setQuery}
