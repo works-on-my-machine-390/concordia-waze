@@ -185,16 +185,24 @@ export default function IndoorPathOverlay({
   endOverride,
   color = "#1E73FF",
 }: Readonly<Props>) {
-  if (!path || path.length < 2) return null;
+  const safePath = path ?? [];
+  const hasRenderablePath = safePath.length >= 2;
 
   const adjustedPath = useMemo(() => {
-    const out = [...path];
+    if (!hasRenderablePath) return [];
+
+    const out = [...safePath];
     if (endOverride) out[out.length - 1] = endOverride;
     return out;
-  }, [path, endOverride]);
+  }, [safePath, endOverride, hasRenderablePath]);
 
   const pts = useMemo(() => {
-    const scaled = adjustedPath.map((p) => ({ x: p.x * width, y: p.y * height }));
+    if (!hasRenderablePath) return [];
+
+    const scaled = adjustedPath.map((p) => ({
+      x: p.x * width,
+      y: p.y * height,
+    }));
     const ortho = orthogonalizePath(scaled);
     const simplified = simplifyOrthogonalPath(ortho);
 
@@ -203,31 +211,30 @@ export default function IndoorPathOverlay({
       : undefined;
 
     return trimPathFromStartOverride(simplified, scaledStartOverride);
-  }, [adjustedPath, width, height, startOverride]);
+  }, [adjustedPath, width, height, startOverride, hasRenderablePath]);
 
   const finalPts = useMemo(() => {
-    if (pts.length === 0) return pts;
+    if (!hasRenderablePath || pts.length === 0) return [];
     if (!endPolygon || endPolygon.length < 3 || pts.length < 2) return pts;
 
-    const polyPx = endPolygon.map((p) => ({ x: p.x * width, y: p.y * height }));
+    const polyPx = endPolygon.map((p) => ({
+      x: p.x * width,
+      y: p.y * height,
+    }));
 
     const out = [...pts];
     const end = out[out.length - 1];
     out[out.length - 1] = snapEndToClosestPolygonBorder(end, polyPx);
 
     return out;
-  }, [endPolygon, pts, width, height]);
-
-  if (!finalPts || finalPts.length === 0) return null;
-
-  const start = finalPts[0];
+  }, [endPolygon, pts, width, height, hasRenderablePath]);
 
   const dots = useMemo(() => {
     const out: { x: number; y: number }[] = [];
     const spacing = 7;
     const radius = 2.5;
 
-    if (finalPts.length === 1) {
+    if (finalPts.length <= 1) {
       return { points: out, radius };
     }
 
@@ -262,6 +269,10 @@ export default function IndoorPathOverlay({
 
     return { points: out, radius };
   }, [finalPts]);
+
+  if (!hasRenderablePath || finalPts.length === 0) return null;
+
+  const start = finalPts[0];
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
