@@ -3,10 +3,12 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
 // When adding new settings, add the key here, then in the MapSettingsList,
+// then the MapSettings type,
 // and finally in the initialMapSettings object in the store.
 export const MapSettings = {
   showShuttleStops: "showShuttleStops",
   showBuildingPolygons: "showBuildingPolygons",
+  preferAccessibleRoutes: "preferAccessibleRoutes",
 } as const;
 
 export type MapSettingRecord = {
@@ -20,6 +22,7 @@ export type MapSettingRecord = {
 export type MapSettings = {
   showShuttleStops: boolean;
   showBuildingPolygons: boolean;
+  preferAccessibleRoutes: boolean;
 };
 
 type MapSettingsKey = (typeof MapSettings)[keyof typeof MapSettings];
@@ -27,13 +30,13 @@ type MapSettingsKey = (typeof MapSettings)[keyof typeof MapSettings];
 const INITIAL_MAP_SETTINGS: MapSettings = {
   showShuttleStops: false,
   showBuildingPolygons: true,
+  preferAccessibleRoutes: false,
 };
 
 type MapSettingsStore = {
   mapSettings: MapSettings;
   updateSetting: (key: string, value: boolean) => void;
 };
-
 
 // Zustand store for managing map settings with persistence using AsyncStorage.
 const useMapSettingsStore = create<MapSettingsStore>()(
@@ -86,5 +89,13 @@ export const MapSettingsList: MapSettingRecord[] = [
     description:
       "Toggle the visibility of Concordia building polygons on the map.",
     defaultValue: true,
+  },
+  {
+    key: MapSettings.preferAccessibleRoutes,
+    controlType: "switch",
+    label: "Prefer Accessible Routes (Indoor Navigation)",
+    description:
+      "When enabled, routes avoid stairs and elevators or ramps are used when changing floors",
+    defaultValue: false,
   },
 ];
