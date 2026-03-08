@@ -28,13 +28,17 @@ export type IndoorNavigationStep = {
 };
 
 function parseSvgSize(xml: string): { width: number; height: number } | null {
-  const viewBoxMatch = xml.match(/viewBox\s*=\s*"[^"]*?\s([\d.]+)\s([\d.]+)"/i);
+  const viewBoxRegex = /viewBox\s*=\s*"[^"]*?\s([\d.]+)\s([\d.]+)"/i;
+  const widthRegex = /width\s*=\s*"([\d.]+)"/i;
+  const heightRegex = /height\s*=\s*"([\d.]+)"/i;
+
+  const viewBoxMatch = viewBoxRegex.exec(xml);
   if (viewBoxMatch) {
     return { width: Number(viewBoxMatch[1]), height: Number(viewBoxMatch[2]) };
   }
 
-  const wMatch = xml.match(/width\s*=\s*"([\d.]+)"/i);
-  const hMatch = xml.match(/height\s*=\s*"([\d.]+)"/i);
+  const wMatch = widthRegex.exec(xml);
+  const hMatch = heightRegex.exec(xml);
   if (wMatch && hMatch) {
     return { width: Number(wMatch[1]), height: Number(hMatch[1]) };
   }
@@ -64,7 +68,7 @@ function pointDistanceMeters(
 
   const dx = (b.x - a.x) * W;
   const dy = (b.y - a.y) * H;
-  return Math.sqrt(dx * dx + dy * dy) * METERS_PER_SVG_UNIT;
+  return Math.hypot(dx, dy) * METERS_PER_SVG_UNIT;
 }
 
 function sumSlice(values: number[], start: number, endInclusive: number) {
@@ -85,8 +89,8 @@ function detectTurn(
   const dx2 = next.x - curr.x;
   const dy2 = next.y - curr.y;
 
-  const mag1 = Math.sqrt(dx1 * dx1 + dy1 * dy1);
-  const mag2 = Math.sqrt(dx2 * dx2 + dy2 * dy2);
+  const mag1 = Math.hypot(dx1, dy1);
+  const mag2 = Math.hypot(dx2, dy2);
   if (mag1 < 1e-8 || mag2 < 1e-8) return "straight";
 
   const cross = dx1 * dy2 - dy1 * dx2;
@@ -94,11 +98,8 @@ function detectTurn(
   const cos = Math.max(-1, Math.min(1, dot / (mag1 * mag2)));
   const angleDeg = (Math.acos(cos) * 180) / Math.PI;
 
-  // Ignore tiny bends / geometry noise
   if (angleDeg < 20) return "straight";
 
-  // SVG coordinates usually have Y going down, so this sign is correct
-  // for the current UI behavior.
   return cross < 0 ? "left" : "right";
 }
 
@@ -133,132 +134,242 @@ export function estimateDurationMinutes(distanceMeters: number) {
   return formatDurationMinutes(distanceMeters);
 }
 
-export async function buildIndoorNavigationSteps(args: {
-  segments: FloorSegment[];
-  floors: Floor[];
-  transitionType: TransitionType | null;
-  exactTotalDistanceMeters?: number | null;
-}) {
-  const { segments, floors, transitionType, exactTotalDistanceMeters } = args;
-
+function buildSvgSizeByFloor(
+  floors: Floor[],
+): Promise<Record<number, { width: number; height: number } | null>> {
   const svgSizeByFloor: Record<number, { width: number; height: number } | null> =
     {};
 
-  await Promise.all(
-    floors.map(async (f) => {
-      svgSizeByFloor[f.number] = await getSvgSizeFromImgPath(f.imgPath);
+  return Promise.all(
+    floors.map(async (floor) => {
+      svgSizeByFloor[floor.number] = await getSvgSizeFromImgPath(floor.imgPath);
     }),
-  );
+  ).then(() => svgSizeByFloor);
+}
 
+function buildEdgeMeters(
+  pts: Coordinates[],
+  floorSize: { width: number; height: number } | null,
+) {
+  const edgeMeters: number[] = [];
+  for (let i = 1; i < pts.length; i++) {
+    edgeMeters.push(pointDistanceMeters(pts[i - 1], pts[i], floorSize));
+  }
+  return edgeMeters;
+}
+
+function getTransitionInstruction(
+  transitionType: TransitionType | null,
+  nextFloor: number,
+) {
+  if (transitionType === 1) {
+    return `Take the stairs to Floor ${nextFloor}`;
+  }
+  if (transitionType === 2) {
+    return `Take the elevator to Floor ${nextFloor}`;
+  }
+  return `Go to Floor ${nextFloor}`;
+}
+
+function addTurnSteps(params: {
+  rawSteps: Omit<IndoorNavigationStep, "remainingDistanceMeters">[];
+  pts: Coordinates[];
+  seg: FloorSegment;
+  edgeMeters: number[];
+  segmentIndex: number;
+}) {
+  const { rawSteps, pts, seg, edgeMeters, segmentIndex } = params;
+
+  let anchorIndex = 0;
+  let foundTurn = false;
+
+  for (let i = 1; i < pts.length - 1; i++) {
+    const turn = detectTurn(pts[i - 1], pts[i], pts[i + 1]);
+    if (turn === "straight") continue;
+
+    foundTurn = true;
+    const distToTurn = sumSlice(edgeMeters, anchorIndex, i - 1);
+
+    if (distToTurn > 0.2) {
+      const turnInfo = instructionForTurn(turn);
+      rawSteps.push({
+        id: `turn-${segmentIndex}-${i}`,
+        floorNumber: seg.floorNumber,
+        targetPoint: pts[i],
+        kind: "turn",
+        iconName: turnInfo.iconName,
+        instruction: turnInfo.instruction,
+        distanceMeters: distToTurn,
+      });
+      anchorIndex = i;
+    }
+  }
+
+  return { anchorIndex, foundTurn };
+}
+
+function addTransitionStep(params: {
+  rawSteps: Omit<IndoorNavigationStep, "remainingDistanceMeters">[];
+  seg: FloorSegment;
+  segmentIndex: number;
+  segments: FloorSegment[];
+  transitionType: TransitionType | null;
+  distToSegmentEnd: number;
+  segmentEnd: Coordinates;
+}) {
+  const {
+    rawSteps,
+    seg,
+    segmentIndex,
+    segments,
+    transitionType,
+    distToSegmentEnd,
+    segmentEnd,
+  } = params;
+
+  const nextFloor = segments[segmentIndex + 1].floorNumber;
+  const transitionText = getTransitionInstruction(transitionType, nextFloor);
+
+  rawSteps.push({
+    id: `transition-${segmentIndex}`,
+    floorNumber: seg.floorNumber,
+    targetPoint: segmentEnd,
+    kind: "transition",
+    iconName: "swap-vertical",
+    instruction: transitionText,
+    distanceMeters: Math.max(distToSegmentEnd, 0),
+  });
+}
+
+function addLastSegmentSteps(params: {
+  rawSteps: Omit<IndoorNavigationStep, "remainingDistanceMeters">[];
+  seg: FloorSegment;
+  segmentIndex: number;
+  anchorIndex: number;
+  foundTurn: boolean;
+  distToSegmentEnd: number;
+  segmentEnd: Coordinates;
+}) {
+  const {
+    rawSteps,
+    seg,
+    segmentIndex,
+    anchorIndex,
+    foundTurn,
+    distToSegmentEnd,
+    segmentEnd,
+  } = params;
+
+  if (distToSegmentEnd > 0.2) {
+    rawSteps.push({
+      id: `walk-${segmentIndex}-${anchorIndex}`,
+      floorNumber: seg.floorNumber,
+      targetPoint: segmentEnd,
+      kind: "walk",
+      iconName: "walk",
+      instruction: foundTurn ? "Continue straight" : "Head straight",
+      distanceMeters: distToSegmentEnd,
+    });
+  }
+
+  rawSteps.push({
+    id: `arrival-${segmentIndex}`,
+    floorNumber: seg.floorNumber,
+    targetPoint: segmentEnd,
+    kind: "arrival",
+    iconName: "location",
+    instruction: "You have arrived",
+    distanceMeters: 0,
+  });
+}
+
+function buildRawSteps(args: {
+  segments: FloorSegment[];
+  svgSizeByFloor: Record<number, { width: number; height: number } | null>;
+  transitionType: TransitionType | null;
+}) {
+  const { segments, svgSizeByFloor, transitionType } = args;
   const rawSteps: Omit<IndoorNavigationStep, "remainingDistanceMeters">[] = [];
 
-  for (let sIdx = 0; sIdx < segments.length; sIdx++) {
-    const seg = segments[sIdx];
+  for (let segmentIndex = 0; segmentIndex < segments.length; segmentIndex++) {
+    const seg = segments[segmentIndex];
     const pts = seg.path ?? [];
     if (pts.length < 2) continue;
 
+    const segmentEnd = pts.at(-1);
+    if (!segmentEnd) continue;
+
     const floorSize = svgSizeByFloor[seg.floorNumber];
-    const edgeMeters: number[] = [];
+    const edgeMeters = buildEdgeMeters(pts, floorSize);
 
-    for (let i = 1; i < pts.length; i++) {
-      edgeMeters.push(pointDistanceMeters(pts[i - 1], pts[i], floorSize));
-    }
-
-    let anchorIndex = 0;
-    let foundTurn = false;
-
-    for (let i = 1; i < pts.length - 1; i++) {
-      const turn = detectTurn(pts[i - 1], pts[i], pts[i + 1]);
-      if (turn === "straight") continue;
-
-      foundTurn = true;
-      const distToTurn = sumSlice(edgeMeters, anchorIndex, i - 1);
-
-      if (distToTurn > 0.2) {
-        const turnInfo = instructionForTurn(turn);
-        rawSteps.push({
-          id: `turn-${sIdx}-${i}`,
-          floorNumber: seg.floorNumber,
-          targetPoint: pts[i],
-          kind: "turn",
-          iconName: turnInfo.iconName,
-          instruction: turnInfo.instruction,
-          distanceMeters: distToTurn,
-        });
-        anchorIndex = i;
-      }
-    }
+    const { anchorIndex, foundTurn } = addTurnSteps({
+      rawSteps,
+      pts,
+      seg,
+      edgeMeters,
+      segmentIndex,
+    });
 
     const distToSegmentEnd = sumSlice(
       edgeMeters,
       anchorIndex,
       edgeMeters.length - 1,
     );
-    const isLastSegment = sIdx === segments.length - 1;
+    const isLastSegment = segmentIndex === segments.length - 1;
 
-    if (!isLastSegment) {
-      const nextFloor = segments[sIdx + 1].floorNumber;
-
-      let transitionText = `Go to Floor ${nextFloor}`;
-      if (transitionType === 1) {
-        transitionText = `Take the stairs to Floor ${nextFloor}`;
-      } else if (transitionType === 2) {
-        transitionText = `Take the elevator to Floor ${nextFloor}`;
-      }
-
-      rawSteps.push({
-        id: `transition-${sIdx}`,
-        floorNumber: seg.floorNumber,
-        targetPoint: pts[pts.length - 1],
-        kind: "transition",
-        iconName: "swap-vertical",
-        instruction: transitionText,
-        distanceMeters: Math.max(distToSegmentEnd, 0),
+    if (isLastSegment) {
+      addLastSegmentSteps({
+        rawSteps,
+        seg,
+        segmentIndex,
+        anchorIndex,
+        foundTurn,
+        distToSegmentEnd,
+        segmentEnd,
       });
-    } else {
-      // Always add a real movement step before arrival if there is distance left.
-      // This fixes the bug where the UI jumps directly from the last turn to arrival.
-      if (distToSegmentEnd > 0.2) {
-        rawSteps.push({
-          id: `walk-${sIdx}-${anchorIndex}`,
-          floorNumber: seg.floorNumber,
-          targetPoint: pts[pts.length - 1],
-          kind: "walk",
-          iconName: "walk",
-          instruction: foundTurn ? "Continue straight" : "Head straight",
-          distanceMeters: distToSegmentEnd,
-        });
-      }
-
-      rawSteps.push({
-        id: `arrival-${sIdx}`,
-        floorNumber: seg.floorNumber,
-        targetPoint: pts[pts.length - 1],
-        kind: "arrival",
-        iconName: "location",
-        instruction: "You have arrived",
-        distanceMeters: 0,
-      });
+      continue;
     }
+
+    addTransitionStep({
+      rawSteps,
+      seg,
+      segmentIndex,
+      segments,
+      transitionType,
+      distToSegmentEnd,
+      segmentEnd,
+    });
   }
 
-  if (rawSteps.length === 0) {
-    return [];
-  }
+  return rawSteps;
+}
 
-  const computedTotal = rawSteps.reduce((sum, step) => sum + step.distanceMeters, 0);
+function scaleSteps(
+  rawSteps: Omit<IndoorNavigationStep, "remainingDistanceMeters">[],
+  exactTotalDistanceMeters?: number | null,
+) {
+  const computedTotal = rawSteps.reduce(
+    (sum, step) => sum + step.distanceMeters,
+    0,
+  );
+
   const scale =
     exactTotalDistanceMeters && computedTotal > 0
       ? exactTotalDistanceMeters / computedTotal
       : 1;
 
-  const scaled = rawSteps.map((step) => ({
+  return rawSteps.map((step) => ({
     ...step,
     distanceMeters: step.distanceMeters * scale,
   }));
+}
 
+function addRemainingDistances(
+  scaledSteps: Omit<IndoorNavigationStep, "remainingDistanceMeters">[],
+): IndoorNavigationStep[] {
   let runningRemaining = 0;
-  const finalSteps = [...scaled]
+
+  return [...scaledSteps]
     .reverse()
     .map((step) => {
       runningRemaining += step.distanceMeters;
@@ -268,6 +379,27 @@ export async function buildIndoorNavigationSteps(args: {
       };
     })
     .reverse();
+}
 
-  return finalSteps;
+export async function buildIndoorNavigationSteps(args: {
+  segments: FloorSegment[];
+  floors: Floor[];
+  transitionType: TransitionType | null;
+  exactTotalDistanceMeters?: number | null;
+}) {
+  const { segments, floors, transitionType, exactTotalDistanceMeters } = args;
+
+  const svgSizeByFloor = await buildSvgSizeByFloor(floors);
+  const rawSteps = buildRawSteps({
+    segments,
+    svgSizeByFloor,
+    transitionType,
+  });
+
+  if (rawSteps.length === 0) {
+    return [];
+  }
+
+  const scaledSteps = scaleSteps(rawSteps, exactTotalDistanceMeters);
+  return addRemainingDistances(scaledSteps);
 }
