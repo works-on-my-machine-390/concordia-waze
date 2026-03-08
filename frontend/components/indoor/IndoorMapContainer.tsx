@@ -80,8 +80,11 @@ const cleanPath = (pts: Coordinates[]) => {
 
   const out: Coordinates[] = [pts[0]];
   for (let i = 1; i < pts.length; i++) {
-    const prev = out[out.length - 1];
+    const prev = out.at(-1);
     const curr = pts[i];
+
+    if (!prev) continue;
+
     const dx = prev.x - curr.x;
     const dy = prev.y - curr.y;
     if (dx * dx + dy * dy > 0.0000005) out.push(curr);
@@ -142,10 +145,10 @@ export default function IndoorMapContainer({
       data.floors.some((f) => f.number === navCurrentFloor)
     ) {
       nextFloor = navCurrentFloor;
-    } else if (preferredFloorNumber != null) {
-      nextFloor = preferredFloorNumber;
-    } else {
+    } else if (preferredFloorNumber == null) {
       nextFloor = data.floors[0].number;
+    } else {
+      nextFloor = preferredFloorNumber;
     }
 
     setSelectedFloor((prev) => (prev === nextFloor ? prev : nextFloor));
@@ -163,10 +166,10 @@ export default function IndoorMapContainer({
   ]);
 
   const currentFloor =
-    selectedFloor != null
-      ? data?.floors?.find((f) => f.number === selectedFloor) ??
-        data?.floors?.[0]
-      : undefined;
+    selectedFloor == null
+      ? undefined
+      : data?.floors?.find((f) => f.number === selectedFloor) ??
+        data?.floors?.[0];
 
   const { routePathForCurrentFloor, extraHighlightedPoiNames } = useMemo(() => {
     if (!routeSegments || selectedFloor == null || !data?.floors?.length) {
@@ -186,6 +189,7 @@ export default function IndoorMapContainer({
 
     const seg = routeSegments[idx];
     const path = seg?.path ?? null;
+
     if (!path || path.length < 2) {
       return {
         routePathForCurrentFloor: path,
@@ -210,6 +214,7 @@ export default function IndoorMapContainer({
     if (idx > 0) {
       const startPt = adjusted[0];
       const nearest = findNearestTransitionPoi(pois as any, startPt);
+
       if (nearest?.name) {
         extraNames.push(nearest.name);
         adjusted[0] = { x: nearest.position.x, y: nearest.position.y };
@@ -217,14 +222,18 @@ export default function IndoorMapContainer({
     }
 
     if (idx < routeSegments.length - 1) {
-      const endPt = adjusted[adjusted.length - 1];
-      const nearest = findNearestTransitionPoi(pois as any, endPt);
-      if (nearest?.name) {
-        extraNames.push(nearest.name);
-        adjusted[adjusted.length - 1] = {
-          x: nearest.position.x,
-          y: nearest.position.y,
-        };
+      const endPt = adjusted.at(-1);
+
+      if (endPt) {
+        const nearest = findNearestTransitionPoi(pois as any, endPt);
+
+        if (nearest?.name) {
+          extraNames.push(nearest.name);
+          adjusted[adjusted.length - 1] = {
+            x: nearest.position.x,
+            y: nearest.position.y,
+          };
+        }
       }
     }
 

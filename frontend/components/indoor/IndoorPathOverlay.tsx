@@ -25,8 +25,10 @@ function orthogonalizePath(points: { x: number; y: number }[]) {
   const out: { x: number; y: number }[] = [points[0]];
 
   for (let i = 1; i < points.length; i++) {
-    const a = out[out.length - 1];
+    const a = out.at(-1);
     const b = points[i];
+
+    if (!a) continue;
 
     const dx = b.x - a.x;
     const dy = b.y - a.y;
@@ -55,9 +57,11 @@ function simplifyOrthogonalPath(points: { x: number; y: number }[]) {
   const result = [points[0]];
 
   for (let i = 1; i < points.length - 1; i++) {
-    const prev = result[result.length - 1];
+    const prev = result.at(-1);
     const curr = points[i];
     const next = points[i + 1];
+
+    if (!prev) continue;
 
     const dx1 = curr.x - prev.x;
     const dy1 = curr.y - prev.y;
@@ -75,7 +79,9 @@ function simplifyOrthogonalPath(points: { x: number; y: number }[]) {
     }
   }
 
-  result.push(points[points.length - 1]);
+  const lastPoint = points.at(-1);
+  if (lastPoint) result.push(lastPoint);
+
   return result;
 }
 
@@ -223,7 +229,10 @@ export default function IndoorPathOverlay({
     }));
 
     const out = [...pts];
-    const end = out[out.length - 1];
+    const end = out.at(-1);
+
+    if (!end) return out;
+
     out[out.length - 1] = snapEndToClosestPolygonBorder(end, polyPx);
 
     return out;
@@ -264,8 +273,10 @@ export default function IndoorPathOverlay({
       if (carry >= spacing) carry = 0;
     }
 
-    const endPt = finalPts[finalPts.length - 1];
-    out.push({ x: endPt.x, y: endPt.y });
+    const endPt = finalPts.at(-1);
+    if (endPt) {
+      out.push({ x: endPt.x, y: endPt.y });
+    }
 
     return { points: out, radius };
   }, [finalPts]);
@@ -277,9 +288,9 @@ export default function IndoorPathOverlay({
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
       <Svg width={width} height={height} style={StyleSheet.absoluteFill}>
-        {dots.points.map((p, idx) => (
+        {dots.points.map((p) => (
           <Circle
-            key={`dot-${idx}`}
+            key={`dot-${p.x}-${p.y}`}
             cx={p.x}
             cy={p.y}
             r={dots.radius}

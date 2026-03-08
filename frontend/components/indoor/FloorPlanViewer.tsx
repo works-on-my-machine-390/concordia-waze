@@ -73,6 +73,7 @@ type Props = {
 
 const normalizeName = (s: string) =>
   s.trim().toLowerCase().replace(/\s+/g, "");
+
 function renderStatus(message: string, loading = false) {
   return (
     <View style={styles.emptyContainer}>
@@ -87,8 +88,7 @@ function findPoiByName(floor: Floor, name?: string | null) {
 
   return (
     floor.pois.find(
-      (poi) =>
-        normalizeName(poi.name ?? "") === normalizeName(name ?? ""),
+      (poi) => normalizeName(poi.name ?? "") === normalizeName(name ?? ""),
     ) ?? null
   );
 }
@@ -168,13 +168,12 @@ export default function FloorPlanViewer({
     string | undefined
   >(undefined);
 
-  const { width: SCREEN_WIDTH } = useWindowDimensions();
+  const { width: screenWidth } = useWindowDimensions();
   const { dimensions, svgText, error, isLoading } = useSvgDimensions(
     floor?.imgPath,
   );
 
   const effectiveSelectedPoiName = selectedPoiName ?? localSelectedPoiName;
-
   const bottomSheetSelectedPoiName =
     navMode === "BROWSE" ? effectiveSelectedPoiName : undefined;
 
@@ -186,7 +185,6 @@ export default function FloorPlanViewer({
   const routeStyle = requireAccessible
     ? ROUTE_STYLE_ACCESSIBLE
     : ROUTE_STYLE_STANDARD;
-
   const resolvedPathColor = navigationPathColor ?? routeStyle.stroke;
 
   useEffect(() => {
@@ -224,31 +222,32 @@ export default function FloorPlanViewer({
     return renderStatus("Loading floor plan...", true);
   }
 
-  const DISPLAY_WIDTH = SCREEN_WIDTH - 32;
-  const DISPLAY_HEIGHT = DISPLAY_WIDTH * (dimensions.height / dimensions.width);
+  const displayWidth = screenWidth - 32;
+  const displayHeight = displayWidth * (dimensions.height / dimensions.width);
 
-  const destinationPoi =
-    navMode === "ITINERARY" && navEnd?.floor === floor.number
-      ? findPoiByName(floor, navEnd?.label)
-      : null;
+  const isEndOnCurrentFloor =
+    navMode === "ITINERARY" && navEnd?.floor === floor.number;
+  const isStartOnCurrentFloor =
+    navMode === "ITINERARY" && navStart?.floor === floor.number;
+
+  const destinationPoi = isEndOnCurrentFloor
+    ? findPoiByName(floor, navEnd?.label)
+    : null;
+
+  const startPoi = isStartOnCurrentFloor
+    ? findPoiByName(floor, navStart?.label)
+    : null;
 
   const endPolygon =
     destinationPoi && (destinationPoi.polygon?.length ?? 0) > 2
       ? destinationPoi.polygon
       : undefined;
 
-  const startPoi =
-    navMode === "ITINERARY" && navStart?.floor === floor.number
-      ? findPoiByName(floor, navStart?.label)
-      : null;
-
-  const startOverride =
-    navigationStartOverride ?? getPolygonOverride(startPoi);
-
+  const startOverride = navigationStartOverride ?? getPolygonOverride(startPoi);
   const endOverride = getPolygonOverride(destinationPoi);
 
   const handlePoiPress = (name: string) => {
-    if (disablePoiSelection || !floor) return;
+    if (disablePoiSelection) return;
 
     clearSelectedPoiFilter();
 
@@ -280,29 +279,29 @@ export default function FloorPlanViewer({
         zoomStep={0.5}
         initialZoom={1}
         bindToBorders={false}
-        contentWidth={DISPLAY_WIDTH}
-        contentHeight={DISPLAY_HEIGHT}
+        contentWidth={displayWidth}
+        contentHeight={displayHeight}
         style={{ flex: 1 }}
       >
         <View
           style={{
-            width: DISPLAY_WIDTH,
-            height: DISPLAY_HEIGHT,
+            width: displayWidth,
+            height: displayHeight,
             position: "relative",
           }}
         >
           <SvgXml
             xml={svgText}
-            width={DISPLAY_WIDTH}
-            height={DISPLAY_HEIGHT}
+            width={displayWidth}
+            height={displayHeight}
             viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
             preserveAspectRatio="xMidYMid meet"
           />
 
           <PolygonOverlay
             pois={floor.pois}
-            width={DISPLAY_WIDTH}
-            height={DISPLAY_HEIGHT}
+            width={displayWidth}
+            height={displayHeight}
             selectedPoiName={effectiveSelectedPoiName}
             onSelectPoi={disablePoiSelection ? () => {} : handlePoiPress}
           />
@@ -322,8 +321,8 @@ export default function FloorPlanViewer({
                 <PoiMarker
                   key={`poi-${poi.name}-${poi.position.x}-${poi.position.y}`}
                   poi={poi}
-                  width={DISPLAY_WIDTH}
-                  height={DISPLAY_HEIGHT}
+                  width={displayWidth}
+                  height={displayHeight}
                   highlighted={highlighted}
                   onPress={
                     disablePoiSelection
@@ -341,8 +340,8 @@ export default function FloorPlanViewer({
           {routePath && routePath.length >= 2 ? (
             <IndoorPathOverlay
               path={routePath}
-              width={DISPLAY_WIDTH}
-              height={DISPLAY_HEIGHT}
+              width={displayWidth}
+              height={displayHeight}
               endPolygon={endPolygon}
               startOverride={startOverride}
               endOverride={endOverride}

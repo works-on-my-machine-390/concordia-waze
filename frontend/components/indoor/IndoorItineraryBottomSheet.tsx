@@ -42,7 +42,7 @@ export default function IndoorItineraryBottomSheet({
   };
 
   const distanceLabel =
-    nav.totalDistance != null ? `(${nav.totalDistance.toFixed(1)} m)` : "";
+  nav.totalDistance == null ? "" : `(${nav.totalDistance.toFixed(1)} m)`;
 
   const startFloor = nav.start?.floor ?? null;
   const endFloor = nav.end?.floor ?? null;

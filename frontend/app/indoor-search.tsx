@@ -108,7 +108,7 @@ export default function IndoorSearchPage() {
 
     const extractedRoomCode = search.displayName
       .trim()
-      .replace(new RegExp(`^${buildingCode}\\s*`, "i"), "")
+      .replace(new RegExp(String.raw`^${buildingCode}\s*`, "i"), "")
       .trim();
 
     const poiByExtractedCode =
