@@ -133,44 +133,7 @@ func (s *DirectionsService) getShuttleDirectionsAt(
 	}
 	applyShuttlePolyline(&shuttleStep, fromCampus, toCampus)
 
-	// Departure message:
-	// leaveAt = (nextDepartureTime - walkDur)
-	leaveAtStr := ""
-	var leaveAtTime time.Time
-
-	if nextDeparture != "" {
-		parsed, err := time.Parse("15:04", nextDeparture)
-		if err == nil {
-			nextDepTime := time.Date(ref.Year(), ref.Month(), ref.Day(), parsed.Hour(), parsed.Minute(), 0, 0, ref.Location())
-			leaveAtTime = nextDepTime.Add(-walkDur)
-			leaveAtStr = leaveAtTime.Format("15:04")
-		}
-	}
-
-	// Default (fallback) message — always set something.
-	// This avoids an extra "else fallback" branch that can be hard/unreachable to cover in tests.
-	depMsg := ""
-	if userProvidedTime {
-		depMsg = "Depart at " + time.Now().Format("15:04")
-	} else {
-		depMsg = "Leave now at " + time.Now().Format("15:04")
-	}
-
-	// Override fallback only when we successfully computed leaveAtStr.
-	if leaveAtStr != "" {
-		if userProvidedTime {
-			// Accept "leave now" when ref is within [-1min, +∞) of ideal leave time.
-			if !ref.Before(leaveAtTime.Add(-time.Minute)) {
-				depMsg = fmt.Sprintf("Leave now to catch the %s shuttle", nextDeparture)
-			} else {
-				depMsg = fmt.Sprintf("Depart at %s to catch the %s shuttle", leaveAtStr, nextDeparture)
-			}
-		} else if leaveAtTime.After(time.Now().Add(time.Minute)) {
-			depMsg = fmt.Sprintf("Leave at %s to catch the %s shuttle", leaveAtStr, nextDeparture)
-		} else {
-			depMsg = fmt.Sprintf("Leave now to catch the %s shuttle", nextDeparture)
-		}
-	}
+	depMsg := buildShuttleDepartureMessage(ref, walkDur, nextDeparture, userProvidedTime)
 
 	return buildShuttleRouteResponse(depMsg, walkToStop, shuttleStep, walkFromStop), nil
 }
@@ -651,4 +614,59 @@ func encodeSignedValue(out *strings.Builder, value int) {
 		v >>= 5
 	}
 	out.WriteByte(byte(v + 63))
+}
+
+func buildShuttleDepartureMessage(ref time.Time, walkDur time.Duration, nextDeparture string, userProvidedTime bool) string {
+	leaveAtTime, leaveAtStr, ok := computeLeaveAt(ref, walkDur, nextDeparture)
+	if !ok {
+		return defaultDepartureMessage(userProvidedTime)
+	}
+
+	if userProvidedTime {
+		return userProvidedDepartureMessage(ref, leaveAtTime, leaveAtStr, nextDeparture)
+	}
+
+	return liveDepartureMessage(leaveAtTime, leaveAtStr, nextDeparture)
+}
+
+func computeLeaveAt(ref time.Time, walkDur time.Duration, nextDeparture string) (time.Time, string, bool) {
+	if nextDeparture == "" {
+		return time.Time{}, "", false
+	}
+
+	parsed, err := time.Parse("15:04", nextDeparture)
+	if err != nil {
+		return time.Time{}, "", false
+	}
+
+	nextDepTime := time.Date(
+		ref.Year(), ref.Month(), ref.Day(),
+		parsed.Hour(), parsed.Minute(), 0, 0, ref.Location(),
+	)
+
+	leaveAtTime := nextDepTime.Add(-walkDur)
+	return leaveAtTime, leaveAtTime.Format("15:04"), true
+}
+
+func defaultDepartureMessage(userProvidedTime bool) string {
+	nowStr := time.Now().Format("15:04")
+	if userProvidedTime {
+		return "Depart at " + nowStr
+	}
+	return "Leave now at " + nowStr
+}
+
+func userProvidedDepartureMessage(ref, leaveAtTime time.Time, leaveAtStr, nextDeparture string) string {
+	// Accept "leave now" when ref is within [-1min, +∞) of ideal leave time.
+	if !ref.Before(leaveAtTime.Add(-time.Minute)) {
+		return fmt.Sprintf("Leave now to catch the %s shuttle", nextDeparture)
+	}
+	return fmt.Sprintf("Depart at %s to catch the %s shuttle", leaveAtStr, nextDeparture)
+}
+
+func liveDepartureMessage(leaveAtTime time.Time, leaveAtStr, nextDeparture string) string {
+	if leaveAtTime.After(time.Now().Add(time.Minute)) {
+		return fmt.Sprintf("Leave at %s to catch the %s shuttle", leaveAtStr, nextDeparture)
+	}
+	return fmt.Sprintf("Leave now to catch the %s shuttle", nextDeparture)
 }
