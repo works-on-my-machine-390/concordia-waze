@@ -2,6 +2,7 @@ package router
 
 import (
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -19,27 +20,66 @@ import (
 	"github.com/works-on-my-machine-390/concordia-waze/internal/presentation/middleware"
 )
 
+const (
+	userSearchHistoryPath = "/:userId/search-history"
+)
+
 func SetupRouter() *gin.Engine {
 	router := gin.Default()
 
 	userRepo := repository.NewInMemoryUserRepository()
 
 	buildingDataRepo := repository.NewBuildingDataRepository(constants.BuildingDataFile)
+	shuttleDataRepo := repository.NewShuttleDataRepository(constants.ShuttleDataFile)
+	floorDataRepo := repository.NewFloorRepository(constants.FloorDataFile)
 
 	jwtManager := application.NewJWTManager(os.Getenv("JWT_SECRET"), constants.DefaultJWTDuration*time.Hour)
 	userService := application.NewUserService(userRepo, jwtManager)
 
 	placesClient := google.NewGooglePlacesClient(os.Getenv("GOOGLE_PLACES_API_KEY"))
 
-	buildingService := application.NewBuildingService(buildingDataRepo)
+	buildingService := application.NewBuildingService(buildingDataRepo, floorDataRepo, placesClient, "./")
 	campusService := application.NewCampusService(buildingDataRepo)
 	imageService := application.NewImageService(buildingService, placesClient)
+	firebaseService := application.NewFirebaseService()
+	shuttleService := application.NewShuttleService(shuttleDataRepo)
+	pointOfInterestService := application.NewPointOfInterestService(placesClient)
 
-	authHandler := handler.NewAuthHandler(userService)
+	dataDir, err := findIndoorDataDir()
+	if err != nil {
+		// fail fast with a clear message
+		panic("could not find campusData/GeoJsonDataParser/Data from working dir: " + err.Error())
+	}
+	indoorPOIRepo := repository.NewIndoorPOIRepository(dataDir)
+	indoorPOIService := application.NewIndoorPointOfInterestService(indoorPOIRepo)
+	indoorRoomRepo := repository.NewIndoorRoomRepository(dataDir) // reuse same base dir you used for POIs
+	roomSearchService := application.NewRoomSearchService(indoorRoomRepo)
+	roomSearchHandler := handler.NewRoomSearchHandler(roomSearchService)
+
+	indoorPathService := application.NewIndoorPathService(floorDataRepo, indoorRoomRepo)
+	indoorPathHandler := handler.NewIndoorPathHandler(indoorPathService)
+
+	// ---- Directions wiring (FIXED: inject shuttle schedule repo) ----
+	directionsClient := google.NewGoogleDirectionsClient(os.Getenv("GOOGLE_DIRECTIONS_API_KEY"))
+	directionsService := application.NewDirectionsService(directionsClient).WithShuttleRepo(shuttleService)
+	directionsHandler := handler.NewDirectionsHandler(directionsService, buildingService)
+	// ---------------------------------------------------------------
+
+	authHandler := handler.NewAuthHandler(userService, firebaseService)
 
 	buildingHandler := handler.NewBuildingHandler(buildingService)
 	campusHandler := handler.NewCampusHandler(campusService)
 	imageHandler := handler.NewImageHandler(imageService)
+	firebaseHandler := handler.NewFirebaseHandler(firebaseService)
+	shuttleHandler := handler.NewShuttleHandler(shuttleService)
+	pointOfInterestHandler := handler.NewPointOfInterestHandler(pointOfInterestService, indoorPOIService)
+
+	googleRateLimiter := middleware.NewIPRateLimiterFromEnv(
+		"GOOGLE",
+		constants.DefaultGoogleRateLimitRPS,
+		constants.DefaultGoogleRateLimitBurst,
+	)
+	googleLimited := googleRateLimiter.Middleware()
 
 	router.Use(middleware.AuthMiddleware(jwtManager))
 
@@ -53,13 +93,68 @@ func SetupRouter() *gin.Engine {
 
 	buildingsGroup := router.Group("/buildings")
 	{
-		buildingsGroup.GET("/:code", buildingHandler.GetBuilding)
-		buildingsGroup.GET("/:code/images", imageHandler.GetBuildingImages)
+		buildingsGroup.GET("/list", buildingHandler.GetAllBuildingsByCampus)
+
+		// Calls Google Places (opening hours lookup) -> rate limit
+		buildingsGroup.GET("/:code", googleLimited, buildingHandler.GetBuilding)
+
+		// Calls Google Places Photos via placesClient -> rate limit
+		buildingsGroup.GET("/:code/images", googleLimited, imageHandler.GetBuildingImages)
+
+		// Local repo only -> no rate limit
+		buildingsGroup.GET("/floor/:code", buildingHandler.GetFloorsByBuilding)
+	}
+
+	// image utility endpoint (PUBLIC) - local/static, no rate limit needed
+	router.GET("/images/*path", imageHandler.GetStaticImage)
+
+	// Directions endpoints (PUBLIC) - calls Google Directions API -> rate limit
+	router.GET("/directions", googleLimited, directionsHandler.GetDirections)
+	router.GET("/directions/buildings", googleLimited, directionsHandler.GetDirectionsByBuildings)
+	router.POST("/directions/indoor/multi-floor-path", indoorPathHandler.GetMultiFloorShortestPath)
+
+	shuttleGroup := router.Group("/shuttle")
+	{
+		shuttleGroup.GET("", shuttleHandler.GetDepartureData)
+		shuttleGroup.GET("/:day/:campus_code", shuttleHandler.GetCampusDaySchedule)
+		shuttleGroup.GET("/markers", shuttleHandler.GetShuttleMarkerPositions)
 	}
 
 	router.GET("/campuses/:campus/buildings", campusHandler.GetCampusBuildings)
 
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	// Nearby POI uses Google Places API -> rate limit
+	router.GET("/pointofinterest", googleLimited, pointOfInterestHandler.GetNearbyPointsOfInterest)
+
+	// Indoor POIs + room search are local repo-based -> no external API calls (leave unlimited)
+	router.GET("/pointofinterest/indoor", pointOfInterestHandler.GetNearbyIndoorPOIs)
+	router.GET("/rooms/search", roomSearchHandler.SearchRoom)
+
+	// =========================
+	// PROTECTED ROUTES (auth)
+	// =========================
+
+	usersGroup := router.Group("/users")
+	usersGroup.Use(middleware.RequireAuth(), middleware.ValidateUserOwnership())
+	{
+		usersGroup.POST("/:userId/profile", firebaseHandler.CreateUserProfile)
+		usersGroup.GET("/:userId/profile", firebaseHandler.GetUserProfile)
+
+		usersGroup.POST("/:userId/schedule", firebaseHandler.AddScheduleItem)
+		usersGroup.GET("/:userId/schedule", firebaseHandler.GetUserSchedule)
+		usersGroup.PUT("/:userId/schedule/:scheduleId", firebaseHandler.UpdateScheduleItem)
+		usersGroup.DELETE("/:userId/schedule/:scheduleId", firebaseHandler.DeleteScheduleItem)
+
+		usersGroup.POST("/:userId/savedAddresses", firebaseHandler.AddSavedAddress)
+		usersGroup.GET("/:userId/savedAddresses", firebaseHandler.GetSavedAddresses)
+		usersGroup.PUT("/:userId/savedAddresses/:addressId", firebaseHandler.UpdateSavedAddress)
+		usersGroup.DELETE("/:userId/savedAddresses/:addressId", firebaseHandler.DeleteSavedAddress)
+
+		usersGroup.POST("/:userId/history", firebaseHandler.AddDestinationHistory)
+		usersGroup.GET("/:userId/history", firebaseHandler.GetDestinationHistory)
+		usersGroup.DELETE("/:userId/history", firebaseHandler.ClearDestinationHistory)
+	}
 
 	return router
 }
@@ -67,4 +162,26 @@ func SetupRouter() *gin.Engine {
 func SetupTestRouter() *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	return SetupRouter()
+}
+
+func findIndoorDataDir() (string, error) {
+	wd, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+
+	cur := wd
+	for {
+		candidate := filepath.Join(cur, "campusFloormaps", "Data")
+		if stat, err := os.Stat(candidate); err == nil && stat.IsDir() {
+			return candidate, nil
+		}
+		parent := filepath.Dir(cur)
+		if parent == cur {
+			break // reached filesystem root
+		}
+		cur = parent
+	}
+
+	return "", os.ErrNotExist
 }

@@ -39,7 +39,13 @@ export function validateRegister({
   return errors;
 }
 
-export function validateLogin({ email, password }: { email: string; password: string }) {
+export function validateLogin({
+  email,
+  password,
+}: {
+  email: string;
+  password: string;
+}) {
   const errors: Record<string, string> = {};
   if (!email) {
     errors.email = "Email is required.";

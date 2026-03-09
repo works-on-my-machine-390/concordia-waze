@@ -1,27 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36" version="29.3.6">
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36" version="29.3.8">
   <diagram name="Page-1" id="t44xYBW2abQqebKWRmmi">
-    <mxGraphModel dx="1042" dy="527" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" background="#ffffff" math="0" shadow="0">
+    <mxGraphModel dx="1042" dy="658" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" background="#ffffff" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
         <mxCell id="jFor6nrRBc4YpOILdNhf-114" parent="1" style="swimlane;fontStyle=0;childLayout=stackLayout;horizontal=1;startSize=40;horizontalStack=0;resizeParent=1;resizeParentMax=0;resizeLast=0;collapsible=1;marginBottom=0;whiteSpace=wrap;html=1;fillColor=none;" value="RegistrationInfo" vertex="1">
-          <mxGeometry height="220" width="150" x="630" y="7" as="geometry" />
+          <mxGeometry height="208" width="150" x="630" y="7" as="geometry" />
         </mxCell>
         <mxCell id="jFor6nrRBc4YpOILdNhf-115" parent="jFor6nrRBc4YpOILdNhf-114" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" value="- userId: Number" vertex="1">
           <mxGeometry height="26" width="150" y="40" as="geometry" />
         </mxCell>
-        <mxCell id="jFor6nrRBc4YpOILdNhf-116" parent="jFor6nrRBc4YpOILdNhf-114" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" value="- firstName: String" vertex="1">
+        <mxCell id="jFor6nrRBc4YpOILdNhf-116" parent="jFor6nrRBc4YpOILdNhf-114" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" value="- name: String" vertex="1">
           <mxGeometry height="26" width="150" y="66" as="geometry" />
         </mxCell>
-        <mxCell id="jFor6nrRBc4YpOILdNhf-117" parent="jFor6nrRBc4YpOILdNhf-114" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" value="- lastName: String&lt;div&gt;- email: String&lt;/div&gt;" vertex="1">
-          <mxGeometry height="38" width="150" y="92" as="geometry" />
+        <mxCell id="fZhE1VmKEtCr25o2cyf8-1" parent="jFor6nrRBc4YpOILdNhf-114" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" value="- email: String" vertex="1">
+          <mxGeometry height="26" width="150" y="92" as="geometry" />
         </mxCell>
         <mxCell id="jFor6nrRBc4YpOILdNhf-140" parent="jFor6nrRBc4YpOILdNhf-114" style="line;strokeWidth=1;fillColor=none;align=left;verticalAlign=middle;spacingTop=-1;spacingLeft=3;spacingRight=3;rotatable=0;labelPosition=right;points=[];portConstraint=eastwest;strokeColor=inherit;" value="" vertex="1">
-          <mxGeometry height="8" width="150" y="130" as="geometry" />
+          <mxGeometry height="8" width="150" y="118" as="geometry" />
         </mxCell>
         <mxCell id="jFor6nrRBc4YpOILdNhf-118" parent="jFor6nrRBc4YpOILdNhf-114" style="text;strokeColor=none;fillColor=none;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rotatable=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;whiteSpace=wrap;html=1;" value="&lt;div&gt;+ validate() : Boolean&lt;/div&gt;&lt;div&gt;+ getFullName() : String&lt;/div&gt;&lt;div&gt;+ updateEmail(newEmail : String) : void&lt;/div&gt;" vertex="1">
-          <mxGeometry height="82" width="150" y="138" as="geometry" />
+          <mxGeometry height="82" width="150" y="126" as="geometry" />
         </mxCell>
         <mxCell id="jFor6nrRBc4YpOILdNhf-1" edge="1" parent="1" source="jFor6nrRBc4YpOILdNhf-4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=-0.001;entryY=0.238;entryDx=0;entryDy=0;endArrow=none;endFill=0;exitX=0.991;exitY=0.852;exitDx=0;exitDy=0;exitPerimeter=0;entryPerimeter=0;" target="jFor6nrRBc4YpOILdNhf-11">
           <mxGeometry relative="1" as="geometry">

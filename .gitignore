@@ -4,3 +4,6 @@ node_modules
 coverage/
 coverage.out
 .idea
+package-lock.json
+backend/serviceAccountKey.json
+**/serviceAccountKey.json.DS_Store

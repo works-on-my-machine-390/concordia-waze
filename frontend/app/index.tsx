@@ -97,7 +97,7 @@ export default function HomeScreen() {
             onPress={() => router.push("/map")}
             style={[styles.button, styles.secondaryButton]}
           >
-            <View style={styles.buttonContent}>
+            <View style={styles.buttonContent} testID="no-account-button">
               <View
                 style={[styles.iconCircle, styles.iconCircleSecondaryButton]}
               >

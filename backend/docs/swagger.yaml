@@ -1,4 +1,121 @@
 definitions:
+  application.DestinationHistoryItem:
+    properties:
+      address:
+        type: string
+      buildingCode:
+        type: string
+      destinationType:
+        description: '"building" or "poi"'
+        type: string
+      historyId:
+        type: string
+      lat:
+        type: number
+      lng:
+        type: number
+      name:
+        type: string
+      placeId:
+        type: string
+      timestamp:
+        type: string
+    type: object
+  application.FloorSegment:
+    properties:
+      directions:
+        items:
+          $ref: '#/definitions/application.TurnDirection'
+        type: array
+      distance:
+        type: number
+      floorName:
+        type: string
+      floorNumber:
+        type: integer
+      path:
+        items:
+          $ref: '#/definitions/domain.Coordinates'
+        type: array
+    type: object
+  application.MultiFloorPathRequest:
+    properties:
+      buildingCode:
+        type: string
+      end:
+        $ref: '#/definitions/domain.Coordinates'
+      endFloor:
+        type: integer
+      endRoom:
+        type: string
+      preferElevator:
+        type: boolean
+      start:
+        $ref: '#/definitions/domain.Coordinates'
+      startFloor:
+        type: integer
+      startRoom:
+        type: string
+    type: object
+  application.MultiFloorPathResult:
+    properties:
+      segments:
+        items:
+          $ref: '#/definitions/application.FloorSegment'
+        type: array
+      totalDistance:
+        type: number
+      transitionType:
+        $ref: '#/definitions/application.TransitionType'
+    type: object
+  application.SavedAddress:
+    properties:
+      address:
+        type: string
+      addressId:
+        type: string
+    type: object
+  application.ScheduleItem:
+    properties:
+      building:
+        type: string
+      daysOfWeek:
+        items:
+          type: string
+        type: array
+      endTime:
+        type: string
+      name:
+        type: string
+      room:
+        type: string
+      scheduleId:
+        type: string
+      startTime:
+        type: string
+      type:
+        type: string
+    type: object
+  application.TransitionType:
+    enum:
+    - 0
+    - 1
+    - 2
+    type: integer
+    x-enum-varnames:
+    - TransitionNone
+    - TransitionStairs
+    - TransitionElevator
+  application.TurnDirection:
+    enum:
+    - left
+    - right
+    - straight
+    type: string
+    x-enum-varnames:
+    - TurnLeft
+    - TurnRight
+    - TurnStraight
   domain.Building:
     properties:
       accessibility:
@@ -19,8 +136,12 @@ definitions:
         type: string
       longitude:
         type: number
+      metro_accessible:
+        type: boolean
       name:
         type: string
+      opening_hours:
+        $ref: '#/definitions/domain.OpeningHours'
       services:
         items:
           type: string
@@ -29,6 +150,173 @@ definitions:
         items:
           type: string
         type: array
+    type: object
+  domain.BuildingPolygon:
+    properties:
+      code:
+        type: string
+      polygon:
+        items:
+          $ref: '#/definitions/domain.LatLng'
+        type: array
+    type: object
+  domain.BuildingSummary:
+    properties:
+      address:
+        type: string
+      campus:
+        description: '"SGW" or "LOY"'
+        type: string
+      code:
+        type: string
+      latitude:
+        type: number
+      long_name:
+        type: string
+      longitude:
+        type: number
+      name:
+        type: string
+    type: object
+  domain.CampusBuildingsResponse:
+    properties:
+      buildings:
+        items:
+          $ref: '#/definitions/domain.BuildingPolygon'
+        type: array
+      campus:
+        type: string
+    type: object
+  domain.Coordinates:
+    properties:
+      x:
+        type: number
+      "y":
+        type: number
+    type: object
+  domain.DayHours:
+    properties:
+      close:
+        type: string
+      open:
+        type: string
+    type: object
+  domain.DirectionStep:
+    properties:
+      arrival_stop:
+        type: string
+      arrival_time:
+        type: string
+      departure_stop:
+        type: string
+      departure_time:
+        type: string
+      distance:
+        type: string
+      duration:
+        type: string
+      end:
+        $ref: '#/definitions/domain.LatLng'
+      instruction:
+        type: string
+      maneuver:
+        type: string
+      num_stops:
+        type: integer
+      polyline:
+        type: string
+      start:
+        $ref: '#/definitions/domain.LatLng'
+      transit_headsign:
+        type: string
+      transit_line:
+        type: string
+      transit_line_color:
+        type: string
+      transit_line_text_color:
+        type: string
+      transit_type:
+        type: string
+      travel_mode:
+        type: string
+    type: object
+  domain.DirectionsResponse:
+    properties:
+      departure_message:
+        type: string
+      distance:
+        type: string
+      duration:
+        type: string
+      mode:
+        type: string
+      polyline:
+        type: string
+      steps:
+        items:
+          $ref: '#/definitions/domain.DirectionStep'
+        type: array
+    type: object
+  domain.Edge:
+    properties:
+      endVertex:
+        type: integer
+      startVertex:
+        type: integer
+    type: object
+  domain.Floor:
+    properties:
+      edges:
+        items:
+          $ref: '#/definitions/domain.Edge'
+        type: array
+      imgPath:
+        type: string
+      name:
+        type: string
+      number:
+        type: integer
+      pois:
+        items:
+          $ref: '#/definitions/domain.PointOfInterest'
+        type: array
+      vertices:
+        items:
+          $ref: '#/definitions/domain.Coordinates'
+        type: array
+    type: object
+  domain.LatLng:
+    properties:
+      latitude:
+        type: number
+      longitude:
+        type: number
+    type: object
+  domain.OpeningHours:
+    additionalProperties:
+      $ref: '#/definitions/domain.DayHours'
+    type: object
+  domain.PointOfInterest:
+    properties:
+      name:
+        type: string
+      polygon:
+        items:
+          $ref: '#/definitions/domain.Coordinates'
+        type: array
+      position:
+        $ref: '#/definitions/domain.Coordinates'
+      type:
+        type: string
+    type: object
+  domain.User:
+    properties:
+      email:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
     type: object
   handler.AuthResponse:
     properties:
@@ -120,12 +408,6 @@ paths:
       consumes:
       - application/json
       description: Logout the authenticated user and revoke their token
-      parameters:
-      - description: Bearer token
-        in: header
-        name: Authorization
-        required: true
-        type: string
       produces:
       - application/json
       responses:
@@ -151,12 +433,6 @@ paths:
       consumes:
       - application/json
       description: Get the authenticated user's information
-      parameters:
-      - description: Bearer token
-        in: header
-        name: Authorization
-        required: true
-        type: string
       produces:
       - application/json
       responses:
@@ -276,6 +552,1143 @@ paths:
       summary: Get building images
       tags:
       - buildings
+  /buildings/floor/{code}:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        {
+        "floors": {
+        { "name": "...", "imgPath": "...", "vertices": [...], "edge": [...], "poi": [...] },
+        { ... }
+        }
+        }
+      parameters:
+      - description: Building code
+        in: path
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              items:
+                $ref: '#/definitions/domain.Floor'
+              type: array
+            type: object
+        "500":
+          description: internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: return all building floors for a specific building code
+      tags:
+      - buildings
+  /buildings/list:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Return all building codes, names and long names grouped by campus. Response shape:
+        {
+        "buildings": {
+        "SGW": [ { "code": "...", "name": "...", "long_name": "...", "campus": "SGW" }, ... ],
+        "LOY": [ ... ]
+        }
+        }
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              additionalProperties:
+                items:
+                  $ref: '#/definitions/domain.BuildingSummary'
+                type: array
+              type: object
+            type: object
+        "500":
+          description: internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List all buildings grouped by campus
+      tags:
+      - buildings
+  /campuses/{campus}/buildings:
+    get:
+      consumes:
+      - application/json
+      description: Return all building codes and names for a given campus (e.g. "SGW"
+        or "LOY").
+      parameters:
+      - description: Campus code (SGW or LOY)
+        in: path
+        name: campus
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.CampusBuildingsResponse'
+        "404":
+          description: campus not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List buildings for a campus
+      tags:
+      - buildings
+  /directions:
+    get:
+      description: Returns route polyline + step instructions (walking/driving/transit/shuttle/bicycling)
+      parameters:
+      - description: Start latitude
+        in: query
+        name: start_lat
+        required: true
+        type: number
+      - description: Start longitude
+        in: query
+        name: start_lng
+        required: true
+        type: number
+      - description: End latitude
+        in: query
+        name: end_lat
+        required: true
+        type: number
+      - description: End longitude
+        in: query
+        name: end_lng
+        required: true
+        type: number
+      - description: Mode (walking, driving, transit, shuttle, bicycling)
+        in: query
+        name: mode
+        type: string
+      - description: Optional day for shuttle (monday..sunday) - automatic
+        in: query
+        name: day
+        type: string
+      - description: Optional time for shuttle (HH:MM 24h) - automatic
+        in: query
+        name: time
+        type: string
+      - description: Manual shuttle day (monday..sunday) - manual departure selection
+        in: query
+        name: shuttle_day
+        type: string
+      - description: Manual shuttle time (HH:MM 24h) - must exist in schedule
+        in: query
+        name: shuttle_time
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.DirectionsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get directions between coordinates
+      tags:
+      - directions
+  /directions/buildings:
+    get:
+      description: Uses building coordinates as origin/destination
+      parameters:
+      - description: Start building code
+        in: query
+        name: start_code
+        required: true
+        type: string
+      - description: End building code
+        in: query
+        name: end_code
+        required: true
+        type: string
+      - description: Mode (walking, driving, transit, shuttle, bicycling)
+        in: query
+        name: mode
+        type: string
+      - description: Optional day for shuttle (monday..sunday) - automatic
+        in: query
+        name: day
+        type: string
+      - description: Optional time for shuttle (HH:MM 24h) - automatic
+        in: query
+        name: time
+        type: string
+      - description: Manual shuttle day (monday..sunday) - manual departure selection
+        in: query
+        name: shuttle_day
+        type: string
+      - description: Manual shuttle time (HH:MM 24h) - must exist in schedule
+        in: query
+        name: shuttle_time
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.DirectionsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get directions by building codes
+      tags:
+      - directions
+  /directions/indoor/multi-floor-path:
+    post:
+      consumes:
+      - application/json
+      description: Returns shortest path from a point on one floor to a point on another
+        floor (or same floor). Supports room names or raw coordinates. Uses stairs
+        by default, set preferElevator=true for elevator.
+      parameters:
+      - description: Path request with building, floors, and start/end points
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/application.MultiFloorPathRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/application.MultiFloorPathResult'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get indoor path across floors
+      tags:
+      - directions
+  /images/{path}:
+    get:
+      consumes:
+      - application/json
+      description: SWAGGER DOES NOT WORK SINCE THE PATH HAS '/' . Get images for a
+        path from the backend resource directory
+      parameters:
+      - description: Image path
+        in: path
+        name: path
+        required: true
+        type: string
+      produces:
+      - image/png
+      responses:
+        "404":
+          description: path not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get image from path
+      tags:
+      - utilityd
+  /pointofinterest:
+    get:
+      consumes:
+      - application/json
+      description: Get nearby points of interest via text search from Google Places
+        API
+      parameters:
+      - description: Search query (e.g., 'coffee shop')
+        in: query
+        name: input
+        required: true
+        type: string
+      - description: Latitude of the location
+        in: query
+        name: lat
+        required: true
+        type: number
+      - description: Longitude of the location
+        in: query
+        name: lng
+        required: true
+        type: number
+      - description: 'Maximum distance in meters (default: 1000)'
+        in: query
+        name: max_distance
+        type: integer
+      - description: 'Rank preference (e.g., ''DISTANCE'', ''RELEVANCE''; default:
+          ''DISTANCE'')'
+        in: query
+        name: rank_preference
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/domain.Building'
+            type: array
+        "400":
+          description: bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get nearby points of interest
+      tags:
+      - point of interest
+  /pointofinterest/indoor:
+    get:
+      description: Returns indoor POIs near a given indoor position (projected coords).
+      parameters:
+      - description: Building code (e.g., MB, LB, CC, VL)
+        in: query
+        name: building
+        required: true
+        type: string
+      - description: Floor number
+        in: query
+        name: floor
+        required: true
+        type: integer
+      - description: Indoor X coordinate (EPSG:32198 meters)
+        in: query
+        name: x
+        required: true
+        type: number
+      - description: Indoor Y coordinate (EPSG:32198 meters)
+        in: query
+        name: "y"
+        required: true
+        type: number
+      - description: 'Radius in meters (default: 40)'
+        in: query
+        name: radius
+        type: integer
+      - description: 'Filter to same floor (default: true)'
+        in: query
+        name: sameFloor
+        type: boolean
+      - description: 'Max results (default: 30)'
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: bad request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get nearby indoor POIs
+      tags:
+      - point of interest
+  /rooms/search:
+    get:
+      description: Returns room centroid coordinates by room number (EPSG:32198)
+      parameters:
+      - description: Building code (MB, LB, CC, VL)
+        in: query
+        name: building
+        required: true
+        type: string
+      - description: Room name/number (e.g., S2.285)
+        in: query
+        name: room
+        required: true
+        type: string
+      - description: Floor (optional; if provided, only searches that floor)
+        in: query
+        name: floor
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Search a room by number
+      tags:
+      - rooms
+  /shuttle:
+    get:
+      consumes:
+      - application/json
+      description: 'Returns the entire shuttle schedule as a mapping: day -> campus
+        -> list of times.'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              additionalProperties:
+                items:
+                  type: string
+                type: array
+              type: object
+            type: object
+        "500":
+          description: internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get full shuttle schedule
+      tags:
+      - shuttle
+  /shuttle/{day}/{campus_code}:
+    get:
+      consumes:
+      - application/json
+      description: Returns a list of departure times (HH:MM strings) for the specified
+        campus and day.
+      parameters:
+      - description: Day of week (e.g., monday)
+        in: path
+        name: day
+        required: true
+        type: string
+      - description: Campus code (LOY or SGW)
+        in: path
+        name: campus_code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: string
+            type: array
+        "404":
+          description: not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get shuttle departures for a campus on a given day
+      tags:
+      - shuttle
+  /shuttle/markers:
+    get:
+      consumes:
+      - application/json
+      description: Returns the latitude and longitude for shuttle stop markers at
+        both campuses.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              additionalProperties:
+                format: float64
+                type: number
+              type: object
+            type: object
+        "500":
+          description: internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get shuttle marker positions
+      tags:
+      - shuttle
+  /users/{userId}/history:
+    delete:
+      description: Delete all destination history items for a user (keeps _init placeholder)
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Clear destination history
+      tags:
+      - history
+    get:
+      description: Get a user's past destinations history (latest first)
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      - default: 50
+        description: Limit results
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/application.DestinationHistoryItem'
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get destination history
+      tags:
+      - history
+    post:
+      consumes:
+      - application/json
+      description: Add a destination to a user's past destinations history
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      - description: Destination history item
+        in: body
+        name: item
+        required: true
+        schema:
+          $ref: '#/definitions/application.DestinationHistoryItem'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Add destination history
+      tags:
+      - history
+  /users/{userId}/profile:
+    get:
+      description: Get a user profile by ID
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.User'
+        "401":
+          description: Not authenticated
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get user profile
+      tags:
+      - users
+    post:
+      consumes:
+      - application/json
+      description: Create or overwrite a user profile
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      - description: User profile
+        in: body
+        name: profile
+        required: true
+        schema:
+          $ref: '#/definitions/domain.User'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Not authenticated
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create user profile
+      tags:
+      - users
+  /users/{userId}/savedAddresses:
+    get:
+      description: Get favorite addresses for a user
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/application.SavedAddress'
+            type: array
+        "401":
+          description: Not authenticated
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get saved addresses
+      tags:
+      - addresses
+    post:
+      consumes:
+      - application/json
+      description: Add a favorite address for a user
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      - description: Saved address
+        in: body
+        name: address
+        required: true
+        schema:
+          $ref: '#/definitions/application.SavedAddress'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Not authenticated
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Add favorite
+      tags:
+      - addresses
+  /users/{userId}/savedAddresses/{addressId}:
+    delete:
+      description: Delete a saved address for a user
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      - description: Address ID
+        in: path
+        name: addressId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Not authenticated
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete saved address
+      tags:
+      - addresses
+    put:
+      consumes:
+      - application/json
+      description: Update a saved address for a user
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      - description: Address ID
+        in: path
+        name: addressId
+        required: true
+        type: string
+      - description: Address updates
+        in: body
+        name: updates
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Not authenticated
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update saved address
+      tags:
+      - addresses
+  /users/{userId}/schedule:
+    get:
+      description: Get schedule items for a user
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/application.ScheduleItem'
+            type: array
+        "401":
+          description: Not authenticated
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get user schedule
+      tags:
+      - schedule
+    post:
+      consumes:
+      - application/json
+      description: Add a schedule item for a user
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      - description: Schedule item
+        in: body
+        name: item
+        required: true
+        schema:
+          $ref: '#/definitions/application.ScheduleItem'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Not authenticated
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Add schedule item
+      tags:
+      - schedule
+  /users/{userId}/schedule/{scheduleId}:
+    delete:
+      description: Delete a schedule item for a user
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      - description: Schedule ID
+        in: path
+        name: scheduleId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Not authenticated
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete schedule item
+      tags:
+      - schedule
+    put:
+      consumes:
+      - application/json
+      description: Update a schedule item for a user
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      - description: Schedule ID
+        in: path
+        name: scheduleId
+        required: true
+        type: string
+      - description: Schedule updates
+        in: body
+        name: updates
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Not authenticated
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update schedule item
+      tags:
+      - schedule
 securityDefinitions:
   BearerAuth:
     description: Type "Bearer" followed by a space and JWT token.

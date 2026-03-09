@@ -1,6 +1,6 @@
-import React from "react";
-import { StyleSheet, View, TouchableOpacity } from "react-native";
+import { MapButtonStyles } from "@/app/styles/mapStyles";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { TouchableOpacity, View } from "react-native";
 
 interface LocationButtonProps {
   onPress: () => void; // function to go to current location
@@ -12,13 +12,13 @@ export default function LocationButton({
   bottomPosition = 80,
 }: Readonly<LocationButtonProps>) {
   return (
-    <View style={[styles.wrapper, { bottom: bottomPosition }]}>
+    <View style={[MapButtonStyles.wrapper, { bottom: bottomPosition }]}>
       {/* Adds fade (opacity) effect on press */}
       <TouchableOpacity
         accessibilityRole="button"
         accessibilityLabel="Go to my location"
         onPress={onPress}
-        style={styles.button}
+        style={MapButtonStyles.button}
         activeOpacity={0.8}
       >
         {/* GPS crosshairs icon */}
@@ -31,27 +31,3 @@ export default function LocationButton({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  // position of button
-  wrapper: {
-    position: "absolute",
-    right: 20,
-  },
-  // style of button
-  button: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: "#ffffff",
-    alignItems: "center",
-    justifyContent: "center",
-    // shadow
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    // Android elevation
-    elevation: 3,
-  },
-});

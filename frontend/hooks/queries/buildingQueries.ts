@@ -40,6 +40,13 @@ export const useGetBuildings = (campus: string) => {
   return query;
 };
 
+export type OpeningHoursModel = {
+  [day: string]: {
+    open: string;
+    close: string;
+  };
+}
+
 export type Building = {
   code: string;
   name: string;
@@ -51,6 +58,8 @@ export type Building = {
   departments: string[];
   venues: string[];
   accessibility: string[];
+  metro_accessible: boolean;
+  opening_hours: OpeningHoursModel;
 };
 
 export const useGetBuildingDetails = (buildingCode: string) => {
@@ -61,6 +70,7 @@ export const useGetBuildingDetails = (buildingCode: string) => {
       return apiClient.get(`/buildings/${buildingCode}`).json<Building>();
     },
     staleTime: Infinity,
+    enabled: !!buildingCode,
   });
 };
 
@@ -77,5 +87,35 @@ export const useGetBuildingImages = (buildingCode: string) => {
         .catch(() => [] as string[]);
     },
     staleTime: Infinity,
+  });
+};
+
+// Types for the /buildings/list endpoint (used by Directory page)
+export interface AllBuildingsResponse {
+  buildings: {
+    SGW: BuildingListItem[];
+    LOY: BuildingListItem[];
+  };
+}
+
+export interface BuildingListItem {
+  name: string;
+  long_name: string;
+  code: string;
+  campus: CampusCode;
+  address: string;
+  latitude: number;
+  longitude: number;
+}
+
+// Hook to fetch all buildings for Directory page
+export const useGetAllBuildings = () => {
+  return useQuery<AllBuildingsResponse>({
+    queryKey: ["buildings", "all"],
+    queryFn: async () => {
+      const apiClient = await api();
+      return apiClient.get("/buildings/list").json<AllBuildingsResponse>();
+    },
+    staleTime: 1000 * 60 * 10,
   });
 };

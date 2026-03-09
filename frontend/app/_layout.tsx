@@ -8,8 +8,8 @@ Navigation wrapper using Expo Router's Stack navigator that defines three routes
 */
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
-import ToastManager from "toastify-react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import ToastManager from "toastify-react-native";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { refetchOnWindowFocus: false, retry: false } },

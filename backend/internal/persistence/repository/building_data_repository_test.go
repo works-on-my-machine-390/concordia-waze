@@ -5,14 +5,13 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/works-on-my-machine-390/concordia-waze/internal/constants"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
 )
 
 func writeTempJSON(t *testing.T, content string) string {
 	t.Helper()
 	dir := t.TempDir()
-	path := filepath.Join(dir, constants.BuildingDataFile)
+	path := filepath.Join(dir, "temp_building_information.json")
 	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
 		t.Fatalf("failed to write temp json: %v", err)
 	}
@@ -49,6 +48,7 @@ func TestGetBuilding_Found_TrimsAndUppercasesCode(t *testing.T) {
 				"address": "1450 Guy St, Montreal",
 				"latitude": 45.4970,
 				"longitude": -73.5792,
+				"metro_accessible": true,
 				"departments": [
 					"Accountancy"
 				],
@@ -83,6 +83,9 @@ func TestGetBuilding_Found_TrimsAndUppercasesCode(t *testing.T) {
 	}
 	if b.Address != "1450 Guy St, Montreal" {
 		t.Fatalf("expected address 1450 Guy St, Montreal, got %s", b.Address)
+	}
+	if b.MetroAccessible != true {
+		t.Fatalf("expected MetroAccesible to be true, got false")
 	}
 	if len(b.Departments) != 1 || b.Departments[0] != "Accountancy" {
 		t.Fatalf("unexpected departments: %#v", b.Departments)
@@ -287,5 +290,47 @@ func TestGetCampusPolygons_TrimsAndUppercasesCampus(t *testing.T) {
 	}
 	if polys[0].Code != "MB" {
 		t.Fatalf("expected MB, got %s", polys[0].Code)
+	}
+}
+
+func TestGetAllBuildingsByCampus_ReturnsGroupedSummaries(t *testing.T) {
+	jsonContent := `{
+		"SGW": [
+			{ "code": "MB", "name": "MB Building", "long_name": "John Molson Building", "address": "1450 Guy St" }
+		],
+		"LOY": [
+			{ "code": "VL", "name": "Vanier Library", "long_name": "Vanier Library Building", "address": "7141 Sherbrooke W" }
+		]
+	}`
+
+	path := writeTempJSON(t, jsonContent)
+	repo := NewBuildingDataRepository(path)
+
+	grouped, err := repo.GetAllBuildingsByCampus()
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	// Expect both campus keys to be present and uppercased
+	sgwList, ok := grouped["SGW"]
+	if !ok {
+		t.Fatalf("expected SGW key present")
+	}
+	if len(sgwList) != 1 {
+		t.Fatalf("expected 1 SGW building, got %d", len(sgwList))
+	}
+	if sgwList[0].Code != "MB" || sgwList[0].Campus != "SGW" {
+		t.Fatalf("unexpected SGW entry: %+v", sgwList[0])
+	}
+
+	loyList, ok := grouped["LOY"]
+	if !ok {
+		t.Fatalf("expected LOY key present")
+	}
+	if len(loyList) != 1 {
+		t.Fatalf("expected 1 LOY building, got %d", len(loyList))
+	}
+	if loyList[0].Code != "VL" || loyList[0].Campus != "LOY" {
+		t.Fatalf("unexpected LOY entry: %+v", loyList[0])
 	}
 }

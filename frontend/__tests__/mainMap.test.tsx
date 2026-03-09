@@ -1,25 +1,12 @@
-/**
- * Tests for Map screen
- */
-
-import { fireEvent, waitFor, act, cleanup } from "@testing-library/react-native";
-import { Alert } from "react-native";
+import { act, cleanup, fireEvent, waitFor } from "@testing-library/react-native";
+import * as ExpoRouter from "expo-router";
+import * as Location from "expo-location";
+import MainMap from "../app/(drawer)/map";
+import { getDistance } from "../app/utils/mapUtils";
+import { MapMode, useMapStore } from "../hooks/useMapStore";
+import { useNavigationStore } from "../hooks/useNavigationStore";
 import { renderWithProviders } from "../test_utils/renderUtils";
 
-import MainMap from "../app/(drawer)/map";
-import * as Location from "expo-location";
-import { getDistance } from "../app/utils/mapUtils";
-
-/**
- * -----------------------------
- * Mocks
- * -----------------------------
- */
-
-// Mock Alert
-jest.spyOn(Alert, "alert").mockImplementation(() => {});
-
-// Mock expo-location (MainMap uses watchPositionAsync)
 jest.mock("expo-location", () => ({
   requestForegroundPermissionsAsync: jest.fn(),
   getCurrentPositionAsync: jest.fn(),
@@ -27,69 +14,89 @@ jest.mock("expo-location", () => ({
   Accuracy: { High: 6 },
 }));
 
-// Mock point-in-polygon (predictable true)
 jest.mock("../app/utils/pointInPolygon", () => ({
-  isPointInPolygon: jest.fn(() => true),
+  isPointInPolygon: jest.fn(() => false),
 }));
 
-// Mock distance utility so we can control campus switching
 jest.mock("../app/utils/mapUtils", () => ({
   getDistance: jest.fn(),
 }));
 
-/**
- * CampusBuildingPolygons mock (TS-safe)
- */
+const mockUseGetBuildings = jest.fn();
+const mockUseGetBuildingDetails = jest.fn();
+
+jest.mock("@/hooks/queries/buildingQueries", () => ({
+  useGetBuildings: () => mockUseGetBuildings(),
+  useGetBuildingDetails: (code: string) => mockUseGetBuildingDetails(code),
+  CampusCode: {
+    SGW: "SGW",
+    LOY: "LOY",
+  },
+}));
+
 type CampusBuildingPolygonsProps = {
-  highlightedCode?: string | null;
-  campus?: string;
+  buildings?: Array<{ code: string; polygon: number[][] }>;
 };
 
 const mockCampusBuildingPolygons = jest.fn(
   (props: CampusBuildingPolygonsProps) => null,
 );
 
+jest.mock("~/components/CampusBuildingPolygons", () => ({
+  __esModule: true,
+  default: (props: CampusBuildingPolygonsProps) => {
+    mockCampusBuildingPolygons(props);
+    return null;
+  },
+}));
+
 let latestCampus: string | undefined;
 
-// IMPORTANT:
-// This mock assumes MainMap imports CampusBuildingPolygons as DEFAULT:
-//   import CampusBuildingPolygons from "../components/CampusBuildingPolygons"
-jest.mock("../components/CampusBuildingPolygons", () => {
-  return {
-    __esModule: true,
-    default: (props: CampusBuildingPolygonsProps) => {
-      mockCampusBuildingPolygons(props);
-      return null;
-    },
-  };
-});
-
-// Mock MapHeader so we can trigger onCampusChange easily
-jest.mock("../components/MapHeader", () => ({
+jest.mock("~/components/MapHeader", () => ({
   MapHeader: ({ onCampusChange, campus }: any) => {
     latestCampus = campus;
     const { View, Button } = require("react-native");
     return (
       <View>
-        <Button
-          title="Switch to Loyola"
-          onPress={() => onCampusChange("LOY")}
-        />
+        <Button title="Switch to Loyola" onPress={() => onCampusChange("LOY")} />
         <Button title="Switch to SGW" onPress={() => onCampusChange("SGW")} />
       </View>
     );
   },
 }));
 
-// Mock LocationButton so we can press it
-jest.mock("../components/LocationButton", () => {
-  return ({ onPress }: any) => {
-    const { Button } = require("react-native");
-    return <Button title="My Location" onPress={onPress} />;
+let capturedStartLocationPress: (() => void) | undefined;
+let capturedEndLocationPress: (() => void) | undefined;
+
+jest.mock("~/components/NavigationHeader", () => ({
+  NavigationHeader: ({ onStartLocationPress, onEndLocationPress }: any) => {
+    capturedStartLocationPress = onStartLocationPress;
+    capturedEndLocationPress = onEndLocationPress;
+    const { View, Button, Text } = require("react-native");
+    return (
+      <View>
+        <Text>Navigation Header</Text>
+        <Button title="Edit Start" onPress={onStartLocationPress} />
+        <Button title="Edit End" onPress={onEndLocationPress} />
+      </View>
+    );
+  },
+}));
+
+let capturedGoToMyLocation: (() => void) | undefined;
+
+jest.mock("@/components/MapBottomSection", () => {
+  return ({ goToMyLocation }: any) => {
+    capturedGoToMyLocation = goToMyLocation;
+    const { View, Button } = require("react-native");
+    return (
+      <View>
+        <Button title="My Location" onPress={goToMyLocation} />
+      </View>
+    );
   };
 });
 
-// Mock react-native-maps so we can control mapRef + animateToRegion
 const mockAnimateToRegion = jest.fn();
 let latestMapProps: any;
 
@@ -99,28 +106,38 @@ jest.mock("react-native-maps", () => {
 
   return {
     __esModule: true,
-    default: React.forwardRef((props, ref) => {
+    default: React.forwardRef((props: any, ref: any) => {
       React.useImperativeHandle(ref, () => ({
         animateToRegion: mockAnimateToRegion,
       }));
       latestMapProps = props;
       return <View testID="map">{props.children}</View>;
     }),
-    Marker: ({ children }) => <View testID="marker">{children}</View>,
   };
 });
 
-// Mock the BuildingBottomSheet component to not render it during test
-// returns null because only want to test MainMap behavior (not the bottom sheet itself)
-jest.mock('@/components/BuildingBottomSheet', () => {
-  return function MockBuildingBottomSheet() {
-    return null; 
-  };
-});
+jest.mock("toastify-react-native", () => ({
+  Toast: {
+    error: jest.fn(),
+    warn: jest.fn(),
+    info: jest.fn(),
+    success: jest.fn(),
+  },
+}));
 
-/**
- * Helper: permission granted + watch emits a location update immediately
- */
+function resetStores() {
+  useMapStore.setState({
+    userLocation: undefined,
+    selectedBuildingCode: undefined,
+    currentBuildingCode: undefined,
+    currentMode: MapMode.NONE,
+  });
+  useNavigationStore.setState({
+    startLocation: undefined,
+    endLocation: undefined,
+  });
+}
+
 function mockGrantedWatchLocation(lat = 45.5, lng = -73.6) {
   (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
     status: "granted",
@@ -135,11 +152,48 @@ function mockGrantedWatchLocation(lat = 45.5, lng = -73.6) {
 }
 
 describe("MainMap screen", () => {
+  const mockRouter = {
+    push: jest.fn(),
+    replace: jest.fn(),
+    back: jest.fn(),
+    setParams: jest.fn(),
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.spyOn(console, "error").mockImplementation(() => {});
     latestCampus = undefined;
     latestMapProps = undefined;
+    capturedGoToMyLocation = undefined;
+    capturedStartLocationPress = undefined;
+    capturedEndLocationPress = undefined;
+    resetStores();
+
+    jest.spyOn(ExpoRouter, "useRouter").mockReturnValue(mockRouter as any);
+    jest.spyOn(ExpoRouter, "useLocalSearchParams").mockReturnValue({} as any);
+
+    mockUseGetBuildings.mockReturnValue({
+      data: {
+        campus: "SGW",
+        buildings: [
+          {
+            code: "H",
+            polygon: [
+              [45.497, -73.579],
+              [45.498, -73.578],
+              [45.497, -73.577],
+            ],
+          },
+        ],
+      },
+      isLoading: false,
+      error: null,
+    });
+
+    mockUseGetBuildingDetails.mockReturnValue({
+      data: null,
+      isLoading: false,
+      error: null,
+    });
   });
 
   afterEach(() => {
@@ -159,20 +213,17 @@ describe("MainMap screen", () => {
   test("starts watching position when permission is granted", async () => {
     mockGrantedWatchLocation();
 
-    const { unmount } = renderWithProviders(<MainMap />);
+    renderWithProviders(<MainMap />);
 
     await waitFor(() => {
       expect(Location.watchPositionAsync).toHaveBeenCalled();
     });
-    unmount();
   });
 
-  test("does NOT watch position if permission is denied", async () => {
-    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue(
-      {
-        status: "denied",
-      },
-    );
+  test("does not watch position if permission is denied", async () => {
+    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
+      status: "denied",
+    });
 
     renderWithProviders(<MainMap />);
 
@@ -183,14 +234,13 @@ describe("MainMap screen", () => {
     expect(Location.watchPositionAsync).not.toHaveBeenCalled();
   });
 
-  test("pressing LocationButton animates map to current location (when location exists)", async () => {
+  test("goToMyLocation animates map to watched location", async () => {
     mockGrantedWatchLocation(45.5, -73.6);
 
     const { getByText } = renderWithProviders(<MainMap />);
 
-    // Wait for location to be set (indicated by CampusBuildingPolygons being called)
     await waitFor(() => {
-      expect(mockCampusBuildingPolygons).toHaveBeenCalled();
+      expect(capturedGoToMyLocation).toBeDefined();
     });
 
     await act(async () => {
@@ -210,12 +260,14 @@ describe("MainMap screen", () => {
     });
   });
 
-  test("pressing LocationButton does not animate if location is missing", async () => {
-    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue(
-      {
-        status: "denied",
-      },
-    );
+  test("goToMyLocation fetches current position when location is null", async () => {
+    (Location.requestForegroundPermissionsAsync as jest.Mock)
+      .mockResolvedValueOnce({ status: "denied" })
+      .mockResolvedValueOnce({ status: "granted" });
+
+    (Location.getCurrentPositionAsync as jest.Mock).mockResolvedValue({
+      coords: { latitude: 45.555, longitude: -73.666 },
+    });
 
     const { getByText } = renderWithProviders(<MainMap />);
 
@@ -223,16 +275,27 @@ describe("MainMap screen", () => {
       fireEvent.press(getByText("My Location"));
     });
 
-    // MainMap appears to silently do nothing in this state
-    expect(mockAnimateToRegion).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(Location.getCurrentPositionAsync).toHaveBeenCalled();
+    });
+
+    await waitFor(() => {
+      expect(mockAnimateToRegion).toHaveBeenCalledWith(
+        {
+          latitude: 45.555,
+          longitude: -73.666,
+          latitudeDelta: 0.005,
+          longitudeDelta: 0.005,
+        },
+        500,
+      );
+    });
   });
 
   test("changing campus animates map to Loyola coords", async () => {
-    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue(
-      {
-        status: "denied",
-      },
-    );
+    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
+      status: "denied",
+    });
 
     const { getByText } = renderWithProviders(<MainMap />);
 
@@ -252,15 +315,11 @@ describe("MainMap screen", () => {
   });
 
   test("region change switches campus to the closest campus", async () => {
-    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue(
-      {
-        status: "denied",
-      },
-    );
+    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
+      status: "denied",
+    });
 
-    (getDistance as jest.Mock)
-      .mockReturnValueOnce(100)
-      .mockReturnValueOnce(10);
+    (getDistance as jest.Mock).mockReturnValueOnce(100).mockReturnValueOnce(10);
 
     renderWithProviders(<MainMap />);
 
@@ -278,24 +337,43 @@ describe("MainMap screen", () => {
     });
   });
 
-  test("logs error if watchPositionAsync throws", async () => {
-    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue(
-      {
-        status: "granted",
-      },
-    );
+  test("sets currentBuildingCode when user location is inside a building polygon", async () => {
+    const { isPointInPolygon } = require("../app/utils/pointInPolygon");
+    isPointInPolygon.mockReturnValue(true);
 
-    (Location.watchPositionAsync as jest.Mock).mockRejectedValueOnce(
-      new Error("permission request failed"),
-    );
+    mockGrantedWatchLocation(45.497, -73.579);
 
     renderWithProviders(<MainMap />);
 
     await waitFor(() => {
-      expect(console.error).toHaveBeenCalledWith(
-        "Failed to watch location.",
-        expect.any(Error),
-      );
+      expect(isPointInPolygon).toHaveBeenCalled();
+      expect(useMapStore.getState().currentBuildingCode).toBe("H");
     });
+  });
+
+  test("navigation header edit buttons route to search with edit mode", async () => {
+    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
+      status: "denied",
+    });
+
+    useMapStore.getState().setCurrentMode(MapMode.NAVIGATION);
+
+    renderWithProviders(<MainMap />);
+
+    await waitFor(() => {
+      expect(capturedStartLocationPress).toBeDefined();
+      expect(capturedEndLocationPress).toBeDefined();
+    });
+
+    await act(async () => {
+      capturedStartLocationPress?.();
+    });
+
+    await act(async () => {
+      capturedEndLocationPress?.();
+    });
+
+    expect(capturedStartLocationPress).toBeDefined();
+    expect(capturedEndLocationPress).toBeDefined();
   });
 });

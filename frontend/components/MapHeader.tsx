@@ -1,8 +1,9 @@
+import SearchPill from "@/components/shared/SearchPill";
 import { CampusCode } from "@/hooks/queries/buildingQueries";
 import { Ionicons } from "@expo/vector-icons";
 import { DrawerActions } from "@react-navigation/native";
-import { useNavigation } from "expo-router";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { useNavigation, useRouter } from "expo-router";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { colors, SHADOW } from "../app/styles/theme";
 
 type Props = Readonly<{
@@ -10,7 +11,9 @@ type Props = Readonly<{
   onCampusChange: (campus: CampusCode) => void;
   onMenuPress?: () => void;
   searchText: string;
-  onSearchTextChange: (t: string) => void;
+  onSearchClear?: () => void;
+  camLat?: string;
+  camLng?: string;
 }>;
 
 export function MapHeader({
@@ -18,14 +21,29 @@ export function MapHeader({
   onCampusChange,
   onMenuPress,
   searchText,
-  onSearchTextChange,
+  onSearchClear,
+  camLat,
+  camLng,
 }: Props) {
   const navigation = useNavigation();
+  const router = useRouter();
 
   const handleMenuButtonPress = () => {
     navigation.dispatch(DrawerActions.openDrawer());
 
     onMenuPress?.();
+  };
+
+  const openSearch = () => {
+    router.push({
+      pathname: "/search",
+      params: {
+        campus,
+        camLat,
+        camLng,
+        query: searchText,
+      },
+    });
   };
 
   return (
@@ -37,18 +55,13 @@ export function MapHeader({
         </Pressable>
 
         {/* search section */}
-        <View style={styles.searchPill}>
-          <Ionicons name="search" size={26} color={colors.maroon} />
-          <TextInput
-            value={searchText}
-            onChangeText={onSearchTextChange}
-            placeholder="Where to…"
-            placeholderTextColor="#818181"
-            style={styles.searchInput}
-          />
-        </View>
+        <SearchPill
+          value={searchText}
+          placeholder="Where to…"
+          onPress={openSearch}
+          onClear={onSearchClear || (() => {})}
+        />
       </View>
-
       {/* campus selection sections */}
       <View style={styles.chipsRow}>
         <CampusButton
@@ -102,7 +115,7 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
     paddingHorizontal: 16,
     width: "100%",
-    top: 40, // need to test on different devices (gap from top of screen))
+    top: 40,
   },
 
   headerRow: {
@@ -123,25 +136,6 @@ const styles = StyleSheet.create({
 
   iconText: {
     fontSize: 18,
-  },
-
-  searchPill: {
-    flex: 1,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "white",
-    paddingHorizontal: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    ...SHADOW,
-  },
-
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: "#111",
-    paddingVertical: 0,
   },
 
   chipsRow: {

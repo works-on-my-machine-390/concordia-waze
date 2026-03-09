@@ -1,93 +1,55 @@
 package application
 
 import (
-	"errors"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
 )
 
-type fakeBuildingService struct {
-	building *domain.Building
-	err      error
-}
+func TestLoadImage_ByExtensionAndLeadingSlash(t *testing.T) {
+	tmp := t.TempDir()
 
-func (f *fakeBuildingService) GetBuilding(code string) (*domain.Building, error) {
-	return f.building, f.err
-}
-
-type fakePlacesClient struct {
-	placeID string
-	images  []string
-	err     error
-}
-
-func (f *fakePlacesClient) FindPlaceID(string, float64, float64) (string, error) {
-	return f.placeID, f.err
-}
-
-func (f *fakePlacesClient) GetPhotoURLs(string) ([]string, error) {
-	return f.images, f.err
-}
-
-func TestImageService_GetBuildingImages_Success(t *testing.T) {
-	buildingSvc := &fakeBuildingService{
-		building: &domain.Building{
-			Code:      "LS",
-			LongName:  "Learning Square",
-			Address:   "1535 DeMaisonneuve W",
-			Latitude:  45.49,
-			Longitude: -73.57,
-		},
+	// create a simple PNG file
+	name := "img.png"
+	path := filepath.Join(tmp, name)
+	pngHeader := []byte{0x89, 'P', 'N', 'G', '\r', '\n', 0x1a, '\n'}
+	if err := os.WriteFile(path, append(pngHeader, make([]byte, 100)...), 0644); err != nil {
+		t.Fatalf("write file: %v", err)
 	}
 
-	places := &fakePlacesClient{
-		placeID: "place123",
-		images: []string{
-			"https://img1",
-			"https://img2",
-		},
-	}
-
-	service := NewImageService(buildingSvc, places)
-
-	images, err := service.GetBuildingImages("LS")
-
+	s := NewImageService(nil, nil)
+	data, ct, err := s.LoadImage(tmp, "/"+name) // leading slash should be normalized
 	assert.NoError(t, err)
-	assert.Len(t, images, 2)
-	assert.Equal(t, "https://img1", images[0])
+	assert.NotEmpty(t, data)
+	assert.Equal(t, "image/png", ct)
 }
 
-func TestImageService_GetBuildingImages_BuildingNotFound(t *testing.T) {
-	buildingSvc := &fakeBuildingService{
-		err: errors.New("not found"),
+func TestLoadImage_DetectContentType_NoExtension(t *testing.T) {
+	tmp := t.TempDir()
+
+	name := "doc"
+	path := filepath.Join(tmp, name)
+	content := []byte("hello world\nthis is a test\n")
+	if err := os.WriteFile(path, content, 0644); err != nil {
+		t.Fatalf("write file: %v", err)
 	}
 
-	service := NewImageService(buildingSvc, &fakePlacesClient{})
-
-	images, err := service.GetBuildingImages("LS")
-
-	assert.Error(t, err)
-	assert.Nil(t, images)
+	s := NewImageService(nil, nil)
+	data, ct, err := s.LoadImage(tmp, name)
+	assert.NoError(t, err)
+	assert.Equal(t, string(content), string(data))
+	// DetectContentType usually returns "text/plain; charset=utf-8" for this content
+	assert.True(t, strings.HasPrefix(ct, "text/plain"))
 }
 
-func TestImageService_GetBuildingImages_PlacesError(t *testing.T) {
-	buildingSvc := &fakeBuildingService{
-		building: &domain.Building{
-			LongName: "Learning Square",
-			Address:  "1535 DeMaisonneuve W",
-		},
-	}
+func TestLoadImage_NonExistentFile(t *testing.T) {
+	tmp := t.TempDir()
+	s := NewImageService(nil, nil)
 
-	places := &fakePlacesClient{
-		err: errors.New("google error"),
-	}
-
-	service := NewImageService(buildingSvc, places)
-
-	images, err := service.GetBuildingImages("LS")
-
+	_, _, err := s.LoadImage(tmp, "nope.png")
 	assert.Error(t, err)
-	assert.Nil(t, images)
+	assert.True(t, os.IsNotExist(err))
 }

@@ -1,9 +1,21 @@
 import type { Building } from "@/hooks/queries/buildingQueries";
 import { useGetBuildingDetails } from "@/hooks/queries/buildingQueries";
+import { useSaveToHistory } from "@/hooks/queries/userHistoryQueries";
+import { useGetProfile } from "@/hooks/queries/userQueries";
+import { MapMode, useMapStore } from "@/hooks/useMapStore";
+import { useNavigationStore } from "@/hooks/useNavigationStore";
+import useStartLocation from "@/hooks/useStartLocation";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
-import { useCallback, useMemo, useRef, useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View, Image } from "react-native";
-import { COLORS } from "../app/constants";
+import { useCallback, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { BUILDINGS_WITH_INDOOR_MAPS, COLORS } from "../app/constants";
 import {
   CloseIcon,
   ElevatorIcon,
@@ -12,26 +24,13 @@ import {
   SlopeUpIcon,
   WheelchairIcon,
 } from "../app/icons";
+import ListSection from "./BottomSheetListSection";
 import BuildingGallery from "./BuildingGallery";
+import MetroAccessibleChip from "./MetroAccessibleChip";
+import OpeningHours from "./OpeningHours";
+import ViewIndoorMapButton from "./ViewIndoorMapButton";
 
-// Reusable list section
-function ListSection({ title, items }: { title: string; items: string[] }) {
-  return (
-    <View style={styles.listContainer}>
-      <Text style={styles.listTitle}>{title}</Text>
-      {items.map((item) => (
-        <Text key={item} style={styles.listItem}>
-          {item}
-        </Text>
-      ))}
-    </View>
-  );
-}
-
-type Props = {
-  buildingCode: string | null;
-  onClose?: () => void;
-};
+export type BuildingBottomSheetProps = {};
 
 type BottomSheetBuildingModel = {
   accessibilityMapping: {
@@ -41,48 +40,61 @@ type BottomSheetBuildingModel = {
   };
 } & Building;
 
-// Function to return the dizzy icon and message if no building info showsf
 function EmptyBuildingState() {
   return (
-    <View style={styles.emptyStateContainer}>
+    <View style={BottomSheetStyles.emptyStateContainer}>
       <Image
         source={require("../assets/images/icon-dizzy.png")}
-        style={styles.emptyStateImage}
+        style={BottomSheetStyles.emptyStateImage}
         resizeMode="contain"
       />
-      <Text style={styles.emptyStateText}>
+      <Text style={BottomSheetStyles.emptyStateText}>
         No information available for this building
       </Text>
     </View>
   );
 }
 
-export default function BuildingBottomSheet(props: Readonly<Props>) {
-  const bottomSheetRef = useRef<BottomSheet>(null);
+export default function BuildingBottomSheet(
+  props: Readonly<BuildingBottomSheetProps>,
+) {
   const [sheetOpen, setSheetOpen] = useState(true);
+
+  const mapState = useMapStore();
+
+  const { findAndSetStartLocation } = useStartLocation();
+
+  const userProfileQuery = useGetProfile();
+
+  const saveToHistory = useSaveToHistory(userProfileQuery.data?.id || "");
 
   const snapPoints = useMemo(() => ["20%", "70%"], []);
 
-  const getBuildingQuery = useGetBuildingDetails(props.buildingCode || "");
+  const getBuildingQuery = useGetBuildingDetails(
+    mapState.selectedBuildingCode || "",
+  );
 
   const building: BottomSheetBuildingModel = useMemo(() => {
-    if (
-      getBuildingQuery.data &&
-      getBuildingQuery.isSuccess &&
-      getBuildingQuery.data.accessibility
-    ) {
+    if (getBuildingQuery.data && getBuildingQuery.isSuccess) {
+      const isAccessibilityDataAvailable =
+        getBuildingQuery.data.accessibility?.length > 0;
+
+      const accessbilityMapping = isAccessibilityDataAvailable
+        ? {
+            wheelchair: getBuildingQuery.data.accessibility.includes(
+              "Accessible entrance",
+            ),
+            elevator: getBuildingQuery.data.accessibility.includes(
+              "Accessible building elevator",
+            ),
+            ramp: getBuildingQuery.data.accessibility.includes(
+              "Accessibility ramp",
+            ),
+          }
+        : { wheelchair: false, elevator: false, ramp: false };
+
       return {
-        accessibilityMapping: {
-          wheelchair: getBuildingQuery.data.accessibility.includes(
-            "Accessible entrance",
-          ),
-          elevator: getBuildingQuery.data.accessibility.includes(
-            "Accessible building elevator",
-          ),
-          ramp: getBuildingQuery.data.accessibility.includes(
-            "Accessibility ramp",
-          ),
-        },
+        accessibilityMapping: accessbilityMapping,
         ...getBuildingQuery.data,
       };
     }
@@ -92,14 +104,8 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
     if (index > -1) setSheetOpen(true);
   }, []);
 
-  const handleCloseSheet = useCallback(() => {
-    if (props.onClose) {
-      props.onClose();
-    }
-  }, []);
-
   const accessibilityIcons = useMemo(() => {
-    if (!building || !building.accessibilityMapping) return [];
+    if (!building?.accessibilityMapping) return [];
     return [
       building.accessibilityMapping.wheelchair && (
         <WheelchairIcon key="wheelchair" color="#0E4C92" size={24} />
@@ -110,48 +116,105 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
       building.accessibilityMapping.ramp && (
         <SlopeUpIcon key="ramp" color="#0E4C92" size={30} />
       ),
+      building.metro_accessible && <MetroAccessibleChip key={"metro-access"} />,
     ].filter(Boolean);
   }, [building?.accessibilityMapping]);
 
+  const isLoading = getBuildingQuery.isLoading;
   const hasBuildingData = !!building && getBuildingQuery.isSuccess;
+  const hasIndoorMap =
+    hasBuildingData &&
+    BUILDINGS_WITH_INDOOR_MAPS.includes(building.code as any);
+
+  const navigationState = useNavigationStore();
+  const handleStartNavigation = async () => {
+    navigationState.setEndLocation({
+      code: building.code,
+      name: building.long_name,
+      latitude: building.latitude,
+      longitude: building.longitude,
+      address: building.address,
+    });
+    mapState.setCurrentMode(MapMode.NAVIGATION);
+
+    if (userProfileQuery.data?.id) {
+      saveToHistory.mutate({
+        name: building.long_name,
+        address: building.address,
+        lat: building.latitude,
+        lng: building.longitude,
+        building_code: building.code,
+        destinationType: "building",
+      });
+    }
+
+    findAndSetStartLocation();
+  };
 
   return (
     <BottomSheet
-      ref={bottomSheetRef}
+      handleComponent={null}
       index={0}
       snapPoints={snapPoints}
       onChange={handleSheetChanges}
       enableContentPanningGesture
       enableDynamicSizing={false}
       detached
-      backgroundStyle={styles.bottomSheet}
+      backgroundStyle={BottomSheetStyles.bottomSheet}
       containerStyle={{ overflow: "visible" }}
     >
-      {hasBuildingData ? (
+      {isLoading && (
+        <View style={{ marginTop: 16 }}>
+          <ActivityIndicator size="large" color={COLORS.maroon} />
+        </View>
+      )}
+
+      {!isLoading && hasBuildingData && (
         <>
+          <View style={BottomSheetStyles.fakeHandleContainer}>
+            <View style={BottomSheetStyles.fakeHandleBar} />
+          </View>
           {/* Header */}
-          <View style={styles.headerContainer}>
+          <View style={BottomSheetStyles.headerContainer}>
             {sheetOpen && (
-              <View style={styles.floatingIcon}>
-                <GetDirectionsIcon size={90} color={COLORS.maroon} />
-              </View>
+              <>
+                <TouchableOpacity
+                  onPress={handleStartNavigation}
+                  testID="start-navigation"
+                >
+                  <View style={BottomSheetStyles.floatingIcon}>
+                    <GetDirectionsIcon size={90} color={COLORS.maroon} />
+                  </View>
+                </TouchableOpacity>
+
+                {hasIndoorMap && (
+                  <View style={BottomSheetStyles.indoorMapButton}>
+                    <ViewIndoorMapButton buildingCode={building.code} />
+                  </View>
+                )}
+              </>
             )}
 
-            <View style={styles.textContainer}>
-              <Text style={styles.name}>
+            <View style={BottomSheetStyles.textContainer}>
+              <Text style={BottomSheetStyles.name}>
                 {building.long_name} ({building.code})
               </Text>
-              <Text style={styles.address}>{building.address}</Text>
+              <Text style={BottomSheetStyles.address}>{building.address}</Text>
             </View>
 
-            <View style={styles.iconsContainer}>
-              <View style={styles.accessibilityIconsContainer}>
+            <View style={BottomSheetStyles.iconsContainer}>
+              <View style={BottomSheetStyles.accessibilityIconsContainer}>
                 {accessibilityIcons}
               </View>
-
-              <View style={styles.accessibilityIconsContainer}>
+              <View style={BottomSheetStyles.accessibilityIconsContainer}>
                 <FavoriteEmptyIcon color={COLORS.maroon} />
-                <TouchableOpacity onPress={handleCloseSheet}>
+                <TouchableOpacity
+                  onPress={() => {
+                    mapState.setSelectedBuildingCode(null);
+                    mapState.closeSheet();
+                  }}
+                  style={BottomSheetStyles.closeIcon}
+                >
                   <CloseIcon size={28} />
                 </TouchableOpacity>
               </View>
@@ -159,16 +222,21 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
           </View>
 
           {/* Scrollable Content */}
-          <BottomSheetScrollView contentContainerStyle={styles.scrollContent}>
+          <BottomSheetScrollView
+            contentContainerStyle={BottomSheetStyles.scrollContent}
+          >
+            <OpeningHours openingHours={building.opening_hours} />
             <BuildingGallery buildingCode={building.code} />
-
             <ListSection title="Services" items={building.services} />
             <ListSection title="Departments" items={building.departments} />
             <ListSection title="Venues" items={building.venues} />
           </BottomSheetScrollView>
         </>
-      ) : (
-        <BottomSheetScrollView contentContainerStyle={styles.scrollContent}>
+      )}
+      {!isLoading && !hasBuildingData && (
+        <BottomSheetScrollView
+          contentContainerStyle={BottomSheetStyles.scrollContent}
+        >
           <EmptyBuildingState />
         </BottomSheetScrollView>
       )}
@@ -176,7 +244,7 @@ export default function BuildingBottomSheet(props: Readonly<Props>) {
   );
 }
 
-const styles = StyleSheet.create({
+export const BottomSheetStyles = StyleSheet.create({
   bottomSheet: {
     backgroundColor: COLORS.background,
     shadowColor: "#000",
@@ -186,15 +254,28 @@ const styles = StyleSheet.create({
     elevation: 12,
   },
 
+  fakeHandleContainer: {
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingTop: 8,
+  },
+
+  fakeHandleBar: {
+    width: 40,
+    height: 4,
+    backgroundColor: "#D1D1D6",
+    borderRadius: 2,
+  },
+
   headerContainer: {
     paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingVertical: 8,
   },
 
   floatingIcon: {
     position: "absolute",
-    top: -60,
-    right: 10,
+    top: -88,
+    right: -20,
     zIndex: 10,
     borderRadius: 20,
     padding: 6,
@@ -232,30 +313,13 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
 
+  closeIcon: {
+    marginLeft: 7,
+  },
+
   scrollContent: {
     paddingHorizontal: 16,
     paddingBottom: 20,
-  },
-
-  listContainer: {
-    marginBottom: 20,
-    backgroundColor: "#f2f2f2",
-    padding: 10,
-    width: "100%",
-    borderRadius: 8,
-  },
-
-  listTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 6,
-    color: COLORS.textPrimary,
-  },
-
-  listItem: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    marginBottom: 4,
   },
 
   gallerySkeleton: {
@@ -280,5 +344,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: COLORS.textSecondary,
     textAlign: "center",
+  },
+
+  indoorMapButton: {
+    position: "absolute",
+    top: -88,
+    left: 10,
+    zIndex: 10,
   },
 });

@@ -12,7 +12,7 @@ import AuthButton from "../components/AuthButton";
 import AuthInput from "../components/AuthInput";
 import AuthLayout from "../components/AuthLayout";
 import PasswordToggle from "../components/PasswordToggle";
-import { TermsText } from "../components/SharedUI";
+import { TermsText } from "../components/TermsText";
 import { useAuth } from "../hooks/useAuth";
 import { COLORS } from "./constants";
 import { EyeHidingIcon, EyeShowingIcon } from "./icons";
@@ -160,7 +160,11 @@ export default function RegisterScreen() {
 
       <View style={styles.footer}>
         <Text style={styles.footerText}>Already have an account? </Text>
-        <TouchableOpacity onPress={() => router.push({ pathname: "/login", params: { prev: "register" } })}>
+        <TouchableOpacity
+          onPress={() =>
+            router.push({ pathname: "/login", params: { prev: "register" } })
+          }
+        >
           <Text style={styles.footerLink}>Sign in</Text>
         </TouchableOpacity>
       </View>

@@ -1,12 +1,16 @@
-/**
- * Tests for BuildingBottomSheet
- */
+import { useGetBuildingDetails } from "@/hooks/queries/buildingQueries";
+import { useSaveToHistory } from "@/hooks/queries/userHistoryQueries";
+import { useGetProfile } from "@/hooks/queries/userQueries";
+import { fireEvent, waitFor } from "@testing-library/react-native";
+import BuildingBottomSheet from "../components/BuildingBottomSheet";
+import { MapMode, useMapStore } from "../hooks/useMapStore";
+import { useNavigationStore } from "../hooks/useNavigationStore";
+import { renderWithProviders } from "../test_utils/renderUtils";
 
-// Mock react-native-gesture-handler
 jest.mock("react-native-gesture-handler", () => {
-  const React = require("react");
   return {
     GestureHandlerRootView: ({ children }: any) => <>{children}</>,
+    ScrollView: ({ children }: any) => <>{children}</>,
     Swipeable: ({ children }: any) => <>{children}</>,
     PanGestureHandler: ({ children }: any) => <>{children}</>,
     State: {},
@@ -14,177 +18,209 @@ jest.mock("react-native-gesture-handler", () => {
   };
 });
 
-import { render, fireEvent, act } from "@testing-library/react-native";
-import React from "react";
-import BuildingBottomSheet from "../components/BuildingBottomSheet";
-import { useGetBuildingDetails } from "@/hooks/queries/buildingQueries";
+jest.mock("@/hooks/queries/buildingQueries", () => ({
+  useGetBuildingDetails: jest.fn(),
+  CampusCode: {
+    SGW: "SGW",
+    LOY: "LOY",
+  },
+}));
 
-// Mock the hook
-jest.mock("@/hooks/queries/buildingQueries");
+jest.mock("@/hooks/queries/userQueries", () => ({
+  useGetProfile: jest.fn(),
+}));
 
-// Mock BottomSheet & BottomSheetScrollView to just render children
+jest.mock("@/hooks/queries/userHistoryQueries", () => ({
+  useSaveToHistory: jest.fn(),
+}));
+
+jest.mock("@/app/utils/mapUtils", () => ({
+  getAddressFromLocation: jest.fn().mockResolvedValue("1455 De Maisonneuve Blvd W"),
+}));
+
 jest.mock("@gorhom/bottom-sheet", () => {
   const React = require("react");
   const { View } = require("react-native");
   return {
     __esModule: true,
-    default: React.forwardRef(({ children }: any, ref) => (
-      <View>{children}</View>
-    )),
+    default: React.forwardRef(({ children, onChange }: any, ref: any) => {
+      React.useImperativeHandle(ref, () => ({ snapToIndex: jest.fn() }));
+      return (
+        <View testID="bottom-sheet" onLayout={() => onChange && onChange(1)}>
+          {children}
+        </View>
+      );
+    }),
     BottomSheetScrollView: ({ children }: any) => <View>{children}</View>,
   };
 });
 
-// Mock the icons
 jest.mock("../app/icons", () => {
-  const React = require("react");
+  const { View } = require("react-native");
   return {
-    CloseIcon: () => {
-      const { View } = require("react-native");
-      return <View testID="close-icon" />;
-    },
-    ElevatorIcon: () => {
-      const { View } = require("react-native");
-      return <View testID="elevator-icon" />;
-    },
-    EscalatorIcon: () => {
-      const { View } = require("react-native");
-      return <View testID="escalator-icon" />;
-    },
-    FavoriteEmptyIcon: () => {
-      const { View } = require("react-native");
-      return <View testID="favorite-icon" />;
-    },
-    GetDirectionsIcon: () => {
-      const { View } = require("react-native");
-      return <View testID="get-directions-icon" />;
-    },
-    WheelchairIcon: () => {
-      const { View } = require("react-native");
-      return <View testID="wheelchair-icon" />;
-    },
-    SlopeUpIcon: () => {
-      const { View } = require("react-native");
-      return <View testID="slope-up-icon" />;
-    },
+    CloseIcon: () => <View testID="close-icon" />,
+    ElevatorIcon: () => <View testID="elevator-icon" />,
+    FavoriteEmptyIcon: () => <View testID="favorite-icon" />,
+    GetDirectionsIcon: () => <View testID="get-directions-icon" />,
+    WheelchairIcon: () => <View testID="wheelchair-icon" />,
+    SlopeUpIcon: () => <View testID="slope-up-icon" />,
   };
 });
 
-// Mock BuildingGallery
 jest.mock("../components/BuildingGallery", () => {
+  const { View } = require("react-native");
   return function MockBuildingGallery() {
-    const { View } = require("react-native");
     return <View testID="building-gallery" />;
   };
 });
 
-describe("BuildingBottomSheet", () => {
-  const mockBuilding = {
-    code: "MB",
-    long_name: "John Molson Building",
-    address: "1450 Guy St, Montreal",
-    services: ["Career Management Service", "First Stop"],
-    departments: ["Accountancy", "Finance"],
-    venues: ["Cafe", "Library"],
-    accessibility: ["Accessible entrance", "Accessible building elevator"],
+jest.mock("../components/BottomSheetListSection", () => {
+  const { View, Text } = require("react-native");
+  return function MockListSection({ title, items }: any) {
+    return (
+      <View>
+        <Text>{title}</Text>
+        {items?.map((item: string) => (
+          <Text key={item}>{item}</Text>
+        ))}
+      </View>
+    );
   };
+});
 
+jest.mock("../components/OpeningHours", () => {
+  const { View } = require("react-native");
+  return function MockOpeningHours() {
+    return <View testID="opening-hours" />;
+  };
+});
+
+jest.mock("../assets/images/icon-dizzy.png", () => "icon-dizzy");
+
+const mockBuilding = {
+  code: "MB",
+  long_name: "John Molson Building",
+  address: "1450 Guy St, Montreal",
+  latitude: 45.497,
+  longitude: -73.579,
+  opening_hours: [],
+  services: ["Career Management Service", "First Stop"],
+  departments: ["Accountancy", "Finance"],
+  venues: ["Cafe", "Library"],
+  accessibility: ["Accessible entrance", "Accessible building elevator"],
+  metro_accessible: false,
+};
+
+function resetStores() {
+  useMapStore.setState({
+    userLocation: undefined,
+    selectedBuildingCode: undefined,
+    currentBuildingCode: undefined,
+    currentMode: MapMode.NONE,
+  });
+
+  useNavigationStore.setState({
+    startLocation: undefined,
+    endLocation: undefined,
+  });
+}
+
+describe("BuildingBottomSheet", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    resetStores();
+
+    (useGetProfile as jest.Mock).mockReturnValue({ data: null });
+    (useSaveToHistory as jest.Mock).mockReturnValue({ mutate: jest.fn() });
   });
 
-  test("renders building name, code, and address when data is loaded", () => {
+  test("renders empty state when no building data is available", () => {
+    useMapStore.getState().setSelectedBuildingCode("MB");
+
+    (useGetBuildingDetails as jest.Mock).mockReturnValue({
+      data: null,
+      isSuccess: false,
+      isLoading: false,
+    });
+
+    const { getByText } = renderWithProviders(<BuildingBottomSheet />);
+
+    expect(getByText("No information available for this building")).toBeTruthy();
+  });
+
+  test("renders building details and sections when data loads", () => {
+    useMapStore.getState().setSelectedBuildingCode("MB");
+
     (useGetBuildingDetails as jest.Mock).mockReturnValue({
       data: mockBuilding,
       isSuccess: true,
+      isLoading: false,
     });
 
-    const { getByText } = render(<BuildingBottomSheet buildingCode="MB" />);
+    const { getByText, getByTestId } = renderWithProviders(<BuildingBottomSheet />);
+
     expect(getByText("John Molson Building (MB)")).toBeTruthy();
     expect(getByText("1450 Guy St, Montreal")).toBeTruthy();
-  });
-
-  test("renders accessibility icons based on accessibility array", () => {
-    (useGetBuildingDetails as jest.Mock).mockReturnValue({
-      data: mockBuilding,
-      isSuccess: true,
-    });
-
-    const { getByTestId, queryByTestId } = render(
-      <BuildingBottomSheet buildingCode="MB" />,
-    );
-    expect(getByTestId("wheelchair-icon")).toBeTruthy();
-    expect(getByTestId("elevator-icon")).toBeTruthy();
-    expect(queryByTestId("slope-up-icon")).toBeNull(); // No ramp in accessibility array
-  });
-
-  test("renders favorite and get directions icons", () => {
-    (useGetBuildingDetails as jest.Mock).mockReturnValue({
-      data: mockBuilding,
-      isSuccess: true,
-    });
-
-    const { getByTestId } = render(<BuildingBottomSheet buildingCode="MB" />);
-    expect(getByTestId("favorite-icon")).toBeTruthy();
-    expect(getByTestId("get-directions-icon")).toBeTruthy();
-  });
-
-  test("renders building gallery and list sections when data is loaded", () => {
-    (useGetBuildingDetails as jest.Mock).mockReturnValue({
-      data: mockBuilding,
-      isSuccess: true,
-    });
-
-    const { getByTestId, getByText } = render(
-      <BuildingBottomSheet buildingCode="MB" />,
-    );
     expect(getByTestId("building-gallery")).toBeTruthy();
     expect(getByText("Services")).toBeTruthy();
     expect(getByText("Career Management Service")).toBeTruthy();
     expect(getByText("Departments")).toBeTruthy();
-    expect(getByText("Accountancy")).toBeTruthy();
     expect(getByText("Venues")).toBeTruthy();
   });
 
-  test("does not render content when data is not loaded", () => {
-    (useGetBuildingDetails as jest.Mock).mockReturnValue({
-      data: null,
-      isSuccess: false,
-    });
+  test("renders mapped accessibility icons", () => {
+    useMapStore.getState().setSelectedBuildingCode("MB");
 
-    const { queryByTestId, queryByText } = render(
-      <BuildingBottomSheet buildingCode="MB" />,
-    );
-    expect(queryByText("Services")).toBeNull();
-    expect(queryByTestId("building-gallery")).toBeNull();
-  });
-
-  test("calls onClose callback when close button is pressed", async () => {
     (useGetBuildingDetails as jest.Mock).mockReturnValue({
       data: mockBuilding,
       isSuccess: true,
+      isLoading: false,
     });
 
-    const onCloseMock = jest.fn();
-    const { getByTestId } = render(
-      <BuildingBottomSheet buildingCode="MB" onClose={onCloseMock} />,
-    );
+    const { getByTestId, queryByTestId } = renderWithProviders(<BuildingBottomSheet />);
 
-    const closeIcon = getByTestId("close-icon");
-    const touchableOpacity = (closeIcon.parent as any) || closeIcon;
-    act(() => {
-      fireEvent.press(touchableOpacity);
-    });
-    expect(onCloseMock).toHaveBeenCalled();
+    expect(getByTestId("wheelchair-icon")).toBeTruthy();
+    expect(getByTestId("elevator-icon")).toBeTruthy();
+    expect(queryByTestId("slope-up-icon")).toBeNull();
   });
 
-  test("handles null buildingCode gracefully", () => {
+  test("pressing close clears selected building and closes sheet mode", () => {
+    useMapStore.getState().setSelectedBuildingCode("MB");
+    useMapStore.getState().setCurrentMode(MapMode.BUILDING);
+
     (useGetBuildingDetails as jest.Mock).mockReturnValue({
-      data: null,
-      isSuccess: false,
+      data: mockBuilding,
+      isSuccess: true,
+      isLoading: false,
     });
 
-    const { queryByText } = render(<BuildingBottomSheet buildingCode={null} />);
-    expect(queryByText("Services")).toBeNull();
+    const { getByTestId } = renderWithProviders(<BuildingBottomSheet />);
+
+    fireEvent.press(getByTestId("close-icon").parent as any);
+
+    expect(useMapStore.getState().selectedBuildingCode).toBeUndefined();
+    expect(useMapStore.getState().currentMode).toBe(MapMode.NONE);
+  });
+
+  test("pressing start navigation sets end location and navigation mode", async () => {
+    useMapStore.getState().setSelectedBuildingCode("MB");
+
+    (useGetBuildingDetails as jest.Mock).mockReturnValue({
+      data: mockBuilding,
+      isSuccess: true,
+      isLoading: false,
+    });
+
+    const { getByTestId } = renderWithProviders(<BuildingBottomSheet />);
+
+    fireEvent.press(getByTestId("start-navigation"));
+
+    await waitFor(() => {
+      expect(useMapStore.getState().currentMode).toBe(MapMode.NAVIGATION);
+      expect(useNavigationStore.getState().endLocation?.code).toBe("MB");
+      expect(useNavigationStore.getState().endLocation?.name).toBe(
+        "John Molson Building",
+      );
+    });
   });
 });

@@ -1,3 +1,4 @@
 *.env
 tmp/
 concordia-waze
+serviceAccountKey.json

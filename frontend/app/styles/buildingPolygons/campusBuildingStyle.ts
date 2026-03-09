@@ -3,4 +3,4 @@ export const CAMPUS_BUILDING_STYLE = {
   strokeColor: "rgba(233, 120, 160, 0.95)",
   strokeWidth: 2,
   zIndex: 10,
-}
+};
