@@ -62,6 +62,10 @@ func (s *directionsRedirectorService) GetFullDirections(request *request_format.
 			mfReq.StartCoord = &domain.Coordinates{X: start.IndoorPosition.X, Y: start.IndoorPosition.Y}
 		}
 
+		if start.IndoorPosition != nil {
+			mfReq.EndCoord = &domain.Coordinates{X: end.IndoorPosition.X, Y: end.IndoorPosition.Y}
+		}
+
 		res, err := s.indoorService.MultiFloorShortestPath(mfReq)
 		if err != nil {
 			return response, err

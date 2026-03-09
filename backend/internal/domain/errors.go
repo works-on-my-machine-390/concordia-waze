@@ -17,4 +17,7 @@ var (
 
 	// Other errors
 	ErrNotFound = errors.New("not found")
+
+	//directions errors
+	ErrInvalidMode = errors.New("Invalide mode, must be one of: walking, driving, transit, shuttle, bicycling")
 )

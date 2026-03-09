@@ -162,7 +162,8 @@ func (s *IndoorPathService) MultiFloorShortestPath(req MultiFloorPathRequest) (*
 		return nil, errors.New("start coordinate or startRoom is required")
 	}
 	if req.EndCoord == nil && req.EndRoom == "" {
-		return nil, errors.New("end coordinate or endRoom is required")
+		//return nil, errors.New("end coordinate or endRoom is required")
+		return nil, fmt.Errorf("end coordinate or endRoom is required for building %s floor %d", req.BuildingCode, req.EndFloor)
 	}
 
 	floors, err := s.floors.GetBuildingFloors(req.BuildingCode)
