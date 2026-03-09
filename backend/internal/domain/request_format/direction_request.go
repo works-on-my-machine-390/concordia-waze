@@ -8,7 +8,6 @@ type RouteLocation struct {
 	Building       string                 `json:"building" binding:"required_with=FloorNumber,required_with=Room,required_with=IndoorPosition"`
 	FloorNumber    *int                   `json:"floor_number"`
 	IndoorPosition *domain.IndoorPosition `json:"indoor_position"`
-	Room           string                 `json:"room"`
 }
 
 type RoutePreferences struct {

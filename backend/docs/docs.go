@@ -2441,9 +2441,6 @@ const docTemplate = `{
                 },
                 "longitude": {
                     "type": "number"
-                },
-                "room": {
-                    "type": "string"
                 }
             }
         },

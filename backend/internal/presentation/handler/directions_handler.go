@@ -29,7 +29,7 @@ func NewDirectionsHandler(directions application.DirectionsRedirectorService) *D
 // @Router       /directions [post]
 func (h *DirectionsHandler) GetFullDirections(c *gin.Context) {
 	var req *request_format.RouteRequest
-
+	
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(400, gin.H{"error": "Invalid request format", "details": err.Error()})
 		return

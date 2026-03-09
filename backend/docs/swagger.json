@@ -2434,9 +2434,6 @@
                 },
                 "longitude": {
                     "type": "number"
-                },
-                "room": {
-                    "type": "string"
                 }
             }
         },

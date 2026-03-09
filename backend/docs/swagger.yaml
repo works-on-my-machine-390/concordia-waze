@@ -384,8 +384,6 @@ definitions:
         type: number
       longitude:
         type: number
-      room:
-        type: string
     type: object
   request_format.RoutePreferences:
     properties:
