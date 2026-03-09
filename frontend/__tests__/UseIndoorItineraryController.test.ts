@@ -3,8 +3,9 @@ import { useIndoorItineraryController } from "@/hooks/useIndoorItineraryControll
 import { useIndoorNavigationStore } from "@/hooks/useIndoorNavigationStore";
 import { TransitionType } from "@/hooks/queries/indoorDirectionsQueries";
 
-jest.mock("@/hooks/useAccessibilityMode", () => ({
-  useAccessibilityMode: jest.fn(),
+jest.mock("@/hooks/useMapSettings", () => ({
+  __esModule: true,
+  default: jest.fn(),
 }));
 
 jest.mock("@/hooks/queries/indoorDirectionsQueries", () => {
@@ -19,12 +20,11 @@ jest.mock("@/hooks/queries/indoorMapQueries", () => ({
   useGetBuildingFloors: jest.fn(),
 }));
 
-import { useAccessibilityMode } from "@/hooks/useAccessibilityMode";
+import useMapSettings from "@/hooks/useMapSettings";
 import { useIndoorMultiFloorPath } from "@/hooks/queries/indoorDirectionsQueries";
 import { useGetBuildingFloors } from "@/hooks/queries/indoorMapQueries";
 
-const mockedUseAccessibilityMode =
-  useAccessibilityMode as unknown as jest.Mock;
+const mockedUseMapSettings = useMapSettings as unknown as jest.Mock;
 const mockedUseIndoorMultiFloorPath =
   useIndoorMultiFloorPath as unknown as jest.Mock;
 const mockedUseGetBuildingFloors =
@@ -70,8 +70,11 @@ describe("useIndoorItineraryController", () => {
       isPending: false,
     });
 
-    mockedUseAccessibilityMode.mockReturnValue({
-      isAccessibilityMode: false,
+    mockedUseMapSettings.mockReturnValue({
+      mapSettings: {
+        preferAccessibleRoutes: false,
+      },
+      updateSetting: jest.fn(),
     });
 
     mockedUseGetBuildingFloors.mockReturnValue({
@@ -151,8 +154,11 @@ describe("useIndoorItineraryController", () => {
   });
 
   it("requests route with preferElevator true when accessibility mode is on", async () => {
-    mockedUseAccessibilityMode.mockReturnValue({
-      isAccessibilityMode: true,
+    mockedUseMapSettings.mockReturnValue({
+      mapSettings: {
+        preferAccessibleRoutes: true,
+      },
+      updateSetting: jest.fn(),
     });
 
     mutateAsyncMock.mockResolvedValue({
@@ -266,8 +272,11 @@ describe("useIndoorItineraryController", () => {
   });
 
   it("sets accessible route error when accessibility mode is on and backend says no transition point", async () => {
-    mockedUseAccessibilityMode.mockReturnValue({
-      isAccessibilityMode: true,
+    mockedUseMapSettings.mockReturnValue({
+      mapSettings: {
+        preferAccessibleRoutes: true,
+      },
+      updateSetting: jest.fn(),
     });
 
     mutateAsyncMock.mockRejectedValue(new Error("No transition point found"));
