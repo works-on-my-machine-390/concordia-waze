@@ -10,7 +10,7 @@ import (
 	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
 )
 
-type IndoorRoomRepository interface {
+type IndoorRoomGetter interface {
 	GetByBuilding(buildingCode string) ([]domain.IndoorRoom, error)
 }
 
@@ -19,7 +19,7 @@ type indoorRoomRepository struct {
 	cache   map[string][]domain.IndoorRoom
 }
 
-func NewIndoorRoomRepository(baseDir string) IndoorRoomRepository {
+func NewIndoorRoomRepository(baseDir string) IndoorRoomGetter {
 	return &indoorRoomRepository{
 		baseDir: baseDir,
 		cache:   make(map[string][]domain.IndoorRoom),
@@ -106,19 +106,19 @@ func centroidFromGeometry(geomType string, coords json.RawMessage) (domain.Indoo
 	switch geomType {
 	case "Point":
 		var xy [2]float64
-		if err := json.Unmarshal(coords, &xy); err == nil {
+		if json.Unmarshal(coords, &xy) == nil {
 			return domain.IndoorPosition{X: xy[0], Y: xy[1]}, "Point"
 		}
 	case "Polygon":
 		// [[[x,y],...]] (outer ring is [0])
 		var poly [][][]float64
-		if err := json.Unmarshal(coords, &poly); err == nil && len(poly) > 0 && len(poly[0]) > 0 {
+		if json.Unmarshal(coords, &poly) == nil && len(poly) > 0 && len(poly[0]) > 0 {
 			return centroidOfRing(poly[0]), "Polygon"
 		}
 	case "MultiPolygon":
 		// [[[[x,y],...]]]
 		var mp [][][][]float64
-		if err := json.Unmarshal(coords, &mp); err == nil && len(mp) > 0 && len(mp[0]) > 0 && len(mp[0][0]) > 0 {
+		if json.Unmarshal(coords, &mp) == nil && len(mp) > 0 && len(mp[0]) > 0 && len(mp[0][0]) > 0 {
 			return centroidOfRing(mp[0][0]), "MultiPolygon"
 		}
 	}

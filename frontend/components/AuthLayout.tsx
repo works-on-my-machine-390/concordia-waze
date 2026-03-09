@@ -18,7 +18,7 @@ type Props = {
   children: React.ReactNode;
 };
 
-export default function AuthLayout({ title, logoSize = 140, children }: Props) {
+export default function AuthLayout({ title, logoSize = 140, children }: Readonly<Props>) {
   return (
     <SafeAreaView style={styles.page}>
       <BackHeader />
