@@ -13,10 +13,10 @@ type RoomSearchGetter interface {
 }
 
 type roomSearchService struct {
-	repo repository.IndoorRoomRepository
+	repo repository.IndoorRoomGetter
 }
 
-func NewRoomSearchService(repo repository.IndoorRoomRepository) RoomSearchGetter {
+func NewRoomSearchService(repo repository.IndoorRoomGetter) RoomSearchGetter {
 	return &roomSearchService{repo: repo}
 }
 
