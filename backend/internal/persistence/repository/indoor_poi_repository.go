@@ -10,7 +10,7 @@ import (
 	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
 )
 
-type IndoorPOIRepository interface {
+type IndoorPOIGetter interface {
 	GetByBuilding(buildingCode string) ([]domain.IndoorPOI, error)
 }
 
@@ -19,7 +19,7 @@ type indoorPOIRepository struct {
 	cache   map[string][]domain.IndoorPOI
 }
 
-func NewIndoorPOIRepository(baseDir string) IndoorPOIRepository {
+func NewIndoorPOIRepository(baseDir string) IndoorPOIGetter {
 	return &indoorPOIRepository{
 		baseDir: baseDir,
 		cache:   make(map[string][]domain.IndoorPOI),

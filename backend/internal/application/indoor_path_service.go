@@ -40,20 +40,20 @@ const (
 // StraightTurnThreshold is the cosine threshold for considering a turn as "straight" (cos 15°)
 const StraightTurnThreshold = 0.966
 
-type FloorRepo interface {
+type FloorGetter interface {
 	GetBuildingFloors(code string) ([]domain.Floor, error)
 }
 
-type IndoorRoomRepo interface {
+type IndoorRoomGetter interface {
 	GetByBuilding(buildingCode string) ([]domain.IndoorRoom, error)
 }
 
 type IndoorPathService struct {
-	floors FloorRepo
-	rooms  IndoorRoomRepo
+	floors FloorGetter
+	rooms  IndoorRoomGetter
 }
 
-func NewIndoorPathService(floors FloorRepo, rooms IndoorRoomRepo) *IndoorPathService {
+func NewIndoorPathService(floors FloorGetter, rooms IndoorRoomGetter) *IndoorPathService {
 	return &IndoorPathService{floors: floors, rooms: rooms}
 }
 
