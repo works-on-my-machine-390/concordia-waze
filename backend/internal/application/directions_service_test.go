@@ -865,3 +865,53 @@ func TestWeekdayFromString_AllDays(t *testing.T) {
 	_, ok := weekdayFromString("notaday")
 	assert.False(t, ok)
 }
+
+func TestPickNextDepartureAt_InvalidTimeActuallyHitsContinue(t *testing.T) {
+	now := time.Date(2026, 2, 18, 23, 0, 0, 0, time.UTC)
+	times := []string{"invalid", "09:00"}
+
+	next := pickNextDepartureAt(now, times)
+	assert.Equal(t, "", next)
+}
+
+func TestComputeLeaveAt_EmptyNextDeparture(t *testing.T) {
+	ref := time.Date(2026, 2, 18, 9, 0, 0, 0, time.UTC)
+
+	leaveAt, leaveAtStr, ok := computeLeaveAt(ref, 10*time.Minute, "")
+	assert.False(t, ok)
+	assert.True(t, leaveAt.IsZero())
+	assert.Equal(t, "", leaveAtStr)
+}
+
+func TestComputeLeaveAt_InvalidNextDeparture(t *testing.T) {
+	ref := time.Date(2026, 2, 18, 9, 0, 0, 0, time.UTC)
+
+	leaveAt, leaveAtStr, ok := computeLeaveAt(ref, 10*time.Minute, "invalid")
+	assert.False(t, ok)
+	assert.True(t, leaveAt.IsZero())
+	assert.Equal(t, "", leaveAtStr)
+}
+
+func TestDefaultDepartureMessage_UserProvidedTime(t *testing.T) {
+	msg := defaultDepartureMessage(true)
+	assert.Contains(t, msg, "Depart at ")
+}
+
+func TestDefaultDepartureMessage_AutoTime(t *testing.T) {
+	msg := defaultDepartureMessage(false)
+	assert.Contains(t, msg, "Leave now at ")
+}
+
+func TestBuildShuttleDepartureMessage_Fallback_UserProvided(t *testing.T) {
+	ref := time.Date(2026, 2, 18, 9, 0, 0, 0, time.UTC)
+
+	msg := buildShuttleDepartureMessage(ref, 10*time.Minute, "", true)
+	assert.Contains(t, msg, "Depart at ")
+}
+
+func TestBuildShuttleDepartureMessage_Fallback_Auto(t *testing.T) {
+	ref := time.Date(2026, 2, 18, 9, 0, 0, 0, time.UTC)
+
+	msg := buildShuttleDepartureMessage(ref, 10*time.Minute, "", false)
+	assert.Contains(t, msg, "Leave now at ")
+}
