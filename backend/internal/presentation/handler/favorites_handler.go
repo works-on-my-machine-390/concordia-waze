@@ -45,7 +45,7 @@ type CreateFavoriteRequest struct {
 func (h *FavoritesHandler) CreateFavorite(c *gin.Context) {
 	var req CreateFavoriteRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Please provide a valid name for the favorite"})
 		return
 	}
 
