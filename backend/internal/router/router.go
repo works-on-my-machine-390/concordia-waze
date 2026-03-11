@@ -63,7 +63,7 @@ func SetupRouter() *gin.Engine {
 	directionsClient := google.NewGoogleDirectionsClient(os.Getenv("GOOGLE_DIRECTIONS_API_KEY"))
 	directionsService := application.NewDirectionsService(directionsClient).WithShuttleRepo(shuttleService)
 	directionsRedirector := application.NewDirectionsRedirectorService(directionsService, indoorPathService, indoorPOIRepo, buildingService)
-	directionsHandler := handler.NewDirectionsHandler(directionsRedirector)
+	directionsHandler := handler.NewDirectionsHandler(directionsRedirector, directionsService, buildingService)
 	// ---------------------------------------------------------------
 
 	authHandler := handler.NewAuthHandler(userService, firebaseService)

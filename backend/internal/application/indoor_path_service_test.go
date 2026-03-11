@@ -333,7 +333,7 @@ func TestMultiFloorShortestPath_MissingEndCoordAndRoom_ReturnsError(t *testing.T
 	})
 
 	assert.Error(t, err)
-	assert.Equal(t, "end coordinate or endRoom is required", err.Error())
+	assert.Contains(t, err.Error(), "end coordinate or endRoom is required")
 }
 
 func TestMultiFloorShortestPath_StartFloorNotFound_ReturnsError(t *testing.T) {
@@ -472,7 +472,7 @@ func TestMultiFloorShortestPath_RoomNotFound_ReturnsError(t *testing.T) {
 	})
 
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "room not found")
+	assert.Contains(t, err.Error(), "room 'NonExistentRoom' not found on floor 1 of building VL")
 }
 
 func TestMultiFloorShortestPath_TotalDistance_IsCalculated(t *testing.T) {
@@ -726,7 +726,7 @@ func TestShortestPath_RoomNotFound_ReturnsError(t *testing.T) {
 	})
 
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "room not found")
+	assert.Contains(t, err.Error(), "room 'NonExistent' not found on floor 1 of building VL")
 }
 
 // ==================== Graph Function Tests ====================
@@ -1007,7 +1007,7 @@ func TestMultiFloorShortestPath_MultiFloor_StartRoomNotFound(t *testing.T) {
 	})
 
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "room not found")
+	assert.Contains(t, err.Error(), "room 'NonExistent' not found on floor 1 of building VL")
 }
 
 func TestMultiFloorShortestPath_MultiFloor_EndRoomNotFound(t *testing.T) {

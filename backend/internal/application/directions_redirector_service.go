@@ -9,23 +9,23 @@ import (
 	"github.com/works-on-my-machine-390/concordia-waze/internal/persistence/repository"
 )
 
-type DirectionsRedirectorService interface {
+type DirectionsRedirecter interface {
 	GetFullDirections(request *request_format.RouteRequest) ([]fullDirectionsResponse, error)
 }
 
 type directionsRedirectorService struct {
-	outdoorService  *DirectionsService
-	indoorService   *IndoorPathService
-	buildingService *BuildingService
-	poiRepository   repository.IndoorPOIRepository
+	directionsFetcher DirectionsFetcher
+	indoorPathFinder  IndoorPathFinder
+	buildingReader    BuildingReader
+	poiRepository     repository.IndoorPOIRepository
 }
 
-func NewDirectionsRedirectorService(outdoorService *DirectionsService, indoorService *IndoorPathService, poiRepository repository.IndoorPOIRepository, buildingService *BuildingService) *directionsRedirectorService {
+func NewDirectionsRedirectorService(directionsFetcher DirectionsFetcher, indoorPathFinder IndoorPathFinder, poiRepository repository.IndoorPOIRepository, buildingReader BuildingReader) *directionsRedirectorService {
 	return &directionsRedirectorService{
-		outdoorService:  outdoorService,
-		indoorService:   indoorService,
-		poiRepository:   poiRepository,
-		buildingService: buildingService,
+		directionsFetcher: directionsFetcher,
+		indoorPathFinder:  indoorPathFinder,
+		poiRepository:     poiRepository,
+		buildingReader:    buildingReader,
 	}
 }
 
@@ -46,32 +46,18 @@ func (s *directionsRedirectorService) GetFullDirections(request *request_format.
 
 	//indoor within same building
 	if start.Building != "" && strings.EqualFold(strings.TrimSpace(start.Building), strings.TrimSpace(end.Building)) {
-		if start.FloorNumber == nil || end.FloorNumber == nil {
-			return response, fmt.Errorf("start and end floor numbers are required for indoor routing")
-		}
 
-		var mfReq = MultiFloorPathRequest{
-			BuildingCode:      strings.ToUpper(strings.TrimSpace(start.Building)),
-			StartFloor:        *start.FloorNumber,
-			EndFloor:          *end.FloorNumber,
-			PreferElevator:    request.Preferences.PreferElevator,
-			RequireAccessible: request.Preferences.RequireAccessible,
-		}
-
-		if start.IndoorPosition != nil {
-			mfReq.StartCoord = &domain.Coordinates{X: start.IndoorPosition.X, Y: start.IndoorPosition.Y}
-		}
-
-		if start.IndoorPosition != nil {
-			mfReq.EndCoord = &domain.Coordinates{X: end.IndoorPosition.X, Y: end.IndoorPosition.Y}
-		}
-
-		res, err := s.indoorService.MultiFloorShortestPath(mfReq)
+		res, err := s.withinBuildingDirection(request, start, end)
 		if err != nil {
 			return response, err
 		}
 
 		response = append(response, fullDirectionsResponse{Type: "indoor", Body: res})
+		durMap, err := s.GetDuration(response)
+		if err != nil {
+			return response, err
+		}
+		response = append(response, fullDirectionsResponse{Type: "duration", Body: durMap})
 		return response, nil
 	}
 
@@ -103,8 +89,42 @@ func (s *directionsRedirectorService) GetFullDirections(request *request_format.
 		response = append(response, fullDirectionsResponse{Type: "indoor", Body: res})
 
 	}
+
+	durMap, err := s.GetDuration(response)
+	if err != nil {
+		return response, err
+	}
+	response = append(response, fullDirectionsResponse{Type: "duration", Body: durMap})
 	return response, nil
 
+}
+
+func (s *directionsRedirectorService) withinBuildingDirection(request *request_format.RouteRequest, start request_format.RouteLocation, end request_format.RouteLocation) (*MultiFloorPathResult, error) {
+	if start.FloorNumber == nil || end.FloorNumber == nil {
+		return nil, fmt.Errorf("start and end floor numbers are required for indoor routing")
+	}
+
+	var mfReq = MultiFloorPathRequest{
+		BuildingCode:      strings.ToUpper(strings.TrimSpace(start.Building)),
+		StartFloor:        *start.FloorNumber,
+		EndFloor:          *end.FloorNumber,
+		PreferElevator:    request.Preferences.PreferElevator,
+		RequireAccessible: request.Preferences.RequireAccessible,
+	}
+
+	if start.IndoorPosition != nil {
+		mfReq.StartCoord = &domain.Coordinates{X: start.IndoorPosition.X, Y: start.IndoorPosition.Y}
+	}
+
+	if end.IndoorPosition != nil {
+		mfReq.EndCoord = &domain.Coordinates{X: end.IndoorPosition.X, Y: end.IndoorPosition.Y}
+	}
+
+	res, err := s.indoorPathFinder.MultiFloorShortestPath(mfReq)
+	if err != nil {
+		return nil, err
+	}
+	return res, err
 }
 
 // getIndoorExitPoint finds an 'exit' POI in the given building and optional floor.
@@ -136,7 +156,7 @@ func (s *directionsRedirectorService) getOutdoorDirections(request *request_form
 		return nil, err
 	}
 
-	return s.outdoorService.GetDirectionsWithSchedule(
+	return s.directionsFetcher.GetDirectionsWithSchedule(
 		startLatLng,
 		endLatLng,
 		request.Preferences.Mode,
@@ -166,7 +186,7 @@ func (s *directionsRedirectorService) GetExitDirection(request *request_format.R
 		mfReq.StartCoord = &domain.Coordinates{X: start.IndoorPosition.X, Y: start.IndoorPosition.Y}
 	}
 
-	res, err := s.indoorService.MultiFloorShortestPath(mfReq)
+	res, err := s.indoorPathFinder.MultiFloorShortestPath(mfReq)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get indoor path for start location: %w", err)
 	}
@@ -196,7 +216,7 @@ func (s *directionsRedirectorService) GetPOIDirection(request *request_format.Ro
 		mfReq.EndCoord = &domain.Coordinates{X: end.IndoorPosition.X, Y: end.IndoorPosition.Y}
 	}
 
-	res, err := s.indoorService.MultiFloorShortestPath(mfReq)
+	res, err := s.indoorPathFinder.MultiFloorShortestPath(mfReq)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get indoor path for start location: %w", err)
 	}
@@ -211,10 +231,43 @@ func (s *directionsRedirectorService) resolveLatLng(location *request_format.Rou
 		return domain.LatLng{Lat: location.Latitude, Lng: location.Longitude}, nil
 	}
 
-	building, err := s.buildingService.GetBuilding(location.Building)
+	building, err := s.buildingReader.GetBuilding(location.Building)
 	if err != nil || building == nil {
 		return domain.LatLng{}, fmt.Errorf("invalid %s location: %w", label, err)
 	}
 
 	return domain.LatLng{Lat: building.Latitude, Lng: building.Longitude}, nil
+}
+
+// GetDuration calculates the total duration in seconds of a full directions response by summing the durations of each segment (indoor and outdoor).
+func (s *directionsRedirectorService) GetDuration(response []fullDirectionsResponse) (map[string]int, error) {
+	indoorTime := 0
+	outdoorTime := map[string]int{
+		"walking": 0,
+	}
+
+	const walkingSpeedMps = 1.42
+
+	for _, res := range response {
+		switch res.Type {
+		case "indoor":
+			if indoorBody, ok := res.Body.(*MultiFloorPathResult); ok && indoorBody != nil {
+				indoorTime += int(float64(indoorBody.TotalDistance) / walkingSpeedMps)
+			}
+		case "outdoor":
+			if outdoorBody, ok := res.Body.([]domain.DirectionsResponse); ok {
+				for _, dir := range outdoorBody {
+
+					outdoorTime[dir.Mode] += dir.Duration
+
+				}
+			}
+		}
+	}
+
+	for mode := range outdoorTime {
+		outdoorTime[mode] += indoorTime
+	}
+
+	return outdoorTime, nil
 }

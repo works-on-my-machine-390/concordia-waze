@@ -107,7 +107,7 @@ func TestGoogleDirectionsClient_TransitIncludesDepartureTimeNow(t *testing.T) {
 			"overview_polyline": { "points": "??" },
 			"legs": [{
 				"distance": {"text": "1.0 km"},
-				"duration": {"text": "10 mins"},
+				"duration": {"value": 600},
 				"steps": []
 			}]
 		}]
@@ -131,7 +131,7 @@ func TestGoogleDirectionsClient_TransitIncludesDepartureTimeNow(t *testing.T) {
 	resp, err := c.GetDirections(domain.LatLng{}, domain.LatLng{}, "transit")
 	assert.NoError(t, err)
 	assert.Equal(t, "1.0 km", resp.Distance)
-	assert.Equal(t, "10 mins", resp.Duration)
+	assert.Equal(t, 600, resp.Duration)
 }
 
 func TestGoogleDirectionsClient_StatusNotOK_NoErrorMessage(t *testing.T) {

@@ -40,6 +40,12 @@ const (
 
 // StraightTurnThreshold is the cosine threshold for considering a turn as "straight" (cos 15°)
 const StraightTurnThreshold = 0.966
+const DistanceToMeterRatio = 66.8
+
+type IndoorPathFinder interface {
+	ShortestPath(req IndoorPathRequest) (*IndoorPathResult, error)
+	MultiFloorShortestPath(req MultiFloorPathRequest) (*MultiFloorPathResult, error)
+}
 
 type FloorRepo interface {
 	GetBuildingFloors(code string) ([]domain.Floor, error)
@@ -579,7 +585,7 @@ func (g *graph) shortestPath(start, goal int) ([]int, float64, error) {
 		path[i], path[j] = path[j], path[i]
 	}
 
-	return path, dist[goal], nil
+	return path, DistanceToMeterRatio * dist[goal], nil
 }
 
 // calculateTurnDirections computes turn directions (left/right/straight) at each point in the path

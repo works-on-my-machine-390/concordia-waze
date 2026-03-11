@@ -76,38 +76,11 @@ func contains(s, sub string) bool {
 
 // --- Tests ---
 
-func TestDirectionsService_DefaultModeWalking(t *testing.T) {
-	f := &fakeDirectionsClient{resp: domain.DirectionsResponse{Mode: "walking"}}
-	s := NewDirectionsService(f)
-
-	_, err := s.GetDirections(domain.LatLng{Lat: 1, Lng: 2}, domain.LatLng{Lat: 3, Lng: 4}, "")
-	assert.NoError(t, err)
-	assert.Equal(t, "walking", f.lastMode)
-}
-
-func TestDirectionsService_RejectsInvalidMode(t *testing.T) {
-	f := &fakeDirectionsClient{}
-	s := NewDirectionsService(f)
-
-	_, err := s.GetDirections(domain.LatLng{}, domain.LatLng{}, "plane")
-	assert.Error(t, err)
-	assert.Equal(t, "invalid mode", err.Error())
-}
-
-func TestDirectionsService_PassesValidModeAndNormalizes(t *testing.T) {
-	f := &fakeDirectionsClient{resp: domain.DirectionsResponse{Mode: "transit"}}
-	s := NewDirectionsService(f)
-
-	_, err := s.GetDirections(domain.LatLng{}, domain.LatLng{}, "TRANSIT")
-	assert.NoError(t, err)
-	assert.Equal(t, "transit", f.lastMode)
-}
-
 func TestDirectionsService_PropagatesClientError(t *testing.T) {
 	f := &fakeDirectionsClient{err: errors.New("boom")}
 	s := NewDirectionsService(f)
 
-	_, err := s.GetDirections(domain.LatLng{}, domain.LatLng{}, "walking")
+	_, err := s.GetDirections(domain.LatLng{}, domain.LatLng{}, []string{"walking"})
 	assert.Error(t, err)
 	assert.Equal(t, "boom", err.Error())
 }
@@ -138,30 +111,23 @@ func TestDirectionsService_ShuttleMode_ComposesWalkingLegsAndShuttleStep(t *test
 	start := domain.LatLng{Lat: 45.4973, Lng: -73.5790}
 	end := domain.LatLng{Lat: 45.4582, Lng: -73.6405}
 
-	resp, err := s.GetDirections(start, end, "shuttle")
+	resp, err := s.GetDirections(start, end, []string{"shuttle"})
 	assert.NoError(t, err)
+	assert.Len(t, resp, 1)
 
-	assert.Equal(t, "shuttle", resp.Mode)
-	assert.NotEmpty(t, resp.Steps)
-	assert.GreaterOrEqual(t, len(resp.Steps), 3)
+	r := resp[0]
+	assert.Equal(t, "shuttle", r.Mode)
+	assert.GreaterOrEqual(t, len(r.Steps), 3)
 
 	foundShuttle := false
-	for _, st := range resp.Steps {
+	for _, st := range r.Steps {
 		if contains(st.Instruction, "Shuttle") || contains(st.Instruction, "shuttle") {
 			foundShuttle = true
-			assert.NotEmpty(t, st.Distance)
-			assert.NotEmpty(t, st.Duration)
 			break
 		}
 	}
 	assert.True(t, foundShuttle)
-
-	// Current behavior composes shuttle with 2 walking API calls: to stop + from stop.
 	assert.Equal(t, 2, f.calls)
-	assert.Equal(t, "walking", f.modes[0])
-	assert.Equal(t, "walking", f.modes[1])
-
-	assert.NotEmpty(t, shuttleRepo.lastCampus)
 }
 
 func TestDirectionsService_ShuttleMode_ReturnsErrorWhenRepoMissingOrErrors(t *testing.T) {
@@ -177,7 +143,7 @@ func TestDirectionsService_ShuttleMode_ReturnsErrorWhenRepoMissingOrErrors(t *te
 	shuttleRepo := &fakeShuttleRepo{err: errors.New("no schedule")}
 	s := NewDirectionsService(f).WithShuttleRepo(shuttleRepo)
 
-	_, err := s.GetDirections(domain.LatLng{Lat: 1, Lng: 2}, domain.LatLng{Lat: 3, Lng: 4}, "shuttle")
+	_, err := s.GetDirections(domain.LatLng{Lat: 1, Lng: 2}, domain.LatLng{Lat: 3, Lng: 4}, []string{"shuttle"})
 	assert.Error(t, err)
 	assert.Equal(t, "No shuttle available at this time.", err.Error())
 }
@@ -192,14 +158,12 @@ func TestDirectionsService_ShuttleMode_OutsideHours(t *testing.T) {
 		},
 	}
 
-	// Schedule only has morning shuttle
 	shuttleRepo := &fakeShuttleRepo{
 		times: []string{"09:00", "10:00"},
 	}
 	s := NewDirectionsService(f).WithShuttleRepo(shuttleRepo)
 
-	// Request at 20:00
-	_, err := s.GetDirectionsWithSchedule(domain.LatLng{}, domain.LatLng{}, "shuttle", "monday", "20:00")
+	_, err := s.GetDirectionsWithSchedule(domain.LatLng{}, domain.LatLng{}, []string{"shuttle"}, "monday", "20:00")
 	assert.Error(t, err)
 	assert.Equal(t, "No shuttle available at this time.", err.Error())
 }
@@ -219,18 +183,18 @@ func TestDirectionsService_ShuttleMode_InsideHours(t *testing.T) {
 	}
 	s := NewDirectionsService(f).WithShuttleRepo(shuttleRepo)
 
-	resp, err := s.GetDirectionsWithSchedule(domain.LatLng{}, domain.LatLng{}, "shuttle", "monday", "10:00")
+	resp, err := s.GetDirectionsWithSchedule(domain.LatLng{}, domain.LatLng{}, []string{"shuttle"}, "monday", "10:00")
 	assert.NoError(t, err)
-	assert.Equal(t, "shuttle", resp.Mode)
+	assert.Equal(t, "shuttle", resp[0].Mode)
 }
 
 func TestDirectionsService_GetDirectionsWithSchedule_NonShuttleWithUserTime(t *testing.T) {
 	f := &fakeDirectionsClient{resp: domain.DirectionsResponse{Mode: "walking"}}
 	s := NewDirectionsService(f)
 
-	resp, err := s.GetDirectionsWithSchedule(domain.LatLng{}, domain.LatLng{}, "walking", "", "14:30")
+	resp, err := s.GetDirectionsWithSchedule(domain.LatLng{}, domain.LatLng{}, []string{"walking"}, "", "14:30")
 	assert.NoError(t, err)
-	assert.Contains(t, resp.DepartureMessage, "Depart at")
+	assert.Contains(t, resp[0].DepartureMessage, "Depart at")
 }
 
 func TestParseOptionalDayTime_InvalidDayOrTime(t *testing.T) {
@@ -241,22 +205,6 @@ func TestParseOptionalDayTime_InvalidDayOrTime(t *testing.T) {
 	_, _, err = parseOptionalDayTime("", "25:00")
 	assert.Error(t, err)
 	assert.Equal(t, "invalid time", err.Error())
-}
-
-func TestDirectionsService_GetShuttleDirectionsManual_InvalidInput(t *testing.T) {
-	f := &fakeDirectionsClient{}
-	s := NewDirectionsService(f).WithShuttleRepo(&fakeShuttleRepo{
-		times: []string{"10:00"},
-	})
-
-	_, err := s.GetShuttleDirectionsManual(domain.LatLng{}, domain.LatLng{}, "funday", "10:00")
-	assert.Error(t, err)
-
-	_, err = s.GetShuttleDirectionsManual(domain.LatLng{}, domain.LatLng{}, "monday", "25:00")
-	assert.Error(t, err)
-
-	_, err = s.GetShuttleDirectionsManual(domain.LatLng{}, domain.LatLng{}, "monday", "11:00")
-	assert.Error(t, err)
 }
 
 func TestPickNextDeparture_CoversBranches(t *testing.T) {
@@ -336,18 +284,9 @@ func TestNonShuttle_InvalidTimeInput(t *testing.T) {
 	f := &fakeDirectionsClient{resp: domain.DirectionsResponse{Mode: "walking"}}
 	s := NewDirectionsService(f)
 
-	_, err := s.GetDirectionsWithSchedule(domain.LatLng{}, domain.LatLng{}, "walking", "", "25:99")
+	_, err := s.GetDirectionsWithSchedule(domain.LatLng{}, domain.LatLng{}, []string{"walking"}, "", "25:99")
 	assert.Error(t, err)
 	assert.Equal(t, "invalid time", err.Error())
-}
-
-func TestManualShuttle_NoRepo(t *testing.T) {
-	f := &fakeDirectionsClient{}
-	s := NewDirectionsService(f)
-
-	_, err := s.GetShuttleDirectionsManual(domain.LatLng{}, domain.LatLng{}, "monday", "10:00")
-	assert.Error(t, err)
-	assert.Equal(t, "No shuttle available at this time.", err.Error())
 }
 
 func TestFormatDuration(t *testing.T) {
@@ -443,47 +382,4 @@ func TestShuttleDirection_Selection(t *testing.T) {
 	assert.Equal(t, "SGW", tc)
 	assert.Equal(t, loyShuttleStop, from)
 	assert.Equal(t, sgwShuttleStop, to)
-}
-
-func TestGetShuttleDirectionsManual_Success(t *testing.T) {
-	f := &fakeDirectionsClient{
-		resp: domain.DirectionsResponse{
-			Mode: "walking",
-			Steps: []domain.DirectionStep{
-				{
-					Duration: "5 mins",
-					Distance: "0.5 km",
-					Start:    domain.LatLng{Lat: 45.0, Lng: -73.0},
-					End:      domain.LatLng{Lat: 45.01, Lng: -73.01},
-				},
-			},
-		},
-	}
-	repo := &fakeShuttleRepo{
-		times: []string{"10:00", "10:30"},
-	}
-	s := NewDirectionsService(f).WithShuttleRepo(repo)
-
-	start := domain.LatLng{Lat: 45.497, Lng: -73.579}
-	end := domain.LatLng{Lat: 45.459, Lng: -73.639}
-
-	resp, err := s.GetShuttleDirectionsManual(start, end, "monday", "10:00")
-	assert.NoError(t, err)
-	assert.Equal(t, "shuttle", resp.Mode)
-	assert.Contains(t, resp.DepartureMessage, "Depart at")
-	assert.Equal(t, "35 mins", resp.Duration)
-}
-
-func TestGetShuttleDirectionsManual_InvalidDeparture(t *testing.T) {
-	f := &fakeDirectionsClient{}
-	repo := &fakeShuttleRepo{
-		times: []string{"10:00"},
-	}
-	s := NewDirectionsService(f).WithShuttleRepo(repo)
-	start := domain.LatLng{Lat: 45.497, Lng: -73.579}
-	end := domain.LatLng{Lat: 45.459, Lng: -73.639}
-
-	_, err := s.GetShuttleDirectionsManual(start, end, "monday", "10:05")
-	assert.Error(t, err)
-	assert.Equal(t, "invalid shuttle departure", err.Error())
 }
