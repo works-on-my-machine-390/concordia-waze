@@ -43,15 +43,21 @@ func SetupRouter() *gin.Engine {
 	imageService := application.NewImageService(buildingService, placesClient)
 	var authFirebaseService handler.FirebaseProfileService
 	var firebaseHandlerService handler.FirebaseService
+	var firebaseSvc *application.FirebaseService
 	if os.Getenv("SKIP_FIREBASE") != "true" {
-		svc := application.NewFirebaseService()
-		authFirebaseService = svc
-		firebaseHandlerService = svc
+		firebaseSvc = application.NewFirebaseService()
+		authFirebaseService = firebaseSvc
+		firebaseHandlerService = firebaseSvc
 	}
 	shuttleService := application.NewShuttleService(shuttleDataRepo)
 	pointOfInterestService := application.NewPointOfInterestService(placesClient)
 
-	favoriteRepo := repository.NewInMemoryFavoriteRepository()
+	var favoriteRepo repository.FavoriteRepository
+	if firebaseSvc != nil {
+		favoriteRepo = application.NewHybridFavoriteRepository(firebaseSvc)
+	} else {
+		favoriteRepo = repository.NewInMemoryFavoriteRepository()
+	}
 	favoritesService := application.NewFavoritesService(favoriteRepo)
 
 	dataDir, err := findIndoorDataDir()
@@ -141,16 +147,17 @@ func SetupRouter() *gin.Engine {
 	router.GET("/pointofinterest/indoor", pointOfInterestHandler.GetNearbyIndoorPOIs)
 	router.GET("/rooms/search", roomSearchHandler.SearchRoom)
 
+	// Favorites (optional auth — ownership enforced in handler)
+	userFavGroup := router.Group("/users/:userId/favorites")
+	{
+		userFavGroup.POST("", favoritesHandler.CreateFavorite)
+		userFavGroup.GET("", favoritesHandler.GetFavorites)
+		userFavGroup.DELETE("/:id", favoritesHandler.DeleteFavorite)
+	}
+
 	// =========================
 	// PROTECTED ROUTES (auth)
 	// =========================
-
-	favoritesGroup := router.Group("/favorites")
-	{
-		favoritesGroup.POST("", favoritesHandler.CreateFavorite)
-		favoritesGroup.GET("", favoritesHandler.GetFavorites)
-		favoritesGroup.DELETE("/:id", favoritesHandler.DeleteFavorite)
-	}
 
 	usersGroup := router.Group("/users")
 	usersGroup.Use(middleware.RequireAuth(), middleware.ValidateUserOwnership())
