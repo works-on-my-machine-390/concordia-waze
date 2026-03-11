@@ -18,6 +18,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
+      "googleServicesFile": "./google-services.json",
       "package": "com.concordiawaze.app",
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
@@ -52,7 +53,9 @@
           }
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "@react-native-firebase/app",
+      "@logrocket/react-native"
     ],
     "experiments": {
       "typedRoutes": true,

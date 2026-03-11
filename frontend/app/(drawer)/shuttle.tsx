@@ -1,5 +1,5 @@
 import { DrawerActions, useNavigation } from "@react-navigation/native";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -12,6 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useGetShuttleSchedule } from "../../hooks/queries/shuttleQueries";
 import { COLORS } from "../constants";
 import { MenuIcon } from "../icons";
+import { endTaskTimer, startTaskTimer } from "@/lib/telemetry";
 
 const C = COLORS,
   M = C.maroon;
@@ -37,9 +38,43 @@ export default function ShuttleSchedule() {
   const nav = useNavigation();
   const [tab, setTab] = useState<Day>("monday");
   const { data, isLoading, error, refetch } = useGetShuttleSchedule();
+  const timerActiveRef = useRef(false);
+  const hasViewedScheduleRef = useRef(false);
+  const latestTabRef = useRef<Day>(tab);
+  const latestDepartureCountRef = useRef(0);
+
   const rows: Row[] = data?.[tab]
     ? zip(data[tab].LOY ?? [], data[tab].SGW ?? [])
     : [];
+
+  useEffect(() => {
+    latestTabRef.current = tab;
+    latestDepartureCountRef.current = rows.length;
+  }, [tab, rows.length]);
+
+  useEffect(() => {
+    if (!isLoading && !error) {
+      hasViewedScheduleRef.current = true;
+    }
+  }, [isLoading, error]);
+
+  useEffect(() => {
+    startTaskTimer("view_shuttle_schedule");
+    timerActiveRef.current = true;
+
+    return () => {
+      if (!timerActiveRef.current) {
+        return;
+      }
+
+      timerActiveRef.current = false;
+      void endTaskTimer("view_shuttle_schedule", {
+        success: hasViewedScheduleRef.current,
+        selected_day: latestTabRef.current,
+        departures_displayed: latestDepartureCountRef.current,
+      });
+    };
+  }, []);
 
   let content: React.ReactNode;
   if (isLoading) {
