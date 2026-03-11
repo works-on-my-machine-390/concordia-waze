@@ -502,7 +502,7 @@ func TestDirectionsService_Shuttle_FutureIdealTime_Auto(t *testing.T) {
 	// the formatted string looks like "00:xx" which is treated as already-past today.
 	// Skip rather than produce a false failure.
 	now := time.Now()
-	if now.Add(2 * time.Hour).Day() != now.Day() {
+	if now.Add(2*time.Hour).Day() != now.Day() {
 		t.Skip("skipping: +2h crosses midnight, futureTime would appear as a past slot today")
 	}
 
