@@ -24,9 +24,12 @@
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
     "@gorhom/bottom-sheet": "^5.2.8",
+    "@logrocket/react-native": "^2.1.0",
     "@mapbox/polyline": "^1.2.1",
     "@openspacelabs/react-native-zoomable-view": "^2.4.2",
     "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-firebase/analytics": "^23.8.6",
+    "@react-native-firebase/app": "^23.8.6",
     "@react-navigation/bottom-tabs": "^7.4.0",
     "@react-navigation/drawer": "^7.8.0",
     "@react-navigation/elements": "^2.6.3",
@@ -72,7 +75,7 @@
     "@types/react": "~19.1.0",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
-    "jest-expo": "^54.0.17",
+    "jest-expo": "^47.0.1",
     "typescript": "~5.9.2"
   },
   "private": true
