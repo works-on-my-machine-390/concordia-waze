@@ -49,18 +49,18 @@ func resolveUserID(c *gin.Context) (userID string, ok bool) {
 }
 
 // CreateFavorite godoc
-// @Summary Create a favorite
-// @Description Save a favorite location for the given user. Works for both authenticated and anonymous users.
-// @Tags favorites
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param userId path string true "User ID"
-// @Param request body CreateFavoriteRequest true "Favorite location"
-// @Success 201 {object} domain.Favorite
-// @Failure 400 {object} map[string]string
-// @Failure 403 {object} map[string]string "Token user does not match path user"
-// @Router /users/{userId}/favorites [post]
+// @Summary      Create a favorite
+// @Description  Save a named location as a favorite for the given user. Authenticated users' favorites are persisted in Firestore; anonymous requests are kept in memory.
+// @Tags         favorites
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        userId   path      string                true  "User ID (use the id from signup/login for authenticated requests, any string for anonymous)"
+// @Param        request  body      CreateFavoriteRequest true  "Favorite location"
+// @Success      201      {object}  domain.Favorite
+// @Failure      400      {object}  map[string]string     "Missing or invalid name"
+// @Failure      403      {object}  map[string]string     "JWT user does not match path userId"
+// @Router       /users/{userId}/favorites [post]
 func (h *FavoritesHandler) CreateFavorite(c *gin.Context) {
 	userID, ok := resolveUserID(c)
 	if !ok {
@@ -84,15 +84,15 @@ func (h *FavoritesHandler) CreateFavorite(c *gin.Context) {
 }
 
 // GetFavorites godoc
-// @Summary List favorites
-// @Description Get all favorite locations for the given user.
-// @Tags favorites
-// @Produce json
-// @Security BearerAuth
-// @Param userId path string true "User ID"
-// @Success 200 {array} domain.Favorite
-// @Failure 403 {object} map[string]string "Token user does not match path user"
-// @Router /users/{userId}/favorites [get]
+// @Summary      List favorites
+// @Description  Retrieve all saved favorite locations for the given user. Returns an empty array when no favorites exist.
+// @Tags         favorites
+// @Produce      json
+// @Security     BearerAuth
+// @Param        userId  path      string           true  "User ID"
+// @Success      200     {array}   domain.Favorite
+// @Failure      403     {object}  map[string]string  "JWT user does not match path userId"
+// @Router       /users/{userId}/favorites [get]
 func (h *FavoritesHandler) GetFavorites(c *gin.Context) {
 	userID, ok := resolveUserID(c)
 	if !ok {
@@ -110,17 +110,17 @@ func (h *FavoritesHandler) GetFavorites(c *gin.Context) {
 }
 
 // DeleteFavorite godoc
-// @Summary Delete a favorite
-// @Description Delete a favorite location by ID for the given user.
-// @Tags favorites
-// @Produce json
-// @Security BearerAuth
-// @Param userId path string true "User ID"
-// @Param id path string true "Favorite ID"
-// @Success 200 {object} map[string]string
-// @Failure 403 {object} map[string]string "Token user does not match path user"
-// @Failure 404 {object} map[string]string "Favorite not found"
-// @Router /users/{userId}/favorites/{id} [delete]
+// @Summary      Delete a favorite
+// @Description  Remove a saved favorite location by ID. Authenticated users may only delete their own favorites (403 on mismatch). Returns 404 if the favorite does not exist.
+// @Tags         favorites
+// @Produce      json
+// @Security     BearerAuth
+// @Param        userId  path      string            true  "User ID"
+// @Param        id      path      string            true  "Favorite ID"
+// @Success      200     {object}  map[string]string  "favorite deleted"
+// @Failure      403     {object}  map[string]string  "JWT user does not match path userId"
+// @Failure      404     {object}  map[string]string  "Favorite not found"
+// @Router       /users/{userId}/favorites/{id} [delete]
 func (h *FavoritesHandler) DeleteFavorite(c *gin.Context) {
 	userID, ok := resolveUserID(c)
 	if !ok {
