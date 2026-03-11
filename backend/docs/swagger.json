@@ -8,6 +8,130 @@
     },
     "host": "localhost:8080",
     "paths": {
+        "/auth/google": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns a JSON object containing the Google OAuth2 authorization URL. The frontend should redirect the user to the returned URL. The endpoint will use the authenticated user's ID (from the auth context) or an optional query parameter `userId` as a fallback to populate the OAuth `state`.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Get Google OAuth2 authorization URL",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "Bearer \u003ctoken\u003e",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Optional fallback userId if not available in auth context",
+                        "name": "userId",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Authorization URL returned",
+                        "schema": {
+                            "$ref": "#/definitions/handler.AuthURLResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Missing userId or invalid request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error generating URL",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/google/callback": {
+            "get": {
+                "description": "Callback endpoint invoked by Google after user consent. Exchanges the authorization code for tokens and persists them on the server. The OAuth `state` parameter is expected to contain the userId (or signed state you use to identify the user). On success the handler redirects the browser to FRONTEND_AUTH_SUCCESS_URL if configured, otherwise returns a small JSON confirmation.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Google OAuth2 callback",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Authorization code returned by Google",
+                        "name": "code",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "State value (contains userId or signed state)",
+                        "name": "state",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Tokens saved on server",
+                        "schema": {
+                            "$ref": "#/definitions/handler.TokenSaveResponse"
+                        }
+                    },
+                    "302": {
+                        "description": "Redirect to configured frontend success URL",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Missing code or state",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to exchange code or save token",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/auth/login": {
             "post": {
                 "description": "Authenticate a user with email and password, receive JWT token",
@@ -2066,6 +2190,10 @@
                 "preferElevator": {
                     "type": "boolean"
                 },
+                "requireAccessible": {
+                    "description": "filter out inaccessible edges",
+                    "type": "boolean"
+                },
                 "start": {
                     "$ref": "#/definitions/domain.Coordinates"
                 },
@@ -2489,6 +2617,14 @@
                 }
             }
         },
+        "handler.AuthURLResponse": {
+            "type": "object",
+            "properties": {
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
         "handler.BuildingImagesResponse": {
             "type": "object",
             "properties": {
@@ -2535,6 +2671,20 @@
                 "password": {
                     "type": "string",
                     "minLength": 6
+                }
+            }
+        },
+        "handler.TokenSaveResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "ok": {
+                    "type": "boolean"
+                },
+                "userId": {
+                    "type": "string"
                 }
             }
         }
