@@ -137,7 +137,7 @@ func TestDeleteClass(t *testing.T) {
 	err = service.CreateClass(ctx, userID, title)
 	require.NoError(t, err)
 
-	_, err = service.AddClassInfo(ctx, userID, title, application.ClassInfo{
+	_, err = service.AddClassItem(ctx, userID, title, application.ClassItem{
 		Type:         "lec",
 		Section:      "S",
 		Day:          "Monday",
@@ -156,10 +156,10 @@ func TestDeleteClass(t *testing.T) {
 	assert.NotContains(t, classes, title)
 }
 
-func TestAddAndGetClassInfo(t *testing.T) {
+func TestAddAndGetClassItems(t *testing.T) {
 	service := setupTestService(t)
 	ctx := context.Background()
-	userID := "test-user-sessions-" + time.Now().Format("20060102150405")
+	userID := "test-user-items-" + time.Now().Format("20060102150405")
 	title := "SOEN345"
 
 	profile := domain.User{
@@ -173,7 +173,7 @@ func TestAddAndGetClassInfo(t *testing.T) {
 	err = service.CreateClass(ctx, userID, title)
 	require.NoError(t, err)
 
-	item := application.ClassInfo{
+	item := application.ClassItem{
 		Type:         "lec",
 		Section:      "S",
 		Day:          "Monday",
@@ -183,11 +183,11 @@ func TestAddAndGetClassInfo(t *testing.T) {
 		Room:         "H-929",
 	}
 
-	itemID, err := service.AddClassInfo(ctx, userID, title, item)
+	itemID, err := service.AddClassItem(ctx, userID, title, item)
 	require.NoError(t, err)
 	assert.NotEmpty(t, itemID)
 
-	items, err := service.GetClassInfo(ctx, userID, title)
+	items, err := service.GetClassItems(ctx, userID, title)
 	require.NoError(t, err)
 	assert.GreaterOrEqual(t, len(items), 1)
 
@@ -205,13 +205,13 @@ func TestAddAndGetClassInfo(t *testing.T) {
 			break
 		}
 	}
-	assert.True(t, found, "Class info item not found")
+	assert.True(t, found, "Class item not found")
 }
 
-func TestUpdateClassInfo(t *testing.T) {
+func TestUpdateClassItem(t *testing.T) {
 	service := setupTestService(t)
 	ctx := context.Background()
-	userID := "test-user-session-update-" + time.Now().Format("20060102150405")
+	userID := "test-user-item-update-" + time.Now().Format("20060102150405")
 	title := "SOEN345"
 
 	profile := domain.User{
@@ -225,14 +225,14 @@ func TestUpdateClassInfo(t *testing.T) {
 	err = service.CreateClass(ctx, userID, title)
 	require.NoError(t, err)
 
-	item := application.ClassInfo{
+	item := application.ClassItem{
 		Type:      "lec",
 		Section:   "S",
 		Day:       "Tuesday",
 		StartTime: "10:00",
 		EndTime:   "11:30",
 	}
-	itemID, err := service.AddClassInfo(ctx, userID, title, item)
+	itemID, err := service.AddClassItem(ctx, userID, title, item)
 	require.NoError(t, err)
 
 	updates := map[string]interface{}{
@@ -242,10 +242,10 @@ func TestUpdateClassInfo(t *testing.T) {
 		"endTime":   "15:30",
 		"room":      "H-833",
 	}
-	err = service.UpdateClassInfo(ctx, userID, title, itemID, updates)
+	err = service.UpdateClassItem(ctx, userID, title, itemID, updates)
 	require.NoError(t, err)
 
-	items, err := service.GetClassInfo(ctx, userID, title)
+	items, err := service.GetClassItems(ctx, userID, title)
 	require.NoError(t, err)
 
 	found := false
@@ -260,13 +260,13 @@ func TestUpdateClassInfo(t *testing.T) {
 			break
 		}
 	}
-	assert.True(t, found, "Updated class info item not found")
+	assert.True(t, found, "Updated class item not found")
 }
 
-func TestDeleteClassInfo(t *testing.T) {
+func TestDeleteClassItem(t *testing.T) {
 	service := setupTestService(t)
 	ctx := context.Background()
-	userID := "test-user-session-delete-" + time.Now().Format("20060102150405")
+	userID := "test-user-item-delete-" + time.Now().Format("20060102150405")
 	title := "SOEN345"
 
 	profile := domain.User{
@@ -280,20 +280,20 @@ func TestDeleteClassInfo(t *testing.T) {
 	err = service.CreateClass(ctx, userID, title)
 	require.NoError(t, err)
 
-	item := application.ClassInfo{
+	item := application.ClassItem{
 		Type:      "tut",
 		Section:   "T",
 		Day:       "Friday",
 		StartTime: "10:00",
 		EndTime:   "11:00",
 	}
-	itemID, err := service.AddClassInfo(ctx, userID, title, item)
+	itemID, err := service.AddClassItem(ctx, userID, title, item)
 	require.NoError(t, err)
 
-	err = service.DeleteClassInfo(ctx, userID, title, itemID)
+	err = service.DeleteClassItem(ctx, userID, title, itemID)
 	require.NoError(t, err)
 
-	items, err := service.GetClassInfo(ctx, userID, title)
+	items, err := service.GetClassItems(ctx, userID, title)
 	require.NoError(t, err)
 
 	for _, i := range items {
@@ -301,10 +301,10 @@ func TestDeleteClassInfo(t *testing.T) {
 	}
 }
 
-func TestGetClassInfoEmpty(t *testing.T) {
+func TestGetClassItemsEmpty(t *testing.T) {
 	service := setupTestService(t)
 	ctx := context.Background()
-	userID := "test-user-empty-sessions-" + time.Now().Format("20060102150405")
+	userID := "test-user-empty-items-" + time.Now().Format("20060102150405")
 	title := "COMP352"
 
 	profile := domain.User{
@@ -318,16 +318,16 @@ func TestGetClassInfoEmpty(t *testing.T) {
 	err = service.CreateClass(ctx, userID, title)
 	require.NoError(t, err)
 
-	items, err := service.GetClassInfo(ctx, userID, title)
+	items, err := service.GetClassItems(ctx, userID, title)
 	require.NoError(t, err)
 	assert.NotNil(t, items)
 	assert.Equal(t, 0, len(items))
 }
 
-func TestAddClassInfoWithOptionalFields(t *testing.T) {
+func TestAddClassItemWithOptionalFields(t *testing.T) {
 	service := setupTestService(t)
 	ctx := context.Background()
-	userID := "test-user-opt-session-" + time.Now().Format("20060102150405")
+	userID := "test-user-opt-item-" + time.Now().Format("20060102150405")
 	title := "MATH203"
 
 	profile := domain.User{
@@ -341,18 +341,18 @@ func TestAddClassInfoWithOptionalFields(t *testing.T) {
 	err = service.CreateClass(ctx, userID, title)
 	require.NoError(t, err)
 
-	item := application.ClassInfo{
+	item := application.ClassItem{
 		Type:      "lec",
 		Section:   "A",
 		Day:       "Monday",
 		StartTime: "10:00",
 		EndTime:   "11:00",
 	}
-	itemID, err := service.AddClassInfo(ctx, userID, title, item)
+	itemID, err := service.AddClassItem(ctx, userID, title, item)
 	require.NoError(t, err)
 	assert.NotEmpty(t, itemID)
 
-	items, err := service.GetClassInfo(ctx, userID, title)
+	items, err := service.GetClassItems(ctx, userID, title)
 	require.NoError(t, err)
 
 	found := false
@@ -369,10 +369,10 @@ func TestAddClassInfoWithOptionalFields(t *testing.T) {
 	assert.True(t, found)
 }
 
-func TestUpdateClassInfoMultipleFields(t *testing.T) {
+func TestUpdateClassItemMultipleFields(t *testing.T) {
 	service := setupTestService(t)
 	ctx := context.Background()
-	userID := "test-user-multi-session-" + time.Now().Format("20060102150405")
+	userID := "test-user-multi-item-" + time.Now().Format("20060102150405")
 	title := "ENGR301"
 
 	profile := domain.User{
@@ -386,14 +386,14 @@ func TestUpdateClassInfoMultipleFields(t *testing.T) {
 	err = service.CreateClass(ctx, userID, title)
 	require.NoError(t, err)
 
-	item := application.ClassInfo{
+	item := application.ClassItem{
 		Type:      "lec",
 		Section:   "B",
 		Day:       "Monday",
 		StartTime: "10:00",
 		EndTime:   "11:00",
 	}
-	itemID, err := service.AddClassInfo(ctx, userID, title, item)
+	itemID, err := service.AddClassItem(ctx, userID, title, item)
 	require.NoError(t, err)
 
 	updates := map[string]interface{}{
@@ -403,10 +403,10 @@ func TestUpdateClassInfoMultipleFields(t *testing.T) {
 		"buildingCode": "EV",
 		"room":         "EV-001",
 	}
-	err = service.UpdateClassInfo(ctx, userID, title, itemID, updates)
+	err = service.UpdateClassItem(ctx, userID, title, itemID, updates)
 	require.NoError(t, err)
 
-	items, err := service.GetClassInfo(ctx, userID, title)
+	items, err := service.GetClassItems(ctx, userID, title)
 	require.NoError(t, err)
 
 	found := false
