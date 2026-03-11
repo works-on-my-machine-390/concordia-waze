@@ -18,10 +18,6 @@ type fakeFirebaseService struct {
 	createUserProfileFn func(ctx context.Context, userID string, profile domain.User) error
 	getUserProfileFn    func(ctx context.Context, userID string) (*domain.User, error)
 
-	addScheduleItemFn    func(ctx context.Context, userID string, item application.ScheduleItem) (string, error)
-	getUserScheduleFn    func(ctx context.Context, userID string) ([]application.ScheduleItem, error)
-	updateScheduleFn     func(ctx context.Context, userID, scheduleID string, updates map[string]interface{}) error
-	deleteScheduleFn     func(ctx context.Context, userID, scheduleID string) error
 	addSavedAddressFn    func(ctx context.Context, userID string, address application.SavedAddress) (string, error)
 	getSavedAddressesFn  func(ctx context.Context, userID string) ([]application.SavedAddress, error)
 	updateSavedAddressFn func(ctx context.Context, userID, addressID string, updates map[string]interface{}) error
@@ -65,34 +61,6 @@ func (f *fakeFirebaseService) GetUserProfile(ctx context.Context, userID string)
 		return f.getUserProfileFn(ctx, userID)
 	}
 	return &domain.User{ID: userID}, nil
-}
-
-func (f *fakeFirebaseService) AddScheduleItem(ctx context.Context, userID string, item application.ScheduleItem) (string, error) {
-	if f.addScheduleItemFn != nil {
-		return f.addScheduleItemFn(ctx, userID, item)
-	}
-	return "schedule_1", nil
-}
-
-func (f *fakeFirebaseService) GetUserSchedule(ctx context.Context, userID string) ([]application.ScheduleItem, error) {
-	if f.getUserScheduleFn != nil {
-		return f.getUserScheduleFn(ctx, userID)
-	}
-	return []application.ScheduleItem{}, nil
-}
-
-func (f *fakeFirebaseService) UpdateScheduleItem(ctx context.Context, userID, scheduleID string, updates map[string]interface{}) error {
-	if f.updateScheduleFn != nil {
-		return f.updateScheduleFn(ctx, userID, scheduleID, updates)
-	}
-	return nil
-}
-
-func (f *fakeFirebaseService) DeleteScheduleItem(ctx context.Context, userID, scheduleID string) error {
-	if f.deleteScheduleFn != nil {
-		return f.deleteScheduleFn(ctx, userID, scheduleID)
-	}
-	return nil
 }
 
 func (f *fakeFirebaseService) AddSavedAddress(ctx context.Context, userID string, address application.SavedAddress) (string, error) {
@@ -225,141 +193,6 @@ func TestGetUserProfileNotFound(t *testing.T) {
 	require.Equal(t, http.StatusNotFound, response.Code)
 }
 
-func TestAddScheduleItemSuccess(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	service := &fakeFirebaseService{
-		addScheduleItemFn: func(ctx context.Context, userID string, item application.ScheduleItem) (string, error) {
-			require.Equal(t, "user_1", userID)
-			require.Equal(t, "Class", item.Name)
-			return "schedule_123", nil
-		},
-	}
-	h := NewFirebaseHandler(service)
-
-	r := gin.New()
-	r.POST("/users/:userId/schedule", h.AddScheduleItem)
-
-	payload := application.ScheduleItem{
-		Name:       "Class",
-		StartTime:  "10:00",
-		EndTime:    "11:30",
-		DaysOfWeek: []string{"Monday"},
-	}
-	body, err := json.Marshal(payload)
-	require.NoError(t, err)
-
-	request := httptest.NewRequest(http.MethodPost, "/users/user_1/schedule", bytes.NewBuffer(body))
-	request.Header.Set("Content-Type", "application/json")
-	response := httptest.NewRecorder()
-
-	r.ServeHTTP(response, request)
-	require.Equal(t, http.StatusCreated, response.Code)
-}
-
-func TestAddScheduleItemBadRequest(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	service := &fakeFirebaseService{}
-	h := NewFirebaseHandler(service)
-
-	r := gin.New()
-	r.POST("/users/:userId/schedule", h.AddScheduleItem)
-
-	request := httptest.NewRequest(http.MethodPost, "/users/user_1/schedule", bytes.NewBufferString("{bad"))
-	request.Header.Set("Content-Type", "application/json")
-	response := httptest.NewRecorder()
-
-	r.ServeHTTP(response, request)
-	require.Equal(t, http.StatusBadRequest, response.Code)
-}
-
-func TestGetUserScheduleSuccess(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	service := &fakeFirebaseService{
-		getUserScheduleFn: func(ctx context.Context, userID string) ([]application.ScheduleItem, error) {
-			require.Equal(t, "user_1", userID)
-			return []application.ScheduleItem{
-				{Name: "Class", StartTime: "10:00", EndTime: "11:30"},
-			}, nil
-		},
-	}
-	h := NewFirebaseHandler(service)
-
-	r := gin.New()
-	r.GET("/users/:userId/schedule", h.GetUserSchedule)
-
-	request := httptest.NewRequest(http.MethodGet, "/users/user_1/schedule", nil)
-	response := httptest.NewRecorder()
-
-	r.ServeHTTP(response, request)
-	require.Equal(t, http.StatusOK, response.Code)
-}
-
-func TestGetUserScheduleError(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	service := &fakeFirebaseService{
-		getUserScheduleFn: func(ctx context.Context, userID string) ([]application.ScheduleItem, error) {
-			return nil, context.Canceled
-		},
-	}
-	h := NewFirebaseHandler(service)
-
-	r := gin.New()
-	r.GET("/users/:userId/schedule", h.GetUserSchedule)
-
-	request := httptest.NewRequest(http.MethodGet, "/users/user_1/schedule", nil)
-	response := httptest.NewRecorder()
-
-	r.ServeHTTP(response, request)
-	require.Equal(t, http.StatusInternalServerError, response.Code)
-}
-
-func TestUpdateScheduleItemSuccess(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	service := &fakeFirebaseService{
-		updateScheduleFn: func(ctx context.Context, userID, scheduleID string, updates map[string]interface{}) error {
-			require.Equal(t, "user_1", userID)
-			require.Equal(t, "schedule_1", scheduleID)
-			return nil
-		},
-	}
-	h := NewFirebaseHandler(service)
-
-	r := gin.New()
-	r.PATCH("/users/:userId/schedule/:scheduleId", h.UpdateScheduleItem)
-
-	payload := map[string]interface{}{"name": "Updated Class"}
-	body, err := json.Marshal(payload)
-	require.NoError(t, err)
-
-	request := httptest.NewRequest(http.MethodPatch, "/users/user_1/schedule/schedule_1", bytes.NewBuffer(body))
-	request.Header.Set("Content-Type", "application/json")
-	response := httptest.NewRecorder()
-
-	r.ServeHTTP(response, request)
-	require.Equal(t, http.StatusOK, response.Code)
-}
-
-func TestDeleteScheduleItemSuccess(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	service := &fakeFirebaseService{
-		deleteScheduleFn: func(ctx context.Context, userID, scheduleID string) error {
-			require.Equal(t, "user_1", userID)
-			require.Equal(t, "schedule_1", scheduleID)
-			return nil
-		},
-	}
-	h := NewFirebaseHandler(service)
-
-	r := gin.New()
-	r.DELETE("/users/:userId/schedule/:scheduleId", h.DeleteScheduleItem)
-
-	request := httptest.NewRequest(http.MethodDelete, "/users/user_1/schedule/schedule_1", nil)
-	response := httptest.NewRecorder()
-
-	r.ServeHTTP(response, request)
-	require.Equal(t, http.StatusOK, response.Code)
-}
-
 func TestAddSavedAddressSuccess(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	service := &fakeFirebaseService{
@@ -465,11 +298,8 @@ func TestAddDestinationHistorySuccess_WithOptionalFields(t *testing.T) {
 			require.Equal(t, "user_1", userID)
 			require.Equal(t, "Hall Building", item.Name)
 			require.Equal(t, "1455 De Maisonneuve Blvd W", item.Address)
-
-			// Optional fields should bind if provided
 			require.Equal(t, "H", item.BuildingCode)
 			require.Equal(t, "building", item.DestinationType)
-
 			return "history_123", nil
 		},
 	}

@@ -36,16 +36,16 @@ type DestinationHistoryItem struct {
 	Timestamp       time.Time `firestore:"timestamp" json:"timestamp,omitempty"`
 }
 
-// ScheduleItem stores a schedule entry.
-type ScheduleItem struct {
-	ScheduleID string   `firestore:"scheduleId" json:"scheduleId,omitempty"`
-	Name       string   `firestore:"name" json:"name"`
-	Building   string   `firestore:"building,omitempty" json:"building,omitempty"`
-	Room       string   `firestore:"room,omitempty" json:"room,omitempty"`
-	StartTime  string   `firestore:"startTime" json:"startTime"`
-	EndTime    string   `firestore:"endTime" json:"endTime"`
-	DaysOfWeek []string `firestore:"daysOfWeek" json:"daysOfWeek"`
-	Type       string   `firestore:"type" json:"type"`
+// ClassSession stores one session of a class.
+type ClassSession struct {
+	SessionID    string `firestore:"sessionId" json:"sessionId,omitempty"`
+	Type         string `firestore:"type" json:"type"` // lab, lec, tut
+	Section      string `firestore:"section" json:"section"`
+	Day          string `firestore:"day" json:"day"`
+	StartTime    string `firestore:"startTime" json:"startTime"`
+	EndTime      string `firestore:"endTime" json:"endTime"`
+	BuildingCode string `firestore:"buildingCode,omitempty" json:"buildingCode,omitempty"`
+	Room         string `firestore:"room,omitempty" json:"room,omitempty"`
 }
 
 // SavedAddress stores a favorite place.
@@ -64,7 +64,6 @@ func (fs *FirebaseService) CreateUserProfile(ctx context.Context, userID string,
 		return fmt.Errorf("create user profile: %w", err)
 	}
 
-	// Initialize subcollections by creating a placeholder document
 	if err := fs.initializeSubcollections(ctx, userID); err != nil {
 		return fmt.Errorf("initialize subcollections: %w", err)
 	}
@@ -105,7 +104,6 @@ func (fs *FirebaseService) GetUserProfileByEmail(ctx context.Context, email stri
 }
 
 func (fs *FirebaseService) initializeSubcollections(ctx context.Context, userID string) error {
-	// Initialize searchHistory subcollection with a placeholder doc
 	_, err := fs.client.Collection("users").Doc(userID).Collection("searchHistory").Doc("_init").Set(ctx, map[string]interface{}{
 		"initialized": true,
 		"createdAt":   time.Now(),
@@ -114,16 +112,14 @@ func (fs *FirebaseService) initializeSubcollections(ctx context.Context, userID 
 		return fmt.Errorf("init searchHistory: %w", err)
 	}
 
-	// Initialize schedule subcollection
-	_, err = fs.client.Collection("users").Doc(userID).Collection("schedule").Doc("_init").Set(ctx, map[string]interface{}{
+	_, err = fs.client.Collection("users").Doc(userID).Collection("classes").Doc("_init").Set(ctx, map[string]interface{}{
 		"initialized": true,
 		"createdAt":   time.Now(),
 	})
 	if err != nil {
-		return fmt.Errorf("init schedule: %w", err)
+		return fmt.Errorf("init classes: %w", err)
 	}
 
-	// Initialize savedAddresses subcollection
 	_, err = fs.client.Collection("users").Doc(userID).Collection("savedAddresses").Doc("_init").Set(ctx, map[string]interface{}{
 		"initialized": true,
 		"createdAt":   time.Now(),
@@ -132,7 +128,6 @@ func (fs *FirebaseService) initializeSubcollections(ctx context.Context, userID 
 		return fmt.Errorf("init savedAddresses: %w", err)
 	}
 
-	// Initialize history subcollection
 	_, err = fs.client.Collection("users").Doc(userID).
 		Collection("history").Doc("_init").
 		Set(ctx, map[string]interface{}{
@@ -198,7 +193,6 @@ func (fs *FirebaseService) ClearDestinationHistory(ctx context.Context, userID s
 		if err != nil {
 			return fmt.Errorf("iterate destination history: %w", err)
 		}
-		// Keep placeholder doc
 		if doc.Ref.ID == "_init" {
 			continue
 		}
@@ -215,55 +209,155 @@ func (fs *FirebaseService) ClearDestinationHistory(ctx context.Context, userID s
 	return nil
 }
 
-// ===== Schedule =====
+// ===== Classes =====
 
-func (fs *FirebaseService) AddScheduleItem(ctx context.Context, userID string, item ScheduleItem) (string, error) {
-	ref, _, err := fs.client.Collection("users").Doc(userID).Collection("schedule").Add(ctx, item)
+// CreateClass creates an empty class document under users/{userId}/classes/{title}.
+// The class document is only used as a container for sessions.
+func (fs *FirebaseService) CreateClass(ctx context.Context, userID, title string) error {
+	_, err := fs.client.
+		Collection("users").
+		Doc(userID).
+		Collection("classes").
+		Doc(title).
+		Set(ctx, map[string]interface{}{})
 	if err != nil {
-		return "", fmt.Errorf("add schedule item: %w", err)
-	}
-	return ref.ID, nil
-}
-
-func (fs *FirebaseService) GetUserSchedule(ctx context.Context, userID string) ([]ScheduleItem, error) {
-	docs, err := fs.client.Collection("users").Doc(userID).Collection("schedule").
-		OrderBy("startTime", firestore.Asc).
-		Documents(ctx).GetAll()
-	if err != nil {
-		return nil, fmt.Errorf("get schedule: %w", err)
+		return fmt.Errorf("create class: %w", err)
 	}
 
-	schedule := make([]ScheduleItem, 0, len(docs))
-	for _, doc := range docs {
-		// Skip initialization placeholder
-		if doc.Ref.ID == "_init" {
-			continue
-		}
-		var item ScheduleItem
-		if doc.DataTo(&item) != nil {
-			continue
-		}
-		item.ScheduleID = doc.Ref.ID
-		schedule = append(schedule, item)
-	}
-	return schedule, nil
-}
-
-func (fs *FirebaseService) UpdateScheduleItem(ctx context.Context, userID, scheduleID string, updates map[string]interface{}) error {
-	_, err := fs.client.Collection("users").Doc(userID).Collection("schedule").Doc(scheduleID).
-		Update(ctx, toFirestoreUpdates(updates))
-	if err != nil {
-		return fmt.Errorf("update schedule item: %w", err)
-	}
 	return nil
 }
 
-func (fs *FirebaseService) DeleteScheduleItem(ctx context.Context, userID, scheduleID string) error {
-	_, err := fs.client.Collection("users").Doc(userID).Collection("schedule").Doc(scheduleID).
+// GetUserClasses returns the class titles under users/{userId}/classes.
+func (fs *FirebaseService) GetUserClasses(ctx context.Context, userID string) ([]string, error) {
+	docs, err := fs.client.
+		Collection("users").
+		Doc(userID).
+		Collection("classes").
+		Documents(ctx).
+		GetAll()
+	if err != nil {
+		return nil, fmt.Errorf("get user classes: %w", err)
+	}
+
+	classes := make([]string, 0, len(docs))
+	for _, doc := range docs {
+		if doc.Ref.ID == "_init" {
+			continue
+		}
+		classes = append(classes, doc.Ref.ID)
+	}
+
+	return classes, nil
+}
+
+// DeleteClass deletes a class and all its sessions.
+func (fs *FirebaseService) DeleteClass(ctx context.Context, userID, title string) error {
+	sessionDocs, err := fs.client.
+		Collection("users").
+		Doc(userID).
+		Collection("classes").
+		Doc(title).
+		Collection("sessions").
+		Documents(ctx).
+		GetAll()
+	if err != nil {
+		return fmt.Errorf("get class sessions for delete: %w", err)
+	}
+
+	batch := fs.client.Batch()
+	for _, doc := range sessionDocs {
+		batch.Delete(doc.Ref)
+	}
+
+	classRef := fs.client.
+		Collection("users").
+		Doc(userID).
+		Collection("classes").
+		Doc(title)
+	batch.Delete(classRef)
+
+	if _, err := batch.Commit(ctx); err != nil {
+		return fmt.Errorf("delete class: %w", err)
+	}
+
+	return nil
+}
+
+// ===== Class Sessions =====
+
+func (fs *FirebaseService) AddClassSession(ctx context.Context, userID, title string, session ClassSession) (string, error) {
+	ref, _, err := fs.client.
+		Collection("users").
+		Doc(userID).
+		Collection("classes").
+		Doc(title).
+		Collection("sessions").
+		Add(ctx, session)
+	if err != nil {
+		return "", fmt.Errorf("add class session: %w", err)
+	}
+
+	return ref.ID, nil
+}
+
+func (fs *FirebaseService) GetClassSessions(ctx context.Context, userID, title string) ([]ClassSession, error) {
+	docs, err := fs.client.
+		Collection("users").
+		Doc(userID).
+		Collection("classes").
+		Doc(title).
+		Collection("sessions").
+		OrderBy("day", firestore.Asc).
+		OrderBy("startTime", firestore.Asc).
+		Documents(ctx).
+		GetAll()
+	if err != nil {
+		return nil, fmt.Errorf("get class sessions: %w", err)
+	}
+
+	sessions := make([]ClassSession, 0, len(docs))
+	for _, doc := range docs {
+		var session ClassSession
+		if err := doc.DataTo(&session); err != nil {
+			continue
+		}
+
+		session.SessionID = doc.Ref.ID
+		sessions = append(sessions, session)
+	}
+
+	return sessions, nil
+}
+
+func (fs *FirebaseService) UpdateClassSession(ctx context.Context, userID, title, sessionID string, updates map[string]interface{}) error {
+	_, err := fs.client.
+		Collection("users").
+		Doc(userID).
+		Collection("classes").
+		Doc(title).
+		Collection("sessions").
+		Doc(sessionID).
+		Update(ctx, toFirestoreUpdates(updates))
+	if err != nil {
+		return fmt.Errorf("update class session: %w", err)
+	}
+
+	return nil
+}
+
+func (fs *FirebaseService) DeleteClassSession(ctx context.Context, userID, title, sessionID string) error {
+	_, err := fs.client.
+		Collection("users").
+		Doc(userID).
+		Collection("classes").
+		Doc(title).
+		Collection("sessions").
+		Doc(sessionID).
 		Delete(ctx)
 	if err != nil {
-		return fmt.Errorf("delete schedule item: %w", err)
+		return fmt.Errorf("delete class session: %w", err)
 	}
+
 	return nil
 }
 
@@ -287,7 +381,6 @@ func (fs *FirebaseService) GetSavedAddresses(ctx context.Context, userID string)
 
 	addresses := make([]SavedAddress, 0, len(docs))
 	for _, doc := range docs {
-		// Skip initialization placeholder
 		if doc.Ref.ID == "_init" {
 			continue
 		}
