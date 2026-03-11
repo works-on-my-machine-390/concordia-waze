@@ -137,7 +137,7 @@ func TestDeleteClass(t *testing.T) {
 	err = service.CreateClass(ctx, userID, title)
 	require.NoError(t, err)
 
-	_, err = service.AddClassSession(ctx, userID, title, application.ClassSession{
+	_, err = service.AddClassInfo(ctx, userID, title, application.ClassInfo{
 		Type:         "lec",
 		Section:      "S",
 		Day:          "Monday",
@@ -156,7 +156,7 @@ func TestDeleteClass(t *testing.T) {
 	assert.NotContains(t, classes, title)
 }
 
-func TestAddAndGetClassSessions(t *testing.T) {
+func TestAddAndGetClassInfo(t *testing.T) {
 	service := setupTestService(t)
 	ctx := context.Background()
 	userID := "test-user-sessions-" + time.Now().Format("20060102150405")
@@ -173,7 +173,7 @@ func TestAddAndGetClassSessions(t *testing.T) {
 	err = service.CreateClass(ctx, userID, title)
 	require.NoError(t, err)
 
-	session := application.ClassSession{
+	item := application.ClassInfo{
 		Type:         "lec",
 		Section:      "S",
 		Day:          "Monday",
@@ -183,32 +183,32 @@ func TestAddAndGetClassSessions(t *testing.T) {
 		Room:         "H-929",
 	}
 
-	sessionID, err := service.AddClassSession(ctx, userID, title, session)
+	itemID, err := service.AddClassInfo(ctx, userID, title, item)
 	require.NoError(t, err)
-	assert.NotEmpty(t, sessionID)
+	assert.NotEmpty(t, itemID)
 
-	sessions, err := service.GetClassSessions(ctx, userID, title)
+	items, err := service.GetClassInfo(ctx, userID, title)
 	require.NoError(t, err)
-	assert.GreaterOrEqual(t, len(sessions), 1)
+	assert.GreaterOrEqual(t, len(items), 1)
 
 	found := false
-	for _, s := range sessions {
-		if s.SessionID == sessionID {
+	for _, i := range items {
+		if i.ItemID == itemID {
 			found = true
-			assert.Equal(t, "lec", s.Type)
-			assert.Equal(t, "S", s.Section)
-			assert.Equal(t, "Monday", s.Day)
-			assert.Equal(t, "17:45", s.StartTime)
-			assert.Equal(t, "20:15", s.EndTime)
-			assert.Equal(t, "H", s.BuildingCode)
-			assert.Equal(t, "H-929", s.Room)
+			assert.Equal(t, "lec", i.Type)
+			assert.Equal(t, "S", i.Section)
+			assert.Equal(t, "Monday", i.Day)
+			assert.Equal(t, "17:45", i.StartTime)
+			assert.Equal(t, "20:15", i.EndTime)
+			assert.Equal(t, "H", i.BuildingCode)
+			assert.Equal(t, "H-929", i.Room)
 			break
 		}
 	}
-	assert.True(t, found, "Class session not found")
+	assert.True(t, found, "Class info item not found")
 }
 
-func TestUpdateClassSession(t *testing.T) {
+func TestUpdateClassInfo(t *testing.T) {
 	service := setupTestService(t)
 	ctx := context.Background()
 	userID := "test-user-session-update-" + time.Now().Format("20060102150405")
@@ -225,14 +225,14 @@ func TestUpdateClassSession(t *testing.T) {
 	err = service.CreateClass(ctx, userID, title)
 	require.NoError(t, err)
 
-	session := application.ClassSession{
+	item := application.ClassInfo{
 		Type:      "lec",
 		Section:   "S",
 		Day:       "Tuesday",
 		StartTime: "10:00",
 		EndTime:   "11:30",
 	}
-	sessionID, err := service.AddClassSession(ctx, userID, title, session)
+	itemID, err := service.AddClassInfo(ctx, userID, title, item)
 	require.NoError(t, err)
 
 	updates := map[string]interface{}{
@@ -242,28 +242,28 @@ func TestUpdateClassSession(t *testing.T) {
 		"endTime":   "15:30",
 		"room":      "H-833",
 	}
-	err = service.UpdateClassSession(ctx, userID, title, sessionID, updates)
+	err = service.UpdateClassInfo(ctx, userID, title, itemID, updates)
 	require.NoError(t, err)
 
-	sessions, err := service.GetClassSessions(ctx, userID, title)
+	items, err := service.GetClassInfo(ctx, userID, title)
 	require.NoError(t, err)
 
 	found := false
-	for _, s := range sessions {
-		if s.SessionID == sessionID {
+	for _, i := range items {
+		if i.ItemID == itemID {
 			found = true
-			assert.Equal(t, "lab", s.Type)
-			assert.Equal(t, "SL", s.Section)
-			assert.Equal(t, "14:00", s.StartTime)
-			assert.Equal(t, "15:30", s.EndTime)
-			assert.Equal(t, "H-833", s.Room)
+			assert.Equal(t, "lab", i.Type)
+			assert.Equal(t, "SL", i.Section)
+			assert.Equal(t, "14:00", i.StartTime)
+			assert.Equal(t, "15:30", i.EndTime)
+			assert.Equal(t, "H-833", i.Room)
 			break
 		}
 	}
-	assert.True(t, found, "Updated class session not found")
+	assert.True(t, found, "Updated class info item not found")
 }
 
-func TestDeleteClassSession(t *testing.T) {
+func TestDeleteClassInfo(t *testing.T) {
 	service := setupTestService(t)
 	ctx := context.Background()
 	userID := "test-user-session-delete-" + time.Now().Format("20060102150405")
@@ -280,28 +280,28 @@ func TestDeleteClassSession(t *testing.T) {
 	err = service.CreateClass(ctx, userID, title)
 	require.NoError(t, err)
 
-	session := application.ClassSession{
+	item := application.ClassInfo{
 		Type:      "tut",
 		Section:   "T",
 		Day:       "Friday",
 		StartTime: "10:00",
 		EndTime:   "11:00",
 	}
-	sessionID, err := service.AddClassSession(ctx, userID, title, session)
+	itemID, err := service.AddClassInfo(ctx, userID, title, item)
 	require.NoError(t, err)
 
-	err = service.DeleteClassSession(ctx, userID, title, sessionID)
+	err = service.DeleteClassInfo(ctx, userID, title, itemID)
 	require.NoError(t, err)
 
-	sessions, err := service.GetClassSessions(ctx, userID, title)
+	items, err := service.GetClassInfo(ctx, userID, title)
 	require.NoError(t, err)
 
-	for _, s := range sessions {
-		assert.NotEqual(t, sessionID, s.SessionID, "Deleted session still exists")
+	for _, i := range items {
+		assert.NotEqual(t, itemID, i.ItemID, "Deleted item still exists")
 	}
 }
 
-func TestGetClassSessionsEmpty(t *testing.T) {
+func TestGetClassInfoEmpty(t *testing.T) {
 	service := setupTestService(t)
 	ctx := context.Background()
 	userID := "test-user-empty-sessions-" + time.Now().Format("20060102150405")
@@ -318,13 +318,13 @@ func TestGetClassSessionsEmpty(t *testing.T) {
 	err = service.CreateClass(ctx, userID, title)
 	require.NoError(t, err)
 
-	sessions, err := service.GetClassSessions(ctx, userID, title)
+	items, err := service.GetClassInfo(ctx, userID, title)
 	require.NoError(t, err)
-	assert.NotNil(t, sessions)
-	assert.Equal(t, 0, len(sessions))
+	assert.NotNil(t, items)
+	assert.Equal(t, 0, len(items))
 }
 
-func TestAddClassSessionWithOptionalFields(t *testing.T) {
+func TestAddClassInfoWithOptionalFields(t *testing.T) {
 	service := setupTestService(t)
 	ctx := context.Background()
 	userID := "test-user-opt-session-" + time.Now().Format("20060102150405")
@@ -341,35 +341,35 @@ func TestAddClassSessionWithOptionalFields(t *testing.T) {
 	err = service.CreateClass(ctx, userID, title)
 	require.NoError(t, err)
 
-	session := application.ClassSession{
+	item := application.ClassInfo{
 		Type:      "lec",
 		Section:   "A",
 		Day:       "Monday",
 		StartTime: "10:00",
 		EndTime:   "11:00",
 	}
-	sessionID, err := service.AddClassSession(ctx, userID, title, session)
+	itemID, err := service.AddClassInfo(ctx, userID, title, item)
 	require.NoError(t, err)
-	assert.NotEmpty(t, sessionID)
+	assert.NotEmpty(t, itemID)
 
-	sessions, err := service.GetClassSessions(ctx, userID, title)
+	items, err := service.GetClassInfo(ctx, userID, title)
 	require.NoError(t, err)
 
 	found := false
-	for _, s := range sessions {
-		if s.SessionID == sessionID {
+	for _, i := range items {
+		if i.ItemID == itemID {
 			found = true
-			assert.Equal(t, "lec", s.Type)
-			assert.Equal(t, "A", s.Section)
-			assert.Empty(t, s.BuildingCode)
-			assert.Empty(t, s.Room)
+			assert.Equal(t, "lec", i.Type)
+			assert.Equal(t, "A", i.Section)
+			assert.Empty(t, i.BuildingCode)
+			assert.Empty(t, i.Room)
 			break
 		}
 	}
 	assert.True(t, found)
 }
 
-func TestUpdateClassSessionMultipleFields(t *testing.T) {
+func TestUpdateClassInfoMultipleFields(t *testing.T) {
 	service := setupTestService(t)
 	ctx := context.Background()
 	userID := "test-user-multi-session-" + time.Now().Format("20060102150405")
@@ -386,14 +386,14 @@ func TestUpdateClassSessionMultipleFields(t *testing.T) {
 	err = service.CreateClass(ctx, userID, title)
 	require.NoError(t, err)
 
-	session := application.ClassSession{
+	item := application.ClassInfo{
 		Type:      "lec",
 		Section:   "B",
 		Day:       "Monday",
 		StartTime: "10:00",
 		EndTime:   "11:00",
 	}
-	sessionID, err := service.AddClassSession(ctx, userID, title, session)
+	itemID, err := service.AddClassInfo(ctx, userID, title, item)
 	require.NoError(t, err)
 
 	updates := map[string]interface{}{
@@ -403,21 +403,21 @@ func TestUpdateClassSessionMultipleFields(t *testing.T) {
 		"buildingCode": "EV",
 		"room":         "EV-001",
 	}
-	err = service.UpdateClassSession(ctx, userID, title, sessionID, updates)
+	err = service.UpdateClassInfo(ctx, userID, title, itemID, updates)
 	require.NoError(t, err)
 
-	sessions, err := service.GetClassSessions(ctx, userID, title)
+	items, err := service.GetClassInfo(ctx, userID, title)
 	require.NoError(t, err)
 
 	found := false
-	for _, s := range sessions {
-		if s.SessionID == sessionID {
+	for _, i := range items {
+		if i.ItemID == itemID {
 			found = true
-			assert.Equal(t, "tut", s.Type)
-			assert.Equal(t, "BT", s.Section)
-			assert.Equal(t, "Wednesday", s.Day)
-			assert.Equal(t, "EV", s.BuildingCode)
-			assert.Equal(t, "EV-001", s.Room)
+			assert.Equal(t, "tut", i.Type)
+			assert.Equal(t, "BT", i.Section)
+			assert.Equal(t, "Wednesday", i.Day)
+			assert.Equal(t, "EV", i.BuildingCode)
+			assert.Equal(t, "EV-001", i.Room)
 			break
 		}
 	}

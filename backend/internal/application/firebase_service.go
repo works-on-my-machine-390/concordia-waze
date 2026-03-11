@@ -36,9 +36,9 @@ type DestinationHistoryItem struct {
 	Timestamp       time.Time `firestore:"timestamp" json:"timestamp,omitempty"`
 }
 
-// ClassSession stores one session of a class.
-type ClassSession struct {
-	SessionID    string `firestore:"sessionId" json:"sessionId,omitempty"`
+// ClassInfo stores one schedule entry under a class.
+type ClassInfo struct {
+	ItemID       string `firestore:"itemId" json:"itemId,omitempty"`
 	Type         string `firestore:"type" json:"type"` // lab, lec, tut
 	Section      string `firestore:"section" json:"section"`
 	Day          string `firestore:"day" json:"day"`
@@ -46,6 +46,7 @@ type ClassSession struct {
 	EndTime      string `firestore:"endTime" json:"endTime"`
 	BuildingCode string `firestore:"buildingCode,omitempty" json:"buildingCode,omitempty"`
 	Room         string `firestore:"room,omitempty" json:"room,omitempty"`
+	Origin       string `firestore:"origin,omitempty" json:"origin,omitempty"` // e.g. "manual" or "google"
 }
 
 // SavedAddress stores a favorite place.
@@ -212,7 +213,7 @@ func (fs *FirebaseService) ClearDestinationHistory(ctx context.Context, userID s
 // ===== Classes =====
 
 // CreateClass creates an empty class document under users/{userId}/classes/{title}.
-// The class document is only used as a container for sessions.
+// The class document is only used as a container for the sessions subcollection.
 func (fs *FirebaseService) CreateClass(ctx context.Context, userID, title string) error {
 	_, err := fs.client.
 		Collection("users").
@@ -250,7 +251,7 @@ func (fs *FirebaseService) GetUserClasses(ctx context.Context, userID string) ([
 	return classes, nil
 }
 
-// DeleteClass deletes a class and all its sessions.
+// DeleteClass deletes a class and all its schedule items stored in the sessions subcollection.
 func (fs *FirebaseService) DeleteClass(ctx context.Context, userID, title string) error {
 	sessionDocs, err := fs.client.
 		Collection("users").
@@ -283,24 +284,24 @@ func (fs *FirebaseService) DeleteClass(ctx context.Context, userID, title string
 	return nil
 }
 
-// ===== Class Sessions =====
+// ===== Class Info =====
 
-func (fs *FirebaseService) AddClassSession(ctx context.Context, userID, title string, session ClassSession) (string, error) {
+func (fs *FirebaseService) AddClassInfo(ctx context.Context, userID, title string, item ClassInfo) (string, error) {
 	ref, _, err := fs.client.
 		Collection("users").
 		Doc(userID).
 		Collection("classes").
 		Doc(title).
 		Collection("sessions").
-		Add(ctx, session)
+		Add(ctx, item)
 	if err != nil {
-		return "", fmt.Errorf("add class session: %w", err)
+		return "", fmt.Errorf("add class info: %w", err)
 	}
 
 	return ref.ID, nil
 }
 
-func (fs *FirebaseService) GetClassSessions(ctx context.Context, userID, title string) ([]ClassSession, error) {
+func (fs *FirebaseService) GetClassInfo(ctx context.Context, userID, title string) ([]ClassInfo, error) {
 	docs, err := fs.client.
 		Collection("users").
 		Doc(userID).
@@ -312,50 +313,50 @@ func (fs *FirebaseService) GetClassSessions(ctx context.Context, userID, title s
 		Documents(ctx).
 		GetAll()
 	if err != nil {
-		return nil, fmt.Errorf("get class sessions: %w", err)
+		return nil, fmt.Errorf("get class info: %w", err)
 	}
 
-	sessions := make([]ClassSession, 0, len(docs))
+	items := make([]ClassInfo, 0, len(docs))
 	for _, doc := range docs {
-		var session ClassSession
-		if err := doc.DataTo(&session); err != nil {
+		var item ClassInfo
+		if err := doc.DataTo(&item); err != nil {
 			continue
 		}
 
-		session.SessionID = doc.Ref.ID
-		sessions = append(sessions, session)
+		item.ItemID = doc.Ref.ID
+		items = append(items, item)
 	}
 
-	return sessions, nil
+	return items, nil
 }
 
-func (fs *FirebaseService) UpdateClassSession(ctx context.Context, userID, title, sessionID string, updates map[string]interface{}) error {
+func (fs *FirebaseService) UpdateClassInfo(ctx context.Context, userID, title, itemID string, updates map[string]interface{}) error {
 	_, err := fs.client.
 		Collection("users").
 		Doc(userID).
 		Collection("classes").
 		Doc(title).
 		Collection("sessions").
-		Doc(sessionID).
+		Doc(itemID).
 		Update(ctx, toFirestoreUpdates(updates))
 	if err != nil {
-		return fmt.Errorf("update class session: %w", err)
+		return fmt.Errorf("update class info: %w", err)
 	}
 
 	return nil
 }
 
-func (fs *FirebaseService) DeleteClassSession(ctx context.Context, userID, title, sessionID string) error {
+func (fs *FirebaseService) DeleteClassInfo(ctx context.Context, userID, title, itemID string) error {
 	_, err := fs.client.
 		Collection("users").
 		Doc(userID).
 		Collection("classes").
 		Doc(title).
 		Collection("sessions").
-		Doc(sessionID).
+		Doc(itemID).
 		Delete(ctx)
 	if err != nil {
-		return fmt.Errorf("delete class session: %w", err)
+		return fmt.Errorf("delete class info: %w", err)
 	}
 
 	return nil
