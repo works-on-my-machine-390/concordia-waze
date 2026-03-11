@@ -36,19 +36,6 @@ type DestinationHistoryItem struct {
 	Timestamp       time.Time `firestore:"timestamp" json:"timestamp,omitempty"`
 }
 
-// ClassItem stores one schedule entry under a class.
-type ClassItem struct {
-	ItemID       string `firestore:"itemId" json:"itemId,omitempty"`
-	Type         string `firestore:"type" json:"type"` // lab, lec, tut
-	Section      string `firestore:"section" json:"section"`
-	Day          string `firestore:"day" json:"day"`
-	StartTime    string `firestore:"startTime" json:"startTime"`
-	EndTime      string `firestore:"endTime" json:"endTime"`
-	BuildingCode string `firestore:"buildingCode,omitempty" json:"buildingCode,omitempty"`
-	Room         string `firestore:"room,omitempty" json:"room,omitempty"`
-	Origin       string `firestore:"origin,omitempty" json:"origin,omitempty"` // e.g. "manual" or "google"
-}
-
 // SavedAddress stores a favorite place.
 type SavedAddress struct {
 	AddressID string `firestore:"addressId" json:"addressId,omitempty"`
@@ -286,7 +273,7 @@ func (fs *FirebaseService) DeleteClass(ctx context.Context, userID, title string
 
 // ===== Class Items =====
 
-func (fs *FirebaseService) AddClassItem(ctx context.Context, userID, title string, item ClassItem) (string, error) {
+func (fs *FirebaseService) AddClassItem(ctx context.Context, userID, title string, item domain.ClassItem) (string, error) {
 	ref, _, err := fs.client.
 		Collection("users").
 		Doc(userID).
@@ -301,7 +288,7 @@ func (fs *FirebaseService) AddClassItem(ctx context.Context, userID, title strin
 	return ref.ID, nil
 }
 
-func (fs *FirebaseService) GetClassItems(ctx context.Context, userID, title string) ([]ClassItem, error) {
+func (fs *FirebaseService) GetClassItems(ctx context.Context, userID, title string) ([]domain.ClassItem, error) {
 	docs, err := fs.client.
 		Collection("users").
 		Doc(userID).
@@ -316,10 +303,10 @@ func (fs *FirebaseService) GetClassItems(ctx context.Context, userID, title stri
 		return nil, fmt.Errorf("get class items: %w", err)
 	}
 
-	items := make([]ClassItem, 0, len(docs))
+	items := make([]domain.ClassItem, 0, len(docs))
 	for _, doc := range docs {
-		var item ClassItem
-		if err := doc.DataTo(&item); err != nil {
+		var item domain.ClassItem
+		if doc.DataTo(&item) != nil {
 			continue
 		}
 

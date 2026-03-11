@@ -137,7 +137,7 @@ func TestDeleteClass(t *testing.T) {
 	err = service.CreateClass(ctx, userID, title)
 	require.NoError(t, err)
 
-	_, err = service.AddClassItem(ctx, userID, title, application.ClassItem{
+	_, err = service.AddClassItem(ctx, userID, title, domain.ClassItem{
 		Type:         "lec",
 		Section:      "S",
 		Day:          "Monday",
@@ -173,7 +173,7 @@ func TestAddAndGetClassItems(t *testing.T) {
 	err = service.CreateClass(ctx, userID, title)
 	require.NoError(t, err)
 
-	item := application.ClassItem{
+	item := domain.ClassItem{
 		Type:         "lec",
 		Section:      "S",
 		Day:          "Monday",
@@ -225,7 +225,7 @@ func TestUpdateClassItem(t *testing.T) {
 	err = service.CreateClass(ctx, userID, title)
 	require.NoError(t, err)
 
-	item := application.ClassItem{
+	item := domain.ClassItem{
 		Type:      "lec",
 		Section:   "S",
 		Day:       "Tuesday",
@@ -280,7 +280,7 @@ func TestDeleteClassItem(t *testing.T) {
 	err = service.CreateClass(ctx, userID, title)
 	require.NoError(t, err)
 
-	item := application.ClassItem{
+	item := domain.ClassItem{
 		Type:      "tut",
 		Section:   "T",
 		Day:       "Friday",
@@ -341,7 +341,7 @@ func TestAddClassItemWithOptionalFields(t *testing.T) {
 	err = service.CreateClass(ctx, userID, title)
 	require.NoError(t, err)
 
-	item := application.ClassItem{
+	item := domain.ClassItem{
 		Type:      "lec",
 		Section:   "A",
 		Day:       "Monday",
@@ -386,7 +386,7 @@ func TestUpdateClassItemMultipleFields(t *testing.T) {
 	err = service.CreateClass(ctx, userID, title)
 	require.NoError(t, err)
 
-	item := application.ClassItem{
+	item := domain.ClassItem{
 		Type:      "lec",
 		Section:   "B",
 		Day:       "Monday",
