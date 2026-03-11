@@ -17,4 +17,8 @@ var (
 
 	// Other errors
 	ErrNotFound = errors.New("not found")
+
+	// Favorite errors
+	ErrFavoriteNotFound  = errors.New("favorite not found")
+	ErrEmptyFavoriteName = errors.New("name cannot be empty")
 )

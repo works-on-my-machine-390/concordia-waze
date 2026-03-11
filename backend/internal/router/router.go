@@ -45,6 +45,9 @@ func SetupRouter() *gin.Engine {
 	shuttleService := application.NewShuttleService(shuttleDataRepo)
 	pointOfInterestService := application.NewPointOfInterestService(placesClient)
 
+	favoriteRepo := repository.NewInMemoryFavoriteRepository()
+	favoritesService := application.NewFavoritesService(favoriteRepo)
+
 	dataDir, err := findIndoorDataDir()
 	if err != nil {
 		// fail fast with a clear message
@@ -73,6 +76,7 @@ func SetupRouter() *gin.Engine {
 	firebaseHandler := handler.NewFirebaseHandler(firebaseService)
 	shuttleHandler := handler.NewShuttleHandler(shuttleService)
 	pointOfInterestHandler := handler.NewPointOfInterestHandler(pointOfInterestService, indoorPOIService)
+	favoritesHandler := handler.NewFavoritesHandler(favoritesService)
 
 	googleRateLimiter := middleware.NewIPRateLimiterFromEnv(
 		"GOOGLE",
@@ -134,6 +138,13 @@ func SetupRouter() *gin.Engine {
 	// =========================
 	// PROTECTED ROUTES (auth)
 	// =========================
+
+	favoritesGroup := router.Group("/favorites")
+	{
+		favoritesGroup.POST("", favoritesHandler.CreateFavorite)
+		favoritesGroup.GET("", favoritesHandler.GetFavorites)
+		favoritesGroup.DELETE("/:id", favoritesHandler.DeleteFavorite)
+	}
 
 	usersGroup := router.Group("/users")
 	usersGroup.Use(middleware.RequireAuth(), middleware.ValidateUserOwnership())
