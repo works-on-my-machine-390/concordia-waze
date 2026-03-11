@@ -18,7 +18,14 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.concordiawaze.app"
+      "package": "com.concordiawaze.app",
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_LOCATION"
+      ]
     },
     "web": {
       "output": "static"
@@ -35,10 +42,12 @@
       [
         "expo-splash-screen",
         {
+          "image": "./assets/images/concordia_logo.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",
           "dark": {
+            "image": "./assets/images/concordia_logo.png",
             "backgroundColor": "#000000"
           }
         }
@@ -48,6 +57,18 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "968a2d4b-cdc2-46c8-ad8f-0cd82b917fc0"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/968a2d4b-cdc2-46c8-ad8f-0cd82b917fc0"
     }
   }
 }
