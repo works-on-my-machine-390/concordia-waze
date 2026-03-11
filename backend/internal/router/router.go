@@ -41,7 +41,13 @@ func SetupRouter() *gin.Engine {
 	buildingService := application.NewBuildingService(buildingDataRepo, floorDataRepo, placesClient, "./")
 	campusService := application.NewCampusService(buildingDataRepo)
 	imageService := application.NewImageService(buildingService, placesClient)
-	firebaseService := application.NewFirebaseService()
+	var authFirebaseService handler.FirebaseProfileService
+	var firebaseHandlerService handler.FirebaseService
+	if os.Getenv("SKIP_FIREBASE") != "true" {
+		svc := application.NewFirebaseService()
+		authFirebaseService = svc
+		firebaseHandlerService = svc
+	}
 	shuttleService := application.NewShuttleService(shuttleDataRepo)
 	pointOfInterestService := application.NewPointOfInterestService(placesClient)
 
@@ -68,12 +74,12 @@ func SetupRouter() *gin.Engine {
 	directionsHandler := handler.NewDirectionsHandler(directionsService, buildingService)
 	// ---------------------------------------------------------------
 
-	authHandler := handler.NewAuthHandler(userService, firebaseService)
+	authHandler := handler.NewAuthHandler(userService, authFirebaseService)
 
 	buildingHandler := handler.NewBuildingHandler(buildingService)
 	campusHandler := handler.NewCampusHandler(campusService)
 	imageHandler := handler.NewImageHandler(imageService)
-	firebaseHandler := handler.NewFirebaseHandler(firebaseService)
+	firebaseHandler := handler.NewFirebaseHandler(firebaseHandlerService)
 	shuttleHandler := handler.NewShuttleHandler(shuttleService)
 	pointOfInterestHandler := handler.NewPointOfInterestHandler(pointOfInterestService, indoorPOIService)
 	favoritesHandler := handler.NewFavoritesHandler(favoritesService)

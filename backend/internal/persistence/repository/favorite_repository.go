@@ -11,7 +11,7 @@ import (
 type FavoriteRepository interface {
 	Create(favorite *domain.Favorite) error
 	FindByUserID(userID string) ([]*domain.Favorite, error)
-	Delete(id string) error
+	Delete(id, userID string) error
 }
 
 // InMemoryFavoriteRepository is an in-memory implementation for development/testing
@@ -54,12 +54,13 @@ func (r *InMemoryFavoriteRepository) FindByUserID(userID string) ([]*domain.Favo
 	return result, nil
 }
 
-// Delete removes a favorite by ID
-func (r *InMemoryFavoriteRepository) Delete(id string) error {
+// Delete removes a favorite by ID, scoped to the owning user
+func (r *InMemoryFavoriteRepository) Delete(id, userID string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	if _, exists := r.favorites[id]; !exists {
+	f, exists := r.favorites[id]
+	if !exists || f.UserID != userID {
 		return domain.ErrFavoriteNotFound
 	}
 

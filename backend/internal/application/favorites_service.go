@@ -15,8 +15,7 @@ func NewFavoritesService(repo repository.FavoriteRepository) *FavoritesService {
 	return &FavoritesService{repo: repo}
 }
 
-// AddFavorite creates a new favorite location. userID is a client-provided identifier
-// (e.g. a device UUID) and is not validated against any auth system.
+// AddFavorite creates a new favorite location for an authenticated user
 func (s *FavoritesService) AddFavorite(userID, name string, latitude, longitude float64) (*domain.Favorite, error) {
 	if name == "" {
 		return nil, domain.ErrEmptyFavoriteName
@@ -41,7 +40,7 @@ func (s *FavoritesService) GetFavorites(userID string) ([]*domain.Favorite, erro
 	return s.repo.FindByUserID(userID)
 }
 
-// DeleteFavorite removes a favorite by ID
-func (s *FavoritesService) DeleteFavorite(id string) error {
-	return s.repo.Delete(id)
+// DeleteFavorite removes a favorite by ID, scoped to the authenticated user
+func (s *FavoritesService) DeleteFavorite(id, userID string) error {
+	return s.repo.Delete(id, userID)
 }
