@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
-	_ "github.com/works-on-my-machine-390/concordia-waze/docs"
+	docs "github.com/works-on-my-machine-390/concordia-waze/docs"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/application/firebase"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/router"
 )
@@ -14,7 +14,7 @@ import (
 // @title           Concordia Waze API
 // @version         1.0
 // @description     This is the Concordia Waze API server.
-// @host            localhost:8080
+// @host            concordia-waze.onrender.com
 
 // @securityDefinitions.apikey BearerAuth
 // @in header
@@ -23,7 +23,15 @@ import (
 func main() {
 	_ = godotenv.Load()
 
-	// ✅ Local-only bypass
+	if os.Getenv("GO_ENV") == "production" {
+			docs.SwaggerInfo.Host = os.Getenv("PRODUCTION_URL")
+			docs.SwaggerInfo.Schemes = []string{"https"}
+		} else if os.Getenv("GO_ENV") == "development" {
+			docs.SwaggerInfo.Host = "localhost:8080"
+			docs.SwaggerInfo.Schemes = []string{"http"}
+		}
+
+	// Local-only bypass
 	if os.Getenv("SKIP_FIREBASE") != "true" {
 		ctx := context.Background()
 		if err := firebase.Initialize(ctx); err != nil {
