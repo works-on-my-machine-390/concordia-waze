@@ -714,3 +714,183 @@ func TestSaveGoogleToken_Nil(t *testing.T) {
 	require.Error(t, err, "SaveGoogleToken with nil token should return an error")
 	assert.Contains(t, err.Error(), "token is nil")
 }
+  
+// ===== Favorites =====
+
+func TestAddAndGetFavorites(t *testing.T) {
+	service := setupTestService(t)
+	ctx := context.Background()
+	userID := "test-user-fav-" + time.Now().Format("20060102150405")
+
+	profile := domain.User{Email: "fav@example.com", Name: "Fav User", Password: "password"}
+	require.NoError(t, service.CreateUserProfile(ctx, userID, profile))
+
+	fav := application.FirestoreFavorite{
+		ID:        "fav-id-001",
+		Type:      "outdoor",
+		Name:      "Hall Building",
+		Latitude:  45.4971,
+		Longitude: -73.5789,
+	}
+	err := service.AddFavorite(ctx, userID, fav)
+	require.NoError(t, err)
+
+	favorites, err := service.GetFavorites(ctx, userID)
+	require.NoError(t, err)
+
+	found := false
+	for _, f := range favorites {
+		if f.ID == "fav-id-001" {
+			found = true
+			assert.Equal(t, "Hall Building", f.Name)
+			assert.Equal(t, "outdoor", f.Type)
+			assert.InDelta(t, 45.4971, f.Latitude, 0.0001)
+			assert.InDelta(t, -73.5789, f.Longitude, 0.0001)
+			break
+		}
+	}
+	assert.True(t, found, "Favorite not found in Firestore")
+}
+
+func TestGetFavoritesEmpty(t *testing.T) {
+	service := setupTestService(t)
+	ctx := context.Background()
+	userID := "test-user-fav-empty-" + time.Now().Format("20060102150405")
+
+	profile := domain.User{Email: "favempty@example.com", Name: "Fav Empty", Password: "password"}
+	require.NoError(t, service.CreateUserProfile(ctx, userID, profile))
+
+	favorites, err := service.GetFavorites(ctx, userID)
+	require.NoError(t, err)
+	assert.Equal(t, 0, len(favorites))
+}
+
+func TestDeleteFavorite_Firestore(t *testing.T) {
+	service := setupTestService(t)
+	ctx := context.Background()
+	userID := "test-user-fav-del-" + time.Now().Format("20060102150405")
+
+	profile := domain.User{Email: "favdel@example.com", Name: "Fav Del", Password: "password"}
+	require.NoError(t, service.CreateUserProfile(ctx, userID, profile))
+
+	fav := application.FirestoreFavorite{ID: "fav-del-001", Type: "outdoor", Name: "EV Building", Latitude: 45.4954, Longitude: -73.5782}
+	require.NoError(t, service.AddFavorite(ctx, userID, fav))
+
+	err := service.DeleteFavorite(ctx, userID, "fav-del-001")
+	require.NoError(t, err)
+
+	favorites, err := service.GetFavorites(ctx, userID)
+	require.NoError(t, err)
+	for _, f := range favorites {
+		assert.NotEqual(t, "fav-del-001", f.ID, "Deleted favorite still present")
+	}
+}
+
+func TestDeleteFavoriteNotFound_Firestore(t *testing.T) {
+	service := setupTestService(t)
+	ctx := context.Background()
+	userID := "test-user-fav-notfound-" + time.Now().Format("20060102150405")
+
+	profile := domain.User{Email: "favnotfound@example.com", Name: "Fav NotFound", Password: "password"}
+	require.NoError(t, service.CreateUserProfile(ctx, userID, profile))
+
+	err := service.DeleteFavorite(ctx, userID, "nonexistent-fav-id")
+	assert.ErrorIs(t, err, domain.ErrFavoriteNotFound)
+}
+
+func TestAddMultipleFavorites(t *testing.T) {
+	service := setupTestService(t)
+	ctx := context.Background()
+	userID := "test-user-fav-multi-" + time.Now().Format("20060102150405")
+
+	profile := domain.User{Email: "favmulti@example.com", Name: "Fav Multi", Password: "password"}
+	require.NoError(t, service.CreateUserProfile(ctx, userID, profile))
+
+	favs := []application.FirestoreFavorite{
+		{ID: "fav-m-001", Type: "outdoor", Name: "Hall Building", Latitude: 45.4971, Longitude: -73.5789},
+		{ID: "fav-m-002", Type: "outdoor", Name: "EV Building", Latitude: 45.4954, Longitude: -73.5782},
+		{ID: "fav-m-003", Type: "outdoor", Name: "Library", Latitude: 45.4960, Longitude: -73.5780},
+	}
+	for _, f := range favs {
+		require.NoError(t, service.AddFavorite(ctx, userID, f))
+	}
+
+	result, err := service.GetFavorites(ctx, userID)
+	require.NoError(t, err)
+	assert.GreaterOrEqual(t, len(result), 3)
+}
+
+func TestFavoritesSubcollectionInitialized(t *testing.T) {
+	service := setupTestService(t)
+	ctx := context.Background()
+	userID := "test-user-fav-init-" + time.Now().Format("20060102150405")
+
+	profile := domain.User{Email: "favinit@example.com", Name: "Fav Init", Password: "password"}
+	require.NoError(t, service.CreateUserProfile(ctx, userID, profile))
+
+	// Favorites subcollection should be queryable immediately after user creation
+	favorites, err := service.GetFavorites(ctx, userID)
+	require.NoError(t, err)
+	assert.NotNil(t, favorites)
+	assert.Equal(t, 0, len(favorites)) // no real favorites yet, only _init placeholder
+}
+
+func TestFirestoreFavoriteRepository_Lifecycle(t *testing.T) {
+	service := setupTestService(t)
+	repo := application.NewFirestoreFavoriteRepository(service)
+
+	userID := "repo-user-" + time.Now().Format("20060102150405")
+	favID := "fav-repo-1"
+
+	// 1. Create
+	fav := &domain.Favorite{
+		ID:        favID,
+		UserID:    userID,
+		Type:      domain.FavoriteTypeOutdoor,
+		Name:      "Repo Place",
+		Latitude:  10.0,
+		Longitude: 20.0,
+	}
+	err := repo.Create(fav)
+	require.NoError(t, err)
+
+	// 2. FindByUserID
+	list, err := repo.FindByUserID(userID)
+	require.NoError(t, err)
+	require.Len(t, list, 1)
+	assert.Equal(t, "Repo Place", list[0].Name)
+
+	// 3. Delete
+	err = repo.Delete(favID, userID)
+	require.NoError(t, err)
+
+	// Verify empty
+	list, err = repo.FindByUserID(userID)
+	require.NoError(t, err)
+	assert.Empty(t, list)
+}
+
+func TestHybridFavoriteRepository_Routing(t *testing.T) {
+	service := setupTestService(t)
+	hybrid := application.NewHybridFavoriteRepository(service)
+
+	// Case 1: Authenticated User -> Firestore
+	authUser := "auth-user-" + time.Now().Format("20060102150405")
+	authFav := &domain.Favorite{ID: "auth-fav", UserID: authUser, Type: domain.FavoriteTypeOutdoor, Name: "Auth Home", Latitude: 1, Longitude: 1}
+	require.NoError(t, hybrid.Create(authFav))
+	listAuth, err := hybrid.FindByUserID(authUser)
+	require.NoError(t, err)
+	require.Len(t, listAuth, 1)
+
+	// Case 2: Anonymous User -> Memory
+	anonUser := ""
+	anonFav := &domain.Favorite{ID: "anon-fav", UserID: anonUser, Type: domain.FavoriteTypeOutdoor, Name: "Anon Home", Latitude: 2, Longitude: 2}
+	require.NoError(t, hybrid.Create(anonFav))
+	listAnon, err := hybrid.FindByUserID(anonUser)
+	require.NoError(t, err)
+	require.Len(t, listAnon, 1)
+
+	// Verify Deletion Routing
+	require.NoError(t, hybrid.Delete("auth-fav", authUser))
+	require.NoError(t, hybrid.Delete("anon-fav", anonUser))
+}
