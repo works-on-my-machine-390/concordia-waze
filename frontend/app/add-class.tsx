@@ -41,6 +41,15 @@ export default function AddClassScreen() {
     setClassInfo((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const handleSave = () => {
+    if (!courseName.trim()) {
+      setCourseNameError("Please enter a course name before saving.");
+      return;
+    }
+    setCourseNameError(null);
+    // when we want to save to db, or guest storage it can go here
+  };
+
   return (
     <SafeAreaView style={styles.safe}>
       <BackHeader />
@@ -102,7 +111,7 @@ export default function AddClassScreen() {
           )}
 
           {classInfo.length > 0 && !showClassInfoForm && (
-            <TouchableOpacity style={styles.saveBtn}>
+            <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
               <Text style={styles.saveText}>Save Class</Text>
             </TouchableOpacity>
           )}
