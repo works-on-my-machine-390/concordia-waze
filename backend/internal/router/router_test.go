@@ -41,3 +41,23 @@ func TestSetupTestRouter_ReturnsRouter(t *testing.T) {
 		t.Fatalf("expected router, got nil")
 	}
 }
+
+func TestSetupRouter_PanicOnMissingDataDir(t *testing.T) {
+	// Switch to a temp directory where "campusFloormaps/Data" doesn't exist
+	tmp := t.TempDir()
+	cwd, _ := os.Getwd()
+	defer os.Chdir(cwd)
+
+	if err := os.Chdir(tmp); err != nil {
+		t.Fatal(err)
+	}
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("SetupRouter should have panicked when data dir is missing")
+		}
+	}()
+
+	// This call should panic because it can't find the indoor data dir
+	SetupRouter()
+}

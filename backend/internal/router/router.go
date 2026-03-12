@@ -41,9 +41,24 @@ func SetupRouter() *gin.Engine {
 	buildingService := application.NewBuildingService(buildingDataRepo, floorDataRepo, placesClient, "./")
 	campusService := application.NewCampusService(buildingDataRepo)
 	imageService := application.NewImageService(buildingService, placesClient)
-	firebaseService := application.NewFirebaseService()
+	var authFirebaseService handler.FirebaseProfileService
+	var firebaseHandlerService handler.FirebaseService
+	var firebaseSvc *application.FirebaseService
+	if os.Getenv("SKIP_FIREBASE") != "true" {
+		firebaseSvc = application.NewFirebaseService()
+		authFirebaseService = firebaseSvc
+		firebaseHandlerService = firebaseSvc
+	}
 	shuttleService := application.NewShuttleService(shuttleDataRepo)
 	pointOfInterestService := application.NewPointOfInterestService(placesClient)
+
+	var favoriteRepo repository.FavoriteRepository
+	if firebaseSvc != nil {
+		favoriteRepo = application.NewHybridFavoriteRepository(firebaseSvc)
+	} else {
+		favoriteRepo = repository.NewInMemoryFavoriteRepository()
+	}
+	favoritesService := application.NewFavoritesService(favoriteRepo)
 
 	dataDir, err := findIndoorDataDir()
 	if err != nil {
@@ -65,14 +80,15 @@ func SetupRouter() *gin.Engine {
 	directionsHandler := handler.NewDirectionsHandler(directionsService, buildingService)
 	// ---------------------------------------------------------------
 
-	authHandler := handler.NewAuthHandler(userService, firebaseService)
+	authHandler := handler.NewAuthHandler(userService, authFirebaseService)
 
 	buildingHandler := handler.NewBuildingHandler(buildingService)
 	campusHandler := handler.NewCampusHandler(campusService)
 	imageHandler := handler.NewImageHandler(imageService)
-	firebaseHandler := handler.NewFirebaseHandler(firebaseService)
+	firebaseHandler := handler.NewFirebaseHandler(firebaseHandlerService)
 	shuttleHandler := handler.NewShuttleHandler(shuttleService)
 	pointOfInterestHandler := handler.NewPointOfInterestHandler(pointOfInterestService, indoorPOIService)
+	favoritesHandler := handler.NewFavoritesHandler(favoritesService)
 
 	googleRateLimiter := middleware.NewIPRateLimiterFromEnv(
 		"GOOGLE",
@@ -130,6 +146,14 @@ func SetupRouter() *gin.Engine {
 	// Indoor POIs + room search are local repo-based -> no external API calls (leave unlimited)
 	router.GET("/pointofinterest/indoor", pointOfInterestHandler.GetNearbyIndoorPOIs)
 	router.GET("/rooms/search", roomSearchHandler.SearchRoom)
+
+	// Favorites (optional auth — ownership enforced in handler)
+	userFavGroup := router.Group("/users/:userId/favorites")
+	{
+		userFavGroup.POST("", favoritesHandler.CreateFavorite)
+		userFavGroup.GET("", favoritesHandler.GetFavorites)
+		userFavGroup.DELETE("/:id", favoritesHandler.DeleteFavorite)
+	}
 
 	// =========================
 	// PROTECTED ROUTES (auth)
