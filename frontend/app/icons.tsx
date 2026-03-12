@@ -9,6 +9,7 @@ import Octicons from "@expo/vector-icons/Octicons";
 import React from "react";
 import { Pressable, StyleSheet } from "react-native";
 import { COLORS } from "./constants";
+import Feather from '@expo/vector-icons/Feather';
 
 // Standard defaults
 const DEFAULT_ICON_SIZE = 35;
@@ -269,3 +270,15 @@ export const ReferenceDeskIcon: React.FC<IconProps> = ({
   size = DEFAULT_ICON_SIZE,
   color = DEFAULT_ICON_COLOR,
 }) => <MaterialCommunityIcons name="bookshelf" size={size} color={color} />;
+
+// Delete icon
+export const DeleteIcon: React.FC<IconProps> = ({
+  size = DEFAULT_ICON_SIZE,
+  color = DEFAULT_ICON_COLOR,
+}) => <Feather name="trash-2" size={size} color={color} />;
+
+// Add icon
+export const AddIcon: React.FC<IconProps> = ({
+  size = DEFAULT_ICON_SIZE,
+  color = DEFAULT_ICON_COLOR,
+}) => <MaterialIcons name="add-box" size={size} color={color} />;
