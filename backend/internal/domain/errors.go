@@ -17,4 +17,11 @@ var (
 
 	// Other errors
 	ErrNotFound = errors.New("not found")
+
+	// Favorite errors
+	ErrFavoriteNotFound     = errors.New("favorite not found")
+	ErrEmptyFavoriteName    = errors.New("name cannot be empty")
+	ErrInvalidFavoriteType  = errors.New("type must be 'outdoor' or 'indoor'")
+	ErrOutdoorMissingCoords = errors.New("outdoor favorites require latitude and longitude")
+	ErrIndoorMissingFields  = errors.New("indoor favorites require buildingCode, floorNumber, x, and y")
 )
