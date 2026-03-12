@@ -11,8 +11,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/application/firebase"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
-	"golang.org/x/oauth2"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/persistence/repository"
+	"golang.org/x/oauth2"
 	"google.golang.org/api/iterator"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -66,7 +66,7 @@ type googleTokenDoc struct {
 	TokenJSON string    `firestore:"tokenJSON"`
 	UpdatedAt time.Time `firestore:"updatedAt"`
 }
-  
+
 // FirestoreFavorite is the Firestore-stored representation of a saved favorite location.
 // The Type field discriminates between "outdoor" and "indoor" favorites.
 // Existing documents without a Type field are treated as outdoor on read (backward compat).
@@ -482,7 +482,7 @@ func (fs *FirebaseService) DeleteGoogleToken(ctx context.Context, userID string)
 	}
 	return nil
 }
-  
+
 // ===== Favorite repository adapters =====
 
 // FirestoreFavoriteRepository implements repository.FavoriteRepository backed by Firestore.

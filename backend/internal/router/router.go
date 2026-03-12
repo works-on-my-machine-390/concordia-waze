@@ -103,7 +103,7 @@ func SetupRouter() *gin.Engine {
 	if tokenStorePath == "" {
 		tokenStorePath = "data/google-token-store.json"
 	}
-	googleOAuthHandler := handler.NewGoogleOAuthHandler(firebaseService)
+	googleOAuthHandler := handler.NewGoogleOAuthHandler(firebaseSvc)
 
 	authGroup := router.Group("/auth")
 	{

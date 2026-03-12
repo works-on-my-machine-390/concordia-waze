@@ -1246,7 +1246,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Save a named location as a favorite for the given user. Authenticated users' favorites are persisted in Firestore; anonymous requests are kept in memory.",
+                "description": "Save a named location as a favorite for the given user. Supports both outdoor (lat/lng) and indoor (building/floor/x/y) favorites. If \"type\" is omitted the request is treated as outdoor for backward compatibility. Authenticated users' favorites are persisted in Firestore; anonymous requests are kept in memory.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1260,7 +1260,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "User ID (use the id from signup/login for authenticated requests, any string for anonymous)",
+                        "description": "User ID",
                         "name": "userId",
                         "in": "path",
                         "required": true
@@ -1283,7 +1283,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Missing or invalid name",
+                        "description": "Missing or invalid fields",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -2698,10 +2698,18 @@ const docTemplate = `{
         "domain.Favorite": {
             "type": "object",
             "properties": {
+                "buildingCode": {
+                    "description": "Indoor fields",
+                    "type": "string"
+                },
+                "floorNumber": {
+                    "type": "integer"
+                },
                 "id": {
                     "type": "string"
                 },
                 "latitude": {
+                    "description": "Outdoor fields",
                     "type": "number"
                 },
                 "longitude": {
@@ -2710,10 +2718,33 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
+                "poiType": {
+                    "type": "string"
+                },
+                "type": {
+                    "$ref": "#/definitions/domain.FavoriteType"
+                },
                 "userId": {
                     "type": "string"
+                },
+                "x": {
+                    "type": "number"
+                },
+                "y": {
+                    "type": "number"
                 }
             }
+        },
+        "domain.FavoriteType": {
+            "type": "string",
+            "enum": [
+                "outdoor",
+                "indoor"
+            ],
+            "x-enum-varnames": [
+                "FavoriteTypeOutdoor",
+                "FavoriteTypeIndoor"
+            ]
         },
         "domain.Floor": {
             "type": "object",
@@ -2843,6 +2874,13 @@ const docTemplate = `{
                 "name"
             ],
             "properties": {
+                "buildingCode": {
+                    "description": "Indoor-specific fields. Pointer types allow the handler to distinguish\n\"field not provided\" from \"field provided as zero\".",
+                    "type": "string"
+                },
+                "floorNumber": {
+                    "type": "integer"
+                },
                 "latitude": {
                     "type": "number"
                 },
@@ -2851,6 +2889,18 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                },
+                "poiType": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "x": {
+                    "type": "number"
+                },
+                "y": {
+                    "type": "number"
                 }
             }
         },

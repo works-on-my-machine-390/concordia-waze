@@ -269,17 +269,39 @@ definitions:
     type: object
   domain.Favorite:
     properties:
+      buildingCode:
+        description: Indoor fields
+        type: string
+      floorNumber:
+        type: integer
       id:
         type: string
       latitude:
+        description: Outdoor fields
         type: number
       longitude:
         type: number
       name:
         type: string
+      poiType:
+        type: string
+      type:
+        $ref: '#/definitions/domain.FavoriteType'
       userId:
         type: string
+      x:
+        type: number
+      "y":
+        type: number
     type: object
+  domain.FavoriteType:
+    enum:
+    - outdoor
+    - indoor
+    type: string
+    x-enum-varnames:
+    - FavoriteTypeOutdoor
+    - FavoriteTypeIndoor
   domain.Floor:
     properties:
       edges:
@@ -361,12 +383,27 @@ definitions:
     type: object
   handler.CreateFavoriteRequest:
     properties:
+      buildingCode:
+        description: |-
+          Indoor-specific fields. Pointer types allow the handler to distinguish
+          "field not provided" from "field provided as zero".
+        type: string
+      floorNumber:
+        type: integer
       latitude:
         type: number
       longitude:
         type: number
       name:
         type: string
+      poiType:
+        type: string
+      type:
+        type: string
+      x:
+        type: number
+      "y":
+        type: number
     required:
     - name
     type: object
@@ -1260,12 +1297,13 @@ paths:
     post:
       consumes:
       - application/json
-      description: Save a named location as a favorite for the given user. Authenticated
+      description: Save a named location as a favorite for the given user. Supports
+        both outdoor (lat/lng) and indoor (building/floor/x/y) favorites. If "type"
+        is omitted the request is treated as outdoor for backward compatibility. Authenticated
         users' favorites are persisted in Firestore; anonymous requests are kept in
         memory.
       parameters:
-      - description: User ID (use the id from signup/login for authenticated requests,
-          any string for anonymous)
+      - description: User ID
         in: path
         name: userId
         required: true
@@ -1284,7 +1322,7 @@ paths:
           schema:
             $ref: '#/definitions/domain.Favorite'
         "400":
-          description: Missing or invalid name
+          description: Missing or invalid fields
           schema:
             additionalProperties:
               type: string

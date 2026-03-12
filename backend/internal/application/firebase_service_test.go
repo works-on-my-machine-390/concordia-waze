@@ -714,7 +714,7 @@ func TestSaveGoogleToken_Nil(t *testing.T) {
 	require.Error(t, err, "SaveGoogleToken with nil token should return an error")
 	assert.Contains(t, err.Error(), "token is nil")
 }
-  
+
 // ===== Favorites =====
 
 func TestAddAndGetFavorites(t *testing.T) {

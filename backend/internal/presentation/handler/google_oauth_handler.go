@@ -14,7 +14,6 @@ import (
 )
 
 // GoogleTokenStore is the minimal interface this handler needs from a token store.
-// Your application.FirebaseService implements these methods.
 type GoogleTokenStore interface {
 	GetGoogleToken(ctx context.Context, userID string) (*oauth2.Token, bool, error)
 	SaveGoogleToken(ctx context.Context, userID string, token *oauth2.Token) error
@@ -108,11 +107,7 @@ func (h *GoogleOAuthHandler) makeAuthURL(userID string) (string, error) {
 	return google.GenerateAuthURL(state)
 }
 
-// extractUserID obtains the user identifier from Gin context or query (query only for test/backwards compatibility).
-// Preferred order:
-// 1) context value "userId" (set by your RequireAuth middleware)
-// 2) context value "sub" (JWT subject claim, if you set it)
-// 3) query param "userId" (only for tests / legacy callers — avoid in production)
+// extractUserID obtains the user identifier from Gin context or query
 func extractUserID(c *gin.Context) string {
 	// 1) common middleware key
 	if v, ok := c.Get("userId"); ok {
@@ -136,8 +131,6 @@ func extractUserID(c *gin.Context) string {
 	return ""
 }
 
-// GetAuthStatus handler (keeps behavior, but uses injected tsProvider)
-//
 // @Summary     Get Google OAuth2 status / auth URL
 // @Description Checks stored Google tokens for the authenticated user and returns either a short-lived auth URL (when re-auth is required) or {"ok": true} when the token is usable. This endpoint SHOULD be called by an authenticated user (server-side JWT). The handler will use the server-side user ID from the auth context (do not rely on query userId in production).
 // @Tags        auth
