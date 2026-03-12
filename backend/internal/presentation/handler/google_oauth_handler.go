@@ -13,12 +13,10 @@ import (
 	"github.com/works-on-my-machine-390/concordia-waze/internal/application/google"
 )
 
-const (
-	authUrlGenerationError = "failed to generate auth url"
-)
+const authUrlGenerationError = "failed to generate auth url"
 
-// GoogleTokenStore is a minimal interface the handler needs to persist and retrieve tokens.
-// application.FirebaseService implements these methods
+// GoogleTokenStore is the minimal interface this handler needs from a token store.
+// Your application.FirebaseService already implements these methods.
 type GoogleTokenStore interface {
 	GetGoogleToken(ctx context.Context, userID string) (*oauth2.Token, bool, error)
 	SaveGoogleToken(ctx context.Context, userID string, token *oauth2.Token) error
@@ -29,7 +27,6 @@ type GoogleOAuthHandler struct {
 	store GoogleTokenStore
 }
 
-// NewGoogleOAuthHandler constructs a handler that uses the provided token store.
 func NewGoogleOAuthHandler(store GoogleTokenStore) *GoogleOAuthHandler {
 	return &GoogleOAuthHandler{store: store}
 }
@@ -60,7 +57,7 @@ type TokenSaveResponse struct {
 //   - If token expired and no refresh_token or refresh fails -> returns {"url":"<authUrl>"}.
 //
 // @Summary     Get Google OAuth2 status / auth URL
-// @Description Checks stored Google tokens for the authenticated user and returns either a short-lived auth URL (when re-auth is required) or {"ok": true} when the token is usable. This endpoint MUST be called by an authenticated user (server-side JWT). The handler will use the server-side user ID from the auth context (do not rely on query userId in production).
+// @Description Checks stored Google tokens for the authenticated user and returns either a short-lived auth URL (when re-auth is required) or {"ok": true} when the token is usable. This endpoint SHOULD be called by an authenticated user (server-side JWT). The handler will use the server-side user ID from the auth context (do not rely on query userId in production).
 // @Tags        auth
 // @Accept      json
 // @Produce     json
@@ -72,22 +69,7 @@ type TokenSaveResponse struct {
 // @Security    BearerAuth
 // @Router      /auth/google/status [get]
 func (h *GoogleOAuthHandler) GetAuthStatus(c *gin.Context) {
-	// Determine userID (RequireAuth middleware should supply it in context; fallback to query param only for tests)
-	userID := c.Query("userId")
-	if userID == "" {
-		if v, ok := c.Get("userId"); ok {
-			if s, ok2 := v.(string); ok2 {
-				userID = s
-			}
-		}
-	}
-	if userID == "" {
-		if v, ok := c.Get("sub"); ok {
-			if s, ok2 := v.(string); ok2 {
-				userID = s
-			}
-		}
-	}
+	userID := extractUserID(c)
 	if userID == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "missing userId (query or from auth context)"})
 		return
@@ -96,83 +78,120 @@ func (h *GoogleOAuthHandler) GetAuthStatus(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 15*time.Second)
 	defer cancel()
 
-	// 1) Load stored token
+	needsAuth, authURL, err := h.checkAndRefreshIfNeeded(ctx, userID)
+	if err != nil {
+		log.Printf("error checking auth status for user %s: %v", userID, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to check auth status"})
+		return
+	}
+
+	if needsAuth {
+		c.JSON(http.StatusOK, AuthURLResponse{URL: authURL})
+		return
+	}
+
+	c.JSON(http.StatusOK, StatusOKResponse{Ok: true})
+}
+
+// extractUserID obtains the user identifier from Gin context or query (query only for test/backwards compatibility).
+func extractUserID(c *gin.Context) string {
+	if v := c.Query("userId"); v != "" {
+		return v
+	}
+	if v, ok := c.Get("userId"); ok {
+		if s, ok2 := v.(string); ok2 && s != "" {
+			return s
+		}
+	}
+	if v, ok := c.Get("sub"); ok {
+		if s, ok2 := v.(string); ok2 && s != "" {
+			return s
+		}
+	}
+	return ""
+}
+
+// checkAndRefreshIfNeeded loads the stored token and returns:
+// - needsAuth=true and authURL set when the frontend must initiate auth
+// - needsAuth=false when token is valid (or refreshed successfully)
+// - non-nil error on internal failure
+func (h *GoogleOAuthHandler) checkAndRefreshIfNeeded(ctx context.Context, userID string) (needsAuth bool, authURL string, retErr error) {
 	storedTok, ok, err := h.store.GetGoogleToken(ctx, userID)
 	if err != nil {
-		log.Printf("error fetching google token for user %s: %v", userID, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve token"})
-		return
+		return false, "", err
 	}
 
-	// 2) No token stored => return auth url (use signed short-lived state)
+	// No token -> ask frontend to auth
 	if !ok || storedTok == nil {
-		state, _ := google.CreateStateToken(os.Getenv("JWT_SECRET"), userID, 10*time.Minute)
-		authURL, err := google.GenerateAuthURL(state)
-		if err != nil {
-			log.Printf("failed to generate auth url: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": authUrlGenerationError})
-			return
+		aURL, gerr := makeAuthURL(userID)
+		if gerr != nil {
+			return false, "", gerr
 		}
-		c.JSON(http.StatusOK, AuthURLResponse{URL: authURL})
-		return
+		return true, aURL, nil
 	}
 
-	// 3) Token present: check expiry
-	// If expiry is zero value or already past, treat as expired.
-	now := time.Now()
-	if !storedTok.Expiry.IsZero() && storedTok.Expiry.After(now.Add(1*time.Minute)) {
-		// Token still valid
-		c.JSON(http.StatusOK, StatusOKResponse{Ok: true})
-		return
+	// Token present and not near expiry -> OK
+	if tokenValid(storedTok) {
+		return false, "", nil
 	}
 
-	// 4) Token expired or about to expire -> try refresh if we have a refresh token
+	// No refresh token -> needs auth
 	if storedTok.RefreshToken == "" {
-		// Can't refresh; ask frontend to reauth (use signed state)
-		state, _ := google.CreateStateToken(os.Getenv("JWT_SECRET"), userID, 10*time.Minute)
-		authURL, err := google.GenerateAuthURL(state)
-		if err != nil {
-			log.Printf("failed to generate auth url (no refresh token): %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": authUrlGenerationError})
-			return
+		aURL, gerr := makeAuthURL(userID)
+		if gerr != nil {
+			return false, "", gerr
 		}
-		c.JSON(http.StatusOK, AuthURLResponse{URL: authURL})
-		return
+		return true, aURL, nil
 	}
 
-	// 5) Attempt refresh via TokenSource
+	// Try to refresh
 	cfg, err := google.Config()
 	if err != nil {
-		log.Printf("failed to build oauth2 config: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "server misconfiguration"})
-		return
+		return false, "", err
 	}
 
-	// Use TokenSource to attempt a refresh. TokenSource.Token() will refresh if expired.
 	ts := cfg.TokenSource(ctx, storedTok)
 	newTok, err := ts.Token()
 	if err != nil {
-		// Refresh failed -> require reauth (use signed state)
-		log.Printf("token refresh failed for user %s: %v", userID, err)
-		state, _ := google.CreateStateToken(os.Getenv("JWT_SECRET"), userID, 10*time.Minute)
-		authURL, aerr := google.GenerateAuthURL(state)
-		if aerr != nil {
-			log.Printf("failed to generate auth url after refresh failure: %v", aerr)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": authUrlGenerationError})
-			return
+		// refresh failed -> require reauth
+		aURL, gerr := makeAuthURL(userID)
+		if gerr != nil {
+			return false, "", gerr
 		}
-		c.JSON(http.StatusOK, AuthURLResponse{URL: authURL})
-		return
+		return true, aURL, nil
 	}
 
-	// 6) Persist refreshed token (best-effort)
+	// Persist refreshed token (best-effort). On persist error, return success to caller (user can continue).
 	if err := h.store.SaveGoogleToken(ctx, userID, newTok); err != nil {
-		// log but still return ok — user can continue; persistence failure should be investigated.
 		log.Printf("warning: failed to persist refreshed token for user %s: %v", userID, err)
 	}
 
-	// Success
-	c.JSON(http.StatusOK, StatusOKResponse{Ok: true})
+	return false, "", nil
+}
+
+// tokenValid returns true when token is non-nil and not expiring within 1 minute.
+func tokenValid(tok *oauth2.Token) bool {
+	if tok == nil {
+		return false
+	}
+	// If Expiry is zero, treat as invalid (we prefer explicit expiry).
+	if tok.Expiry.IsZero() {
+		return false
+	}
+	return tok.Expiry.After(time.Now().Add(1 * time.Minute))
+}
+
+// makeAuthURL creates a signed state and generates the Google auth URL.
+func makeAuthURL(userID string) (string, error) {
+	state, err := google.CreateStateToken(os.Getenv("JWT_SECRET"), userID, 10*time.Minute)
+	if err != nil {
+		return "", err
+	}
+	authURL, err := google.GenerateAuthURL(state)
+	if err != nil {
+		return "", err
+	}
+	return authURL, nil
 }
 
 // Callback handles Google's redirect, exchanges code for tokens and saves them on the server.
