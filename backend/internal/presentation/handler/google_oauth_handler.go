@@ -13,6 +13,10 @@ import (
 	"github.com/works-on-my-machine-390/concordia-waze/internal/application/google"
 )
 
+const (
+	authUrlGenerationError = "failed to generate auth url"
+)
+
 // GoogleOAuthHandler handles the Google OAuth flow and token status checks.
 type GoogleOAuthHandler struct {
 	firebase *application.FirebaseService
@@ -99,7 +103,7 @@ func (h *GoogleOAuthHandler) GetAuthStatus(c *gin.Context) {
 		authURL, err := google.GenerateAuthURL(state)
 		if err != nil {
 			log.Printf("failed to generate auth url: %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate auth url"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": authUrlGenerationError})
 			return
 		}
 		c.JSON(http.StatusOK, AuthURLResponse{URL: authURL})
@@ -122,7 +126,7 @@ func (h *GoogleOAuthHandler) GetAuthStatus(c *gin.Context) {
 		authURL, err := google.GenerateAuthURL(state)
 		if err != nil {
 			log.Printf("failed to generate auth url (no refresh token): %v", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate auth url"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": authUrlGenerationError})
 			return
 		}
 		c.JSON(http.StatusOK, AuthURLResponse{URL: authURL})
@@ -147,7 +151,7 @@ func (h *GoogleOAuthHandler) GetAuthStatus(c *gin.Context) {
 		authURL, aerr := google.GenerateAuthURL(state)
 		if aerr != nil {
 			log.Printf("failed to generate auth url after refresh failure: %v", aerr)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate auth url"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": authUrlGenerationError})
 			return
 		}
 		c.JSON(http.StatusOK, AuthURLResponse{URL: authURL})
