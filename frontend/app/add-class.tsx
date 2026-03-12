@@ -37,6 +37,10 @@ export default function AddClassScreen() {
     setShowClassInfoForm(true);
   };
 
+  const handleDeleteSession = (index: number) => {
+    setClassInfo((prev) => prev.filter((_, i) => i !== index));
+  };
+
   return (
     <SafeAreaView style={styles.safe}>
       <BackHeader />
@@ -68,11 +72,12 @@ export default function AddClassScreen() {
 
           {classInfo.length > 0 && (
             <View style={styles.classInfoSummary}>
-              {classInfo.map((s) => (
+              {classInfo.map((s, index) => (
                 <ClassInfoCard
                   key={`${s.type}-${s.day}-${s.start_time}`}
                   courseName={courseName}
                   classInfo={s}
+                  onDelete={() => handleDeleteSession(index)}
                 />
               ))}
             </View>
