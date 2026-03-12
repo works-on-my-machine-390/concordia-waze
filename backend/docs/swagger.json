@@ -8,68 +8,6 @@
     },
     "host": "localhost:8080",
     "paths": {
-        "/auth/google": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Checks stored Google tokens for the authenticated user and returns either a short-lived auth URL (when re-auth is required) or {\"ok\": true} when the token is usable. This endpoint MUST be called by an authenticated user (server-side JWT). The handler will use the server-side user ID from the auth context (do not rely on query userId in production).",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth"
-                ],
-                "summary": "Get Google OAuth2 status / auth URL",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "default": "Bearer \u003ctoken\u003e",
-                        "description": "Bearer token",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Optional fallback userId if not available in auth context",
-                        "name": "userId",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "No valid token; frontend should redirect user to this URL",
-                        "schema": {
-                            "$ref": "#/definitions/handler.AuthURLResponse"
-                        }
-                    },
-                    "400": {
-                        "description": "Missing userId or invalid request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Server error checking token or generating URL",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
         "/auth/google/callback": {
             "get": {
                 "description": "Callback endpoint invoked by Google after user consent. Exchanges the authorization code for tokens and persists them on the server. The `state` parameter must be a signed short-lived token previously returned to the frontend by GetAuthStatus (contains the userId). This endpoint is public (called by Google) and must validate the signed state.",
@@ -123,6 +61,62 @@
                     },
                     "500": {
                         "description": "Failed to exchange code or save token",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/google/status": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Checks stored Google tokens for the authenticated user and returns either a short-lived auth URL (when re-auth is required) or {\"ok\": true} when the token is usable. This endpoint SHOULD be called by an authenticated user (server-side JWT). The handler will use the server-side user ID from the auth context (do not rely on query userId in production).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Get Google OAuth2 status / auth URL",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "Bearer \u003ctoken\u003e",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "No valid token; frontend should redirect user to this URL",
+                        "schema": {
+                            "$ref": "#/definitions/handler.AuthURLResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Missing userId or invalid request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error checking token or generating URL",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {

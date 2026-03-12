@@ -13,6 +13,7 @@ import (
 	"github.com/works-on-my-machine-390/concordia-waze/internal/application"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/application/firebase"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
+	"golang.org/x/oauth2"
 )
 
 // These are integration tests that require a Firestore emulator or real Firebase instance.
@@ -655,4 +656,61 @@ func TestClearDestinationHistory(t *testing.T) {
 	for _, h := range history {
 		assert.NotEqual(t, "SGW", h.Name)
 	}
+}
+
+// TestSaveGetDeleteGoogleToken verifies SaveGoogleToken, GetGoogleToken and DeleteGoogleToken.
+func TestSaveGetDeleteGoogleToken(t *testing.T) {
+	service := setupTestService(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	userID := "test-user-google-token-" + time.Now().Format("20060102150405")
+
+	// Create a sample token
+	now := time.Now().UTC()
+	tok := &oauth2.Token{
+		AccessToken:  "access-token-123",
+		RefreshToken: "refresh-token-abc",
+		Expiry:       now.Add(1 * time.Hour),
+		TokenType:    "Bearer",
+	}
+
+	// Save token
+	err := service.SaveGoogleToken(ctx, userID, tok)
+	require.NoError(t, err, "SaveGoogleToken should not return an error")
+
+	// Get token
+	got, ok, err := service.GetGoogleToken(ctx, userID)
+	require.NoError(t, err, "GetGoogleToken should not return an error")
+	require.True(t, ok, "GetGoogleToken should indicate token exists")
+	require.NotNil(t, got, "returned token should not be nil")
+
+	// Validate fields (allow small timing differences for Expiry)
+	assert.Equal(t, tok.AccessToken, got.AccessToken)
+	assert.Equal(t, tok.RefreshToken, got.RefreshToken)
+	assert.Equal(t, tok.TokenType, got.TokenType)
+	assert.WithinDuration(t, tok.Expiry, got.Expiry, 2*time.Second)
+
+	// Delete token
+	err = service.DeleteGoogleToken(ctx, userID)
+	require.NoError(t, err, "DeleteGoogleToken should not return an error")
+
+	// Ensure token no longer exists
+	got2, ok2, err := service.GetGoogleToken(ctx, userID)
+	require.NoError(t, err, "GetGoogleToken after delete should not return an error")
+	assert.False(t, ok2, "GetGoogleToken should report not found after delete")
+	assert.Nil(t, got2, "returned token should be nil after delete")
+}
+
+// TestSaveGoogleToken_Nil verifies saving a nil token returns an error.
+func TestSaveGoogleToken_Nil(t *testing.T) {
+	service := setupTestService(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	userID := "test-user-google-token-nil-" + time.Now().Format("20060102150405")
+
+	err := service.SaveGoogleToken(ctx, userID, nil)
+	require.Error(t, err, "SaveGoogleToken with nil token should return an error")
+	assert.Contains(t, err.Error(), "token is nil")
 }

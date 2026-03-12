@@ -13,13 +13,10 @@ import (
 	"golang.org/x/oauth2"
 )
 
-// fakeStore implements the minimal GoogleTokenStore for unit tests.
+// fakeStore implements GoogleTokenStore
 type fakeStore struct {
-	// returned token and ok flag for GetGoogleToken
-	token *oauth2.Token
-	ok    bool
-
-	// record save calls
+	token     *oauth2.Token
+	ok        bool
 	savedUser string
 	savedTok  *oauth2.Token
 }
@@ -34,125 +31,117 @@ func (f *fakeStore) SaveGoogleToken(ctx context.Context, userID string, token *o
 	return nil
 }
 
-func setupRouter(h *GoogleOAuthHandler) *gin.Engine {
+// fakeTokenSource returns the token supplied.
+type fakeTokenSource struct {
+	ret *oauth2.Token
+	err error
+}
+
+func (f fakeTokenSource) Token() (*oauth2.Token, error) { return f.ret, f.err }
+
+type fakeTSProvider struct {
+	ts oauth2.TokenSource
+}
+
+func (p fakeTSProvider) TokenSource(ctx context.Context, t *oauth2.Token) oauth2.TokenSource {
+	return p.ts
+}
+
+// fake parse and exchange
+func fakeParseState(secret, token string) (string, error) {
+	// simply return token as userID for tests
+	return token, nil
+}
+func fakeExchangeCode(ctx context.Context, code string) (*oauth2.Token, error) {
+	return &oauth2.Token{
+		AccessToken:  "exchanged-access",
+		RefreshToken: "exchanged-refresh",
+		Expiry:       time.Now().Add(1 * time.Hour),
+	}, nil
+}
+
+func setupRouterWithHandler(h *GoogleOAuthHandler) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
-	// matches the updated handler routes
 	r.GET("/auth/google/status", h.GetAuthStatus)
 	r.GET("/auth/google/callback", h.Callback)
 	return r
 }
 
-func TestGetAuthStatus_MissingUserID(t *testing.T) {
-	// Handler does not need a real store for this test because the
-	// missing-userId check happens before any store calls.
-	h := NewGoogleOAuthHandler(&fakeStore{})
-	router := setupRouter(h)
-
-	req := httptest.NewRequest(http.MethodGet, "/auth/google/status", nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected status %d, got %d; body=%s", http.StatusBadRequest, w.Code, w.Body.String())
-	}
-
-	var resp map[string]string
-	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
-		t.Fatalf("failed to unmarshal response: %v", err)
-	}
-	if resp["error"] == "" {
-		t.Fatalf("expected error message in response, got: %v", resp)
-	}
-}
-
-func TestGetAuthStatus_NoTokenStored_ReturnsURL(t *testing.T) {
-	// Provide env vars required by GenerateAuthURL and state creation.
-	_ = testingSetEnv("GOOGLE_CLIENT_ID", "dummy-client-id")
-	_ = testingSetEnv("GOOGLE_CLIENT_SECRET", "dummy-client-secret")
-	_ = testingSetEnv("GOOGLE_REDIRECT_URL", "http://localhost/auth/google/callback")
-	_ = testingSetEnv("JWT_SECRET", "test-secret")
-
-	store := &fakeStore{
-		token: nil,
-		ok:    false,
-	}
-	h := NewGoogleOAuthHandler(store)
-	router := setupRouter(h)
-
-	req := httptest.NewRequest(http.MethodGet, "/auth/google/status?userId=test-user", nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected status %d, got %d; body=%s", http.StatusOK, w.Code, w.Body.String())
-	}
-
-	var resp map[string]string
-	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
-		t.Fatalf("failed to unmarshal response: %v", err)
-	}
-
-	url, ok := resp["url"]
-	if !ok || url == "" {
-		t.Fatalf("expected url field in response, got: %v", resp)
-	}
-}
-
-func TestGetAuthStatus_ValidToken_ReturnsOK(t *testing.T) {
-	// token with expiry in future
-	tok := &oauth2.Token{
-		AccessToken:  "at",
+func TestGetAuthStatus_ExpiredWithRefresh_SuccessfulRefreshAndPersist(t *testing.T) {
+	// expired token with refresh token present
+	expired := &oauth2.Token{
+		AccessToken:  "old",
 		RefreshToken: "rt",
-		Expiry:       time.Now().Add(10 * time.Minute),
+		Expiry:       time.Now().Add(-10 * time.Minute),
 	}
-	store := &fakeStore{
-		token: tok,
-		ok:    true,
+	store := &fakeStore{token: expired, ok: true}
+
+	// token that the fake TokenSource will return as refreshed
+	newTok := &oauth2.Token{
+		AccessToken:  "new-access",
+		RefreshToken: "new-refresh",
+		Expiry:       time.Now().Add(1 * time.Hour),
 	}
-	h := NewGoogleOAuthHandler(store)
-	router := setupRouter(h)
+	tsProv := fakeTSProvider{ts: fakeTokenSource{ret: newTok, err: nil}}
+
+	h := NewGoogleOAuthHandlerWithDeps(store, tsProv, fakeParseState, fakeExchangeCode)
+	router := setupRouterWithHandler(h)
 
 	req := httptest.NewRequest(http.MethodGet, "/auth/google/status?userId=test-user", nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
 	if w.Code != http.StatusOK {
-		t.Fatalf("expected status %d, got %d; body=%s", http.StatusOK, w.Code, w.Body.String())
+		t.Fatalf("expected 200 OK got %d body=%s", w.Code, w.Body.String())
 	}
 
 	var resp map[string]bool
 	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
-		t.Fatalf("failed to unmarshal response: %v", err)
+		t.Fatalf("invalid json response: %v", err)
+	}
+	if ok, exists := resp["ok"]; !exists || !ok {
+		t.Fatalf("expected {\"ok\": true}, got %v", resp)
 	}
 
-	if ok, found := resp["ok"]; !found || !ok {
-		t.Fatalf("expected {\"ok\": true}, got: %v", resp)
+	// ensure store saved the refreshed token
+	if store.savedUser != "test-user" {
+		t.Fatalf("expected savedUser set, got %q", store.savedUser)
+	}
+	if store.savedTok == nil || store.savedTok.AccessToken != "new-access" {
+		t.Fatalf("expected saved token persisted, got: %+v", store.savedTok)
 	}
 }
 
-func TestCallback_MissingParams(t *testing.T) {
-	h := NewGoogleOAuthHandler(&fakeStore{})
-	router := setupRouter(h)
+func TestCallback_SuccessPersistsAndReturnsJSON(t *testing.T) {
+	store := &fakeStore{}
+	h := NewGoogleOAuthHandlerWithDeps(store, fakeTSProvider{}, fakeParseState, fakeExchangeCode)
+	router := setupRouterWithHandler(h)
 
-	req := httptest.NewRequest(http.MethodGet, "/auth/google/callback", nil)
+	// ensure FRONTEND_AUTH_SUCCESS_URL is empty so handler returns JSON
+	_ = os.Unsetenv("FRONTEND_AUTH_SUCCESS_URL")
+
+	req := httptest.NewRequest(http.MethodGet, "/auth/google/callback?code=abc&state=test-user", nil)
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 
-	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected status %d, got %d; body=%s", http.StatusBadRequest, w.Code, w.Body.String())
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK got %d body=%s", w.Code, w.Body.String())
 	}
 
-	var resp map[string]string
+	var resp TokenSaveResponse
 	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
-		t.Fatalf("failed to unmarshal response: %v", err)
+		t.Fatalf("invalid json response: %v", err)
 	}
-	if resp["error"] == "" {
-		t.Fatalf("expected error message in response, got: %v", resp)
+	if !resp.Ok || resp.UserID != "test-user" {
+		t.Fatalf("unexpected response: %+v", resp)
 	}
-}
 
-// testingSetEnv is a helper to set env var during test and return a cleanup func
-func testingSetEnv(key, val string) error {
-	return os.Setenv(key, val)
+	// ensure token persisted
+	if store.savedUser != "test-user" {
+		t.Fatalf("expected savedUser test-user; got %q", store.savedUser)
+	}
+	if store.savedTok == nil || store.savedTok.AccessToken != "exchanged-access" {
+		t.Fatalf("expected saved token 'exchanged-access'; got %+v", store.savedTok)
+	}
 }

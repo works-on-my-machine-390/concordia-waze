@@ -13,48 +13,130 @@ import (
 	"github.com/works-on-my-machine-390/concordia-waze/internal/application/google"
 )
 
-const authUrlGenerationError = "failed to generate auth url"
-
 // GoogleTokenStore is the minimal interface this handler needs from a token store.
-// Your application.FirebaseService already implements these methods.
+// Your application.FirebaseService implements these methods.
 type GoogleTokenStore interface {
 	GetGoogleToken(ctx context.Context, userID string) (*oauth2.Token, bool, error)
 	SaveGoogleToken(ctx context.Context, userID string, token *oauth2.Token) error
 }
 
+// TokenSourceProvider abstracts creation of an oauth2.TokenSource for a stored token.
+type TokenSourceProvider interface {
+	TokenSource(ctx context.Context, t *oauth2.Token) oauth2.TokenSource
+}
+
+// StateParser parses and validates the state token and returns the userID embedded.
+type StateParser func(secret, token string) (string, error)
+
+// CodeExchanger exchanges an authorization code for an oauth2.Token.
+type CodeExchanger func(ctx context.Context, code string) (*oauth2.Token, error)
+
 // GoogleOAuthHandler handles the Google OAuth flow and token status checks.
 type GoogleOAuthHandler struct {
-	store GoogleTokenStore
+	store        GoogleTokenStore
+	tsProvider   TokenSourceProvider
+	parseState   StateParser
+	exchangeCode CodeExchanger
+	stateTTL     time.Duration
 }
 
+func NewGoogleOAuthHandlerWithDeps(store GoogleTokenStore, tsProvider TokenSourceProvider, parse StateParser, exchange CodeExchanger) *GoogleOAuthHandler {
+	h := &GoogleOAuthHandler{
+		store:        store,
+		tsProvider:   tsProvider,
+		parseState:   parse,
+		exchangeCode: exchange,
+		stateTTL:     10 * time.Minute,
+	}
+	// Provide sensible defaults when nil (use real google package functions).
+	if h.tsProvider == nil {
+		h.tsProvider = oauth2TokenSourceProvider{}
+	}
+	if h.parseState == nil {
+		h.parseState = func(secret, token string) (string, error) {
+			return google.ParseStateToken(secret, token)
+		}
+	}
+	if h.exchangeCode == nil {
+		h.exchangeCode = func(ctx context.Context, code string) (*oauth2.Token, error) {
+			return google.ExchangeCode(ctx, code)
+		}
+	}
+	return h
+}
+
+// Default constructor using the production google helpers.
 func NewGoogleOAuthHandler(store GoogleTokenStore) *GoogleOAuthHandler {
-	return &GoogleOAuthHandler{store: store}
+	return NewGoogleOAuthHandlerWithDeps(store, nil, nil, nil)
 }
 
-// AuthURLResponse is returned when the backend requests the frontend to start OAuth.
+// small default provider that delegates to google.Config().TokenSource(...)
+type oauth2TokenSourceProvider struct{}
+
+func (oauth2TokenSourceProvider) TokenSource(ctx context.Context, t *oauth2.Token) oauth2.TokenSource {
+	cfg, err := google.Config()
+	if err != nil {
+		// If config can't be built, return a TokenSource that always errors.
+		return oauth2.ReuseTokenSource(nil, errorTokenSource{err: err})
+	}
+	return cfg.TokenSource(ctx, t)
+}
+
+// errorTokenSource returns the error on Token()
+type errorTokenSource struct{ err error }
+
+func (e errorTokenSource) Token() (*oauth2.Token, error) { return nil, e.err }
+
+// Response types
 type AuthURLResponse struct {
 	URL string `json:"url"`
 }
-
-// StatusOKResponse is returned when the stored token is present and usable.
 type StatusOKResponse struct {
 	Ok bool `json:"ok"`
 }
-
-// TokenSaveResponse is returned by Callback when tokens are persisted.
 type TokenSaveResponse struct {
 	Ok      bool   `json:"ok"`
 	UserID  string `json:"userId"`
 	Message string `json:"message"`
 }
 
-// GetAuthStatus checks whether the user already has a valid Google token.
-//
-// Behavior:
-//   - If no token stored -> returns {"url":"<authUrl>"} (frontend should redirect user).
-//   - If token present and not expired -> returns {"ok": true}.
-//   - If token expired and has refresh_token -> attempts to refresh; on success persists new token and returns {"ok": true}.
-//   - If token expired and no refresh_token or refresh fails -> returns {"url":"<authUrl>"}.
+func (h *GoogleOAuthHandler) makeAuthURL(userID string) (string, error) {
+	state, err := google.CreateStateToken(os.Getenv("JWT_SECRET"), userID, h.stateTTL)
+	if err != nil {
+		return "", err
+	}
+	return google.GenerateAuthURL(state)
+}
+
+// extractUserID obtains the user identifier from Gin context or query (query only for test/backwards compatibility).
+// Preferred order:
+// 1) context value "userId" (set by your RequireAuth middleware)
+// 2) context value "sub" (JWT subject claim, if you set it)
+// 3) query param "userId" (only for tests / legacy callers — avoid in production)
+func extractUserID(c *gin.Context) string {
+	// 1) common middleware key
+	if v, ok := c.Get("userId"); ok {
+		if s, ok2 := v.(string); ok2 && s != "" {
+			return s
+		}
+	}
+
+	// 2) JWT 'sub' claim (some middlewares set this)
+	if v, ok := c.Get("sub"); ok {
+		if s, ok2 := v.(string); ok2 && s != "" {
+			return s
+		}
+	}
+
+	// 3) query fallback for tests / backwards compatibility only
+	if q := c.Query("userId"); q != "" {
+		return q
+	}
+
+	return ""
+}
+
+// GetAuthStatus handler (keeps behavior, but uses injected tsProvider)
 //
 // @Summary     Get Google OAuth2 status / auth URL
 // @Description Checks stored Google tokens for the authenticated user and returns either a short-lived auth URL (when re-auth is required) or {"ok": true} when the token is usable. This endpoint SHOULD be called by an authenticated user (server-side JWT). The handler will use the server-side user ID from the auth context (do not rely on query userId in production).
@@ -74,7 +156,6 @@ func (h *GoogleOAuthHandler) GetAuthStatus(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "missing userId (query or from auth context)"})
 		return
 	}
-
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 15*time.Second)
 	defer cancel()
 
@@ -93,28 +174,6 @@ func (h *GoogleOAuthHandler) GetAuthStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, StatusOKResponse{Ok: true})
 }
 
-// extractUserID obtains the user identifier from Gin context or query (query only for test/backwards compatibility).
-func extractUserID(c *gin.Context) string {
-	if v := c.Query("userId"); v != "" {
-		return v
-	}
-	if v, ok := c.Get("userId"); ok {
-		if s, ok2 := v.(string); ok2 && s != "" {
-			return s
-		}
-	}
-	if v, ok := c.Get("sub"); ok {
-		if s, ok2 := v.(string); ok2 && s != "" {
-			return s
-		}
-	}
-	return ""
-}
-
-// checkAndRefreshIfNeeded loads the stored token and returns:
-// - needsAuth=true and authURL set when the frontend must initiate auth
-// - needsAuth=false when token is valid (or refreshed successfully)
-// - non-nil error on internal failure
 func (h *GoogleOAuthHandler) checkAndRefreshIfNeeded(ctx context.Context, userID string) (needsAuth bool, authURL string, retErr error) {
 	storedTok, ok, err := h.store.GetGoogleToken(ctx, userID)
 	if err != nil {
@@ -123,7 +182,7 @@ func (h *GoogleOAuthHandler) checkAndRefreshIfNeeded(ctx context.Context, userID
 
 	// No token -> ask frontend to auth
 	if !ok || storedTok == nil {
-		aURL, gerr := makeAuthURL(userID)
+		aURL, gerr := h.makeAuthURL(userID)
 		if gerr != nil {
 			return false, "", gerr
 		}
@@ -137,24 +196,29 @@ func (h *GoogleOAuthHandler) checkAndRefreshIfNeeded(ctx context.Context, userID
 
 	// No refresh token -> needs auth
 	if storedTok.RefreshToken == "" {
-		aURL, gerr := makeAuthURL(userID)
+		aURL, gerr := h.makeAuthURL(userID)
 		if gerr != nil {
 			return false, "", gerr
 		}
 		return true, aURL, nil
 	}
 
-	// Try to refresh
-	cfg, err := google.Config()
-	if err != nil {
-		return false, "", err
+	// Try to refresh using injected TokenSourceProvider (preferred) or google.Config() fallback.
+	var ts oauth2.TokenSource
+	if h.tsProvider != nil {
+		ts = h.tsProvider.TokenSource(ctx, storedTok)
+	} else {
+		cfg, err := google.Config()
+		if err != nil {
+			return false, "", err
+		}
+		ts = cfg.TokenSource(ctx, storedTok)
 	}
 
-	ts := cfg.TokenSource(ctx, storedTok)
 	newTok, err := ts.Token()
 	if err != nil {
 		// refresh failed -> require reauth
-		aURL, gerr := makeAuthURL(userID)
+		aURL, gerr := h.makeAuthURL(userID)
 		if gerr != nil {
 			return false, "", gerr
 		}
@@ -165,40 +229,20 @@ func (h *GoogleOAuthHandler) checkAndRefreshIfNeeded(ctx context.Context, userID
 	if err := h.store.SaveGoogleToken(ctx, userID, newTok); err != nil {
 		log.Printf("warning: failed to persist refreshed token for user %s: %v", userID, err)
 	}
-
 	return false, "", nil
 }
 
-// tokenValid returns true when token is non-nil and not expiring within 1 minute.
 func tokenValid(tok *oauth2.Token) bool {
 	if tok == nil {
 		return false
 	}
-	// If Expiry is zero, treat as invalid (we prefer explicit expiry).
 	if tok.Expiry.IsZero() {
 		return false
 	}
 	return tok.Expiry.After(time.Now().Add(1 * time.Minute))
 }
 
-// makeAuthURL creates a signed state and generates the Google auth URL.
-func makeAuthURL(userID string) (string, error) {
-	state, err := google.CreateStateToken(os.Getenv("JWT_SECRET"), userID, 10*time.Minute)
-	if err != nil {
-		return "", err
-	}
-	authURL, err := google.GenerateAuthURL(state)
-	if err != nil {
-		return "", err
-	}
-	return authURL, nil
-}
-
-// Callback handles Google's redirect, exchanges code for tokens and saves them on the server.
-//
-// The OAuth `state` parameter is expected to be a short-lived signed token generated by the backend
-// (contains userID and expiry). The callback validates that state to obtain the userID and then
-// stores the returned token under that user.
+// Callback handler: uses injected parseState and exchangeCode
 //
 // @Summary     Google OAuth2 callback
 // @Description Callback endpoint invoked by Google after user consent. Exchanges the authorization code for tokens and persists them on the server. The `state` parameter must be a signed short-lived token previously returned to the frontend by GetAuthStatus (contains the userId). This endpoint is public (called by Google) and must validate the signed state.
@@ -220,10 +264,12 @@ func (h *GoogleOAuthHandler) Callback(c *gin.Context) {
 		return
 	}
 
-	// Validate and parse the signed state token to obtain userID
-	userID, serr := google.ParseStateToken(os.Getenv("JWT_SECRET"), state)
+	userID, serr := h.parseState(os.Getenv("JWT_SECRET"), state)
+	// If parseState is nil (not injected), fall back to default google.ParseStateToken
+	if h.parseState == nil {
+		userID, serr = google.ParseStateToken(os.Getenv("JWT_SECRET"), state)
+	}
 	if serr != nil || userID == "" {
-		log.Printf("invalid or expired oauth state token: %v", serr)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid or expired state token"})
 		return
 	}
@@ -231,16 +277,20 @@ func (h *GoogleOAuthHandler) Callback(c *gin.Context) {
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
 	defer cancel()
 
-	tok, err := google.ExchangeCode(ctx, code)
+	var tok *oauth2.Token
+	var err error
+	if h.exchangeCode != nil {
+		tok, err = h.exchangeCode(ctx, code)
+	} else {
+		tok, err = google.ExchangeCode(ctx, code)
+	}
 	if err != nil {
-		log.Printf("google oauth exchange error: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to exchange code", "detail": err.Error()})
 		return
 	}
 
 	// Save token using the injected token store.
 	if err := h.store.SaveGoogleToken(ctx, userID, tok); err != nil {
-		log.Printf("failed to save google token: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save token"})
 		return
 	}
