@@ -9,6 +9,8 @@ import (
 	"github.com/works-on-my-machine-390/concordia-waze/internal/presentation/middleware"
 )
 
+const errAccessDenied = "Access denied: token user does not match path user"
+
 // FavoritesService defines the operations used by the favorites handler
 type FavoritesService interface {
 	AddFavorite(fav *domain.Favorite) (*domain.Favorite, error)
@@ -87,7 +89,7 @@ func resolveUserID(c *gin.Context) (userID string, ok bool) {
 func (h *FavoritesHandler) CreateFavorite(c *gin.Context) {
 	userID, ok := resolveUserID(c)
 	if !ok {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied: token user does not match path user"})
+		c.JSON(http.StatusForbidden, gin.H{"error": errAccessDenied})
 		return
 	}
 
@@ -159,7 +161,7 @@ func (h *FavoritesHandler) CreateFavorite(c *gin.Context) {
 func (h *FavoritesHandler) GetFavorites(c *gin.Context) {
 	userID, ok := resolveUserID(c)
 	if !ok {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied: token user does not match path user"})
+		c.JSON(http.StatusForbidden, gin.H{"error": errAccessDenied})
 		return
 	}
 
@@ -190,7 +192,7 @@ func (h *FavoritesHandler) GetFavorites(c *gin.Context) {
 func (h *FavoritesHandler) DeleteFavorite(c *gin.Context) {
 	userID, ok := resolveUserID(c)
 	if !ok {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied: token user does not match path user"})
+		c.JSON(http.StatusForbidden, gin.H{"error": errAccessDenied})
 		return
 	}
 
