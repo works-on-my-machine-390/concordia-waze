@@ -12,7 +12,7 @@ export default function ClassInfoCard({ courseName, classInfo }: Readonly<Props>
     <View style={styles.card}>
       <View style={styles.top}>
         <Text style={styles.name}>
-          {courseName || "Class"} - {classInfo.section}
+          {courseName || "Course"} - {classInfo.section}
         </Text>
         <Text style={styles.type}>{classInfo.type}</Text>
       </View>
