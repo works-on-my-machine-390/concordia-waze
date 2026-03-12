@@ -30,6 +30,9 @@ const BackHeader = ({ title }: HeaderProps) => {
       case "expired":
         headerTitle = "Home Page";
         break;
+      case "schedule":
+        headerTitle = "Schedule";
+        break;
       case "index":
       default:
         headerTitle = "Home Page";

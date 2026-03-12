@@ -276,3 +276,9 @@ export const DeleteIcon: React.FC<IconProps> = ({
   size = DEFAULT_ICON_SIZE,
   color = DEFAULT_ICON_COLOR,
 }) => <Feather name="trash-2" size={size} color={color} />;
+
+// Add icon
+export const AddIcon: React.FC<IconProps> = ({
+  size = DEFAULT_ICON_SIZE,
+  color = DEFAULT_ICON_COLOR,
+}) => <MaterialIcons name="add-box" size={size} color={color} />;
