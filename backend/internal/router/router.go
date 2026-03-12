@@ -165,11 +165,6 @@ func SetupRouter() *gin.Engine {
 		usersGroup.POST("/:userId/profile", firebaseHandler.CreateUserProfile)
 		usersGroup.GET("/:userId/profile", firebaseHandler.GetUserProfile)
 
-		usersGroup.POST("/:userId/schedule", firebaseHandler.AddScheduleItem)
-		usersGroup.GET("/:userId/schedule", firebaseHandler.GetUserSchedule)
-		usersGroup.PUT("/:userId/schedule/:scheduleId", firebaseHandler.UpdateScheduleItem)
-		usersGroup.DELETE("/:userId/schedule/:scheduleId", firebaseHandler.DeleteScheduleItem)
-
 		usersGroup.POST("/:userId/savedAddresses", firebaseHandler.AddSavedAddress)
 		usersGroup.GET("/:userId/savedAddresses", firebaseHandler.GetSavedAddresses)
 		usersGroup.PUT("/:userId/savedAddresses/:addressId", firebaseHandler.UpdateSavedAddress)
