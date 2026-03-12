@@ -11,6 +11,9 @@ export const daysOfWeek = [
   "saturday",
 ];
 
+// The first three letters of each day capitalized
+export const DAYS = daysOfWeek.map((d) => d.slice(0, 3).toUpperCase());
+
 export const OpenStatusTypes = {
   OPEN: "Open now",
   OPEN_24H: "Open 24 hours",
