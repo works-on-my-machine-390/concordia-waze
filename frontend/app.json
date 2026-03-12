@@ -54,7 +54,14 @@
         }
       ],
       "expo-secure-store",
-      "expo-build-properties",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 25
+          }
+        }
+      ],
       "@react-native-firebase/app",
       "@logrocket/react-native"
     ],
