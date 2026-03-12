@@ -5,7 +5,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { COLORS, DAYS } from "../../app/constants";
+import { COLORS } from "../../app/constants";
+import { DAYS } from "../../app/utils/dateUtils";
 
 type Props = {
   selected: (typeof DAYS)[number] | null;

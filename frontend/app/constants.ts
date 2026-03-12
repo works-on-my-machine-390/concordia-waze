@@ -60,5 +60,4 @@ export const QUERY_RETRY_DELAY_MS = 3000;
 export const BUILDINGS_WITH_INDOOR_MAPS = ['CC', 'H', 'LB', 'MB', 'VL'] as const;
 
 // Classes constants
-export const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"] as const;
 export const TYPES = ["Lecture", "Lab", "Tutorial"] as const;

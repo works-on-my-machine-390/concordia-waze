@@ -6,13 +6,14 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { COLORS, DAYS, TYPES } from "../../app/constants";
+import { COLORS, TYPES } from "../../app/constants";
 import {
   validateClassInfoForm,
   validateNoTimeOverlap,
 } from "../../app/utils/classValidationUtils";
-import DaySelector from "./ClassInfoDaySelector";
-import TypeSelector from "./ClassInfoTypeSelector";
+import { DAYS } from "../../app/utils/dateUtils";
+import ClassInfoDaySelector from "./ClassInfoDaySelector";
+import ClassInfoTypeSelector from "./ClassInfoTypeSelector";
 
 export type ClassInfoFormData = {
   type: (typeof TYPES)[number];
@@ -83,7 +84,7 @@ export default function AddClassInfoForm({
   return (
     <View style={styles.container}>
       <Text style={styles.label}>Class Type</Text>
-      <TypeSelector selected={type} onSelect={setType} />
+      <ClassInfoTypeSelector selected={type} onSelect={setType} />
 
       <Text style={styles.label}>Section</Text>
       <TextInput
@@ -95,7 +96,7 @@ export default function AddClassInfoForm({
       />
 
       <Text style={styles.label}>Day</Text>
-      <DaySelector selected={day} onSelect={setDay} />
+      <ClassInfoDaySelector selected={day} onSelect={setDay} />
 
       <Text style={styles.label}>Time</Text>
       <View style={[styles.row, { gap: 8 }]}>
