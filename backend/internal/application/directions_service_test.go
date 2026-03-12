@@ -498,6 +498,14 @@ func TestGetShuttleDirectionsManual_InvalidDeparture(t *testing.T) {
 }
 
 func TestDirectionsService_Shuttle_FutureIdealTime_Auto(t *testing.T) {
+	// pickNextDepartureAt works in same-day HH:MM space: if now+2h crosses midnight
+	// the formatted string looks like "00:xx" which is treated as already-past today.
+	// Skip rather than produce a false failure.
+	now := time.Now()
+	if now.Add(2*time.Hour).Day() != now.Day() {
+		t.Skip("skipping: +2h crosses midnight, futureTime would appear as a past slot today")
+	}
+
 	f := &fakeDirectionsClient{
 		resp: domain.DirectionsResponse{
 			Mode: "walking",
@@ -507,8 +515,8 @@ func TestDirectionsService_Shuttle_FutureIdealTime_Auto(t *testing.T) {
 		},
 	}
 
-	// Shuttle leaves in 2 hours
-	futureTime := time.Now().Add(2 * time.Hour).Format("15:04")
+	// Shuttle leaves in 2 hours (guaranteed same-day after the guard above)
+	futureTime := now.Add(2 * time.Hour).Format("15:04")
 	repo := &fakeShuttleRepo{
 		times: []string{futureTime},
 	}

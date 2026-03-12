@@ -3,11 +3,14 @@ package application
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"cloud.google.com/go/firestore"
+	"github.com/google/uuid"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/application/firebase"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
+	"github.com/works-on-my-machine-390/concordia-waze/internal/persistence/repository"
 	"google.golang.org/api/iterator"
 )
 
@@ -40,6 +43,22 @@ type DestinationHistoryItem struct {
 type SavedAddress struct {
 	AddressID string `firestore:"addressId" json:"addressId,omitempty"`
 	Address   string `firestore:"address" json:"address"`
+}
+
+// FirestoreFavorite is the Firestore-stored representation of a saved favorite location.
+// The Type field discriminates between "outdoor" and "indoor" favorites.
+// Existing documents without a Type field are treated as outdoor on read (backward compat).
+type FirestoreFavorite struct {
+	ID           string  `firestore:"id"`
+	Type         string  `firestore:"type"`
+	Name         string  `firestore:"name"`
+	Latitude     float64 `firestore:"latitude"`
+	Longitude    float64 `firestore:"longitude"`
+	BuildingCode string  `firestore:"buildingCode"`
+	FloorNumber  int     `firestore:"floorNumber"`
+	X            float64 `firestore:"x"`
+	Y            float64 `firestore:"y"`
+	PoiType      string  `firestore:"poiType"`
 }
 
 // ===== User Profile =====
@@ -124,6 +143,15 @@ func (fs *FirebaseService) initializeSubcollections(ctx context.Context, userID 
 		})
 	if err != nil {
 		return fmt.Errorf("init history: %w", err)
+	}
+
+	// Initialize favorites subcollection
+	_, err = fs.client.Collection("users").Doc(userID).Collection("favorites").Doc("_init").Set(ctx, map[string]interface{}{
+		"initialized": true,
+		"createdAt":   time.Now(),
+	})
+	if err != nil {
+		return fmt.Errorf("init favorites: %w", err)
 	}
 
 	return nil
@@ -400,6 +428,68 @@ func (fs *FirebaseService) DeleteSavedAddress(ctx context.Context, userID, addre
 	return nil
 }
 
+// ===== Favorites =====
+
+// AddFavorite stores a favorite location under users/{userID}/favorites/{fav.ID}.
+func (fs *FirebaseService) AddFavorite(ctx context.Context, userID string, fav FirestoreFavorite) error {
+	path := fmt.Sprintf("users/%s/favorites/%s", userID, fav.ID)
+	log.Printf("[firestore] writing favorite path=%s name=%q", path, fav.Name)
+	_, err := fs.client.Collection("users").Doc(userID).Collection("favorites").Doc(fav.ID).Set(ctx, fav)
+	if err != nil {
+		log.Printf("[firestore] AddFavorite failed path=%s: %v", path, err)
+		return fmt.Errorf("add favorite: %w", err)
+	}
+	log.Printf("[firestore] AddFavorite success path=%s", path)
+	return nil
+}
+
+// GetFavorites retrieves all favorite locations for a user.
+func (fs *FirebaseService) GetFavorites(ctx context.Context, userID string) ([]FirestoreFavorite, error) {
+	collPath := fmt.Sprintf("users/%s/favorites", userID)
+	log.Printf("[firestore] reading favorites path=%s", collPath)
+	docs, err := fs.client.Collection("users").Doc(userID).Collection("favorites").Documents(ctx).GetAll()
+	if err != nil {
+		log.Printf("[firestore] GetFavorites failed path=%s: %v", collPath, err)
+		return nil, fmt.Errorf("get favorites: %w", err)
+	}
+
+	log.Printf("[firestore] GetFavorites path=%s found %d raw docs", collPath, len(docs))
+	favorites := make([]FirestoreFavorite, 0, len(docs))
+	for _, doc := range docs {
+		if doc.Ref.ID == "_init" {
+			continue
+		}
+		var fav FirestoreFavorite
+		if err := doc.DataTo(&fav); err != nil {
+			log.Printf("[firestore] GetFavorites skipping doc=%s: deserialize error: %v", doc.Ref.ID, err)
+			continue
+		}
+		fav.ID = doc.Ref.ID
+		favorites = append(favorites, fav)
+	}
+	log.Printf("[firestore] GetFavorites path=%s returning %d favorites", collPath, len(favorites))
+	return favorites, nil
+}
+
+// DeleteFavorite removes a favorite by ID from Firestore, scoped to the owning user.
+// Returns ErrFavoriteNotFound if the document does not exist under that user.
+func (fs *FirebaseService) DeleteFavorite(ctx context.Context, userID, favoriteID string) error {
+	path := fmt.Sprintf("users/%s/favorites/%s", userID, favoriteID)
+	log.Printf("[firestore] deleting favorite path=%s", path)
+	docRef := fs.client.Collection("users").Doc(userID).Collection("favorites").Doc(favoriteID)
+	snap, err := docRef.Get(ctx)
+	if err != nil || !snap.Exists() {
+		log.Printf("[firestore] DeleteFavorite not found path=%s", path)
+		return domain.ErrFavoriteNotFound
+	}
+	if _, err := docRef.Delete(ctx); err != nil {
+		log.Printf("[firestore] DeleteFavorite failed path=%s: %v", path, err)
+		return fmt.Errorf("delete favorite: %w", err)
+	}
+	log.Printf("[firestore] DeleteFavorite success path=%s", path)
+	return nil
+}
+
 // toFirestoreUpdates converts a map to Firestore updates.
 func toFirestoreUpdates(data map[string]interface{}) []firestore.Update {
 	updates := make([]firestore.Update, 0, len(data))
@@ -410,4 +500,112 @@ func toFirestoreUpdates(data map[string]interface{}) []firestore.Update {
 		})
 	}
 	return updates
+}
+
+// ===== Favorite repository adapters =====
+
+// FirestoreFavoriteRepository implements repository.FavoriteRepository backed by Firestore.
+// Each favorite is stored at users/{userID}/favorites/{favoriteID}.
+type FirestoreFavoriteRepository struct {
+	service *FirebaseService
+}
+
+// NewFirestoreFavoriteRepository creates a new Firestore-backed favorite repository.
+func NewFirestoreFavoriteRepository(service *FirebaseService) *FirestoreFavoriteRepository {
+	return &FirestoreFavoriteRepository{service: service}
+}
+
+func (r *FirestoreFavoriteRepository) Create(fav *domain.Favorite) error {
+	if fav.ID == "" {
+		fav.ID = uuid.New().String()
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	return r.service.AddFavorite(ctx, fav.UserID, FirestoreFavorite{
+		ID:           fav.ID,
+		Type:         string(fav.Type),
+		Name:         fav.Name,
+		Latitude:     fav.Latitude,
+		Longitude:    fav.Longitude,
+		BuildingCode: fav.BuildingCode,
+		FloorNumber:  fav.FloorNumber,
+		X:            fav.X,
+		Y:            fav.Y,
+		PoiType:      fav.PoiType,
+	})
+}
+
+func (r *FirestoreFavoriteRepository) FindByUserID(userID string) ([]*domain.Favorite, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	items, err := r.service.GetFavorites(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]*domain.Favorite, 0, len(items))
+	for _, item := range items {
+		// Backward compat: documents written before the type field was added have an
+		// empty type string; treat them as outdoor favorites.
+		favType := domain.FavoriteType(item.Type)
+		if favType == "" {
+			favType = domain.FavoriteTypeOutdoor
+		}
+		result = append(result, &domain.Favorite{
+			ID:           item.ID,
+			UserID:       userID,
+			Type:         favType,
+			Name:         item.Name,
+			Latitude:     item.Latitude,
+			Longitude:    item.Longitude,
+			BuildingCode: item.BuildingCode,
+			FloorNumber:  item.FloorNumber,
+			X:            item.X,
+			Y:            item.Y,
+			PoiType:      item.PoiType,
+		})
+	}
+	return result, nil
+}
+
+func (r *FirestoreFavoriteRepository) Delete(id, userID string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	return r.service.DeleteFavorite(ctx, userID, id)
+}
+
+// HybridFavoriteRepository routes authenticated users (non-empty userID) to Firestore
+// and anonymous users (empty userID) to the in-memory store.
+type HybridFavoriteRepository struct {
+	firestoreRepo repository.FavoriteRepository
+	memoryRepo    repository.FavoriteRepository
+}
+
+// NewHybridFavoriteRepository creates a repository that persists authenticated favorites
+// in Firestore and keeps anonymous favorites in memory.
+func NewHybridFavoriteRepository(firebaseService *FirebaseService) *HybridFavoriteRepository {
+	return &HybridFavoriteRepository{
+		firestoreRepo: NewFirestoreFavoriteRepository(firebaseService),
+		memoryRepo:    repository.NewInMemoryFavoriteRepository(),
+	}
+}
+
+func (r *HybridFavoriteRepository) Create(fav *domain.Favorite) error {
+	if fav.UserID == "" {
+		return r.memoryRepo.Create(fav)
+	}
+	return r.firestoreRepo.Create(fav)
+}
+
+func (r *HybridFavoriteRepository) FindByUserID(userID string) ([]*domain.Favorite, error) {
+	if userID == "" {
+		return r.memoryRepo.FindByUserID(userID)
+	}
+	return r.firestoreRepo.FindByUserID(userID)
+}
+
+func (r *HybridFavoriteRepository) Delete(id, userID string) error {
+	if userID == "" {
+		return r.memoryRepo.Delete(id, userID)
+	}
+	return r.firestoreRepo.Delete(id, userID)
 }
