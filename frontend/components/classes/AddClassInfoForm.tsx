@@ -7,7 +7,10 @@ import {
   View,
 } from "react-native";
 import { COLORS, DAYS, TYPES } from "../../app/constants";
-import { validateClassInfoForm } from "../../app/utils/classValidationUtils";
+import {
+  validateClassInfoForm,
+  validateNoTimeOverlap,
+} from "../../app/utils/classValidationUtils";
 import DaySelector from "./ClassInfoDaySelector";
 import TypeSelector from "./ClassInfoTypeSelector";
 
@@ -24,9 +27,14 @@ export type ClassInfoFormData = {
 type Props = {
   onAdd: (classInfo: ClassInfoFormData) => void;
   onCancel: () => void;
+  existingSessions: ClassInfoFormData[];
 };
 
-export default function AddClassInfoForm({ onAdd, onCancel }: Readonly<Props>) {
+export default function AddClassInfoForm({
+  onAdd,
+  onCancel,
+  existingSessions,
+}: Readonly<Props>) {
   const [type, setType] = useState<(typeof TYPES)[number] | null>(null);
   const [section, setSection] = useState("");
   const [day, setDay] = useState<(typeof DAYS)[number] | null>(null);
@@ -50,6 +58,16 @@ export default function AddClassInfoForm({ onAdd, onCancel }: Readonly<Props>) {
       setError(error);
       return;
     }
+
+    const overlapError = validateNoTimeOverlap(
+      { day: day!, start_time: startTime, end_time: endTime },
+      existingSessions,
+    );
+    if (overlapError) {
+      setError(overlapError);
+      return;
+    }
+
     setError(null);
     onAdd({
       type,

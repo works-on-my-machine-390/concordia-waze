@@ -70,7 +70,7 @@ export default function AddClassScreen() {
             <View style={styles.classInfoSummary}>
               {classInfo.map((s) => (
                 <ClassInfoCard
-                  key={`${s.type}-${s.day}`}
+                  key={`${s.type}-${s.day}-${s.start_time}`}
                   courseName={courseName}
                   classInfo={s}
                 />
@@ -82,6 +82,7 @@ export default function AddClassScreen() {
             <AddClassInfoForm
               onAdd={handleAddCourseInfo}
               onCancel={() => setShowClassInfoForm(false)}
+              existingSessions={classInfo}
             />
           ) : (
             <TouchableOpacity
