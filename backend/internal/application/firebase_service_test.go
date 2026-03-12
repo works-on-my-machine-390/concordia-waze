@@ -774,3 +774,62 @@ func TestFavoritesSubcollectionInitialized(t *testing.T) {
 	assert.NotNil(t, favorites)
 	assert.Equal(t, 0, len(favorites)) // no real favorites yet, only _init placeholder
 }
+
+func TestFirestoreFavoriteRepository_Lifecycle(t *testing.T) {
+	service := setupTestService(t)
+	repo := application.NewFirestoreFavoriteRepository(service)
+
+	userID := "repo-user-" + time.Now().Format("20060102150405")
+	favID := "fav-repo-1"
+
+	// 1. Create
+	fav := &domain.Favorite{
+		ID:        favID,
+		UserID:    userID,
+		Name:      "Repo Place",
+		Latitude:  10.0,
+		Longitude: 20.0,
+	}
+	err := repo.Create(fav)
+	require.NoError(t, err)
+
+	// 2. FindByUserID
+	list, err := repo.FindByUserID(userID)
+	require.NoError(t, err)
+	require.Len(t, list, 1)
+	assert.Equal(t, "Repo Place", list[0].Name)
+
+	// 3. Delete
+	err = repo.Delete(favID, userID)
+	require.NoError(t, err)
+
+	// Verify empty
+	list, err = repo.FindByUserID(userID)
+	require.NoError(t, err)
+	assert.Empty(t, list)
+}
+
+func TestHybridFavoriteRepository_Routing(t *testing.T) {
+	service := setupTestService(t)
+	hybrid := application.NewHybridFavoriteRepository(service)
+
+	// Case 1: Authenticated User -> Firestore
+	authUser := "auth-user-" + time.Now().Format("20060102150405")
+	authFav := &domain.Favorite{ID: "auth-fav", UserID: authUser, Name: "Auth Home", Latitude: 1, Longitude: 1}
+	require.NoError(t, hybrid.Create(authFav))
+	listAuth, err := hybrid.FindByUserID(authUser)
+	require.NoError(t, err)
+	require.Len(t, listAuth, 1)
+
+	// Case 2: Anonymous User -> Memory
+	anonUser := ""
+	anonFav := &domain.Favorite{ID: "anon-fav", UserID: anonUser, Name: "Anon Home", Latitude: 2, Longitude: 2}
+	require.NoError(t, hybrid.Create(anonFav))
+	listAnon, err := hybrid.FindByUserID(anonUser)
+	require.NoError(t, err)
+	require.Len(t, listAnon, 1)
+
+	// Verify Deletion Routing
+	require.NoError(t, hybrid.Delete("auth-fav", authUser))
+	require.NoError(t, hybrid.Delete("anon-fav", anonUser))
+}

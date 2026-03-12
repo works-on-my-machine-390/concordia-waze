@@ -3,6 +3,7 @@ package handler_test
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -346,5 +347,67 @@ func TestCreateFavoriteWrongUserPath(t *testing.T) {
 
 	if w.Code != http.StatusForbidden {
 		t.Errorf("Expected status %d, got %d", http.StatusForbidden, w.Code)
+	}
+}
+
+// ---- Mock Service for Error Testing ----
+
+type mockFavoritesServiceError struct{}
+
+func (m *mockFavoritesServiceError) AddFavorite(userID, name string, latitude, longitude float64) (*domain.Favorite, error) {
+	return nil, errors.New("service add error")
+}
+
+func (m *mockFavoritesServiceError) GetFavorites(userID string) ([]*domain.Favorite, error) {
+	return nil, errors.New("service get error")
+}
+
+func (m *mockFavoritesServiceError) DeleteFavorite(id, userID string) error {
+	return errors.New("service delete error")
+}
+
+func TestFavoritesHandler_ServiceErrors(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	jwtManager := application.NewJWTManager("test-secret", time.Hour)
+	token := makeFavoriteToken(jwtManager, "u1")
+
+	h := handler.NewFavoritesHandler(&mockFavoritesServiceError{})
+
+	r := gin.New()
+	r.Use(middleware.AuthMiddleware(jwtManager))
+	g := r.Group("/users/:userId/favorites")
+	{
+		g.POST("", h.CreateFavorite)
+		g.GET("", h.GetFavorites)
+		g.DELETE("/:id", h.DeleteFavorite)
+	}
+
+	// Test Create Error
+	body, _ := json.Marshal(handler.CreateFavoriteRequest{Name: "Place", Latitude: 1, Longitude: 1})
+	req := httptest.NewRequest("POST", "/users/u1/favorites", bytes.NewBuffer(body))
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Expected 400 for add error, got %d", w.Code)
+	}
+
+	// Test Get Error
+	req = httptest.NewRequest("GET", "/users/u1/favorites", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	w = httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("Expected 500 for get error, got %d", w.Code)
+	}
+
+	// Test Delete Error
+	req = httptest.NewRequest("DELETE", "/users/u1/favorites/f1", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	w = httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("Expected 500 for delete error, got %d", w.Code)
 	}
 }

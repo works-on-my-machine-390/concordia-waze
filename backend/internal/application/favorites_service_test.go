@@ -1,6 +1,7 @@
 package application_test
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/works-on-my-machine-390/concordia-waze/internal/application"
@@ -106,5 +107,27 @@ func TestDeleteFavoriteWrongUser(t *testing.T) {
 	err := service.DeleteFavorite(fav.ID, "user-2")
 	if err != domain.ErrFavoriteNotFound {
 		t.Errorf("Expected ErrFavoriteNotFound when wrong user deletes, got %v", err)
+	}
+}
+
+// Mock repository that always fails
+type failRepo struct{}
+
+func (f *failRepo) Create(fav *domain.Favorite) error {
+	return errors.New("db error")
+}
+func (f *failRepo) FindByUserID(userID string) ([]*domain.Favorite, error) {
+	return nil, nil
+}
+func (f *failRepo) Delete(id, userID string) error {
+	return nil
+}
+
+func TestAddFavoriteRepositoryError(t *testing.T) {
+	service := application.NewFavoritesService(&failRepo{})
+
+	_, err := service.AddFavorite("user-1", "Home", 10, 20)
+	if err == nil || err.Error() != "db error" {
+		t.Errorf("Expected 'db error', got %v", err)
 	}
 }
