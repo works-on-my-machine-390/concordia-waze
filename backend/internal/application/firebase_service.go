@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"cloud.google.com/go/firestore"
@@ -342,46 +343,61 @@ func (fs *FirebaseService) DeleteSavedAddress(ctx context.Context, userID, addre
 
 // AddFavorite stores a favorite location under users/{userID}/favorites/{fav.ID}.
 func (fs *FirebaseService) AddFavorite(ctx context.Context, userID string, fav FirestoreFavorite) error {
+	path := fmt.Sprintf("users/%s/favorites/%s", userID, fav.ID)
+	log.Printf("[firestore] writing favorite path=%s name=%q", path, fav.Name)
 	_, err := fs.client.Collection("users").Doc(userID).Collection("favorites").Doc(fav.ID).Set(ctx, fav)
 	if err != nil {
+		log.Printf("[firestore] AddFavorite failed path=%s: %v", path, err)
 		return fmt.Errorf("add favorite: %w", err)
 	}
+	log.Printf("[firestore] AddFavorite success path=%s", path)
 	return nil
 }
 
 // GetFavorites retrieves all favorite locations for a user.
 func (fs *FirebaseService) GetFavorites(ctx context.Context, userID string) ([]FirestoreFavorite, error) {
+	collPath := fmt.Sprintf("users/%s/favorites", userID)
+	log.Printf("[firestore] reading favorites path=%s", collPath)
 	docs, err := fs.client.Collection("users").Doc(userID).Collection("favorites").Documents(ctx).GetAll()
 	if err != nil {
+		log.Printf("[firestore] GetFavorites failed path=%s: %v", collPath, err)
 		return nil, fmt.Errorf("get favorites: %w", err)
 	}
 
+	log.Printf("[firestore] GetFavorites path=%s found %d raw docs", collPath, len(docs))
 	favorites := make([]FirestoreFavorite, 0, len(docs))
 	for _, doc := range docs {
 		if doc.Ref.ID == "_init" {
 			continue
 		}
 		var fav FirestoreFavorite
-		if doc.DataTo(&fav) != nil {
+		if err := doc.DataTo(&fav); err != nil {
+			log.Printf("[firestore] GetFavorites skipping doc=%s: deserialize error: %v", doc.Ref.ID, err)
 			continue
 		}
 		fav.ID = doc.Ref.ID
 		favorites = append(favorites, fav)
 	}
+	log.Printf("[firestore] GetFavorites path=%s returning %d favorites", collPath, len(favorites))
 	return favorites, nil
 }
 
 // DeleteFavorite removes a favorite by ID from Firestore, scoped to the owning user.
 // Returns ErrFavoriteNotFound if the document does not exist under that user.
 func (fs *FirebaseService) DeleteFavorite(ctx context.Context, userID, favoriteID string) error {
+	path := fmt.Sprintf("users/%s/favorites/%s", userID, favoriteID)
+	log.Printf("[firestore] deleting favorite path=%s", path)
 	docRef := fs.client.Collection("users").Doc(userID).Collection("favorites").Doc(favoriteID)
 	snap, err := docRef.Get(ctx)
 	if err != nil || !snap.Exists() {
+		log.Printf("[firestore] DeleteFavorite not found path=%s", path)
 		return domain.ErrFavoriteNotFound
 	}
 	if _, err := docRef.Delete(ctx); err != nil {
+		log.Printf("[firestore] DeleteFavorite failed path=%s: %v", path, err)
 		return fmt.Errorf("delete favorite: %w", err)
 	}
+	log.Printf("[firestore] DeleteFavorite success path=%s", path)
 	return nil
 }
 

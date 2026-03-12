@@ -228,8 +228,9 @@ func TestCreateFavoriteAnonymousSuccess(t *testing.T) {
 	if fav.ID == "" {
 		t.Fatal("Expected favorite ID in response")
 	}
-	if fav.UserID != "" {
-		t.Errorf("Expected empty userID for anonymous, got %s", fav.UserID)
+	// Anonymous requests now use the path userId directly so Firestore can be reached.
+	if fav.UserID != "anonymous" {
+		t.Errorf("Expected userID %q for anonymous path request, got %q", "anonymous", fav.UserID)
 	}
 }
 

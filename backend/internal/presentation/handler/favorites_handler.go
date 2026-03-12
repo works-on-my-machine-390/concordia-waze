@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -34,18 +35,21 @@ type CreateFavoriteRequest struct {
 
 // resolveUserID derives the effective userID for a favorites request:
 //   - Authenticated (JWT present): validates claims.ID == path :userId; returns ("", false) on mismatch.
-//   - Anonymous (no JWT): ignores path :userId, returns ("", true) — routes to in-memory store.
+//   - Anonymous (no JWT): uses path :userId directly, enabling Firestore persistence without auth.
 func resolveUserID(c *gin.Context) (userID string, ok bool) {
 	pathUserID := c.Param("userId")
 	claims := middleware.GetUserFromContext(c)
 	if claims != nil {
 		if claims.ID != pathUserID {
+			log.Printf("[favorites] auth mismatch: token user=%q path user=%q", claims.ID, pathUserID)
 			return "", false
 		}
+		log.Printf("[favorites] authenticated request for user=%q", pathUserID)
 		return pathUserID, true
 	}
-	// Anonymous: effective userID is "" (in-memory store)
-	return "", true
+	// No JWT: use path userId directly so Firestore is reached when Firebase is enabled.
+	log.Printf("[favorites] anonymous request using path user=%q", pathUserID)
+	return pathUserID, true
 }
 
 // CreateFavorite godoc
@@ -74,12 +78,15 @@ func (h *FavoritesHandler) CreateFavorite(c *gin.Context) {
 		return
 	}
 
+	log.Printf("[favorites] CreateFavorite user=%q name=%q lat=%v lng=%v", userID, req.Name, req.Latitude, req.Longitude)
 	favorite, err := h.service.AddFavorite(userID, req.Name, req.Latitude, req.Longitude)
 	if err != nil {
+		log.Printf("[favorites] CreateFavorite error user=%q: %v", userID, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+	log.Printf("[favorites] CreateFavorite success user=%q id=%q", userID, favorite.ID)
 	c.JSON(http.StatusCreated, favorite)
 }
 
@@ -100,12 +107,15 @@ func (h *FavoritesHandler) GetFavorites(c *gin.Context) {
 		return
 	}
 
+	log.Printf("[favorites] GetFavorites user=%q", userID)
 	favorites, err := h.service.GetFavorites(userID)
 	if err != nil {
+		log.Printf("[favorites] GetFavorites error user=%q: %v", userID, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
+	log.Printf("[favorites] GetFavorites user=%q returned %d items", userID, len(favorites))
 	c.JSON(http.StatusOK, favorites)
 }
 
@@ -129,7 +139,9 @@ func (h *FavoritesHandler) DeleteFavorite(c *gin.Context) {
 	}
 
 	id := c.Param("id")
+	log.Printf("[favorites] DeleteFavorite user=%q id=%q", userID, id)
 	if err := h.service.DeleteFavorite(id, userID); err != nil {
+		log.Printf("[favorites] DeleteFavorite error user=%q id=%q: %v", userID, id, err)
 		if err == domain.ErrFavoriteNotFound {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		} else {
@@ -138,5 +150,6 @@ func (h *FavoritesHandler) DeleteFavorite(c *gin.Context) {
 		return
 	}
 
+	log.Printf("[favorites] DeleteFavorite success user=%q id=%q", userID, id)
 	c.JSON(http.StatusOK, gin.H{"message": "favorite deleted"})
 }
