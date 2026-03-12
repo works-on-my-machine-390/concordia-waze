@@ -168,6 +168,10 @@ func (h *GoogleOAuthHandler) GetAuthStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, StatusOKResponse{Ok: true})
 }
 
+// checkAndRefreshIfNeeded loads the stored token and returns:
+// - needsAuth=true and authURL set when the frontend must initiate auth
+// - needsAuth=false when token is valid (or refreshed successfully)
+// - non-nil error on internal failure
 func (h *GoogleOAuthHandler) checkAndRefreshIfNeeded(ctx context.Context, userID string) (needsAuth bool, authURL string, retErr error) {
 	storedTok, ok, err := h.store.GetGoogleToken(ctx, userID)
 	if err != nil {
@@ -197,16 +201,10 @@ func (h *GoogleOAuthHandler) checkAndRefreshIfNeeded(ctx context.Context, userID
 		return true, aURL, nil
 	}
 
-	// Try to refresh using injected TokenSourceProvider (preferred) or google.Config() fallback.
-	var ts oauth2.TokenSource
-	if h.tsProvider != nil {
-		ts = h.tsProvider.TokenSource(ctx, storedTok)
-	} else {
-		cfg, err := google.Config()
-		if err != nil {
-			return false, "", err
-		}
-		ts = cfg.TokenSource(ctx, storedTok)
+	// Attempt refresh using injected TokenSourceProvider (preferred) or google.Config() fallback.
+	ts, err := h.buildTokenSource(ctx, storedTok)
+	if err != nil {
+		return false, "", err
 	}
 
 	newTok, err := ts.Token()
@@ -224,6 +222,19 @@ func (h *GoogleOAuthHandler) checkAndRefreshIfNeeded(ctx context.Context, userID
 		log.Printf("warning: failed to persist refreshed token for user %s: %v", userID, err)
 	}
 	return false, "", nil
+}
+
+// buildTokenSource returns a TokenSource using the injected provider when present,
+// otherwise falls back to google.Config().TokenSource.
+func (h *GoogleOAuthHandler) buildTokenSource(ctx context.Context, t *oauth2.Token) (oauth2.TokenSource, error) {
+	if h.tsProvider != nil {
+		return h.tsProvider.TokenSource(ctx, t), nil
+	}
+	cfg, err := google.Config()
+	if err != nil {
+		return nil, err
+	}
+	return cfg.TokenSource(ctx, t), nil
 }
 
 func tokenValid(tok *oauth2.Token) bool {
