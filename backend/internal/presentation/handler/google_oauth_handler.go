@@ -143,13 +143,14 @@ func extractUserID(c *gin.Context) string {
 // @Tags        auth
 // @Accept      json
 // @Produce     json
+// @Param       userId query string false "Optional fallback userId if not available in auth context"
 // @Param       Authorization header string true "Bearer token" default(Bearer <token>)
 // @Success     200 {object} StatusOKResponse "Token is present and valid"
 // @Success     200 {object} AuthURLResponse "No valid token; frontend should redirect user to this URL"
 // @Failure     400 {object} map[string]string "Missing userId or invalid request"
 // @Failure     500 {object} map[string]string "Server error checking token or generating URL"
 // @Security    BearerAuth
-// @Router      /auth/google/status [get]
+// @Router      /auth/google [get]
 func (h *GoogleOAuthHandler) GetAuthStatus(c *gin.Context) {
 	userID := extractUserID(c)
 	if userID == "" {
