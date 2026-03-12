@@ -10,7 +10,7 @@ import { COLORS, TYPES, DAYS } from "../../app/constants";
 import DaySelector from "./ClassInfoDaySelector";
 import TypeSelector from "./ClassInfoTypeSelector";
 
-export type SessionFormData = {
+export type ClassInfoFormData = {
   type: (typeof TYPES)[number];
   section: string;
   day: (typeof DAYS)[number];
@@ -21,11 +21,11 @@ export type SessionFormData = {
 };
 
 type Props = {
-  onAdd: (session: SessionFormData) => void;
+  onAdd: (classInfo: ClassInfoFormData) => void;
   onCancel: () => void;
 };
 
-export default function AddSessionForm({ onAdd, onCancel }: Readonly<Props>) {
+export default function AddClassInfoForm({ onAdd, onCancel }: Readonly<Props>) {
   const [type, setType] = useState<(typeof TYPES)[number] | null>(null);
   const [section, setSection] = useState("");
   const [day, setDay] = useState<(typeof DAYS)[number] | null>(null);
@@ -45,7 +45,7 @@ export default function AddSessionForm({ onAdd, onCancel }: Readonly<Props>) {
       !buildingCode ||
       !room
     ) {
-      setError("Please fill in all fields before adding a session.");
+      setError("Please fill in all fields before adding a class.");
       return;
     }
     setError(null);
@@ -127,7 +127,7 @@ export default function AddSessionForm({ onAdd, onCancel }: Readonly<Props>) {
           style={[styles.btn, styles.addBtn]}
           onPress={handleAdd}
         >
-          <Text style={styles.addText}>Add Session</Text>
+          <Text style={styles.addText}>Add Class</Text>
         </TouchableOpacity>
       </View>
     </View>

@@ -1,27 +1,27 @@
 import { StyleSheet, Text, View } from "react-native";
 import { COLORS } from "../../app/constants";
-import { SessionFormData } from "./AddClassInfoForm";
+import { ClassInfoFormData } from "./AddClassInfoForm";
 
 type Props = {
-  className: string;
-  session: SessionFormData;
+  courseName: string;
+  classInfo: ClassInfoFormData;
 };
 
-export default function ClassInfoCard({ className, session }: Readonly<Props>) {
+export default function ClassInfoCard({ courseName, classInfo }: Readonly<Props>) {
   return (
     <View style={styles.card}>
       <View style={styles.top}>
         <Text style={styles.name}>
-          {className || "Class"} - {session.section}
+          {courseName || "Class"} - {classInfo.section}
         </Text>
-        <Text style={styles.type}>{session.type}</Text>
+        <Text style={styles.type}>{classInfo.type}</Text>
       </View>
       <View style={styles.bottom}>
         <Text style={styles.text}>
-          {session.day} {session.start_time} - {session.end_time}
+          {classInfo.day} {classInfo.start_time} - {classInfo.end_time}
         </Text>
         <Text style={styles.text}>
-          {session.buildingCode} {session.room}
+          {classInfo.buildingCode} {classInfo.room}
         </Text>
       </View>
     </View>
