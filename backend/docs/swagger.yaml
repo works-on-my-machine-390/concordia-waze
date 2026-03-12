@@ -78,27 +78,6 @@ definitions:
       addressId:
         type: string
     type: object
-  application.ScheduleItem:
-    properties:
-      building:
-        type: string
-      daysOfWeek:
-        items:
-          type: string
-        type: array
-      endTime:
-        type: string
-      name:
-        type: string
-      room:
-        type: string
-      scheduleId:
-        type: string
-      startTime:
-        type: string
-      type:
-        type: string
-    type: object
   application.TransitionType:
     enum:
     - 0
@@ -269,17 +248,39 @@ definitions:
     type: object
   domain.Favorite:
     properties:
+      buildingCode:
+        description: Indoor fields
+        type: string
+      floorNumber:
+        type: integer
       id:
         type: string
       latitude:
+        description: Outdoor fields
         type: number
       longitude:
         type: number
       name:
         type: string
+      poiType:
+        type: string
+      type:
+        $ref: '#/definitions/domain.FavoriteType'
       userId:
         type: string
+      x:
+        type: number
+      "y":
+        type: number
     type: object
+  domain.FavoriteType:
+    enum:
+    - outdoor
+    - indoor
+    type: string
+    x-enum-varnames:
+    - FavoriteTypeOutdoor
+    - FavoriteTypeIndoor
   domain.Floor:
     properties:
       edges:
@@ -356,12 +357,27 @@ definitions:
     type: object
   handler.CreateFavoriteRequest:
     properties:
+      buildingCode:
+        description: |-
+          Indoor-specific fields. Pointer types allow the handler to distinguish
+          "field not provided" from "field provided as zero".
+        type: string
+      floorNumber:
+        type: integer
       latitude:
         type: number
       longitude:
         type: number
       name:
         type: string
+      poiType:
+        type: string
+      type:
+        type: string
+      x:
+        type: number
+      "y":
+        type: number
     required:
     - name
     type: object
@@ -1150,12 +1166,13 @@ paths:
     post:
       consumes:
       - application/json
-      description: Save a named location as a favorite for the given user. Authenticated
+      description: Save a named location as a favorite for the given user. Supports
+        both outdoor (lat/lng) and indoor (building/floor/x/y) favorites. If "type"
+        is omitted the request is treated as outdoor for backward compatibility. Authenticated
         users' favorites are persisted in Firestore; anonymous requests are kept in
         memory.
       parameters:
-      - description: User ID (use the id from signup/login for authenticated requests,
-          any string for anonymous)
+      - description: User ID
         in: path
         name: userId
         required: true
@@ -1174,7 +1191,7 @@ paths:
           schema:
             $ref: '#/definitions/domain.Favorite'
         "400":
-          description: Missing or invalid name
+          description: Missing or invalid fields
           schema:
             additionalProperties:
               type: string
@@ -1630,207 +1647,6 @@ paths:
       summary: Update saved address
       tags:
       - addresses
-  /users/{userId}/schedule:
-    get:
-      description: Get schedule items for a user
-      parameters:
-      - description: User ID
-        in: path
-        name: userId
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/application.ScheduleItem'
-            type: array
-        "401":
-          description: Not authenticated
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "403":
-          description: Forbidden
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Get user schedule
-      tags:
-      - schedule
-    post:
-      consumes:
-      - application/json
-      description: Add a schedule item for a user
-      parameters:
-      - description: User ID
-        in: path
-        name: userId
-        required: true
-        type: string
-      - description: Schedule item
-        in: body
-        name: item
-        required: true
-        schema:
-          $ref: '#/definitions/application.ScheduleItem'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "401":
-          description: Not authenticated
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "403":
-          description: Forbidden
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Add schedule item
-      tags:
-      - schedule
-  /users/{userId}/schedule/{scheduleId}:
-    delete:
-      description: Delete a schedule item for a user
-      parameters:
-      - description: User ID
-        in: path
-        name: userId
-        required: true
-        type: string
-      - description: Schedule ID
-        in: path
-        name: scheduleId
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "401":
-          description: Not authenticated
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "403":
-          description: Forbidden
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Delete schedule item
-      tags:
-      - schedule
-    put:
-      consumes:
-      - application/json
-      description: Update a schedule item for a user
-      parameters:
-      - description: User ID
-        in: path
-        name: userId
-        required: true
-        type: string
-      - description: Schedule ID
-        in: path
-        name: scheduleId
-        required: true
-        type: string
-      - description: Schedule updates
-        in: body
-        name: updates
-        required: true
-        schema:
-          additionalProperties: true
-          type: object
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "401":
-          description: Not authenticated
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "403":
-          description: Forbidden
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Update schedule item
-      tags:
-      - schedule
 securityDefinitions:
   BearerAuth:
     description: Type "Bearer" followed by a space and JWT token.

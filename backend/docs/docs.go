@@ -1121,7 +1121,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Save a named location as a favorite for the given user. Authenticated users' favorites are persisted in Firestore; anonymous requests are kept in memory.",
+                "description": "Save a named location as a favorite for the given user. Supports both outdoor (lat/lng) and indoor (building/floor/x/y) favorites. If \"type\" is omitted the request is treated as outdoor for backward compatibility. Authenticated users' favorites are persisted in Firestore; anonymous requests are kept in memory.",
                 "consumes": [
                     "application/json"
                 ],
@@ -1135,7 +1135,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "User ID (use the id from signup/login for authenticated requests, any string for anonymous)",
+                        "description": "User ID",
                         "name": "userId",
                         "in": "path",
                         "required": true
@@ -1158,7 +1158,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Missing or invalid name",
+                        "description": "Missing or invalid fields",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1854,315 +1854,6 @@ const docTemplate = `{
                     }
                 }
             }
-        },
-        "/users/{userId}/schedule": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get schedule items for a user",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "schedule"
-                ],
-                "summary": "Get user schedule",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "User ID",
-                        "name": "userId",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/application.ScheduleItem"
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Not authenticated",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Add a schedule item for a user",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "schedule"
-                ],
-                "summary": "Add schedule item",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "User ID",
-                        "name": "userId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Schedule item",
-                        "name": "item",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/application.ScheduleItem"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Not authenticated",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/users/{userId}/schedule/{scheduleId}": {
-            "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Update a schedule item for a user",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "schedule"
-                ],
-                "summary": "Update schedule item",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "User ID",
-                        "name": "userId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Schedule ID",
-                        "name": "scheduleId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Schedule updates",
-                        "name": "updates",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Not authenticated",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Delete a schedule item for a user",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "schedule"
-                ],
-                "summary": "Delete schedule item",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "User ID",
-                        "name": "userId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Schedule ID",
-                        "name": "scheduleId",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Not authenticated",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
         }
     },
     "definitions": {
@@ -2282,38 +1973,6 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "addressId": {
-                    "type": "string"
-                }
-            }
-        },
-        "application.ScheduleItem": {
-            "type": "object",
-            "properties": {
-                "building": {
-                    "type": "string"
-                },
-                "daysOfWeek": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "endTime": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "room": {
-                    "type": "string"
-                },
-                "scheduleId": {
-                    "type": "string"
-                },
-                "startTime": {
-                    "type": "string"
-                },
-                "type": {
                     "type": "string"
                 }
             }
@@ -2573,10 +2232,18 @@ const docTemplate = `{
         "domain.Favorite": {
             "type": "object",
             "properties": {
+                "buildingCode": {
+                    "description": "Indoor fields",
+                    "type": "string"
+                },
+                "floorNumber": {
+                    "type": "integer"
+                },
                 "id": {
                     "type": "string"
                 },
                 "latitude": {
+                    "description": "Outdoor fields",
                     "type": "number"
                 },
                 "longitude": {
@@ -2585,10 +2252,33 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
+                "poiType": {
+                    "type": "string"
+                },
+                "type": {
+                    "$ref": "#/definitions/domain.FavoriteType"
+                },
                 "userId": {
                     "type": "string"
+                },
+                "x": {
+                    "type": "number"
+                },
+                "y": {
+                    "type": "number"
                 }
             }
+        },
+        "domain.FavoriteType": {
+            "type": "string",
+            "enum": [
+                "outdoor",
+                "indoor"
+            ],
+            "x-enum-varnames": [
+                "FavoriteTypeOutdoor",
+                "FavoriteTypeIndoor"
+            ]
         },
         "domain.Floor": {
             "type": "object",
@@ -2710,6 +2400,13 @@ const docTemplate = `{
                 "name"
             ],
             "properties": {
+                "buildingCode": {
+                    "description": "Indoor-specific fields. Pointer types allow the handler to distinguish\n\"field not provided\" from \"field provided as zero\".",
+                    "type": "string"
+                },
+                "floorNumber": {
+                    "type": "integer"
+                },
                 "latitude": {
                     "type": "number"
                 },
@@ -2718,6 +2415,18 @@ const docTemplate = `{
                 },
                 "name": {
                     "type": "string"
+                },
+                "poiType": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "x": {
+                    "type": "number"
+                },
+                "y": {
+                    "type": "number"
                 }
             }
         },
