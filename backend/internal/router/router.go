@@ -96,7 +96,7 @@ func SetupRouter() *gin.Engine {
 		authGroup.GET("/profile", middleware.RequireAuth(), authHandler.GetProfile)
 		authGroup.POST("/logout", middleware.RequireAuth(), authHandler.Logout)
 
-		authGroup.GET("/google", middleware.RequireAuth(), googleOAuthHandler.GetAuthURL)
+		authGroup.GET("/google", middleware.RequireAuth(), googleOAuthHandler.GetAuthStatus)
 		authGroup.GET("/google/callback", googleOAuthHandler.Callback)
 	}
 

@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"os"
+	"time"
 
+	"github.com/golang-jwt/jwt/v4"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )
@@ -63,4 +65,27 @@ func ExchangeCode(ctx context.Context, code string) (*oauth2.Token, error) {
 		return nil, err
 	}
 	return tok, nil
+}
+
+func CreateStateToken(secret, userID string, ttl time.Duration) (string, error) {
+	claims := jwt.RegisteredClaims{
+		Subject:   userID,
+		ExpiresAt: jwt.NewNumericDate(time.Now().Add(ttl)),
+		IssuedAt:  jwt.NewNumericDate(time.Now()),
+	}
+	tok := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return tok.SignedString([]byte(secret))
+}
+
+func ParseStateToken(secret, tokenStr string) (string, error) {
+	tok, err := jwt.ParseWithClaims(tokenStr, &jwt.RegisteredClaims{}, func(token *jwt.Token) (interface{}, error) {
+		return []byte(secret), nil
+	})
+	if err != nil {
+		return "", err
+	}
+	if claims, ok := tok.Claims.(*jwt.RegisteredClaims); ok && tok.Valid {
+		return claims.Subject, nil
+	}
+	return "", jwt.ErrTokenInvalidClaims
 }

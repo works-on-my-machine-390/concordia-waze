@@ -15,7 +15,7 @@
                         "BearerAuth": []
                     }
                 ],
-                "description": "Returns a JSON object containing the Google OAuth2 authorization URL. The frontend should redirect the user to the returned URL. The endpoint will use the authenticated user's ID (from the auth context) or an optional query parameter `userId` as a fallback to populate the OAuth `state`.",
+                "description": "Checks stored Google tokens for the authenticated user and returns either a short-lived auth URL (when re-auth is required) or {\"ok\": true} when the token is usable. This endpoint MUST be called by an authenticated user (server-side JWT). The handler will use the server-side user ID from the auth context (do not rely on query userId in production).",
                 "consumes": [
                     "application/json"
                 ],
@@ -25,14 +25,15 @@
                 "tags": [
                     "auth"
                 ],
-                "summary": "Get Google OAuth2 authorization URL",
+                "summary": "Get Google OAuth2 status / auth URL",
                 "parameters": [
                     {
                         "type": "string",
                         "default": "Bearer \u003ctoken\u003e",
                         "description": "Bearer token",
                         "name": "Authorization",
-                        "in": "header"
+                        "in": "header",
+                        "required": true
                     },
                     {
                         "type": "string",
@@ -43,7 +44,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Authorization URL returned",
+                        "description": "No valid token; frontend should redirect user to this URL",
                         "schema": {
                             "$ref": "#/definitions/handler.AuthURLResponse"
                         }
@@ -58,7 +59,7 @@
                         }
                     },
                     "500": {
-                        "description": "Server error generating URL",
+                        "description": "Server error checking token or generating URL",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -71,7 +72,7 @@
         },
         "/auth/google/callback": {
             "get": {
-                "description": "Callback endpoint invoked by Google after user consent. Exchanges the authorization code for tokens and persists them on the server. The OAuth `state` parameter is expected to contain the userId (or signed state you use to identify the user). On success the handler redirects the browser to FRONTEND_AUTH_SUCCESS_URL if configured, otherwise returns a small JSON confirmation.",
+                "description": "Callback endpoint invoked by Google after user consent. Exchanges the authorization code for tokens and persists them on the server. The `state` parameter must be a signed short-lived token previously returned to the frontend by GetAuthStatus (contains the userId). This endpoint is public (called by Google) and must validate the signed state.",
                 "consumes": [
                     "application/json"
                 ],
@@ -92,7 +93,7 @@
                     },
                     {
                         "type": "string",
-                        "description": "State value (contains userId or signed state)",
+                        "description": "Signed state token issued by backend (contains userId and short expiry)",
                         "name": "state",
                         "in": "query",
                         "required": true
@@ -112,7 +113,7 @@
                         }
                     },
                     "400": {
-                        "description": "Missing code or state",
+                        "description": "Missing or invalid code/state",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -2671,6 +2672,14 @@
                 "password": {
                     "type": "string",
                     "minLength": 6
+                }
+            }
+        },
+        "handler.StatusOKResponse": {
+            "type": "object",
+            "properties": {
+                "ok": {
+                    "type": "boolean"
                 }
             }
         },
