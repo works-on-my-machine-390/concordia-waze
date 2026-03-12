@@ -9,11 +9,17 @@ import (
 	"github.com/works-on-my-machine-390/concordia-waze/internal/persistence/repository"
 )
 
-func TestAddFavoriteSuccess(t *testing.T) {
+func TestAddFavoriteSuccess_Outdoor(t *testing.T) {
 	repo := repository.NewInMemoryFavoriteRepository()
 	service := application.NewFavoritesService(repo)
 
-	fav, err := service.AddFavorite("user-1", "Home", 45.4971, -73.5789)
+	fav, err := service.AddFavorite(&domain.Favorite{
+		UserID:    "user-1",
+		Type:      domain.FavoriteTypeOutdoor,
+		Name:      "Home",
+		Latitude:  45.4971,
+		Longitude: -73.5789,
+	})
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -29,15 +35,66 @@ func TestAddFavoriteSuccess(t *testing.T) {
 	if fav.UserID != "user-1" {
 		t.Errorf("Expected userID 'user-1', got %s", fav.UserID)
 	}
+	if fav.Type != domain.FavoriteTypeOutdoor {
+		t.Errorf("Expected type outdoor, got %s", fav.Type)
+	}
+}
+
+func TestAddFavoriteSuccess_Indoor(t *testing.T) {
+	repo := repository.NewInMemoryFavoriteRepository()
+	service := application.NewFavoritesService(repo)
+
+	fav, err := service.AddFavorite(&domain.Favorite{
+		UserID:       "user-1",
+		Type:         domain.FavoriteTypeIndoor,
+		Name:         "Room 281",
+		BuildingCode: "H",
+		FloorNumber:  2,
+		X:            0.8749,
+		Y:            0.4326,
+		PoiType:      "room",
+	})
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+	if fav.Type != domain.FavoriteTypeIndoor {
+		t.Errorf("Expected type indoor, got %s", fav.Type)
+	}
+	if fav.BuildingCode != "H" {
+		t.Errorf("Expected buildingCode 'H', got %s", fav.BuildingCode)
+	}
+	if fav.FloorNumber != 2 {
+		t.Errorf("Expected floorNumber 2, got %d", fav.FloorNumber)
+	}
 }
 
 func TestAddFavoriteEmptyName(t *testing.T) {
 	repo := repository.NewInMemoryFavoriteRepository()
 	service := application.NewFavoritesService(repo)
 
-	_, err := service.AddFavorite("user-1", "", 45.4971, -73.5789)
+	_, err := service.AddFavorite(&domain.Favorite{
+		UserID:    "user-1",
+		Type:      domain.FavoriteTypeOutdoor,
+		Name:      "",
+		Latitude:  45.4971,
+		Longitude: -73.5789,
+	})
 	if err != domain.ErrEmptyFavoriteName {
 		t.Errorf("Expected ErrEmptyFavoriteName, got %v", err)
+	}
+}
+
+func TestAddFavoriteInvalidType(t *testing.T) {
+	repo := repository.NewInMemoryFavoriteRepository()
+	service := application.NewFavoritesService(repo)
+
+	_, err := service.AddFavorite(&domain.Favorite{
+		UserID: "user-1",
+		Type:   "unknown",
+		Name:   "Place",
+	})
+	if err != domain.ErrInvalidFavoriteType {
+		t.Errorf("Expected ErrInvalidFavoriteType, got %v", err)
 	}
 }
 
@@ -45,9 +102,9 @@ func TestGetFavoritesSuccess(t *testing.T) {
 	repo := repository.NewInMemoryFavoriteRepository()
 	service := application.NewFavoritesService(repo)
 
-	service.AddFavorite("user-1", "Home", 45.4971, -73.5789)
-	service.AddFavorite("user-1", "Office", 45.4972, -73.5790)
-	service.AddFavorite("user-2", "Other", 45.0, -73.0)
+	service.AddFavorite(&domain.Favorite{UserID: "user-1", Type: domain.FavoriteTypeOutdoor, Name: "Home", Latitude: 45.4971, Longitude: -73.5789})
+	service.AddFavorite(&domain.Favorite{UserID: "user-1", Type: domain.FavoriteTypeOutdoor, Name: "Office", Latitude: 45.4972, Longitude: -73.5790})
+	service.AddFavorite(&domain.Favorite{UserID: "user-2", Type: domain.FavoriteTypeOutdoor, Name: "Other", Latitude: 45.0, Longitude: -73.0})
 
 	favorites, err := service.GetFavorites("user-1")
 	if err != nil {
@@ -75,7 +132,7 @@ func TestDeleteFavoriteSuccess(t *testing.T) {
 	repo := repository.NewInMemoryFavoriteRepository()
 	service := application.NewFavoritesService(repo)
 
-	fav, _ := service.AddFavorite("user-1", "Home", 45.4971, -73.5789)
+	fav, _ := service.AddFavorite(&domain.Favorite{UserID: "user-1", Type: domain.FavoriteTypeOutdoor, Name: "Home", Latitude: 45.4971, Longitude: -73.5789})
 
 	err := service.DeleteFavorite(fav.ID, "user-1")
 	if err != nil {
@@ -102,7 +159,7 @@ func TestDeleteFavoriteWrongUser(t *testing.T) {
 	repo := repository.NewInMemoryFavoriteRepository()
 	service := application.NewFavoritesService(repo)
 
-	fav, _ := service.AddFavorite("user-1", "Home", 45.4971, -73.5789)
+	fav, _ := service.AddFavorite(&domain.Favorite{UserID: "user-1", Type: domain.FavoriteTypeOutdoor, Name: "Home", Latitude: 45.4971, Longitude: -73.5789})
 
 	err := service.DeleteFavorite(fav.ID, "user-2")
 	if err != domain.ErrFavoriteNotFound {
@@ -110,7 +167,7 @@ func TestDeleteFavoriteWrongUser(t *testing.T) {
 	}
 }
 
-// Mock repository that always fails
+// Mock repository that always fails on Create
 type failRepo struct{}
 
 func (f *failRepo) Create(fav *domain.Favorite) error {
@@ -126,7 +183,13 @@ func (f *failRepo) Delete(id, userID string) error {
 func TestAddFavoriteRepositoryError(t *testing.T) {
 	service := application.NewFavoritesService(&failRepo{})
 
-	_, err := service.AddFavorite("user-1", "Home", 10, 20)
+	_, err := service.AddFavorite(&domain.Favorite{
+		UserID:    "user-1",
+		Type:      domain.FavoriteTypeOutdoor,
+		Name:      "Home",
+		Latitude:  10,
+		Longitude: 20,
+	})
 	if err == nil || err.Error() != "db error" {
 		t.Errorf("Expected 'db error', got %v", err)
 	}

@@ -58,11 +58,19 @@ type SavedAddress struct {
 }
 
 // FirestoreFavorite is the Firestore-stored representation of a saved favorite location.
+// The Type field discriminates between "outdoor" and "indoor" favorites.
+// Existing documents without a Type field are treated as outdoor on read (backward compat).
 type FirestoreFavorite struct {
-	ID        string  `firestore:"id"`
-	Name      string  `firestore:"name"`
-	Latitude  float64 `firestore:"latitude"`
-	Longitude float64 `firestore:"longitude"`
+	ID           string  `firestore:"id"`
+	Type         string  `firestore:"type"`
+	Name         string  `firestore:"name"`
+	Latitude     float64 `firestore:"latitude"`
+	Longitude    float64 `firestore:"longitude"`
+	BuildingCode string  `firestore:"buildingCode"`
+	FloorNumber  int     `firestore:"floorNumber"`
+	X            float64 `firestore:"x"`
+	Y            float64 `firestore:"y"`
+	PoiType      string  `firestore:"poiType"`
 }
 
 // ===== User Profile =====
@@ -433,10 +441,16 @@ func (r *FirestoreFavoriteRepository) Create(fav *domain.Favorite) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	return r.service.AddFavorite(ctx, fav.UserID, FirestoreFavorite{
-		ID:        fav.ID,
-		Name:      fav.Name,
-		Latitude:  fav.Latitude,
-		Longitude: fav.Longitude,
+		ID:           fav.ID,
+		Type:         string(fav.Type),
+		Name:         fav.Name,
+		Latitude:     fav.Latitude,
+		Longitude:    fav.Longitude,
+		BuildingCode: fav.BuildingCode,
+		FloorNumber:  fav.FloorNumber,
+		X:            fav.X,
+		Y:            fav.Y,
+		PoiType:      fav.PoiType,
 	})
 }
 
@@ -449,12 +463,24 @@ func (r *FirestoreFavoriteRepository) FindByUserID(userID string) ([]*domain.Fav
 	}
 	result := make([]*domain.Favorite, 0, len(items))
 	for _, item := range items {
+		// Backward compat: documents written before the type field was added have an
+		// empty type string; treat them as outdoor favorites.
+		favType := domain.FavoriteType(item.Type)
+		if favType == "" {
+			favType = domain.FavoriteTypeOutdoor
+		}
 		result = append(result, &domain.Favorite{
-			ID:        item.ID,
-			UserID:    userID,
-			Name:      item.Name,
-			Latitude:  item.Latitude,
-			Longitude: item.Longitude,
+			ID:           item.ID,
+			UserID:       userID,
+			Type:         favType,
+			Name:         item.Name,
+			Latitude:     item.Latitude,
+			Longitude:    item.Longitude,
+			BuildingCode: item.BuildingCode,
+			FloorNumber:  item.FloorNumber,
+			X:            item.X,
+			Y:            item.Y,
+			PoiType:      item.PoiType,
 		})
 	}
 	return result, nil

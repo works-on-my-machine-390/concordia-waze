@@ -15,24 +15,23 @@ func NewFavoritesService(repo repository.FavoriteRepository) *FavoritesService {
 	return &FavoritesService{repo: repo}
 }
 
-// AddFavorite creates a new favorite location for an authenticated user
-func (s *FavoritesService) AddFavorite(userID, name string, latitude, longitude float64) (*domain.Favorite, error) {
-	if name == "" {
+// AddFavorite creates a new favorite location for a user.
+// The caller is responsible for setting fav.Type, fav.UserID, fav.Name, and the
+// type-appropriate location fields before calling this method.
+func (s *FavoritesService) AddFavorite(fav *domain.Favorite) (*domain.Favorite, error) {
+	if fav.Name == "" {
 		return nil, domain.ErrEmptyFavoriteName
 	}
 
-	favorite := &domain.Favorite{
-		UserID:    userID,
-		Name:      name,
-		Latitude:  latitude,
-		Longitude: longitude,
+	if fav.Type != domain.FavoriteTypeOutdoor && fav.Type != domain.FavoriteTypeIndoor {
+		return nil, domain.ErrInvalidFavoriteType
 	}
 
-	if err := s.repo.Create(favorite); err != nil {
+	if err := s.repo.Create(fav); err != nil {
 		return nil, err
 	}
 
-	return favorite, nil
+	return fav, nil
 }
 
 // GetFavorites returns all favorites for the given user identifier

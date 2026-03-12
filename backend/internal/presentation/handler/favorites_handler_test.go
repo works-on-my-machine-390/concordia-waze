@@ -45,14 +45,22 @@ func makeFavoriteToken(jwtManager *application.JWTManager, userID string) string
 // favPath returns the base path for a user's favorites.
 func favPath(userID string) string { return "/users/" + userID + "/favorites" }
 
-// ---- Authenticated user tests ----
+// helper to build a pointer to a float64 value
+func fp(v float64) *float64 { return &v }
+
+// helper to build a pointer to an int value
+func ip(v int) *int { return &v }
+
+// ---- Outdoor: authenticated user tests ----
 
 func TestCreateFavoriteSuccess(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	_, jwtManager, router := setupFavoritesTest(t)
 	token := makeFavoriteToken(jwtManager, "user-1")
 
-	body, _ := json.Marshal(handler.CreateFavoriteRequest{Name: "Home", Latitude: 45.4971, Longitude: -73.5789})
+	body, _ := json.Marshal(handler.CreateFavoriteRequest{
+		Type: "outdoor", Name: "Home", Latitude: 45.4971, Longitude: -73.5789,
+	})
 	req := httptest.NewRequest(http.MethodPost, favPath("user-1"), bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -69,6 +77,35 @@ func TestCreateFavoriteSuccess(t *testing.T) {
 	}
 	if fav.Name != "Home" {
 		t.Errorf("Expected name 'Home', got %s", fav.Name)
+	}
+	if fav.Type != domain.FavoriteTypeOutdoor {
+		t.Errorf("Expected type outdoor, got %s", fav.Type)
+	}
+}
+
+// TestCreateFavoriteBackwardCompat verifies that omitting "type" defaults to outdoor.
+func TestCreateFavoriteBackwardCompat(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	_, jwtManager, router := setupFavoritesTest(t)
+	token := makeFavoriteToken(jwtManager, "user-1")
+
+	// Old-style request: no "type" field, just name + lat/lng
+	body, _ := json.Marshal(map[string]interface{}{
+		"name": "Legacy Place", "latitude": 45.4971, "longitude": -73.5789,
+	})
+	req := httptest.NewRequest(http.MethodPost, favPath("user-1"), bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusCreated {
+		t.Errorf("Expected 201 for backward-compat request, got %d: %s", w.Code, w.Body.String())
+	}
+	var fav domain.Favorite
+	json.Unmarshal(w.Body.Bytes(), &fav)
+	if fav.Type != domain.FavoriteTypeOutdoor {
+		t.Errorf("Expected type outdoor for legacy request, got %s", fav.Type)
 	}
 }
 
@@ -93,7 +130,9 @@ func TestCreateFavoriteMissingName(t *testing.T) {
 	_, jwtManager, router := setupFavoritesTest(t)
 	token := makeFavoriteToken(jwtManager, "user-1")
 
-	body, _ := json.Marshal(map[string]float64{"latitude": 45.4971, "longitude": -73.5789})
+	body, _ := json.Marshal(map[string]interface{}{
+		"type": "outdoor", "latitude": 45.4971, "longitude": -73.5789,
+	})
 	req := httptest.NewRequest(http.MethodPost, favPath("user-1"), bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -105,13 +144,49 @@ func TestCreateFavoriteMissingName(t *testing.T) {
 	}
 }
 
+func TestCreateOutdoorFavoriteMissingCoords(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	_, jwtManager, router := setupFavoritesTest(t)
+	token := makeFavoriteToken(jwtManager, "user-1")
+
+	body, _ := json.Marshal(handler.CreateFavoriteRequest{Type: "outdoor", Name: "No Coords"})
+	req := httptest.NewRequest(http.MethodPost, favPath("user-1"), bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Expected 400 for missing outdoor coords, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+func TestCreateFavoriteInvalidType(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	_, jwtManager, router := setupFavoritesTest(t)
+	token := makeFavoriteToken(jwtManager, "user-1")
+
+	body, _ := json.Marshal(map[string]interface{}{"type": "flying", "name": "Nowhere"})
+	req := httptest.NewRequest(http.MethodPost, favPath("user-1"), bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Expected 400 for invalid type, got %d", w.Code)
+	}
+}
+
 func TestGetFavoritesSuccess(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	_, jwtManager, router := setupFavoritesTest(t)
 	token := makeFavoriteToken(jwtManager, "user-1")
 
 	// Create a favorite
-	body, _ := json.Marshal(handler.CreateFavoriteRequest{Name: "Home", Latitude: 45.4971, Longitude: -73.5789})
+	body, _ := json.Marshal(handler.CreateFavoriteRequest{
+		Type: "outdoor", Name: "Home", Latitude: 45.4971, Longitude: -73.5789,
+	})
 	req := httptest.NewRequest(http.MethodPost, favPath("user-1"), bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -142,8 +217,9 @@ func TestDeleteFavoriteSuccess(t *testing.T) {
 	_, jwtManager, router := setupFavoritesTest(t)
 	token := makeFavoriteToken(jwtManager, "user-1")
 
-	// Create
-	body, _ := json.Marshal(handler.CreateFavoriteRequest{Name: "Home", Latitude: 45.4971, Longitude: -73.5789})
+	body, _ := json.Marshal(handler.CreateFavoriteRequest{
+		Type: "outdoor", Name: "Home", Latitude: 45.4971, Longitude: -73.5789,
+	})
 	req := httptest.NewRequest(http.MethodPost, favPath("user-1"), bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -153,7 +229,6 @@ func TestDeleteFavoriteSuccess(t *testing.T) {
 	var created domain.Favorite
 	json.Unmarshal(w.Body.Bytes(), &created)
 
-	// Delete
 	req = httptest.NewRequest(http.MethodDelete, favPath("user-1")+"/"+created.ID, nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	w = httptest.NewRecorder()
@@ -186,8 +261,9 @@ func TestDeleteFavoriteWrongUser(t *testing.T) {
 	token1 := makeFavoriteToken(jwtManager, "user-1")
 	token2 := makeFavoriteToken(jwtManager, "user-2")
 
-	// Create as user-1
-	body, _ := json.Marshal(handler.CreateFavoriteRequest{Name: "Home", Latitude: 45.4971, Longitude: -73.5789})
+	body, _ := json.Marshal(handler.CreateFavoriteRequest{
+		Type: "outdoor", Name: "Home", Latitude: 45.4971, Longitude: -73.5789,
+	})
 	req := httptest.NewRequest(http.MethodPost, favPath("user-1"), bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token1)
@@ -208,13 +284,182 @@ func TestDeleteFavoriteWrongUser(t *testing.T) {
 	}
 }
 
-// ---- Anonymous user tests (use any non-empty path userId; effective userID is always "") ----
+// ---- Indoor favorites tests ----
+
+func TestCreateIndoorFavoriteSuccess(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	_, jwtManager, router := setupFavoritesTest(t)
+	token := makeFavoriteToken(jwtManager, "user-1")
+
+	body, _ := json.Marshal(handler.CreateFavoriteRequest{
+		Type:         "indoor",
+		Name:         "Room 281",
+		BuildingCode: "H",
+		FloorNumber:  ip(2),
+		X:            fp(0.8749),
+		Y:            fp(0.4326),
+		PoiType:      "room",
+	})
+	req := httptest.NewRequest(http.MethodPost, favPath("user-1"), bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusCreated {
+		t.Fatalf("Expected 201, got %d: %s", w.Code, w.Body.String())
+	}
+	var fav domain.Favorite
+	json.Unmarshal(w.Body.Bytes(), &fav)
+	if fav.Type != domain.FavoriteTypeIndoor {
+		t.Errorf("Expected type indoor, got %s", fav.Type)
+	}
+	if fav.BuildingCode != "H" {
+		t.Errorf("Expected buildingCode 'H', got %s", fav.BuildingCode)
+	}
+	if fav.FloorNumber != 2 {
+		t.Errorf("Expected floorNumber 2, got %d", fav.FloorNumber)
+	}
+	if fav.PoiType != "room" {
+		t.Errorf("Expected poiType 'room', got %s", fav.PoiType)
+	}
+	if fav.ID == "" {
+		t.Fatal("Expected ID in response")
+	}
+}
+
+func TestCreateIndoorFavoriteMissingBuildingCode(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	_, jwtManager, router := setupFavoritesTest(t)
+	token := makeFavoriteToken(jwtManager, "user-1")
+
+	body, _ := json.Marshal(handler.CreateFavoriteRequest{
+		Type: "indoor", Name: "Some Room",
+		FloorNumber: ip(2), X: fp(0.5), Y: fp(0.5),
+		// BuildingCode intentionally omitted
+	})
+	req := httptest.NewRequest(http.MethodPost, favPath("user-1"), bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Expected 400 for missing buildingCode, got %d", w.Code)
+	}
+}
+
+func TestCreateIndoorFavoriteMissingFloorNumber(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	_, jwtManager, router := setupFavoritesTest(t)
+	token := makeFavoriteToken(jwtManager, "user-1")
+
+	body, _ := json.Marshal(handler.CreateFavoriteRequest{
+		Type:         "indoor",
+		Name:         "Some Room",
+		BuildingCode: "H",
+		X:            fp(0.5),
+		Y:            fp(0.5),
+		// FloorNumber intentionally omitted (nil)
+	})
+	req := httptest.NewRequest(http.MethodPost, favPath("user-1"), bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Expected 400 for missing floorNumber, got %d", w.Code)
+	}
+}
+
+func TestCreateIndoorFavoriteMissingXY(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	_, jwtManager, router := setupFavoritesTest(t)
+	token := makeFavoriteToken(jwtManager, "user-1")
+
+	body, _ := json.Marshal(handler.CreateFavoriteRequest{
+		Type:         "indoor",
+		Name:         "Some Room",
+		BuildingCode: "H",
+		FloorNumber:  ip(1),
+		// X and Y intentionally omitted (nil)
+	})
+	req := httptest.NewRequest(http.MethodPost, favPath("user-1"), bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Expected 400 for missing x/y, got %d", w.Code)
+	}
+}
+
+func TestGetFavoritesContainsBothTypes(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	_, jwtManager, router := setupFavoritesTest(t)
+	token := makeFavoriteToken(jwtManager, "user-1")
+
+	// Create outdoor
+	outdoorBody, _ := json.Marshal(handler.CreateFavoriteRequest{
+		Type: "outdoor", Name: "Outdoor Spot", Latitude: 45.4971, Longitude: -73.5789,
+	})
+	req := httptest.NewRequest(http.MethodPost, favPath("user-1"), bytes.NewBuffer(outdoorBody))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	if w.Code != http.StatusCreated {
+		t.Fatalf("Create outdoor failed: %d", w.Code)
+	}
+
+	// Create indoor
+	indoorBody, _ := json.Marshal(handler.CreateFavoriteRequest{
+		Type: "indoor", Name: "Room 100", BuildingCode: "MB",
+		FloorNumber: ip(1), X: fp(0.3), Y: fp(0.7),
+	})
+	req = httptest.NewRequest(http.MethodPost, favPath("user-1"), bytes.NewBuffer(indoorBody))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+	if w.Code != http.StatusCreated {
+		t.Fatalf("Create indoor failed: %d", w.Code)
+	}
+
+	// Get all
+	req = httptest.NewRequest(http.MethodGet, favPath("user-1"), nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected 200, got %d", w.Code)
+	}
+	var favs []domain.Favorite
+	json.Unmarshal(w.Body.Bytes(), &favs)
+	if len(favs) != 2 {
+		t.Fatalf("Expected 2 favorites, got %d", len(favs))
+	}
+	types := map[domain.FavoriteType]bool{}
+	for _, f := range favs {
+		types[f.Type] = true
+	}
+	if !types[domain.FavoriteTypeOutdoor] || !types[domain.FavoriteTypeIndoor] {
+		t.Error("Expected one outdoor and one indoor favorite in the list")
+	}
+}
+
+// ---- Anonymous user tests ----
 
 func TestCreateFavoriteAnonymousSuccess(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	_, _, router := setupFavoritesTest(t)
 
-	body, _ := json.Marshal(handler.CreateFavoriteRequest{Name: "Home", Latitude: 45.4971, Longitude: -73.5789})
+	body, _ := json.Marshal(handler.CreateFavoriteRequest{
+		Type: "outdoor", Name: "Home", Latitude: 45.4971, Longitude: -73.5789,
+	})
 	req := httptest.NewRequest(http.MethodPost, favPath("anonymous"), bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -228,7 +473,6 @@ func TestCreateFavoriteAnonymousSuccess(t *testing.T) {
 	if fav.ID == "" {
 		t.Fatal("Expected favorite ID in response")
 	}
-	// Anonymous requests now use the path userId directly so Firestore can be reached.
 	if fav.UserID != "anonymous" {
 		t.Errorf("Expected userID %q for anonymous path request, got %q", "anonymous", fav.UserID)
 	}
@@ -238,8 +482,9 @@ func TestGetFavoritesAnonymousSuccess(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	_, _, router := setupFavoritesTest(t)
 
-	// Create
-	body, _ := json.Marshal(handler.CreateFavoriteRequest{Name: "Home", Latitude: 45.4971, Longitude: -73.5789})
+	body, _ := json.Marshal(handler.CreateFavoriteRequest{
+		Type: "outdoor", Name: "Home", Latitude: 45.4971, Longitude: -73.5789,
+	})
 	req := httptest.NewRequest(http.MethodPost, favPath("anonymous"), bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -248,7 +493,6 @@ func TestGetFavoritesAnonymousSuccess(t *testing.T) {
 		t.Fatalf("Setup: anonymous create failed with status %d", w.Code)
 	}
 
-	// Get
 	req = httptest.NewRequest(http.MethodGet, favPath("anonymous"), nil)
 	w = httptest.NewRecorder()
 	router.ServeHTTP(w, req)
@@ -267,8 +511,9 @@ func TestDeleteFavoriteAnonymousSuccess(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	_, _, router := setupFavoritesTest(t)
 
-	// Create
-	body, _ := json.Marshal(handler.CreateFavoriteRequest{Name: "Home", Latitude: 45.4971, Longitude: -73.5789})
+	body, _ := json.Marshal(handler.CreateFavoriteRequest{
+		Type: "outdoor", Name: "Home", Latitude: 45.4971, Longitude: -73.5789,
+	})
 	req := httptest.NewRequest(http.MethodPost, favPath("anonymous"), bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -277,7 +522,6 @@ func TestDeleteFavoriteAnonymousSuccess(t *testing.T) {
 	var created domain.Favorite
 	json.Unmarshal(w.Body.Bytes(), &created)
 
-	// Delete
 	req = httptest.NewRequest(http.MethodDelete, favPath("anonymous")+"/"+created.ID, nil)
 	w = httptest.NewRecorder()
 	router.ServeHTTP(w, req)
@@ -311,7 +555,9 @@ func TestFavoritesIsolatedBetweenAuthAndAnonymous(t *testing.T) {
 	token := makeFavoriteToken(jwtManager, "user-1")
 
 	// Create as authenticated user-1
-	body, _ := json.Marshal(handler.CreateFavoriteRequest{Name: "Auth Home"})
+	body, _ := json.Marshal(handler.CreateFavoriteRequest{
+		Type: "outdoor", Name: "Auth Home", Latitude: 45.4971, Longitude: -73.5789,
+	})
 	req := httptest.NewRequest(http.MethodPost, favPath("user-1"), bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -339,7 +585,10 @@ func TestCreateFavoriteWrongUserPath(t *testing.T) {
 	_, jwtManager, router := setupFavoritesTest(t)
 	token := makeFavoriteToken(jwtManager, "user-2")
 
-	body, _ := json.Marshal(handler.CreateFavoriteRequest{Name: "Home"})
+	// Auth check fires before body parsing, so body content doesn't matter for this test
+	body, _ := json.Marshal(handler.CreateFavoriteRequest{
+		Type: "outdoor", Name: "Home", Latitude: 45.4971, Longitude: -73.5789,
+	})
 	req := httptest.NewRequest(http.MethodPost, favPath("user-1"), bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -355,7 +604,7 @@ func TestCreateFavoriteWrongUserPath(t *testing.T) {
 
 type mockFavoritesServiceError struct{}
 
-func (m *mockFavoritesServiceError) AddFavorite(userID, name string, latitude, longitude float64) (*domain.Favorite, error) {
+func (m *mockFavoritesServiceError) AddFavorite(fav *domain.Favorite) (*domain.Favorite, error) {
 	return nil, errors.New("service add error")
 }
 
@@ -383,8 +632,10 @@ func TestFavoritesHandler_ServiceErrors(t *testing.T) {
 		g.DELETE("/:id", h.DeleteFavorite)
 	}
 
-	// Test Create Error
-	body, _ := json.Marshal(handler.CreateFavoriteRequest{Name: "Place", Latitude: 1, Longitude: 1})
+	// Test Create Error (valid outdoor payload so validation passes, hitting the service)
+	body, _ := json.Marshal(handler.CreateFavoriteRequest{
+		Type: "outdoor", Name: "Place", Latitude: 1, Longitude: 1,
+	})
 	req := httptest.NewRequest("POST", "/users/u1/favorites", bytes.NewBuffer(body))
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Content-Type", "application/json")

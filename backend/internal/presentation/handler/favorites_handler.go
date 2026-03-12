@@ -11,7 +11,7 @@ import (
 
 // FavoritesService defines the operations used by the favorites handler
 type FavoritesService interface {
-	AddFavorite(userID, name string, latitude, longitude float64) (*domain.Favorite, error)
+	AddFavorite(fav *domain.Favorite) (*domain.Favorite, error)
 	GetFavorites(userID string) ([]*domain.Favorite, error)
 	DeleteFavorite(id, userID string) error
 }
@@ -26,11 +26,30 @@ func NewFavoritesHandler(service FavoritesService) *FavoritesHandler {
 	return &FavoritesHandler{service: service}
 }
 
-// CreateFavoriteRequest is the request body for creating a favorite
+// CreateFavoriteRequest is the request body for creating a favorite.
+//
+// Outdoor example:
+//
+//	{"type":"outdoor","name":"Hall Entrance","latitude":45.4971,"longitude":-73.5789}
+//
+// Indoor example:
+//
+//	{"type":"indoor","name":"Room 281","buildingCode":"H","floorNumber":2,"x":0.8749,"y":0.4326,"poiType":"room"}
+//
+// Backward compatibility: if "type" is omitted the request is treated as an outdoor favorite.
 type CreateFavoriteRequest struct {
+	Type      string  `json:"type"`
 	Name      string  `json:"name" binding:"required"`
 	Latitude  float64 `json:"latitude"`
 	Longitude float64 `json:"longitude"`
+
+	// Indoor-specific fields. Pointer types allow the handler to distinguish
+	// "field not provided" from "field provided as zero".
+	BuildingCode string   `json:"buildingCode"`
+	FloorNumber  *int     `json:"floorNumber"`
+	X            *float64 `json:"x"`
+	Y            *float64 `json:"y"`
+	PoiType      string   `json:"poiType"`
 }
 
 // resolveUserID derives the effective userID for a favorites request:
@@ -54,15 +73,15 @@ func resolveUserID(c *gin.Context) (userID string, ok bool) {
 
 // CreateFavorite godoc
 // @Summary      Create a favorite
-// @Description  Save a named location as a favorite for the given user. Authenticated users' favorites are persisted in Firestore; anonymous requests are kept in memory.
+// @Description  Save a named location as a favorite for the given user. Supports both outdoor (lat/lng) and indoor (building/floor/x/y) favorites. If "type" is omitted the request is treated as outdoor for backward compatibility. Authenticated users' favorites are persisted in Firestore; anonymous requests are kept in memory.
 // @Tags         favorites
 // @Accept       json
 // @Produce      json
 // @Security     BearerAuth
-// @Param        userId   path      string                true  "User ID (use the id from signup/login for authenticated requests, any string for anonymous)"
+// @Param        userId   path      string                true  "User ID"
 // @Param        request  body      CreateFavoriteRequest true  "Favorite location"
 // @Success      201      {object}  domain.Favorite
-// @Failure      400      {object}  map[string]string     "Missing or invalid name"
+// @Failure      400      {object}  map[string]string     "Missing or invalid fields"
 // @Failure      403      {object}  map[string]string     "JWT user does not match path userId"
 // @Router       /users/{userId}/favorites [post]
 func (h *FavoritesHandler) CreateFavorite(c *gin.Context) {
@@ -78,16 +97,53 @@ func (h *FavoritesHandler) CreateFavorite(c *gin.Context) {
 		return
 	}
 
-	log.Printf("[favorites] CreateFavorite user=%q name=%q lat=%v lng=%v", userID, req.Name, req.Latitude, req.Longitude)
-	favorite, err := h.service.AddFavorite(userID, req.Name, req.Latitude, req.Longitude)
+	// Backward-compatible type inference: missing type → outdoor
+	favType := domain.FavoriteType(req.Type)
+	if favType == "" {
+		favType = domain.FavoriteTypeOutdoor
+	}
+
+	fav := &domain.Favorite{
+		UserID: userID,
+		Type:   favType,
+		Name:   req.Name,
+	}
+
+	switch favType {
+	case domain.FavoriteTypeOutdoor:
+		if req.Latitude == 0 && req.Longitude == 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": domain.ErrOutdoorMissingCoords.Error()})
+			return
+		}
+		fav.Latitude = req.Latitude
+		fav.Longitude = req.Longitude
+
+	case domain.FavoriteTypeIndoor:
+		if req.BuildingCode == "" || req.FloorNumber == nil || req.X == nil || req.Y == nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": domain.ErrIndoorMissingFields.Error()})
+			return
+		}
+		fav.BuildingCode = req.BuildingCode
+		fav.FloorNumber = *req.FloorNumber
+		fav.X = *req.X
+		fav.Y = *req.Y
+		fav.PoiType = req.PoiType
+
+	default:
+		c.JSON(http.StatusBadRequest, gin.H{"error": domain.ErrInvalidFavoriteType.Error()})
+		return
+	}
+
+	log.Printf("[favorites] CreateFavorite user=%q type=%q name=%q", userID, favType, req.Name)
+	result, err := h.service.AddFavorite(fav)
 	if err != nil {
 		log.Printf("[favorites] CreateFavorite error user=%q: %v", userID, err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	log.Printf("[favorites] CreateFavorite success user=%q id=%q", userID, favorite.ID)
-	c.JSON(http.StatusCreated, favorite)
+	log.Printf("[favorites] CreateFavorite success user=%q id=%q", userID, result.ID)
+	c.JSON(http.StatusCreated, result)
 }
 
 // GetFavorites godoc

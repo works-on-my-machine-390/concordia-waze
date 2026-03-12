@@ -669,6 +669,7 @@ func TestAddAndGetFavorites(t *testing.T) {
 
 	fav := application.FirestoreFavorite{
 		ID:        "fav-id-001",
+		Type:      "outdoor",
 		Name:      "Hall Building",
 		Latitude:  45.4971,
 		Longitude: -73.5789,
@@ -684,6 +685,7 @@ func TestAddAndGetFavorites(t *testing.T) {
 		if f.ID == "fav-id-001" {
 			found = true
 			assert.Equal(t, "Hall Building", f.Name)
+			assert.Equal(t, "outdoor", f.Type)
 			assert.InDelta(t, 45.4971, f.Latitude, 0.0001)
 			assert.InDelta(t, -73.5789, f.Longitude, 0.0001)
 			break
@@ -713,7 +715,7 @@ func TestDeleteFavorite_Firestore(t *testing.T) {
 	profile := domain.User{Email: "favdel@example.com", Name: "Fav Del", Password: "password"}
 	require.NoError(t, service.CreateUserProfile(ctx, userID, profile))
 
-	fav := application.FirestoreFavorite{ID: "fav-del-001", Name: "EV Building", Latitude: 45.4954, Longitude: -73.5782}
+	fav := application.FirestoreFavorite{ID: "fav-del-001", Type: "outdoor", Name: "EV Building", Latitude: 45.4954, Longitude: -73.5782}
 	require.NoError(t, service.AddFavorite(ctx, userID, fav))
 
 	err := service.DeleteFavorite(ctx, userID, "fav-del-001")
@@ -747,9 +749,9 @@ func TestAddMultipleFavorites(t *testing.T) {
 	require.NoError(t, service.CreateUserProfile(ctx, userID, profile))
 
 	favs := []application.FirestoreFavorite{
-		{ID: "fav-m-001", Name: "Hall Building", Latitude: 45.4971, Longitude: -73.5789},
-		{ID: "fav-m-002", Name: "EV Building", Latitude: 45.4954, Longitude: -73.5782},
-		{ID: "fav-m-003", Name: "Library", Latitude: 45.4960, Longitude: -73.5780},
+		{ID: "fav-m-001", Type: "outdoor", Name: "Hall Building", Latitude: 45.4971, Longitude: -73.5789},
+		{ID: "fav-m-002", Type: "outdoor", Name: "EV Building", Latitude: 45.4954, Longitude: -73.5782},
+		{ID: "fav-m-003", Type: "outdoor", Name: "Library", Latitude: 45.4960, Longitude: -73.5780},
 	}
 	for _, f := range favs {
 		require.NoError(t, service.AddFavorite(ctx, userID, f))
@@ -786,6 +788,7 @@ func TestFirestoreFavoriteRepository_Lifecycle(t *testing.T) {
 	fav := &domain.Favorite{
 		ID:        favID,
 		UserID:    userID,
+		Type:      domain.FavoriteTypeOutdoor,
 		Name:      "Repo Place",
 		Latitude:  10.0,
 		Longitude: 20.0,
@@ -815,7 +818,7 @@ func TestHybridFavoriteRepository_Routing(t *testing.T) {
 
 	// Case 1: Authenticated User -> Firestore
 	authUser := "auth-user-" + time.Now().Format("20060102150405")
-	authFav := &domain.Favorite{ID: "auth-fav", UserID: authUser, Name: "Auth Home", Latitude: 1, Longitude: 1}
+	authFav := &domain.Favorite{ID: "auth-fav", UserID: authUser, Type: domain.FavoriteTypeOutdoor, Name: "Auth Home", Latitude: 1, Longitude: 1}
 	require.NoError(t, hybrid.Create(authFav))
 	listAuth, err := hybrid.FindByUserID(authUser)
 	require.NoError(t, err)
@@ -823,7 +826,7 @@ func TestHybridFavoriteRepository_Routing(t *testing.T) {
 
 	// Case 2: Anonymous User -> Memory
 	anonUser := ""
-	anonFav := &domain.Favorite{ID: "anon-fav", UserID: anonUser, Name: "Anon Home", Latitude: 2, Longitude: 2}
+	anonFav := &domain.Favorite{ID: "anon-fav", UserID: anonUser, Type: domain.FavoriteTypeOutdoor, Name: "Anon Home", Latitude: 2, Longitude: 2}
 	require.NoError(t, hybrid.Create(anonFav))
 	listAnon, err := hybrid.FindByUserID(anonUser)
 	require.NoError(t, err)
