@@ -155,7 +155,7 @@ func (h *GoogleOAuthHandler) GetAuthStatus(c *gin.Context) {
 
 	needsAuth, authURL, err := h.checkAndRefreshIfNeeded(ctx, userID)
 	if err != nil {
-		log.Printf("error checking auth status for user %s: %v", userID, err)
+		log.Printf("error checking auth status : %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to check auth status"})
 		return
 	}
@@ -218,8 +218,9 @@ func (h *GoogleOAuthHandler) checkAndRefreshIfNeeded(ctx context.Context, userID
 	}
 
 	// Persist refreshed token (best-effort). On persist error, return success to caller (user can continue).
-	if err := h.store.SaveGoogleToken(ctx, userID, newTok); err != nil {
-		log.Printf("warning: failed to persist refreshed token for user %s: %v", userID, err)
+	err = h.store.SaveGoogleToken(ctx, userID, newTok)
+	if err != nil {
+		log.Printf("warning: failed to persist refreshed token : %v", err)
 	}
 	return false, "", nil
 }
