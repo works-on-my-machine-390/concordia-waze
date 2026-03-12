@@ -1,3 +1,6 @@
+// Validation functions returning the error message string if invalid, or null if valid. 
+// This is just to allow both checking and displaying the error in one step in the UI.
+
 export const validateCourseName = (name: string): string | null => {
   if (!name.trim()) return "Please enter a course name.";
   return null;
