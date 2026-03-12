@@ -7,10 +7,12 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"reflect"
 	"testing"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/works-on-my-machine-390/concordia-waze/internal/application/google"
 	"golang.org/x/oauth2"
 )
 
@@ -366,5 +368,146 @@ func TestCallback_SuccessRedirectsWhenEnvSet(t *testing.T) {
 
 	if w.Code != http.StatusFound {
 		t.Fatalf("expected 302 Found got %d body=%s", w.Code, w.Body.String())
+	}
+}
+
+// Test that oauth2TokenSourceProvider returns a TokenSource that returns an error
+// when google.Config() cannot be built (covers errorTokenSource path).
+func Test_oauth2TokenSourceProvider_ConfigErrorProducesErrorTokenSource(t *testing.T) {
+	// Ensure GOOGLE env is unset so google.Config() fails
+	origClient := os.Getenv("GOOGLE_CLIENT_ID")
+	origSecret := os.Getenv("GOOGLE_CLIENT_SECRET")
+	origRedirect := os.Getenv("GOOGLE_REDIRECT_URL")
+	_ = os.Unsetenv("GOOGLE_CLIENT_ID")
+	_ = os.Unsetenv("GOOGLE_CLIENT_SECRET")
+	_ = os.Unsetenv("GOOGLE_REDIRECT_URL")
+	defer func() {
+		_ = os.Setenv("GOOGLE_CLIENT_ID", origClient)
+		_ = os.Setenv("GOOGLE_CLIENT_SECRET", origSecret)
+		_ = os.Setenv("GOOGLE_REDIRECT_URL", origRedirect)
+	}()
+
+	p := oauth2TokenSourceProvider{}
+	ts := p.TokenSource(context.Background(), &oauth2.Token{})
+	if ts == nil {
+		t.Fatalf("expected a TokenSource, got nil")
+	}
+	_, err := ts.Token()
+	if err == nil {
+		t.Fatalf("expected Token() to return an error when google.Config() fails")
+	}
+}
+
+// Test NewGoogleOAuthHandlerWithDeps sets defaults when nil values passed
+func Test_NewGoogleOAuthHandlerWithDeps_SetsDefaults(t *testing.T) {
+	store := &fakeStore{}
+	h := NewGoogleOAuthHandlerWithDeps(store, nil, nil, nil)
+
+	// reflect to access unexported fields (same package)
+	v := reflect.ValueOf(h).Elem()
+	if v.FieldByName("tsProvider").IsNil() {
+		t.Fatalf("expected tsProvider default to be set")
+	}
+	if v.FieldByName("parseState").IsNil() {
+		t.Fatalf("expected parseState default to be set")
+	}
+	if v.FieldByName("exchangeCode").IsNil() {
+		t.Fatalf("expected exchangeCode default to be set")
+	}
+}
+
+// Test Callback fallback to google.ParseStateToken when h.parseState is nil.
+// We construct handler manually with parseState == nil so Callback's runtime
+// fallback is exercised. Use fakeExchangeCode so no network call occurs.
+func Test_Callback_ParseFallbackWhenParseStateNil(t *testing.T) {
+	// set JWT_SECRET so we can create a valid signed state token
+	origJWT := os.Getenv("JWT_SECRET")
+	_ = os.Setenv("JWT_SECRET", "test-secret")
+	defer func() { _ = os.Setenv("JWT_SECRET", origJWT) }()
+
+	// create a signed state token that google.ParseStateToken will accept
+	state, err := google.CreateStateToken(os.Getenv("JWT_SECRET"), "fallback-user", 5*time.Minute)
+	if err != nil {
+		t.Fatalf("failed to create state token: %v", err)
+	}
+
+	store := &fakeStore{}
+	// construct handler with parseState == nil to force fallback, and use a fake exchange func
+	h := &GoogleOAuthHandler{
+		store:        store,
+		parseState:   nil, // ensure Callback uses fallback path
+		exchangeCode: fakeExchangeCode,
+		stateTTL:     10 * time.Minute,
+	}
+
+	router := setupRouterWithHandler(h)
+
+	req := httptest.NewRequest(http.MethodGet, "/auth/google/callback?code=dummy&state="+state, nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200 OK got %d body=%s", w.Code, w.Body.String())
+	}
+
+	// verify SaveGoogleToken was called with user from the parsed state
+	if store.savedUser != "fallback-user" {
+		t.Fatalf("expected savedUser 'fallback-user', got %q", store.savedUser)
+	}
+	if store.savedTok == nil || store.savedTok.AccessToken != "exchanged-access" {
+		t.Fatalf("expected saved token 'exchanged-access', got %+v", store.savedTok)
+	}
+}
+
+// extractUserID tests: make sure context keys "userId" and "sub" are recognized.
+func Test_extractUserID_ContextKeys(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	w := httptest.NewRecorder()
+	c, _ := gin.CreateTestContext(w)
+
+	// 1) userId key
+	c.Set("userId", "u1")
+	if got := extractUserID(c); got != "u1" {
+		t.Fatalf("expected extractUserID to return 'u1', got %q", got)
+	}
+
+	// 2) sub key
+	c2, _ := gin.CreateTestContext(w)
+	c2.Set("sub", "sub1")
+	if got := extractUserID(c2); got != "sub1" {
+		t.Fatalf("expected extractUserID to return 'sub1', got %q", got)
+	}
+
+	// 3) no keys -> empty
+	c3, _ := gin.CreateTestContext(w)
+	if got := extractUserID(c3); got != "" {
+		t.Fatalf("expected extractUserID to return empty, got %q", got)
+	}
+}
+
+// Ensure the makeAuthURL error branch can be exercised: create a handler with an invalid JWT_SECRET
+// and call makeAuthURL directly to see the CreateStateToken error path (this demonstrates coverage
+// of the makeAuthURL -> CreateStateToken error branch).
+func Test_makeAuthURL_CreateStateError(t *testing.T) {
+	// unset JWT_SECRET to cause CreateStateToken to error if it relies on a secret presence.
+	orig := os.Getenv("JWT_SECRET")
+	_ = os.Unsetenv("JWT_SECRET")
+	defer func() { _ = os.Setenv("JWT_SECRET", orig) }()
+
+	h := &GoogleOAuthHandler{
+		stateTTL: 10 * time.Minute,
+	}
+
+	_, err := h.makeAuthURL("user-x")
+	if err == nil {
+		t.Fatalf("expected makeAuthURL to return error when JWT_SECRET missing")
+	}
+}
+
+// simple helper to unmarshal JSON responses used across tests
+func mustUnmarshal(t *testing.T, body []byte, out interface{}) {
+	t.Helper()
+	if err := json.Unmarshal(body, out); err != nil {
+		t.Fatalf("failed to unmarshal response: %v; body=%s", err, string(body))
 	}
 }

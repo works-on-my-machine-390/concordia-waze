@@ -270,11 +270,16 @@ func (h *GoogleOAuthHandler) Callback(c *gin.Context) {
 		return
 	}
 
-	userID, serr := h.parseState(os.Getenv("JWT_SECRET"), state)
-	// If parseState is nil (not injected), fall back to default google.ParseStateToken
-	if h.parseState == nil {
+	// Validate and parse the signed state token to obtain userID.
+	// Call the injected parser only if non-nil; otherwise fall back to google.ParseStateToken.
+	var userID string
+	var serr error
+	if h.parseState != nil {
+		userID, serr = h.parseState(os.Getenv("JWT_SECRET"), state)
+	} else {
 		userID, serr = google.ParseStateToken(os.Getenv("JWT_SECRET"), state)
 	}
+
 	if serr != nil || userID == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid or expired state token"})
 		return
