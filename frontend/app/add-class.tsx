@@ -6,9 +6,9 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
-  TextInput,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import AddClassInfoForm, {
@@ -21,10 +21,20 @@ export default function AddClassScreen() {
   const [courseName, setCourseName] = useState("");
   const [classInfo, setClassInfo] = useState<ClassInfoFormData[]>([]);
   const [showClassInfoForm, setShowClassInfoForm] = useState(false);
+  const [courseNameError, setCourseNameError] = useState<string | null>(null);
 
   const handleAddCourseInfo = (data: ClassInfoFormData) => {
     setClassInfo((prev) => [...prev, data]);
     setShowClassInfoForm(false);
+  };
+
+  const handleShowClassInfoForm = () => {
+    if (!courseName.trim()) {
+      setCourseNameError("Please enter a course name first.");
+      return;
+    }
+    setCourseNameError(null);
+    setShowClassInfoForm(true);
   };
 
   return (
@@ -42,13 +52,19 @@ export default function AddClassScreen() {
 
           <Text style={styles.inputLabel}>Course Name</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, !!courseNameError && styles.inputError]}
             placeholder="e.g. SOEN 384"
             placeholderTextColor="#bbb"
             value={courseName}
-            onChangeText={setCourseName}
+            onChangeText={(v) => {
+              setCourseName(v);
+              setCourseNameError(null);
+            }}
             autoCapitalize="characters"
           />
+          {!!courseNameError && (
+            <Text style={styles.errorText}>{courseNameError}</Text>
+          )}
 
           {classInfo.length > 0 && (
             <View style={styles.classInfoSummary}>
@@ -70,7 +86,7 @@ export default function AddClassScreen() {
           ) : (
             <TouchableOpacity
               style={styles.addClassInfoBtn}
-              onPress={() => setShowClassInfoForm(true)}
+              onPress={handleShowClassInfoForm}
             >
               <Text style={styles.addClassInfoIcon}>+</Text>
               <Text style={styles.addClassInfoText}>
@@ -159,5 +175,16 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 15,
     fontWeight: "700",
+  },
+  inputError: {
+    borderColor: COLORS.error,
+    backgroundColor: "#e1c4c9",
+  },
+  errorText: {
+    color: COLORS.error,
+    fontSize: 13,
+    fontWeight: 700,
+    marginTop: 4,
+    marginBottom: 8,
   },
 });

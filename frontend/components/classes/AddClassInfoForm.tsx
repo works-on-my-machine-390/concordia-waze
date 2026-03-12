@@ -6,7 +6,8 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { COLORS, TYPES, DAYS } from "../../app/constants";
+import { COLORS, DAYS, TYPES } from "../../app/constants";
+import { validateClassInfoForm } from "../../app/utils/classValidationUtils";
 import DaySelector from "./ClassInfoDaySelector";
 import TypeSelector from "./ClassInfoTypeSelector";
 
@@ -36,16 +37,17 @@ export default function AddClassInfoForm({ onAdd, onCancel }: Readonly<Props>) {
   const [error, setError] = useState<string | null>(null);
 
   const handleAdd = () => {
-    if (
-      !type ||
-      !section ||
-      !day ||
-      !startTime ||
-      !endTime ||
-      !buildingCode ||
-      !room
-    ) {
-      setError("Please fill in all fields before adding a class.");
+    const error = validateClassInfoForm(
+      type,
+      section,
+      day,
+      startTime,
+      endTime,
+      buildingCode,
+      room,
+    );
+    if (error) {
+      setError(error);
       return;
     }
     setError(null);
