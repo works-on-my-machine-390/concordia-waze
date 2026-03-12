@@ -56,15 +56,15 @@ describe("AddClassScreen", () => {
   test("shows error when clicking add session without course name", () => {
     const { getByText } = render(<AddClassScreen />);
     fireEvent.press(getByText("Add a lecture, lab or tutorial for this course"));
-    getByText("Please enter a course name first.");
+    getByText("Please enter a course name.");
   });
 
   test("clears error when user starts typing course name", () => {
     const { getByText, getByPlaceholderText, queryByText } = render(<AddClassScreen />);
     fireEvent.press(getByText("Add a lecture, lab or tutorial for this course"));
-    getByText("Please enter a course name first.");
+    getByText("Please enter a course name.");
     fireEvent.changeText(getByPlaceholderText("e.g. SOEN 384"), "SOEN 384");
-    expect(queryByText("Please enter a course name first.")).toBeNull();
+    expect(queryByText("Please enter a course name.")).toBeNull();
   });
 
   test("shows session form when course name is entered and add session is pressed", () => {

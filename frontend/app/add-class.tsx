@@ -11,6 +11,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { validateCourseName } from "../app/utils/classValidationUtils";
 import AddClassInfoForm, {
   ClassInfoFormData,
 } from "../components/classes/AddClassInfoForm";
@@ -29,8 +30,9 @@ export default function AddClassScreen() {
   };
 
   const handleShowClassInfoForm = () => {
-    if (!courseName.trim()) {
-      setCourseNameError("Please enter a course name first.");
+    const error = validateCourseName(courseName);
+    if (error) {
+      setCourseNameError(error);
       return;
     }
     setCourseNameError(null);
@@ -42,8 +44,9 @@ export default function AddClassScreen() {
   };
 
   const handleSave = () => {
-    if (!courseName.trim()) {
-      setCourseNameError("Please enter a course name before saving.");
+    const error = validateCourseName(courseName);
+    if (error) {
+      setCourseNameError(error);
       return;
     }
     setCourseNameError(null);
