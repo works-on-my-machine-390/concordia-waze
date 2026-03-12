@@ -54,6 +54,7 @@
         }
       ],
       "expo-secure-store",
+      "expo-build-properties",
       "@react-native-firebase/app",
       "@logrocket/react-native"
     ],
