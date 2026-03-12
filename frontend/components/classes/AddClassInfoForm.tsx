@@ -60,7 +60,7 @@ export default function AddClassInfoForm({
     }
 
     const overlapError = validateNoTimeOverlap(
-      { day: day!, start_time: startTime, end_time: endTime },
+      { day: day, start_time: startTime, end_time: endTime },
       existingSessions,
     );
     if (overlapError) {

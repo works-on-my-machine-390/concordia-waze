@@ -5,8 +5,8 @@ export const validateCourseName = (name: string): string | null => {
 
 export const validateSection = (section: string): string | null => {
   if (!section.trim()) return "Please enter a section.";
-  if (!/^[a-zA-Z-]+$/.test(section))
-    return "Section can only contain letters and dashes.";
+  if (!/^[a-zA-Z\s-]+$/.test(section))
+    return "Section can only contain letters, spaces and dashes.";
   return null;
 };
 

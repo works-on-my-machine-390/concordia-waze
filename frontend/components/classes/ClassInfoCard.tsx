@@ -1,7 +1,7 @@
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { COLORS } from "../../app/constants";
 import { ClassInfoFormData } from "./AddClassInfoForm";
-import { DeleteIcon } from "../../app/icons"
+import { DeleteIcon } from "../../app/icons";
 
 type Props = {
   courseName: string;
@@ -15,25 +15,30 @@ export default function ClassInfoCard({
   onDelete,
 }: Readonly<Props>) {
   return (
-<View style={styles.card}>
-  <View style={styles.content}>
-    <View style={styles.top}>
-      <Text style={styles.name}>{courseName.toUpperCase()} - {classInfo.section.replace(/-/g, " ").toUpperCase()}</Text>
-      <Text style={styles.type}>{classInfo.type}</Text>
+    <View style={styles.card}>
+      <View style={styles.content}>
+        <View style={styles.top}>
+          <Text style={styles.name}>
+            {courseName.toUpperCase()} -{" "}
+            {/* eslint-disable-next-line prefer-string-replace-all */}
+            {classInfo.section.replace(/-/g, " ").toUpperCase()}
+          </Text>
+          <Text style={styles.type}>{classInfo.type}</Text>
+        </View>
+        <View style={styles.bottom}>
+          <Text style={styles.text}>
+            {classInfo.day} {classInfo.start_time} - {classInfo.end_time}
+          </Text>
+          <Text style={styles.text}>
+            {classInfo.buildingCode.toUpperCase()}{" "}
+            {classInfo.room.toUpperCase()}
+          </Text>
+        </View>
+      </View>
+      <TouchableOpacity style={styles.deleteBtn} onPress={onDelete}>
+        <DeleteIcon color={COLORS.error} size={20} />
+      </TouchableOpacity>
     </View>
-    <View style={styles.bottom}>
-      <Text style={styles.text}>
-        {classInfo.day}  {classInfo.start_time} - {classInfo.end_time}
-      </Text>
-      <Text style={styles.text}>
-        {classInfo.buildingCode.toUpperCase()} {classInfo.room.toUpperCase()}
-      </Text>
-    </View>
-  </View>
-  <TouchableOpacity style={styles.deleteBtn} onPress={onDelete}>
-    <DeleteIcon color={COLORS.error} size={20}/>
-  </TouchableOpacity>
-</View>
   );
 }
 
