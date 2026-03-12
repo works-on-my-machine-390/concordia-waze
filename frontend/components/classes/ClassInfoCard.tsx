@@ -12,7 +12,7 @@ export default function ClassInfoCard({ courseName, classInfo }: Readonly<Props>
     <View style={styles.card}>
       <View style={styles.top}>
         <Text style={styles.name}>
-          {courseName || "Course"} - {classInfo.section}
+          {courseName.toUpperCase() || "Course"} - {classInfo.section.toUpperCase()}
         </Text>
         <Text style={styles.type}>{classInfo.type}</Text>
       </View>
@@ -21,7 +21,7 @@ export default function ClassInfoCard({ courseName, classInfo }: Readonly<Props>
           {classInfo.day} {classInfo.start_time} - {classInfo.end_time}
         </Text>
         <Text style={styles.text}>
-          {classInfo.buildingCode} {classInfo.room}
+          {classInfo.buildingCode.toUpperCase()} {classInfo.room.toUpperCase()}
         </Text>
       </View>
     </View>
