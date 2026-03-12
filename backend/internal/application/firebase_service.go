@@ -310,21 +310,21 @@ func (fs *FirebaseService) GetClassItems(ctx context.Context, userID, title stri
 			continue
 		}
 
-		item.ItemID = doc.Ref.ID
+		item.ClassID = doc.Ref.ID
 		items = append(items, item)
 	}
 
 	return items, nil
 }
 
-func (fs *FirebaseService) UpdateClassItem(ctx context.Context, userID, title, itemID string, updates map[string]interface{}) error {
+func (fs *FirebaseService) UpdateClassItem(ctx context.Context, userID, title, classID string, updates map[string]interface{}) error {
 	_, err := fs.client.
 		Collection("users").
 		Doc(userID).
 		Collection("classes").
 		Doc(title).
 		Collection("classItems").
-		Doc(itemID).
+		Doc(classID).
 		Update(ctx, toFirestoreUpdates(updates))
 	if err != nil {
 		return fmt.Errorf("update class item: %w", err)
@@ -333,14 +333,14 @@ func (fs *FirebaseService) UpdateClassItem(ctx context.Context, userID, title, i
 	return nil
 }
 
-func (fs *FirebaseService) DeleteClassItem(ctx context.Context, userID, title, itemID string) error {
+func (fs *FirebaseService) DeleteClassItem(ctx context.Context, userID, title, classID string) error {
 	_, err := fs.client.
 		Collection("users").
 		Doc(userID).
 		Collection("classes").
 		Doc(title).
 		Collection("classItems").
-		Doc(itemID).
+		Doc(classID).
 		Delete(ctx)
 	if err != nil {
 		return fmt.Errorf("delete class item: %w", err)

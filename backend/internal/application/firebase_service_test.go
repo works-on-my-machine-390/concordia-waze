@@ -193,7 +193,7 @@ func TestAddAndGetClassItems(t *testing.T) {
 
 	found := false
 	for _, i := range items {
-		if i.ItemID == itemID {
+		if i.ClassID == itemID {
 			found = true
 			assert.Equal(t, "lec", i.Type)
 			assert.Equal(t, "S", i.Section)
@@ -250,7 +250,7 @@ func TestUpdateClassItem(t *testing.T) {
 
 	found := false
 	for _, i := range items {
-		if i.ItemID == itemID {
+		if i.ClassID == itemID {
 			found = true
 			assert.Equal(t, "lab", i.Type)
 			assert.Equal(t, "SL", i.Section)
@@ -297,7 +297,7 @@ func TestDeleteClassItem(t *testing.T) {
 	require.NoError(t, err)
 
 	for _, i := range items {
-		assert.NotEqual(t, itemID, i.ItemID, "Deleted item still exists")
+		assert.NotEqual(t, itemID, i.ClassID, "Deleted item still exists")
 	}
 }
 
@@ -357,7 +357,7 @@ func TestAddClassItemWithOptionalFields(t *testing.T) {
 
 	found := false
 	for _, i := range items {
-		if i.ItemID == itemID {
+		if i.ClassID == itemID {
 			found = true
 			assert.Equal(t, "lec", i.Type)
 			assert.Equal(t, "A", i.Section)
@@ -411,7 +411,7 @@ func TestUpdateClassItemMultipleFields(t *testing.T) {
 
 	found := false
 	for _, i := range items {
-		if i.ItemID == itemID {
+		if i.ClassID == itemID {
 			found = true
 			assert.Equal(t, "tut", i.Type)
 			assert.Equal(t, "BT", i.Section)

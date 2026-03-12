@@ -2,7 +2,7 @@ package domain
 
 // ClassItem stores one schedule entry under a class.
 type ClassItem struct {
-	ItemID       string `firestore:"itemId" json:"itemId,omitempty"`
+	ClassID      string `firestore:"itemId" json:"itemId,omitempty"`
 	Type         string `firestore:"type" json:"type"` // lab, lec, tut
 	Section      string `firestore:"section" json:"section"`
 	Day          string `firestore:"day" json:"day"`
