@@ -7,7 +7,7 @@ interface PasswordToggleProps {
   onPress: () => void;
 }
 
-export default function PasswordToggle({ show, onPress }: PasswordToggleProps) {
+export default function PasswordToggle({ show, onPress }: Readonly<PasswordToggleProps>) {
   return (
     <TouchableOpacity onPress={onPress}>
       {show ? (

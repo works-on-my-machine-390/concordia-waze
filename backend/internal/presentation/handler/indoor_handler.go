@@ -27,7 +27,7 @@ func NewIndoorPathHandler(svc *application.IndoorPathService) *IndoorPathHandler
 // @Router       /directions/indoor/multi-floor-path [post]
 func (h *IndoorPathHandler) GetMultiFloorShortestPath(c *gin.Context) {
 	var req application.MultiFloorPathRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if c.ShouldBindJSON(&req) != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid JSON body"})
 		return
 	}

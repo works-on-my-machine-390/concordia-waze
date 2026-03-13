@@ -16,10 +16,6 @@ type FirebaseService interface {
 	CreateUserProfile(ctx context.Context, userID string, profile domain.User) error
 	GetUserProfile(ctx context.Context, userID string) (*domain.User, error)
 
-	AddScheduleItem(ctx context.Context, userID string, item application.ScheduleItem) (string, error)
-	GetUserSchedule(ctx context.Context, userID string) ([]application.ScheduleItem, error)
-	UpdateScheduleItem(ctx context.Context, userID, scheduleID string, updates map[string]interface{}) error
-	DeleteScheduleItem(ctx context.Context, userID, scheduleID string) error
 	AddSavedAddress(ctx context.Context, userID string, address application.SavedAddress) (string, error)
 	GetSavedAddresses(ctx context.Context, userID string) ([]application.SavedAddress, error)
 	UpdateSavedAddress(ctx context.Context, userID, addressID string, updates map[string]interface{}) error
@@ -192,124 +188,6 @@ func (fh *FirebaseHandler) ClearDestinationHistory(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "destination history cleared"})
-}
-
-// ===== Schedule =====
-
-// AddScheduleItem godoc
-// @Summary Add schedule item
-// @Description Add a schedule item for a user
-// @Tags schedule
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param userId path string true "User ID"
-// @Param item body application.ScheduleItem true "Schedule item"
-// @Success 201 {object} map[string]string
-// @Failure 401 {object} map[string]string "Not authenticated"
-// @Failure 403 {object} map[string]string "Forbidden"
-// @Failure 400 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /users/{userId}/schedule [post]
-func (fh *FirebaseHandler) AddScheduleItem(c *gin.Context) {
-	userID := c.Param("userId")
-	var item application.ScheduleItem
-
-	if err := c.ShouldBindJSON(&item); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body for Add Schedule Item", "details": err.Error()})
-		return
-	}
-
-	scheduleID, err := fh.service.AddScheduleItem(c.Request.Context(), userID, item)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusCreated, gin.H{"message": "schedule item added", "scheduleId": scheduleID})
-}
-
-// GetUserSchedule godoc
-// @Summary Get user schedule
-// @Description Get schedule items for a user
-// @Tags schedule
-// @Produce json
-// @Security BearerAuth
-// @Param userId path string true "User ID"
-// @Success 200 {array} application.ScheduleItem
-// @Failure 401 {object} map[string]string "Not authenticated"
-// @Failure 403 {object} map[string]string "Forbidden"
-// @Failure 500 {object} map[string]string
-// @Router /users/{userId}/schedule [get]
-func (fh *FirebaseHandler) GetUserSchedule(c *gin.Context) {
-	userID := c.Param("userId")
-
-	schedule, err := fh.service.GetUserSchedule(c.Request.Context(), userID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, schedule)
-}
-
-// UpdateScheduleItem godoc
-// @Summary Update schedule item
-// @Description Update a schedule item for a user
-// @Tags schedule
-// @Accept json
-// @Produce json
-// @Security BearerAuth
-// @Param userId path string true "User ID"
-// @Param scheduleId path string true "Schedule ID"
-// @Param updates body map[string]interface{} true "Schedule updates"
-// @Success 200 {object} map[string]string
-// @Failure 401 {object} map[string]string "Not authenticated"
-// @Failure 403 {object} map[string]string "Forbidden"
-// @Failure 400 {object} map[string]string
-// @Failure 500 {object} map[string]string
-// @Router /users/{userId}/schedule/{scheduleId} [put]
-func (fh *FirebaseHandler) UpdateScheduleItem(c *gin.Context) {
-	userID := c.Param("userId")
-	scheduleID := c.Param("scheduleId")
-	var updates map[string]interface{}
-
-	if c.ShouldBindJSON(&updates) != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body for Update Schedule Item"})
-		return
-	}
-
-	if err := fh.service.UpdateScheduleItem(c.Request.Context(), userID, scheduleID, updates); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "schedule item updated"})
-}
-
-// DeleteScheduleItem godoc
-// @Summary Delete schedule item
-// @Description Delete a schedule item for a user
-// @Tags schedule
-// @Produce json
-// @Security BearerAuth
-// @Param userId path string true "User ID"
-// @Param scheduleId path string true "Schedule ID"
-// @Success 200 {object} map[string]string
-// @Failure 401 {object} map[string]string "Not authenticated"
-// @Failure 403 {object} map[string]string "Forbidden"
-// @Failure 500 {object} map[string]string
-// @Router /users/{userId}/schedule/{scheduleId} [delete]
-func (fh *FirebaseHandler) DeleteScheduleItem(c *gin.Context) {
-	userID := c.Param("userId")
-	scheduleID := c.Param("scheduleId")
-
-	if err := fh.service.DeleteScheduleItem(c.Request.Context(), userID, scheduleID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "schedule item deleted"})
 }
 
 // ===== Saved Addresses =====

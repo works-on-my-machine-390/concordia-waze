@@ -14,10 +14,10 @@ type IndoorPointOfInterestGetter interface {
 }
 
 type indoorPointOfInterestService struct {
-	repo repository.IndoorPOIRepository
+	repo repository.IndoorPOIGetter
 }
 
-func NewIndoorPointOfInterestService(repo repository.IndoorPOIRepository) IndoorPointOfInterestGetter {
+func NewIndoorPointOfInterestService(repo repository.IndoorPOIGetter) IndoorPointOfInterestGetter {
 	return &indoorPointOfInterestService{repo: repo}
 }
 

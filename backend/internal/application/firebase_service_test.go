@@ -13,6 +13,7 @@ import (
 	"github.com/works-on-my-machine-390/concordia-waze/internal/application"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/application/firebase"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
+	"golang.org/x/oauth2"
 )
 
 // These are integration tests that require a Firestore emulator or real Firebase instance.
@@ -27,12 +28,9 @@ var (
 )
 
 func setupTestService(t *testing.T) *application.FirebaseService {
-	// Initialize Firebase once for all tests
 	initOnce.Do(func() {
-		// Check if we should use the emulator
 		if emulatorHost := os.Getenv("FIRESTORE_EMULATOR_HOST"); emulatorHost != "" {
 			t.Logf("Using Firestore emulator at %s", emulatorHost)
-			// Set project ID for emulator
 			if os.Getenv("GCLOUD_PROJECT") == "" {
 				os.Setenv("GCLOUD_PROJECT", "demo-test-project")
 			}
@@ -66,11 +64,9 @@ func TestCreateAndGetUserProfile(t *testing.T) {
 		Password: "hashedpassword123",
 	}
 
-	// Create profile
 	err := service.CreateUserProfile(ctx, userID, profile)
 	require.NoError(t, err)
 
-	// Get profile
 	retrieved, err := service.GetUserProfile(ctx, userID)
 	require.NoError(t, err)
 	assert.Equal(t, userID, retrieved.ID)
@@ -90,154 +86,343 @@ func TestGetUserProfileByEmail(t *testing.T) {
 		Password: "hashedpassword456",
 	}
 
-	// Create profile
 	err := service.CreateUserProfile(ctx, userID, profile)
 	require.NoError(t, err)
 
-	// Get by email
 	retrieved, err := service.GetUserProfileByEmail(ctx, email)
 	require.NoError(t, err)
 	assert.Equal(t, email, retrieved.Email)
 	assert.Equal(t, "Jane Smith", retrieved.Name)
 }
 
-func TestAddAndGetSchedule(t *testing.T) {
+func TestCreateAndGetUserClasses(t *testing.T) {
 	service := setupTestService(t)
 	ctx := context.Background()
-	userID := "test-user-schedule-" + time.Now().Format("20060102150405")
+	userID := "test-user-classes-" + time.Now().Format("20060102150405")
 
-	// Create user
 	profile := domain.User{
-		Email:    "schedule@example.com",
-		Name:     "Schedule User",
+		Email:    "classes@example.com",
+		Name:     "Classes User",
 		Password: "password",
 	}
 	err := service.CreateUserProfile(ctx, userID, profile)
 	require.NoError(t, err)
 
-	// Add schedule item
-	item := application.ScheduleItem{
-		Name:       "SOEN 390 Lecture",
-		Building:   "Hall Building",
-		Room:       "H-929",
-		StartTime:  "17:45",
-		EndTime:    "20:15",
-		DaysOfWeek: []string{"Monday", "Wednesday"},
-		Type:       "class",
-	}
-	scheduleID, err := service.AddScheduleItem(ctx, userID, item)
+	err = service.CreateClass(ctx, userID, "SOEN345")
 	require.NoError(t, err)
-	assert.NotEmpty(t, scheduleID)
 
-	// Get schedule
-	schedule, err := service.GetUserSchedule(ctx, userID)
+	err = service.CreateClass(ctx, userID, "COMP352")
 	require.NoError(t, err)
-	assert.GreaterOrEqual(t, len(schedule), 1)
+
+	classes, err := service.GetUserClasses(ctx, userID)
+	require.NoError(t, err)
+	assert.GreaterOrEqual(t, len(classes), 2)
+	assert.Contains(t, classes, "SOEN345")
+	assert.Contains(t, classes, "COMP352")
+}
+
+func TestDeleteClass(t *testing.T) {
+	service := setupTestService(t)
+	ctx := context.Background()
+	userID := "test-user-delete-class-" + time.Now().Format("20060102150405")
+	title := "SOEN390"
+
+	profile := domain.User{
+		Email:    "deleteclass@example.com",
+		Name:     "Delete Class",
+		Password: "password",
+	}
+	err := service.CreateUserProfile(ctx, userID, profile)
+	require.NoError(t, err)
+
+	err = service.CreateClass(ctx, userID, title)
+	require.NoError(t, err)
+
+	_, err = service.AddClassItem(ctx, userID, title, domain.ClassItem{
+		Type:         "lec",
+		Section:      "S",
+		Day:          "Monday",
+		StartTime:    "09:00",
+		EndTime:      "10:15",
+		BuildingCode: "H",
+		Room:         "H-937",
+	})
+	require.NoError(t, err)
+
+	err = service.DeleteClass(ctx, userID, title)
+	require.NoError(t, err)
+
+	classes, err := service.GetUserClasses(ctx, userID)
+	require.NoError(t, err)
+	assert.NotContains(t, classes, title)
+}
+
+func TestAddAndGetClassItems(t *testing.T) {
+	service := setupTestService(t)
+	ctx := context.Background()
+	userID := "test-user-items-" + time.Now().Format("20060102150405")
+	title := "SOEN345"
+
+	profile := domain.User{
+		Email:    "sessions@example.com",
+		Name:     "Sessions User",
+		Password: "password",
+	}
+	err := service.CreateUserProfile(ctx, userID, profile)
+	require.NoError(t, err)
+
+	err = service.CreateClass(ctx, userID, title)
+	require.NoError(t, err)
+
+	item := domain.ClassItem{
+		Type:         "lec",
+		Section:      "S",
+		Day:          "Monday",
+		StartTime:    "17:45",
+		EndTime:      "20:15",
+		BuildingCode: "H",
+		Room:         "H-929",
+	}
+
+	itemID, err := service.AddClassItem(ctx, userID, title, item)
+	require.NoError(t, err)
+	assert.NotEmpty(t, itemID)
+
+	items, err := service.GetClassItems(ctx, userID, title)
+	require.NoError(t, err)
+	assert.GreaterOrEqual(t, len(items), 1)
 
 	found := false
-	for _, s := range schedule {
-		if s.Name == "SOEN 390 Lecture" {
+	for _, i := range items {
+		if i.ClassID == itemID {
 			found = true
-			assert.Equal(t, "Hall Building", s.Building)
-			assert.Equal(t, "H-929", s.Room)
-			assert.Equal(t, "17:45", s.StartTime)
-			assert.Equal(t, "20:15", s.EndTime)
-			assert.Equal(t, []string{"Monday", "Wednesday"}, s.DaysOfWeek)
-			assert.Equal(t, "class", s.Type)
-			assert.NotEmpty(t, s.ScheduleID)
+			assert.Equal(t, "lec", i.Type)
+			assert.Equal(t, "S", i.Section)
+			assert.Equal(t, "Monday", i.Day)
+			assert.Equal(t, "17:45", i.StartTime)
+			assert.Equal(t, "20:15", i.EndTime)
+			assert.Equal(t, "H", i.BuildingCode)
+			assert.Equal(t, "H-929", i.Room)
 			break
 		}
 	}
-	assert.True(t, found, "Schedule item not found")
+	assert.True(t, found, "Class item not found")
 }
 
-func TestUpdateScheduleItem(t *testing.T) {
+func TestUpdateClassItem(t *testing.T) {
 	service := setupTestService(t)
 	ctx := context.Background()
-	userID := "test-user-schedule-update-" + time.Now().Format("20060102150405")
+	userID := "test-user-item-update-" + time.Now().Format("20060102150405")
+	title := "SOEN345"
 
-	// Create user
 	profile := domain.User{
-		Email:    "scheduleupdate@example.com",
-		Name:     "Schedule Update",
+		Email:    "sessionupdate@example.com",
+		Name:     "Session Update",
 		Password: "password",
 	}
 	err := service.CreateUserProfile(ctx, userID, profile)
 	require.NoError(t, err)
 
-	// Add schedule item
-	item := application.ScheduleItem{
-		Name:       "Original Class",
-		StartTime:  "10:00",
-		EndTime:    "11:30",
-		DaysOfWeek: []string{"Tuesday"},
-		Type:       "class",
-	}
-	scheduleID, err := service.AddScheduleItem(ctx, userID, item)
+	err = service.CreateClass(ctx, userID, title)
 	require.NoError(t, err)
 
-	// Update schedule item
+	item := domain.ClassItem{
+		Type:      "lec",
+		Section:   "S",
+		Day:       "Tuesday",
+		StartTime: "10:00",
+		EndTime:   "11:30",
+	}
+	itemID, err := service.AddClassItem(ctx, userID, title, item)
+	require.NoError(t, err)
+
 	updates := map[string]interface{}{
-		"name":      "Updated Class",
+		"type":      "lab",
+		"section":   "SL",
 		"startTime": "14:00",
 		"endTime":   "15:30",
+		"room":      "H-833",
 	}
-	err = service.UpdateScheduleItem(ctx, userID, scheduleID, updates)
+	err = service.UpdateClassItem(ctx, userID, title, itemID, updates)
 	require.NoError(t, err)
 
-	// Verify update
-	schedule, err := service.GetUserSchedule(ctx, userID)
+	items, err := service.GetClassItems(ctx, userID, title)
 	require.NoError(t, err)
 
 	found := false
-	for _, s := range schedule {
-		if s.ScheduleID == scheduleID {
+	for _, i := range items {
+		if i.ClassID == itemID {
 			found = true
-			assert.Equal(t, "Updated Class", s.Name)
-			assert.Equal(t, "14:00", s.StartTime)
-			assert.Equal(t, "15:30", s.EndTime)
+			assert.Equal(t, "lab", i.Type)
+			assert.Equal(t, "SL", i.Section)
+			assert.Equal(t, "14:00", i.StartTime)
+			assert.Equal(t, "15:30", i.EndTime)
+			assert.Equal(t, "H-833", i.Room)
 			break
 		}
 	}
-	assert.True(t, found, "Updated schedule item not found")
+	assert.True(t, found, "Updated class item not found")
 }
 
-func TestDeleteScheduleItem(t *testing.T) {
+func TestDeleteClassItem(t *testing.T) {
 	service := setupTestService(t)
 	ctx := context.Background()
-	userID := "test-user-schedule-delete-" + time.Now().Format("20060102150405")
+	userID := "test-user-item-delete-" + time.Now().Format("20060102150405")
+	title := "SOEN345"
 
-	// Create user
 	profile := domain.User{
-		Email:    "scheduledelete@example.com",
-		Name:     "Schedule Delete",
+		Email:    "sessiondelete@example.com",
+		Name:     "Session Delete",
 		Password: "password",
 	}
 	err := service.CreateUserProfile(ctx, userID, profile)
 	require.NoError(t, err)
 
-	// Add schedule item
-	item := application.ScheduleItem{
-		Name:       "To Be Deleted",
-		StartTime:  "10:00",
-		EndTime:    "11:00",
-		DaysOfWeek: []string{"Friday"},
-		Type:       "class",
+	err = service.CreateClass(ctx, userID, title)
+	require.NoError(t, err)
+
+	item := domain.ClassItem{
+		Type:      "tut",
+		Section:   "T",
+		Day:       "Friday",
+		StartTime: "10:00",
+		EndTime:   "11:00",
 	}
-	scheduleID, err := service.AddScheduleItem(ctx, userID, item)
+	itemID, err := service.AddClassItem(ctx, userID, title, item)
 	require.NoError(t, err)
 
-	// Delete schedule item
-	err = service.DeleteScheduleItem(ctx, userID, scheduleID)
+	err = service.DeleteClassItem(ctx, userID, title, itemID)
 	require.NoError(t, err)
 
-	// Verify deletion
-	schedule, err := service.GetUserSchedule(ctx, userID)
+	items, err := service.GetClassItems(ctx, userID, title)
 	require.NoError(t, err)
 
-	for _, s := range schedule {
-		assert.NotEqual(t, scheduleID, s.ScheduleID, "Deleted item still exists")
+	for _, i := range items {
+		assert.NotEqual(t, itemID, i.ClassID, "Deleted item still exists")
 	}
+}
+
+func TestGetClassItemsEmpty(t *testing.T) {
+	service := setupTestService(t)
+	ctx := context.Background()
+	userID := "test-user-empty-items-" + time.Now().Format("20060102150405")
+	title := "COMP352"
+
+	profile := domain.User{
+		Email:    "emptysessions@example.com",
+		Name:     "Empty Sessions",
+		Password: "password",
+	}
+	err := service.CreateUserProfile(ctx, userID, profile)
+	require.NoError(t, err)
+
+	err = service.CreateClass(ctx, userID, title)
+	require.NoError(t, err)
+
+	items, err := service.GetClassItems(ctx, userID, title)
+	require.NoError(t, err)
+	assert.NotNil(t, items)
+	assert.Equal(t, 0, len(items))
+}
+
+func TestAddClassItemWithOptionalFields(t *testing.T) {
+	service := setupTestService(t)
+	ctx := context.Background()
+	userID := "test-user-opt-item-" + time.Now().Format("20060102150405")
+	title := "MATH203"
+
+	profile := domain.User{
+		Email:    "optsession@example.com",
+		Name:     "Optional Session",
+		Password: "password",
+	}
+	err := service.CreateUserProfile(ctx, userID, profile)
+	require.NoError(t, err)
+
+	err = service.CreateClass(ctx, userID, title)
+	require.NoError(t, err)
+
+	item := domain.ClassItem{
+		Type:      "lec",
+		Section:   "A",
+		Day:       "Monday",
+		StartTime: "10:00",
+		EndTime:   "11:00",
+	}
+	itemID, err := service.AddClassItem(ctx, userID, title, item)
+	require.NoError(t, err)
+	assert.NotEmpty(t, itemID)
+
+	items, err := service.GetClassItems(ctx, userID, title)
+	require.NoError(t, err)
+
+	found := false
+	for _, i := range items {
+		if i.ClassID == itemID {
+			found = true
+			assert.Equal(t, "lec", i.Type)
+			assert.Equal(t, "A", i.Section)
+			assert.Empty(t, i.BuildingCode)
+			assert.Empty(t, i.Room)
+			break
+		}
+	}
+	assert.True(t, found)
+}
+
+func TestUpdateClassItemMultipleFields(t *testing.T) {
+	service := setupTestService(t)
+	ctx := context.Background()
+	userID := "test-user-multi-item-" + time.Now().Format("20060102150405")
+	title := "ENGR301"
+
+	profile := domain.User{
+		Email:    "multisession@example.com",
+		Name:     "Multi Session",
+		Password: "password",
+	}
+	err := service.CreateUserProfile(ctx, userID, profile)
+	require.NoError(t, err)
+
+	err = service.CreateClass(ctx, userID, title)
+	require.NoError(t, err)
+
+	item := domain.ClassItem{
+		Type:      "lec",
+		Section:   "B",
+		Day:       "Monday",
+		StartTime: "10:00",
+		EndTime:   "11:00",
+	}
+	itemID, err := service.AddClassItem(ctx, userID, title, item)
+	require.NoError(t, err)
+
+	updates := map[string]interface{}{
+		"type":         "tut",
+		"section":      "BT",
+		"day":          "Wednesday",
+		"buildingCode": "EV",
+		"room":         "EV-001",
+	}
+	err = service.UpdateClassItem(ctx, userID, title, itemID, updates)
+	require.NoError(t, err)
+
+	items, err := service.GetClassItems(ctx, userID, title)
+	require.NoError(t, err)
+
+	found := false
+	for _, i := range items {
+		if i.ClassID == itemID {
+			found = true
+			assert.Equal(t, "tut", i.Type)
+			assert.Equal(t, "BT", i.Section)
+			assert.Equal(t, "Wednesday", i.Day)
+			assert.Equal(t, "EV", i.BuildingCode)
+			assert.Equal(t, "EV-001", i.Room)
+			break
+		}
+	}
+	assert.True(t, found)
 }
 
 func TestAddAndGetSavedAddresses(t *testing.T) {
@@ -245,7 +430,6 @@ func TestAddAndGetSavedAddresses(t *testing.T) {
 	ctx := context.Background()
 	userID := "test-user-address-" + time.Now().Format("20060102150405")
 
-	// Create user
 	profile := domain.User{
 		Email:    "address@example.com",
 		Name:     "Address User",
@@ -254,7 +438,6 @@ func TestAddAndGetSavedAddresses(t *testing.T) {
 	err := service.CreateUserProfile(ctx, userID, profile)
 	require.NoError(t, err)
 
-	// Add saved address
 	address := application.SavedAddress{
 		Address: "1455 De Maisonneuve Blvd. W, Montreal",
 	}
@@ -262,7 +445,6 @@ func TestAddAndGetSavedAddresses(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEmpty(t, addressID)
 
-	// Get saved addresses
 	addresses, err := service.GetSavedAddresses(ctx, userID)
 	require.NoError(t, err)
 	assert.GreaterOrEqual(t, len(addresses), 1)
@@ -283,7 +465,6 @@ func TestUpdateSavedAddress(t *testing.T) {
 	ctx := context.Background()
 	userID := "test-user-address-update-" + time.Now().Format("20060102150405")
 
-	// Create user
 	profile := domain.User{
 		Email:    "addressupdate@example.com",
 		Name:     "Address Update",
@@ -292,21 +473,18 @@ func TestUpdateSavedAddress(t *testing.T) {
 	err := service.CreateUserProfile(ctx, userID, profile)
 	require.NoError(t, err)
 
-	// Add saved address
 	address := application.SavedAddress{
 		Address: "Original Address",
 	}
 	addressID, err := service.AddSavedAddress(ctx, userID, address)
 	require.NoError(t, err)
 
-	// Update address
 	updates := map[string]interface{}{
 		"address": "Updated Address",
 	}
 	err = service.UpdateSavedAddress(ctx, userID, addressID, updates)
 	require.NoError(t, err)
 
-	// Verify update
 	addresses, err := service.GetSavedAddresses(ctx, userID)
 	require.NoError(t, err)
 
@@ -326,7 +504,6 @@ func TestDeleteSavedAddress(t *testing.T) {
 	ctx := context.Background()
 	userID := "test-user-address-delete-" + time.Now().Format("20060102150405")
 
-	// Create user
 	profile := domain.User{
 		Email:    "addressdelete@example.com",
 		Name:     "Address Saved",
@@ -335,18 +512,15 @@ func TestDeleteSavedAddress(t *testing.T) {
 	err := service.CreateUserProfile(ctx, userID, profile)
 	require.NoError(t, err)
 
-	// Add saved address
 	address := application.SavedAddress{
 		Address: "To Be Deleted",
 	}
 	addressID, err := service.AddSavedAddress(ctx, userID, address)
 	require.NoError(t, err)
 
-	// Delete address
 	err = service.DeleteSavedAddress(ctx, userID, addressID)
 	require.NoError(t, err)
 
-	// Verify deletion
 	addresses, err := service.GetSavedAddresses(ctx, userID)
 	require.NoError(t, err)
 
@@ -360,7 +534,6 @@ func TestSubcollectionsInitialized(t *testing.T) {
 	ctx := context.Background()
 	userID := "test-user-subcoll-" + time.Now().Format("20060102150405")
 
-	// Create user (should initialize subcollections)
 	profile := domain.User{
 		Email:    "subcoll@example.com",
 		Name:     "Subcollection Init",
@@ -369,12 +542,10 @@ func TestSubcollectionsInitialized(t *testing.T) {
 	err := service.CreateUserProfile(ctx, userID, profile)
 	require.NoError(t, err)
 
-	// Schedule should be initialized
-	schedule, err := service.GetUserSchedule(ctx, userID)
+	classes, err := service.GetUserClasses(ctx, userID)
 	require.NoError(t, err)
-	assert.NotNil(t, schedule)
+	assert.NotNil(t, classes)
 
-	// Saved addresses should be initialized
 	addresses, err := service.GetSavedAddresses(ctx, userID)
 	require.NoError(t, err)
 	assert.NotNil(t, addresses)
@@ -384,31 +555,28 @@ func TestGetUserProfileByEmailNotFound(t *testing.T) {
 	service := setupTestService(t)
 	ctx := context.Background()
 
-	// Try to get non-existent user
 	_, err := service.GetUserProfileByEmail(ctx, "nonexistent-"+time.Now().Format("20060102150405")+"@example.com")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "user not found")
 }
 
-func TestGetUserScheduleEmptySchedule(t *testing.T) {
+func TestGetUserClassesEmpty(t *testing.T) {
 	service := setupTestService(t)
 	ctx := context.Background()
-	userID := "test-user-empty-schedule-" + time.Now().Format("20060102150405")
+	userID := "test-user-empty-classes-" + time.Now().Format("20060102150405")
 
-	// Create user
 	profile := domain.User{
-		Email:    "emptyschedule@example.com",
-		Name:     "Empty Schedule",
+		Email:    "emptyclasses@example.com",
+		Name:     "Empty Classes",
 		Password: "password",
 	}
 	err := service.CreateUserProfile(ctx, userID, profile)
 	require.NoError(t, err)
 
-	// Get empty schedule
-	schedule, err := service.GetUserSchedule(ctx, userID)
+	classes, err := service.GetUserClasses(ctx, userID)
 	require.NoError(t, err)
-	assert.NotNil(t, schedule)
-	assert.Equal(t, 0, len(schedule))
+	assert.NotNil(t, classes)
+	assert.Equal(t, 0, len(classes))
 }
 
 func TestGetSavedAddressesEmptyAddresses(t *testing.T) {
@@ -416,7 +584,6 @@ func TestGetSavedAddressesEmptyAddresses(t *testing.T) {
 	ctx := context.Background()
 	userID := "test-user-empty-addr-" + time.Now().Format("20060102150405")
 
-	// Create user
 	profile := domain.User{
 		Email:    "emptyaddr@example.com",
 		Name:     "Empty Address",
@@ -425,108 +592,10 @@ func TestGetSavedAddressesEmptyAddresses(t *testing.T) {
 	err := service.CreateUserProfile(ctx, userID, profile)
 	require.NoError(t, err)
 
-	// Get empty addresses
 	addresses, err := service.GetSavedAddresses(ctx, userID)
 	require.NoError(t, err)
 	assert.NotNil(t, addresses)
 	assert.Equal(t, 0, len(addresses))
-}
-
-func TestAddScheduleItemWithOptionalFields(t *testing.T) {
-	service := setupTestService(t)
-	ctx := context.Background()
-	userID := "test-user-opt-" + time.Now().Format("20060102150405")
-
-	// Create user
-	profile := domain.User{
-		Email:    "optfields@example.com",
-		Name:     "Optional Fields",
-		Password: "password",
-	}
-	err := service.CreateUserProfile(ctx, userID, profile)
-	require.NoError(t, err)
-
-	// Add schedule item without optional fields
-	item := application.ScheduleItem{
-		Name:       "Meeting",
-		StartTime:  "10:00",
-		EndTime:    "11:00",
-		DaysOfWeek: []string{"Monday"},
-		Type:       "work",
-	}
-	scheduleID, err := service.AddScheduleItem(ctx, userID, item)
-	require.NoError(t, err)
-	assert.NotEmpty(t, scheduleID)
-
-	// Verify it was added
-	schedule, err := service.GetUserSchedule(ctx, userID)
-	require.NoError(t, err)
-	assert.GreaterOrEqual(t, len(schedule), 1)
-
-	found := false
-	for _, s := range schedule {
-		if s.ScheduleID == scheduleID {
-			found = true
-			assert.Equal(t, "Meeting", s.Name)
-			assert.Empty(t, s.Building)
-			assert.Empty(t, s.Room)
-			break
-		}
-	}
-	assert.True(t, found)
-}
-
-func TestUpdateScheduleItemMultipleFields(t *testing.T) {
-	service := setupTestService(t)
-	ctx := context.Background()
-	userID := "test-user-multi-" + time.Now().Format("20060102150405")
-
-	// Create user
-	profile := domain.User{
-		Email:    "multiupdate@example.com",
-		Name:     "Multi Update",
-		Password: "password",
-	}
-	err := service.CreateUserProfile(ctx, userID, profile)
-	require.NoError(t, err)
-
-	// Add schedule item
-	item := application.ScheduleItem{
-		Name:       "Class",
-		StartTime:  "10:00",
-		EndTime:    "11:00",
-		DaysOfWeek: []string{"Monday"},
-		Type:       "class",
-	}
-	scheduleID, err := service.AddScheduleItem(ctx, userID, item)
-	require.NoError(t, err)
-
-	// Update multiple fields
-	updates := map[string]interface{}{
-		"name":       "Updated Class",
-		"building":   "EV Building",
-		"room":       "EV-001",
-		"daysOfWeek": []string{"Monday", "Wednesday", "Friday"},
-	}
-	err = service.UpdateScheduleItem(ctx, userID, scheduleID, updates)
-	require.NoError(t, err)
-
-	// Verify all updates
-	schedule, err := service.GetUserSchedule(ctx, userID)
-	require.NoError(t, err)
-
-	found := false
-	for _, s := range schedule {
-		if s.ScheduleID == scheduleID {
-			found = true
-			assert.Equal(t, "Updated Class", s.Name)
-			assert.Equal(t, "EV Building", s.Building)
-			assert.Equal(t, "EV-001", s.Room)
-			assert.Equal(t, []string{"Monday", "Wednesday", "Friday"}, s.DaysOfWeek)
-			break
-		}
-	}
-	assert.True(t, found)
 }
 
 func TestAddMultipleSavedAddresses(t *testing.T) {
@@ -534,7 +603,6 @@ func TestAddMultipleSavedAddresses(t *testing.T) {
 	ctx := context.Background()
 	userID := "test-user-multi-addr-" + time.Now().Format("20060102150405")
 
-	// Create user
 	profile := domain.User{
 		Email:    "multiaddr@example.com",
 		Name:     "Multi Address",
@@ -543,7 +611,6 @@ func TestAddMultipleSavedAddresses(t *testing.T) {
 	err := service.CreateUserProfile(ctx, userID, profile)
 	require.NoError(t, err)
 
-	// Add multiple addresses
 	addresses := []string{"Home", "Work", "Gym", "Library"}
 	for _, addr := range addresses {
 		address := application.SavedAddress{
@@ -553,7 +620,6 @@ func TestAddMultipleSavedAddresses(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	// Get all addresses
 	savedAddresses, err := service.GetSavedAddresses(ctx, userID)
 	require.NoError(t, err)
 	assert.GreaterOrEqual(t, len(savedAddresses), 4)
@@ -564,7 +630,6 @@ func TestAddAndGetDestinationHistory(t *testing.T) {
 	ctx := context.Background()
 	userID := "test-user-history-" + time.Now().Format("20060102150405")
 
-	// Create user first (so subcollections exist)
 	profile := domain.User{
 		Email:    "history@example.com",
 		Name:     "History User",
@@ -611,7 +676,6 @@ func TestGetDestinationHistory_Limit(t *testing.T) {
 	}
 	require.NoError(t, service.CreateUserProfile(ctx, userID, profile))
 
-	// Add 3 items
 	for i := 1; i <= 3; i++ {
 		_, err := service.AddDestinationHistory(ctx, userID, application.DestinationHistoryItem{
 			Name:            "Place " + strconv.Itoa(i),
@@ -650,9 +714,244 @@ func TestClearDestinationHistory(t *testing.T) {
 	history, err := service.GetDestinationHistory(ctx, userID, 50)
 	require.NoError(t, err)
 
-	// Depending on your implementation, you might keep a placeholder doc like "_init".
-	// So we just assert there is no real data item with Name "SGW".
 	for _, h := range history {
 		assert.NotEqual(t, "SGW", h.Name)
 	}
+}
+
+// TestSaveGetDeleteGoogleToken verifies SaveGoogleToken, GetGoogleToken and DeleteGoogleToken.
+func TestSaveGetDeleteGoogleToken(t *testing.T) {
+	service := setupTestService(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	userID := "test-user-google-token-" + time.Now().Format("20060102150405")
+
+	// Create a sample token
+	now := time.Now().UTC()
+	tok := &oauth2.Token{
+		AccessToken:  "access-token-123",
+		RefreshToken: "refresh-token-abc",
+		Expiry:       now.Add(1 * time.Hour),
+		TokenType:    "Bearer",
+	}
+
+	// Save token
+	err := service.SaveGoogleToken(ctx, userID, tok)
+	require.NoError(t, err, "SaveGoogleToken should not return an error")
+
+	// Get token
+	got, ok, err := service.GetGoogleToken(ctx, userID)
+	require.NoError(t, err, "GetGoogleToken should not return an error")
+	require.True(t, ok, "GetGoogleToken should indicate token exists")
+	require.NotNil(t, got, "returned token should not be nil")
+
+	// Validate fields (allow small timing differences for Expiry)
+	assert.Equal(t, tok.AccessToken, got.AccessToken)
+	assert.Equal(t, tok.RefreshToken, got.RefreshToken)
+	assert.Equal(t, tok.TokenType, got.TokenType)
+	assert.WithinDuration(t, tok.Expiry, got.Expiry, 2*time.Second)
+
+	// Delete token
+	err = service.DeleteGoogleToken(ctx, userID)
+	require.NoError(t, err, "DeleteGoogleToken should not return an error")
+
+	// Ensure token no longer exists
+	got2, ok2, err := service.GetGoogleToken(ctx, userID)
+	require.NoError(t, err, "GetGoogleToken after delete should not return an error")
+	assert.False(t, ok2, "GetGoogleToken should report not found after delete")
+	assert.Nil(t, got2, "returned token should be nil after delete")
+}
+
+// TestSaveGoogleToken_Nil verifies saving a nil token returns an error.
+func TestSaveGoogleToken_Nil(t *testing.T) {
+	service := setupTestService(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	userID := "test-user-google-token-nil-" + time.Now().Format("20060102150405")
+
+	err := service.SaveGoogleToken(ctx, userID, nil)
+	require.Error(t, err, "SaveGoogleToken with nil token should return an error")
+	assert.Contains(t, err.Error(), "token is nil")
+}
+
+// ===== Favorites =====
+
+func TestAddAndGetFavorites(t *testing.T) {
+	service := setupTestService(t)
+	ctx := context.Background()
+	userID := "test-user-fav-" + time.Now().Format("20060102150405")
+
+	profile := domain.User{Email: "fav@example.com", Name: "Fav User", Password: "password"}
+	require.NoError(t, service.CreateUserProfile(ctx, userID, profile))
+
+	fav := application.FirestoreFavorite{
+		ID:        "fav-id-001",
+		Type:      "outdoor",
+		Name:      "Hall Building",
+		Latitude:  45.4971,
+		Longitude: -73.5789,
+	}
+	err := service.AddFavorite(ctx, userID, fav)
+	require.NoError(t, err)
+
+	favorites, err := service.GetFavorites(ctx, userID)
+	require.NoError(t, err)
+
+	found := false
+	for _, f := range favorites {
+		if f.ID == "fav-id-001" {
+			found = true
+			assert.Equal(t, "Hall Building", f.Name)
+			assert.Equal(t, "outdoor", f.Type)
+			assert.InDelta(t, 45.4971, f.Latitude, 0.0001)
+			assert.InDelta(t, -73.5789, f.Longitude, 0.0001)
+			break
+		}
+	}
+	assert.True(t, found, "Favorite not found in Firestore")
+}
+
+func TestGetFavoritesEmpty(t *testing.T) {
+	service := setupTestService(t)
+	ctx := context.Background()
+	userID := "test-user-fav-empty-" + time.Now().Format("20060102150405")
+
+	profile := domain.User{Email: "favempty@example.com", Name: "Fav Empty", Password: "password"}
+	require.NoError(t, service.CreateUserProfile(ctx, userID, profile))
+
+	favorites, err := service.GetFavorites(ctx, userID)
+	require.NoError(t, err)
+	assert.Equal(t, 0, len(favorites))
+}
+
+func TestDeleteFavorite_Firestore(t *testing.T) {
+	service := setupTestService(t)
+	ctx := context.Background()
+	userID := "test-user-fav-del-" + time.Now().Format("20060102150405")
+
+	profile := domain.User{Email: "favdel@example.com", Name: "Fav Del", Password: "password"}
+	require.NoError(t, service.CreateUserProfile(ctx, userID, profile))
+
+	fav := application.FirestoreFavorite{ID: "fav-del-001", Type: "outdoor", Name: "EV Building", Latitude: 45.4954, Longitude: -73.5782}
+	require.NoError(t, service.AddFavorite(ctx, userID, fav))
+
+	err := service.DeleteFavorite(ctx, userID, "fav-del-001")
+	require.NoError(t, err)
+
+	favorites, err := service.GetFavorites(ctx, userID)
+	require.NoError(t, err)
+	for _, f := range favorites {
+		assert.NotEqual(t, "fav-del-001", f.ID, "Deleted favorite still present")
+	}
+}
+
+func TestDeleteFavoriteNotFound_Firestore(t *testing.T) {
+	service := setupTestService(t)
+	ctx := context.Background()
+	userID := "test-user-fav-notfound-" + time.Now().Format("20060102150405")
+
+	profile := domain.User{Email: "favnotfound@example.com", Name: "Fav NotFound", Password: "password"}
+	require.NoError(t, service.CreateUserProfile(ctx, userID, profile))
+
+	err := service.DeleteFavorite(ctx, userID, "nonexistent-fav-id")
+	assert.ErrorIs(t, err, domain.ErrFavoriteNotFound)
+}
+
+func TestAddMultipleFavorites(t *testing.T) {
+	service := setupTestService(t)
+	ctx := context.Background()
+	userID := "test-user-fav-multi-" + time.Now().Format("20060102150405")
+
+	profile := domain.User{Email: "favmulti@example.com", Name: "Fav Multi", Password: "password"}
+	require.NoError(t, service.CreateUserProfile(ctx, userID, profile))
+
+	favs := []application.FirestoreFavorite{
+		{ID: "fav-m-001", Type: "outdoor", Name: "Hall Building", Latitude: 45.4971, Longitude: -73.5789},
+		{ID: "fav-m-002", Type: "outdoor", Name: "EV Building", Latitude: 45.4954, Longitude: -73.5782},
+		{ID: "fav-m-003", Type: "outdoor", Name: "Library", Latitude: 45.4960, Longitude: -73.5780},
+	}
+	for _, f := range favs {
+		require.NoError(t, service.AddFavorite(ctx, userID, f))
+	}
+
+	result, err := service.GetFavorites(ctx, userID)
+	require.NoError(t, err)
+	assert.GreaterOrEqual(t, len(result), 3)
+}
+
+func TestFavoritesSubcollectionInitialized(t *testing.T) {
+	service := setupTestService(t)
+	ctx := context.Background()
+	userID := "test-user-fav-init-" + time.Now().Format("20060102150405")
+
+	profile := domain.User{Email: "favinit@example.com", Name: "Fav Init", Password: "password"}
+	require.NoError(t, service.CreateUserProfile(ctx, userID, profile))
+
+	// Favorites subcollection should be queryable immediately after user creation
+	favorites, err := service.GetFavorites(ctx, userID)
+	require.NoError(t, err)
+	assert.NotNil(t, favorites)
+	assert.Equal(t, 0, len(favorites)) // no real favorites yet, only _init placeholder
+}
+
+func TestFirestoreFavoriteRepository_Lifecycle(t *testing.T) {
+	service := setupTestService(t)
+	repo := application.NewFirestoreFavoriteRepository(service)
+
+	userID := "repo-user-" + time.Now().Format("20060102150405")
+	favID := "fav-repo-1"
+
+	// 1. Create
+	fav := &domain.Favorite{
+		ID:        favID,
+		UserID:    userID,
+		Type:      domain.FavoriteTypeOutdoor,
+		Name:      "Repo Place",
+		Latitude:  10.0,
+		Longitude: 20.0,
+	}
+	err := repo.Create(fav)
+	require.NoError(t, err)
+
+	// 2. FindByUserID
+	list, err := repo.FindByUserID(userID)
+	require.NoError(t, err)
+	require.Len(t, list, 1)
+	assert.Equal(t, "Repo Place", list[0].Name)
+
+	// 3. Delete
+	err = repo.Delete(favID, userID)
+	require.NoError(t, err)
+
+	// Verify empty
+	list, err = repo.FindByUserID(userID)
+	require.NoError(t, err)
+	assert.Empty(t, list)
+}
+
+func TestHybridFavoriteRepository_Routing(t *testing.T) {
+	service := setupTestService(t)
+	hybrid := application.NewHybridFavoriteRepository(service)
+
+	// Case 1: Authenticated User -> Firestore
+	authUser := "auth-user-" + time.Now().Format("20060102150405")
+	authFav := &domain.Favorite{ID: "auth-fav", UserID: authUser, Type: domain.FavoriteTypeOutdoor, Name: "Auth Home", Latitude: 1, Longitude: 1}
+	require.NoError(t, hybrid.Create(authFav))
+	listAuth, err := hybrid.FindByUserID(authUser)
+	require.NoError(t, err)
+	require.Len(t, listAuth, 1)
+
+	// Case 2: Anonymous User -> Memory
+	anonUser := ""
+	anonFav := &domain.Favorite{ID: "anon-fav", UserID: anonUser, Type: domain.FavoriteTypeOutdoor, Name: "Anon Home", Latitude: 2, Longitude: 2}
+	require.NoError(t, hybrid.Create(anonFav))
+	listAnon, err := hybrid.FindByUserID(anonUser)
+	require.NoError(t, err)
+	require.Len(t, listAnon, 1)
+
+	// Verify Deletion Routing
+	require.NoError(t, hybrid.Delete("auth-fav", authUser))
+	require.NoError(t, hybrid.Delete("anon-fav", anonUser))
 }

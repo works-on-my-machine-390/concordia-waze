@@ -41,9 +41,24 @@ func SetupRouter() *gin.Engine {
 	buildingService := application.NewBuildingService(buildingDataRepo, floorDataRepo, placesClient, "./")
 	campusService := application.NewCampusService(buildingDataRepo)
 	imageService := application.NewImageService(buildingService, placesClient)
-	firebaseService := application.NewFirebaseService()
+	var authFirebaseService handler.FirebaseProfileService
+	var firebaseHandlerService handler.FirebaseService
+	var firebaseSvc *application.FirebaseService
+	if os.Getenv("SKIP_FIREBASE") != "true" {
+		firebaseSvc = application.NewFirebaseService()
+		authFirebaseService = firebaseSvc
+		firebaseHandlerService = firebaseSvc
+	}
 	shuttleService := application.NewShuttleService(shuttleDataRepo)
 	pointOfInterestService := application.NewPointOfInterestService(placesClient)
+
+	var favoriteRepo repository.FavoriteRepository
+	if firebaseSvc != nil {
+		favoriteRepo = application.NewHybridFavoriteRepository(firebaseSvc)
+	} else {
+		favoriteRepo = repository.NewInMemoryFavoriteRepository()
+	}
+	favoritesService := application.NewFavoritesService(favoriteRepo)
 
 	dataDir, err := findIndoorDataDir()
 	if err != nil {
@@ -66,14 +81,15 @@ func SetupRouter() *gin.Engine {
 	directionsHandler := handler.NewDirectionsHandler(directionsRedirector, directionsService, buildingService)
 	// ---------------------------------------------------------------
 
-	authHandler := handler.NewAuthHandler(userService, firebaseService)
+	authHandler := handler.NewAuthHandler(userService, authFirebaseService)
 
 	buildingHandler := handler.NewBuildingHandler(buildingService)
 	campusHandler := handler.NewCampusHandler(campusService)
 	imageHandler := handler.NewImageHandler(imageService)
-	firebaseHandler := handler.NewFirebaseHandler(firebaseService)
+	firebaseHandler := handler.NewFirebaseHandler(firebaseHandlerService)
 	shuttleHandler := handler.NewShuttleHandler(shuttleService)
 	pointOfInterestHandler := handler.NewPointOfInterestHandler(pointOfInterestService, indoorPOIService)
+	favoritesHandler := handler.NewFavoritesHandler(favoritesService)
 
 	googleRateLimiter := middleware.NewIPRateLimiterFromEnv(
 		"GOOGLE",
@@ -84,12 +100,21 @@ func SetupRouter() *gin.Engine {
 
 	router.Use(middleware.AuthMiddleware(jwtManager))
 
+	tokenStorePath := os.Getenv("GOOGLE_TOKEN_STORE_FILE")
+	if tokenStorePath == "" {
+		tokenStorePath = "data/google-token-store.json"
+	}
+	googleOAuthHandler := handler.NewGoogleOAuthHandler(firebaseSvc)
+
 	authGroup := router.Group("/auth")
 	{
 		authGroup.POST("/signup", authHandler.SignUp)
 		authGroup.POST("/login", authHandler.Login)
 		authGroup.GET("/profile", middleware.RequireAuth(), authHandler.GetProfile)
 		authGroup.POST("/logout", middleware.RequireAuth(), authHandler.Logout)
+
+		authGroup.GET("/google", middleware.RequireAuth(), googleOAuthHandler.GetAuthStatus)
+		authGroup.GET("/google/callback", googleOAuthHandler.Callback)
 	}
 
 	buildingsGroup := router.Group("/buildings")
@@ -131,6 +156,14 @@ func SetupRouter() *gin.Engine {
 	router.GET("/pointofinterest/indoor", pointOfInterestHandler.GetNearbyIndoorPOIs)
 	router.GET("/rooms/search", roomSearchHandler.SearchRoom)
 
+	// Favorites (optional auth — ownership enforced in handler)
+	userFavGroup := router.Group("/users/:userId/favorites")
+	{
+		userFavGroup.POST("", favoritesHandler.CreateFavorite)
+		userFavGroup.GET("", favoritesHandler.GetFavorites)
+		userFavGroup.DELETE("/:id", favoritesHandler.DeleteFavorite)
+	}
+
 	// =========================
 	// PROTECTED ROUTES (auth)
 	// =========================
@@ -140,11 +173,6 @@ func SetupRouter() *gin.Engine {
 	{
 		usersGroup.POST("/:userId/profile", firebaseHandler.CreateUserProfile)
 		usersGroup.GET("/:userId/profile", firebaseHandler.GetUserProfile)
-
-		usersGroup.POST("/:userId/schedule", firebaseHandler.AddScheduleItem)
-		usersGroup.GET("/:userId/schedule", firebaseHandler.GetUserSchedule)
-		usersGroup.PUT("/:userId/schedule/:scheduleId", firebaseHandler.UpdateScheduleItem)
-		usersGroup.DELETE("/:userId/schedule/:scheduleId", firebaseHandler.DeleteScheduleItem)
 
 		usersGroup.POST("/:userId/savedAddresses", firebaseHandler.AddSavedAddress)
 		usersGroup.GET("/:userId/savedAddresses", firebaseHandler.GetSavedAddresses)
