@@ -99,12 +99,21 @@ func SetupRouter() *gin.Engine {
 
 	router.Use(middleware.AuthMiddleware(jwtManager))
 
+	tokenStorePath := os.Getenv("GOOGLE_TOKEN_STORE_FILE")
+	if tokenStorePath == "" {
+		tokenStorePath = "data/google-token-store.json"
+	}
+	googleOAuthHandler := handler.NewGoogleOAuthHandler(firebaseSvc)
+
 	authGroup := router.Group("/auth")
 	{
 		authGroup.POST("/signup", authHandler.SignUp)
 		authGroup.POST("/login", authHandler.Login)
 		authGroup.GET("/profile", middleware.RequireAuth(), authHandler.GetProfile)
 		authGroup.POST("/logout", middleware.RequireAuth(), authHandler.Logout)
+
+		authGroup.GET("/google", middleware.RequireAuth(), googleOAuthHandler.GetAuthStatus)
+		authGroup.GET("/google/callback", googleOAuthHandler.Callback)
 	}
 
 	buildingsGroup := router.Group("/buildings")
