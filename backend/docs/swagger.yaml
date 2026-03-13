@@ -50,6 +50,9 @@ definitions:
         type: string
       preferElevator:
         type: boolean
+      requireAccessible:
+        description: filter out inaccessible edges
+        type: boolean
       start:
         $ref: '#/definitions/domain.Coordinates'
       startFloor:
@@ -73,27 +76,6 @@ definitions:
       address:
         type: string
       addressId:
-        type: string
-    type: object
-  application.ScheduleItem:
-    properties:
-      building:
-        type: string
-      daysOfWeek:
-        items:
-          type: string
-        type: array
-      endTime:
-        type: string
-      name:
-        type: string
-      room:
-        type: string
-      scheduleId:
-        type: string
-      startTime:
-        type: string
-      type:
         type: string
     type: object
   application.TransitionType:
@@ -247,7 +229,7 @@ definitions:
       distance:
         type: string
       duration:
-        type: string
+        type: integer
       mode:
         type: string
       polyline:
@@ -264,6 +246,41 @@ definitions:
       startVertex:
         type: integer
     type: object
+  domain.Favorite:
+    properties:
+      buildingCode:
+        description: Indoor fields
+        type: string
+      floorNumber:
+        type: integer
+      id:
+        type: string
+      latitude:
+        description: Outdoor fields
+        type: number
+      longitude:
+        type: number
+      name:
+        type: string
+      poiType:
+        type: string
+      type:
+        $ref: '#/definitions/domain.FavoriteType'
+      userId:
+        type: string
+      x:
+        type: number
+      "y":
+        type: number
+    type: object
+  domain.FavoriteType:
+    enum:
+    - outdoor
+    - indoor
+    type: string
+    x-enum-varnames:
+    - FavoriteTypeOutdoor
+    - FavoriteTypeIndoor
   domain.Floor:
     properties:
       edges:
@@ -284,6 +301,13 @@ definitions:
         items:
           $ref: '#/definitions/domain.Coordinates'
         type: array
+    type: object
+  domain.IndoorPosition:
+    properties:
+      x:
+        type: number
+      "y":
+        type: number
     type: object
   domain.LatLng:
     properties:
@@ -329,6 +353,11 @@ definitions:
       token:
         type: string
     type: object
+  handler.AuthURLResponse:
+    properties:
+      url:
+        type: string
+    type: object
   handler.BuildingImagesResponse:
     properties:
       building_code:
@@ -337,6 +366,32 @@ definitions:
         items:
           type: string
         type: array
+    type: object
+  handler.CreateFavoriteRequest:
+    properties:
+      buildingCode:
+        description: |-
+          Indoor-specific fields. Pointer types allow the handler to distinguish
+          "field not provided" from "field provided as zero".
+        type: string
+      floorNumber:
+        type: integer
+      latitude:
+        type: number
+      longitude:
+        type: number
+      name:
+        type: string
+      poiType:
+        type: string
+      type:
+        type: string
+      x:
+        type: number
+      "y":
+        type: number
+    required:
+    - name
     type: object
   handler.LoginRequest:
     properties:
@@ -362,6 +417,68 @@ definitions:
     - name
     - password
     type: object
+  handler.StatusOKResponse:
+    properties:
+      ok:
+        type: boolean
+    type: object
+  handler.TokenSaveResponse:
+    properties:
+      message:
+        type: string
+      ok:
+        type: boolean
+      userId:
+        type: string
+    type: object
+  request_format.RouteLocation:
+    properties:
+      building:
+        type: string
+      floor_number:
+        type: integer
+      indoor_position:
+        $ref: '#/definitions/domain.IndoorPosition'
+      latitude:
+        type: number
+      longitude:
+        type: number
+    type: object
+  request_format.RoutePreferences:
+    properties:
+      day:
+        enum:
+        - Monday
+        - Tuesday
+        - Wednesday
+        - Thursday
+        - Friday
+        - Saturday
+        - Sunday
+        type: string
+      mode:
+        items:
+          type: string
+        type: array
+      prefer_elevator:
+        type: boolean
+      require_accessible:
+        type: boolean
+      time:
+        type: string
+    type: object
+  request_format.RouteRequest:
+    properties:
+      end:
+        $ref: '#/definitions/request_format.RouteLocation'
+      preferences:
+        $ref: '#/definitions/request_format.RoutePreferences'
+      start:
+        $ref: '#/definitions/request_format.RouteLocation'
+    required:
+    - end
+    - start
+    type: object
 host: localhost:8080
 info:
   contact: {}
@@ -369,6 +486,97 @@ info:
   title: Concordia Waze API
   version: "1.0"
 paths:
+  /auth/google:
+    get:
+      consumes:
+      - application/json
+      description: 'Checks stored Google tokens for the authenticated user and returns
+        either a short-lived auth URL (when re-auth is required) or {"ok": true} when
+        the token is usable. This endpoint SHOULD be called by an authenticated user
+        (server-side JWT). The handler will use the server-side user ID from the auth
+        context (do not rely on query userId in production).'
+      parameters:
+      - description: Optional fallback userId if not available in auth context
+        in: query
+        name: userId
+        type: string
+      - default: Bearer <token>
+        description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: No valid token; frontend should redirect user to this URL
+          schema:
+            $ref: '#/definitions/handler.AuthURLResponse'
+        "400":
+          description: Missing userId or invalid request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Server error checking token or generating URL
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get Google OAuth2 status / auth URL
+      tags:
+      - auth
+  /auth/google/callback:
+    get:
+      consumes:
+      - application/json
+      description: Callback endpoint invoked by Google after user consent. Exchanges
+        the authorization code for tokens and persists them on the server. The `state`
+        parameter must be a signed short-lived token previously returned to the frontend
+        by GetAuthStatus (contains the userId). This endpoint is public (called by
+        Google) and must validate the signed state.
+      parameters:
+      - description: Authorization code returned by Google
+        in: query
+        name: code
+        required: true
+        type: string
+      - description: Signed state token issued by backend (contains userId and short
+          expiry)
+        in: query
+        name: state
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Tokens saved on server
+          schema:
+            $ref: '#/definitions/handler.TokenSaveResponse'
+        "302":
+          description: Redirect to configured frontend success URL
+          schema:
+            type: string
+        "400":
+          description: Missing or invalid code/state
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Failed to exchange code or save token
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Google OAuth2 callback
+      tags:
+      - auth
   /auth/login:
     post:
       consumes:
@@ -721,6 +929,36 @@ paths:
               type: string
             type: object
       summary: Get directions between coordinates
+      tags:
+      - directions
+    post:
+      consumes:
+      - application/json
+      description: Returns list of routes polyline + step instructions (walking/driving/transit/shuttle/bicycling)
+      parameters:
+      - description: Route request with start/end locations and preferences
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/request_format.RouteRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/domain.DirectionsResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get directions between coordinates, adapts between indoor/outdoor as
+        needed
       tags:
       - directions
   /directions/buildings:
@@ -1090,6 +1328,122 @@ paths:
       summary: Get shuttle marker positions
       tags:
       - shuttle
+  /users/{userId}/favorites:
+    get:
+      description: Retrieve all saved favorite locations for the given user. Returns
+        an empty array when no favorites exist.
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/domain.Favorite'
+            type: array
+        "403":
+          description: JWT user does not match path userId
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List favorites
+      tags:
+      - favorites
+    post:
+      consumes:
+      - application/json
+      description: Save a named location as a favorite for the given user. Supports
+        both outdoor (lat/lng) and indoor (building/floor/x/y) favorites. If "type"
+        is omitted the request is treated as outdoor for backward compatibility. Authenticated
+        users' favorites are persisted in Firestore; anonymous requests are kept in
+        memory.
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      - description: Favorite location
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.CreateFavoriteRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/domain.Favorite'
+        "400":
+          description: Missing or invalid fields
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: JWT user does not match path userId
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a favorite
+      tags:
+      - favorites
+  /users/{userId}/favorites/{id}:
+    delete:
+      description: Remove a saved favorite location by ID. Authenticated users may
+        only delete their own favorites (403 on mismatch). Returns 404 if the favorite
+        does not exist.
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      - description: Favorite ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: favorite deleted
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: JWT user does not match path userId
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Favorite not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a favorite
+      tags:
+      - favorites
   /users/{userId}/history:
     delete:
       description: Delete all destination history items for a user (keeps _init placeholder)
@@ -1488,207 +1842,6 @@ paths:
       summary: Update saved address
       tags:
       - addresses
-  /users/{userId}/schedule:
-    get:
-      description: Get schedule items for a user
-      parameters:
-      - description: User ID
-        in: path
-        name: userId
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/application.ScheduleItem'
-            type: array
-        "401":
-          description: Not authenticated
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "403":
-          description: Forbidden
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Get user schedule
-      tags:
-      - schedule
-    post:
-      consumes:
-      - application/json
-      description: Add a schedule item for a user
-      parameters:
-      - description: User ID
-        in: path
-        name: userId
-        required: true
-        type: string
-      - description: Schedule item
-        in: body
-        name: item
-        required: true
-        schema:
-          $ref: '#/definitions/application.ScheduleItem'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "401":
-          description: Not authenticated
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "403":
-          description: Forbidden
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Add schedule item
-      tags:
-      - schedule
-  /users/{userId}/schedule/{scheduleId}:
-    delete:
-      description: Delete a schedule item for a user
-      parameters:
-      - description: User ID
-        in: path
-        name: userId
-        required: true
-        type: string
-      - description: Schedule ID
-        in: path
-        name: scheduleId
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "401":
-          description: Not authenticated
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "403":
-          description: Forbidden
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Delete schedule item
-      tags:
-      - schedule
-    put:
-      consumes:
-      - application/json
-      description: Update a schedule item for a user
-      parameters:
-      - description: User ID
-        in: path
-        name: userId
-        required: true
-        type: string
-      - description: Schedule ID
-        in: path
-        name: scheduleId
-        required: true
-        type: string
-      - description: Schedule updates
-        in: body
-        name: updates
-        required: true
-        schema:
-          additionalProperties: true
-          type: object
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "401":
-          description: Not authenticated
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "403":
-          description: Forbidden
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Update schedule item
-      tags:
-      - schedule
 securityDefinitions:
   BearerAuth:
     description: Type "Bearer" followed by a space and JWT token.

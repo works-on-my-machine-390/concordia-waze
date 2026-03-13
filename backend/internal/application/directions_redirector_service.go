@@ -17,10 +17,10 @@ type directionsRedirectorService struct {
 	directionsFetcher DirectionsFetcher
 	indoorPathFinder  IndoorPathFinder
 	buildingReader    BuildingReader
-	poiRepository     repository.IndoorPOIRepository
+	poiRepository     repository.IndoorPOIGetter
 }
 
-func NewDirectionsRedirectorService(directionsFetcher DirectionsFetcher, indoorPathFinder IndoorPathFinder, poiRepository repository.IndoorPOIRepository, buildingReader BuildingReader) *directionsRedirectorService {
+func NewDirectionsRedirectorService(directionsFetcher DirectionsFetcher, indoorPathFinder IndoorPathFinder, poiRepository repository.IndoorPOIGetter, buildingReader BuildingReader) *directionsRedirectorService {
 	return &directionsRedirectorService{
 		directionsFetcher: directionsFetcher,
 		indoorPathFinder:  indoorPathFinder,
