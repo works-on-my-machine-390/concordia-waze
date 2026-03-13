@@ -269,17 +269,39 @@ definitions:
     type: object
   domain.Favorite:
     properties:
+      buildingCode:
+        description: Indoor fields
+        type: string
+      floorNumber:
+        type: integer
       id:
         type: string
       latitude:
+        description: Outdoor fields
         type: number
       longitude:
         type: number
       name:
         type: string
+      poiType:
+        type: string
+      type:
+        $ref: '#/definitions/domain.FavoriteType'
       userId:
         type: string
+      x:
+        type: number
+      "y":
+        type: number
     type: object
+  domain.FavoriteType:
+    enum:
+    - outdoor
+    - indoor
+    type: string
+    x-enum-varnames:
+    - FavoriteTypeOutdoor
+    - FavoriteTypeIndoor
   domain.Floor:
     properties:
       edges:
@@ -345,6 +367,11 @@ definitions:
       token:
         type: string
     type: object
+  handler.AuthURLResponse:
+    properties:
+      url:
+        type: string
+    type: object
   handler.BuildingImagesResponse:
     properties:
       building_code:
@@ -356,12 +383,27 @@ definitions:
     type: object
   handler.CreateFavoriteRequest:
     properties:
+      buildingCode:
+        description: |-
+          Indoor-specific fields. Pointer types allow the handler to distinguish
+          "field not provided" from "field provided as zero".
+        type: string
+      floorNumber:
+        type: integer
       latitude:
         type: number
       longitude:
         type: number
       name:
         type: string
+      poiType:
+        type: string
+      type:
+        type: string
+      x:
+        type: number
+      "y":
+        type: number
     required:
     - name
     type: object
@@ -389,6 +431,20 @@ definitions:
     - name
     - password
     type: object
+  handler.StatusOKResponse:
+    properties:
+      ok:
+        type: boolean
+    type: object
+  handler.TokenSaveResponse:
+    properties:
+      message:
+        type: string
+      ok:
+        type: boolean
+      userId:
+        type: string
+    type: object
 host: localhost:8080
 info:
   contact: {}
@@ -396,6 +452,97 @@ info:
   title: Concordia Waze API
   version: "1.0"
 paths:
+  /auth/google:
+    get:
+      consumes:
+      - application/json
+      description: 'Checks stored Google tokens for the authenticated user and returns
+        either a short-lived auth URL (when re-auth is required) or {"ok": true} when
+        the token is usable. This endpoint SHOULD be called by an authenticated user
+        (server-side JWT). The handler will use the server-side user ID from the auth
+        context (do not rely on query userId in production).'
+      parameters:
+      - description: Optional fallback userId if not available in auth context
+        in: query
+        name: userId
+        type: string
+      - default: Bearer <token>
+        description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: No valid token; frontend should redirect user to this URL
+          schema:
+            $ref: '#/definitions/handler.AuthURLResponse'
+        "400":
+          description: Missing userId or invalid request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Server error checking token or generating URL
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get Google OAuth2 status / auth URL
+      tags:
+      - auth
+  /auth/google/callback:
+    get:
+      consumes:
+      - application/json
+      description: Callback endpoint invoked by Google after user consent. Exchanges
+        the authorization code for tokens and persists them on the server. The `state`
+        parameter must be a signed short-lived token previously returned to the frontend
+        by GetAuthStatus (contains the userId). This endpoint is public (called by
+        Google) and must validate the signed state.
+      parameters:
+      - description: Authorization code returned by Google
+        in: query
+        name: code
+        required: true
+        type: string
+      - description: Signed state token issued by backend (contains userId and short
+          expiry)
+        in: query
+        name: state
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Tokens saved on server
+          schema:
+            $ref: '#/definitions/handler.TokenSaveResponse'
+        "302":
+          description: Redirect to configured frontend success URL
+          schema:
+            type: string
+        "400":
+          description: Missing or invalid code/state
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Failed to exchange code or save token
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Google OAuth2 callback
+      tags:
+      - auth
   /auth/login:
     post:
       consumes:
@@ -1150,12 +1297,13 @@ paths:
     post:
       consumes:
       - application/json
-      description: Save a named location as a favorite for the given user. Authenticated
+      description: Save a named location as a favorite for the given user. Supports
+        both outdoor (lat/lng) and indoor (building/floor/x/y) favorites. If "type"
+        is omitted the request is treated as outdoor for backward compatibility. Authenticated
         users' favorites are persisted in Firestore; anonymous requests are kept in
         memory.
       parameters:
-      - description: User ID (use the id from signup/login for authenticated requests,
-          any string for anonymous)
+      - description: User ID
         in: path
         name: userId
         required: true
@@ -1174,7 +1322,7 @@ paths:
           schema:
             $ref: '#/definitions/domain.Favorite'
         "400":
-          description: Missing or invalid name
+          description: Missing or invalid fields
           schema:
             additionalProperties:
               type: string
