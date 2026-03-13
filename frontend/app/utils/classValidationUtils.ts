@@ -36,21 +36,21 @@ export const validateTimeRange = (
 };
 
 export const validateNoTimeOverlap = (
-  newSession: { day: string; start_time: string; end_time: string },
-  existingSessions: { day: string; start_time: string; end_time: string }[],
+  newSession: { day: string; startTime: string; endTime: string },
+  existingSessions: { day: string; startTime: string; endTime: string }[],
 ): string | null => {
   const toMinutes = (time: string): number => {
     const [hours, minutes] = time.split(":").map(Number);
     return hours * 60 + minutes;
   };
 
-  const newStart = toMinutes(newSession.start_time);
-  const newEnd = toMinutes(newSession.end_time);
+  const newStart = toMinutes(newSession.startTime);
+  const newEnd = toMinutes(newSession.endTime);
 
   for (const session of existingSessions) {
     if (session.day !== newSession.day) continue;
-    const existingStart = toMinutes(session.start_time);
-    const existingEnd = toMinutes(session.end_time);
+    const existingStart = toMinutes(session.startTime);
+    const existingEnd = toMinutes(session.endTime);
     if (newStart < existingEnd && newEnd > existingStart) {
       return `This class overlaps with an existing class.`;
     }

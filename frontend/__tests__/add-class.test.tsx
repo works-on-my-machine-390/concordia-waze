@@ -12,8 +12,8 @@ jest.mock("@/components/classes/AddClassInfoForm", () => {
           type: "Lecture",
           section: "N",
           day: "MON",
-          start_time: "10:00",
-          end_time: "12:00",
+          startTime: "10:00",
+          endTime: "12:00",
           buildingCode: "H",
           room: "110",
         })}>

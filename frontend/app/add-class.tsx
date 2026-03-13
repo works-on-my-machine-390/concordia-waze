@@ -86,7 +86,7 @@ export default function AddClassScreen() {
             <View style={styles.classInfoSummary}>
               {classInfo.map((s, index) => (
                 <ClassInfoCard
-                  key={`${s.type}-${s.day}-${s.start_time}`}
+                  key={`${s.type}-${s.day}-${s.startTime}`}
                   courseName={courseName}
                   classInfo={s}
                   onDelete={() => handleDeleteSession(index)}

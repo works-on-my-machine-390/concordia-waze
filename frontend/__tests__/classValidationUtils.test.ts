@@ -85,13 +85,13 @@ describe("validateTimeRange", () => {
 
 describe("validateNoTimeOverlap", () => {
   const existingSessions = [
-    { day: "MON", start_time: "10:00", end_time: "12:00" },
+    { day: "MON", startTime: "10:00", endTime: "12:00" },
   ];
 
   test("returns error when sessions overlap on same day", () => {
     expect(
       validateNoTimeOverlap(
-        { day: "MON", start_time: "11:00", end_time: "13:00" },
+        { day: "MON", startTime: "11:00", endTime: "13:00" },
         existingSessions
       )
     ).toBe("This class overlaps with an existing class.");
@@ -100,7 +100,7 @@ describe("validateNoTimeOverlap", () => {
   test("returns null when sessions are on different days", () => {
     expect(
       validateNoTimeOverlap(
-        { day: "TUE", start_time: "11:00", end_time: "13:00" },
+        { day: "TUE", startTime: "11:00", endTime: "13:00" },
         existingSessions
       )
     ).toBeNull();
@@ -109,7 +109,7 @@ describe("validateNoTimeOverlap", () => {
   test("returns null when sessions are on same day but no overlap", () => {
     expect(
       validateNoTimeOverlap(
-        { day: "MON", start_time: "12:00", end_time: "13:00" },
+        { day: "MON", startTime: "12:00", endTime: "13:00" },
         existingSessions
       )
     ).toBeNull();
@@ -118,7 +118,7 @@ describe("validateNoTimeOverlap", () => {
   test("returns null when no existing sessions", () => {
     expect(
       validateNoTimeOverlap(
-        { day: "MON", start_time: "10:00", end_time: "12:00" },
+        { day: "MON", startTime: "10:00", endTime: "12:00" },
         []
       )
     ).toBeNull();
