@@ -57,6 +57,7 @@ func AuthMiddleware(jwtManager *application.JWTManager) gin.HandlerFunc {
 
 		// Set user and token expiration in context
 		c.Set("user", claims)
+		c.Set("userID", claims.ID)
 		c.Set("token_exp", expTime)
 		c.Next()
 	}

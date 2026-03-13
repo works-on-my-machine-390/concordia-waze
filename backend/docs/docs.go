@@ -39,14 +39,6 @@ const docTemplate = `{
                         "description": "Optional fallback userId if not available in auth context",
                         "name": "userId",
                         "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "default": "Bearer \u003ctoken\u003e",
-                        "description": "Bearer token",
-                        "name": "Authorization",
-                        "in": "header",
-                        "required": true
                     }
                 ],
                 "responses": {

@@ -466,12 +466,6 @@ paths:
         in: query
         name: userId
         type: string
-      - default: Bearer <token>
-        description: Bearer token
-        in: header
-        name: Authorization
-        required: true
-        type: string
       produces:
       - application/json
       responses:

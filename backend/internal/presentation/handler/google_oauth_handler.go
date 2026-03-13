@@ -110,7 +110,7 @@ func (h *GoogleOAuthHandler) makeAuthURL(userID string) (string, error) {
 // extractUserID obtains the user identifier from Gin context or query
 func extractUserID(c *gin.Context) string {
 	// 1) common middleware key
-	if v, ok := c.Get("userId"); ok {
+	if v, ok := c.Get("userID"); ok {
 		if s, ok2 := v.(string); ok2 && s != "" {
 			return s
 		}
@@ -137,7 +137,6 @@ func extractUserID(c *gin.Context) string {
 // @Accept      json
 // @Produce     json
 // @Param       userId query string false "Optional fallback userId if not available in auth context"
-// @Param       Authorization header string true "Bearer token" default(Bearer <token>)
 // @Success     200 {object} StatusOKResponse "Token is present and valid"
 // @Success     200 {object} AuthURLResponse "No valid token; frontend should redirect user to this URL"
 // @Failure     400 {object} map[string]string "Missing userId or invalid request"
