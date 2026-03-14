@@ -74,9 +74,10 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^20.11.0",
     "@types/react": "~19.1.0",
+    "babel-preset-expo": "~54.0.0",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~10.0.0",
-    "jest-expo": "^47.0.1",
+    "jest-expo": "~54.0.0",
     "typescript": "~5.9.2"
   },
   "overrides": {
