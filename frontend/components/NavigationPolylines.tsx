@@ -1,13 +1,13 @@
 import { DIRECTION_COLORS } from "@/app/constants";
 import { directionPolylineStyles } from "@/app/styles/directionStyles";
 import {
+  DirectionsResponseBlockType,
   StepModel,
   TransitMode,
-  useGetDirections,
 } from "@/hooks/queries/navigationQueries";
 import { useNavigationStore } from "@/hooks/useNavigationStore";
 import polyline from "@mapbox/polyline";
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { Marker, Polyline } from "react-native-maps";
 export type NavigationPolylinesProps = {
   showEndPoint?: boolean;
@@ -17,21 +17,11 @@ export default function NavigationPolylines(
   props: Readonly<NavigationPolylinesProps>,
 ) {
   const navigationState = useNavigationStore();
-
-  const directionsQuery = useGetDirections(
-    navigationState.startLocation,
-    navigationState.endLocation,
-    navigationState.transitMode,
-    new Date(),
-  );
-
-  useEffect(() => {
-    if (directionsQuery.data) {
-      navigationState.setCurrentDirections(directionsQuery.data);
-    }
-  }, [directionsQuery.data]);
-
-  const steps: StepModel[] = directionsQuery.data?.steps || [];
+  const outdoorDirections =
+    navigationState.currentDirections?.directionBlocks?.find(
+      (block) => block.type === DirectionsResponseBlockType.OUTDOOR,
+    )?.directionsByMode?.[navigationState.transitMode];
+  const steps: StepModel[] = outdoorDirections?.steps || [];
 
   const stepsWithDecodedPolylines = useMemo(() => {
     return steps.map((step) => {
@@ -68,7 +58,7 @@ export default function NavigationPolylines(
     }
   };
 
-  if (!directionsQuery.data) return null;
+  if (!outdoorDirections) return null;
 
   return (
     <>

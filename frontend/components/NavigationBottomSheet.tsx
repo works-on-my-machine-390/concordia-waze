@@ -260,7 +260,7 @@ export default function NavigationBottomSheet(
             <OutdoorNavigationSteps
               directions={navigationState.currentDirections.directionBlocks.find(
                 (block) => block.type === DirectionsResponseBlockType.OUTDOOR,
-              )?.directionsByMode[selectedOption.mode.toLowerCase() || ""]}
+              )?.directionsByMode[selectedOption.mode || ""]}
             />
           )}
         </BottomSheetScrollView>
