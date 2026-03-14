@@ -13,6 +13,9 @@ import {
 import { renderWithProviders } from "../test_utils/renderUtils";
 import ShuttleSchedule from "../app/(drawer)/shuttle";
 
+const mockStartTaskTimer = jest.fn();
+const mockEndTaskTimer = jest.fn();
+
 // ── Navigation mock
 const mockDispatch = jest.fn();
 jest.mock("@react-navigation/native", () => ({
@@ -25,6 +28,11 @@ jest.mock("@react-navigation/native", () => ({
 const mockUseGetShuttleSchedule = jest.fn();
 jest.mock("@/hooks/queries/shuttleQueries", () => ({
   useGetShuttleSchedule: () => mockUseGetShuttleSchedule(),
+}));
+
+jest.mock("@/lib/telemetry", () => ({
+  startTaskTimer: (...args: any[]) => mockStartTaskTimer(...args),
+  endTaskTimer: (...args: any[]) => mockEndTaskTimer(...args),
 }));
 
 // ── Types
@@ -68,7 +76,10 @@ const mockError = (msg = "HTTP 500") =>
 // ── Tests
 
 describe("ShuttleSchedule screen", () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockEndTaskTimer.mockResolvedValue(1000);
+  });
   afterEach(() => cleanup());
 
   // Loading / error states
@@ -76,8 +87,8 @@ describe("ShuttleSchedule screen", () => {
     mockLoading();
     expect(
       renderWithProviders(<ShuttleSchedule />).UNSAFE_getByType(
-        ActivityIndicator
-      )
+        ActivityIndicator,
+      ),
     ).toBeTruthy();
   });
 
@@ -85,15 +96,15 @@ describe("ShuttleSchedule screen", () => {
     mockError("HTTP 500");
     expect(
       renderWithProviders(<ShuttleSchedule />).getByText(
-        /Could not load schedule — HTTP 500/
-      )
+        /Could not load schedule — HTTP 500/,
+      ),
     ).toBeTruthy();
   });
 
   test("shows Try Again button on error", () => {
     mockError();
     expect(
-      renderWithProviders(<ShuttleSchedule />).getByText("Try Again")
+      renderWithProviders(<ShuttleSchedule />).getByText("Try Again"),
     ).toBeTruthy();
   });
 
@@ -116,7 +127,7 @@ describe("ShuttleSchedule screen", () => {
   test("renders title", () => {
     mockLoaded();
     expect(
-      renderWithProviders(<ShuttleSchedule />).getByText("Shuttle Bus")
+      renderWithProviders(<ShuttleSchedule />).getByText("Shuttle Bus"),
     ).toBeTruthy();
   });
 
@@ -124,7 +135,7 @@ describe("ShuttleSchedule screen", () => {
     mockLoaded();
     const { getByText } = renderWithProviders(<ShuttleSchedule />);
     ["Mon", "Tue", "Wed", "Thu", "Fri"].forEach((d) =>
-      expect(getByText(d)).toBeTruthy()
+      expect(getByText(d)).toBeTruthy(),
     );
   });
 
@@ -141,7 +152,7 @@ describe("ShuttleSchedule screen", () => {
     const { getByText } = renderWithProviders(<ShuttleSchedule />);
     expect(getByText("ID Required")).toBeTruthy();
     expect(
-      getByText("Show your Concordia student or staff card.")
+      getByText("Show your Concordia student or staff card."),
     ).toBeTruthy();
   });
 
@@ -157,14 +168,14 @@ describe("ShuttleSchedule screen", () => {
   test("defaults to Monday tab and shows day label", () => {
     mockLoaded();
     expect(
-      renderWithProviders(<ShuttleSchedule />).getByText("Monday")
+      renderWithProviders(<ShuttleSchedule />).getByText("Monday"),
     ).toBeTruthy();
   });
 
   test("shows correct departure count for Monday", () => {
     mockLoaded();
     expect(
-      renderWithProviders(<ShuttleSchedule />).getByText("3 departures")
+      renderWithProviders(<ShuttleSchedule />).getByText("3 departures"),
     ).toBeTruthy();
   });
 
@@ -262,7 +273,7 @@ describe("ShuttleSchedule screen", () => {
     };
     mockLoaded(data);
     expect(
-      renderWithProviders(<ShuttleSchedule />).getAllByText("—").length
+      renderWithProviders(<ShuttleSchedule />).getAllByText("—").length,
     ).toBeGreaterThanOrEqual(2);
   });
 
@@ -272,7 +283,7 @@ describe("ShuttleSchedule screen", () => {
     };
     mockLoaded(data);
     expect(
-      renderWithProviders(<ShuttleSchedule />).getAllByText("—").length
+      renderWithProviders(<ShuttleSchedule />).getAllByText("—").length,
     ).toBeGreaterThanOrEqual(2);
   });
 
@@ -280,14 +291,53 @@ describe("ShuttleSchedule screen", () => {
     const data: PartialSchedule = { monday: { LOY: [], SGW: [] } };
     mockLoaded(data);
     expect(
-      renderWithProviders(<ShuttleSchedule />).getByText("0 departures")
+      renderWithProviders(<ShuttleSchedule />).getByText("0 departures"),
     ).toBeTruthy();
   });
 
   test("shows 0 departures when data has no entry for selected day", () => {
     mockLoaded({});
     expect(
-      renderWithProviders(<ShuttleSchedule />).getByText("0 departures")
+      renderWithProviders(<ShuttleSchedule />).getByText("0 departures"),
     ).toBeTruthy();
+  });
+
+  test("starts telemetry timer on mount", () => {
+    mockLoaded();
+    renderWithProviders(<ShuttleSchedule />);
+
+    expect(mockStartTaskTimer).toHaveBeenCalledWith("view_shuttle_schedule");
+  });
+
+  test("ends telemetry timer with success true when schedule loaded", () => {
+    mockLoaded();
+    const screen = renderWithProviders(<ShuttleSchedule />);
+
+    screen.unmount();
+
+    expect(mockEndTaskTimer).toHaveBeenCalledWith(
+      "view_shuttle_schedule",
+      expect.objectContaining({
+        success: true,
+        selected_day: "monday",
+        departures_displayed: 3,
+      }),
+    );
+  });
+
+  test("ends telemetry timer with success false when schedule fails", () => {
+    mockError("fail");
+    const screen = renderWithProviders(<ShuttleSchedule />);
+
+    screen.unmount();
+
+    expect(mockEndTaskTimer).toHaveBeenCalledWith(
+      "view_shuttle_schedule",
+      expect.objectContaining({
+        success: false,
+        selected_day: "monday",
+        departures_displayed: 0,
+      }),
+    );
   });
 });

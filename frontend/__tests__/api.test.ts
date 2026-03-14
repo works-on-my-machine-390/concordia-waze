@@ -1,4 +1,5 @@
-import { api, API_URL } from "../hooks/api";
+import { AUTH_EXPIRED_EVENT, api, API_URL, isTokenExpired } from "../hooks/api";
+import * as SecureStore from "expo-secure-store";
 
 // Mock wretch
 jest.mock("wretch", () => {
@@ -13,8 +14,16 @@ jest.mock("wretch", () => {
 });
 
 describe("api", () => {
+  const originalDev = (globalThis as any).__DEV__;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    (globalThis as any).__DEV__ = true;
+    delete process.env.EXPO_PUBLIC_API_URL;
+  });
+
+  afterAll(() => {
+    (globalThis as any).__DEV__ = originalDev;
   });
 
   test("API_URL defaults to localhost:8080", () => {
@@ -56,7 +65,7 @@ describe("api", () => {
 
   test("api() with undefined token calls without auth header", async () => {
     const wretch = require("wretch");
-    await api(undefined);
+    await api();
     expect(wretch).toHaveBeenCalledWith("http://localhost:8080");
   });
 
@@ -67,8 +76,7 @@ describe("api", () => {
       headers: mockHeadersFn,
     });
 
-    const longToken =
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c";
+    const longToken = "header.payload.signature-with-many-characters";
 
     await api(longToken);
 
@@ -85,7 +93,33 @@ describe("api", () => {
 
     await api(expiredToken);
 
-    expect(emitSpy).toHaveBeenCalledWith("auth:expired");
+    expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith("accessToken");
+    expect(emitSpy).toHaveBeenCalledWith(AUTH_EXPIRED_EVENT);
     expect(wretch).toHaveBeenCalledWith("http://localhost:8080");
+  });
+
+  test("isTokenExpired() returns true for malformed token payload", () => {
+    expect(isTokenExpired("not-a-jwt")).toBe(true);
+  });
+
+  test("API_URL uses EXPO_PUBLIC_API_URL when configured", () => {
+    jest.resetModules();
+    process.env.EXPO_PUBLIC_API_URL = "https://api.example.com/";
+
+    jest.isolateModules(() => {
+      const isolated = require("../hooks/api");
+      expect(isolated.API_URL).toBe("https://api.example.com");
+    });
+  });
+
+  test("API_URL uses production fallback when not in development", () => {
+    jest.resetModules();
+    delete process.env.EXPO_PUBLIC_API_URL;
+
+    jest.isolateModules(() => {
+      (globalThis as any).__DEV__ = false;
+      const isolated = require("../hooks/api");
+      expect(isolated.API_URL).toBe("https://concordia-waze.onrender.com");
+    });
   });
 });
