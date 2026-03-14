@@ -47,6 +47,78 @@
         ],
         "poi": [
           {
+            "name": "poi_1",
+            "type": "bathroom",
+            "position": {
+              "x": 0.15601471774971287,
+              "y": 0.3692630422970069
+            },
+            "polygon": []
+          },
+          {
+            "name": "poi_2",
+            "type": "stairs",
+            "position": {
+              "x": 0.3354214920609593,
+              "y": 0.3677786312396165
+            },
+            "polygon": []
+          },
+          {
+            "name": "poi_3",
+            "type": "stairs",
+            "position": {
+              "x": 0.3649878850992536,
+              "y": 0.5167335835872109
+            },
+            "polygon": []
+          },
+          {
+            "name": "poi_4",
+            "type": "stairs",
+            "position": {
+              "x": 0.6298487717522221,
+              "y": 0.510766353348572
+            },
+            "polygon": []
+          },
+          {
+            "name": "poi_5",
+            "type": "stairs",
+            "position": {
+              "x": 0.650417180318982,
+              "y": 0.35468867455392683
+            },
+            "polygon": []
+          },
+          {
+            "name": "poi_6",
+            "type": "stairs",
+            "position": {
+              "x": 0.8483878099368667,
+              "y": 0.5107174455447421
+            },
+            "polygon": []
+          },
+          {
+            "name": "poi_7",
+            "type": "stairs",
+            "position": {
+              "x": 0.8368753764943904,
+              "y": 0.36332095723400926
+            },
+            "polygon": []
+          },
+          {
+            "name": "poi_8",
+            "type": "stairs",
+            "position": {
+              "x": 0.88485370221224,
+              "y": 0.6088430076401892
+            },
+            "polygon": []
+          },
+          {
             "name": "Room 122",
             "type": "room",
             "position": {
@@ -6660,15 +6732,6 @@
             "polygon": []
           },
           {
-            "name": "poi_61",
-            "type": "exit",
-            "position": {
-              "x": 0.21071823759371,
-              "y": 0.42978665468126565
-            },
-            "polygon": []
-          },
-          {
             "name": "Ireland Reading Room",
             "type": "room",
             "position": {
@@ -8683,7 +8746,7 @@
           },
           {
             "name": "poi_60",
-            "type": "fireescape",
+            "type": "fire_escape",
             "position": {
               "x": 0.16513488400255483,
               "y": 0.5146049323057014
@@ -10242,24 +10305,6 @@
             "polygon": []
           },
           {
-            "name": "poi_28",
-            "type": "exit",
-            "position": {
-              "x": 0.06758832141986204,
-              "y": 0.8965950311999222
-            },
-            "polygon": []
-          },
-          {
-            "name": "poi_29",
-            "type": "exit",
-            "position": {
-              "x": 0.8934430749304738,
-              "y": 0.7403751946221746
-            },
-            "polygon": []
-          },
-          {
             "name": "210",
             "type": "room",
             "position": {
@@ -10524,15 +10569,6 @@
             "polygon": []
           },
           {
-            "name": "poi_34",
-            "type": "exit",
-            "position": {
-              "x": 0.48499466539192326,
-              "y": 0.9660781864913588
-            },
-            "polygon": []
-          },
-          {
             "name": "Special Collections",
             "type": "room",
             "position": {
@@ -10743,7 +10779,7 @@
           },
           {
             "name": "poi_14",
-            "type": "fireescape",
+            "type": "fire_escape",
             "position": {
               "x": 0.683998057357428,
               "y": 0.2668542813144086
@@ -10979,7 +11015,7 @@
           },
           {
             "name": "poi_27",
-            "type": "fireescape",
+            "type": "fire_escape",
             "position": {
               "x": 0.68046647487472,
               "y": 0.26584571836883697

@@ -6,6 +6,7 @@ import (
 	"math"
 	"strings"
 
+	"github.com/works-on-my-machine-390/concordia-waze/internal/constants"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
 )
 
@@ -37,10 +38,6 @@ const (
 	TurnRight    TurnDirection = "right"
 	TurnStraight TurnDirection = "straight"
 )
-
-// StraightTurnThreshold is the cosine threshold for considering a turn as "straight" (cos 15°)
-const StraightTurnThreshold = 0.966
-const DistanceToMeterRatio = 66.8
 
 type IndoorPathFinder interface {
 	ShortestPath(req IndoorPathRequest) (*IndoorPathResult, error)
@@ -168,7 +165,6 @@ func (s *IndoorPathService) MultiFloorShortestPath(req MultiFloorPathRequest) (*
 		return nil, errors.New("start coordinate or startRoom is required")
 	}
 	if req.EndCoord == nil && req.EndRoom == "" {
-		//return nil, errors.New("end coordinate or endRoom is required")
 		return nil, fmt.Errorf("end coordinate or endRoom is required for building %s floor %d", req.BuildingCode, req.EndFloor)
 	}
 
@@ -585,7 +581,7 @@ func (g *graph) shortestPath(start, goal int) ([]int, float64, error) {
 		path[i], path[j] = path[j], path[i]
 	}
 
-	return path, DistanceToMeterRatio * dist[goal], nil
+	return path, constants.IndoorPathDistanceToMeterRatio * dist[goal], nil
 }
 
 // calculateTurnDirections computes turn directions (left/right/straight) at each point in the path
@@ -621,7 +617,7 @@ func calculateTurnDirections(coords []domain.Coordinates) []TurnDirection {
 
 		if magCurr > 0 && magNext > 0 {
 			cosAngle := dotProduct / (magCurr * magNext)
-			if cosAngle > StraightTurnThreshold {
+			if cosAngle > constants.IndoorPathStraightTurnThreshold {
 				directions = append(directions, TurnStraight)
 			} else if crossProduct > 0 {
 				directions = append(directions, TurnLeft)

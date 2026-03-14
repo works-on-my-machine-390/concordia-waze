@@ -13,13 +13,13 @@ import (
 )
 
 type DirectionsHandler struct {
-	directionsRedirector application.DirectionsRedirecter
+	directionsRedirector application.DirectionsRedirector
 	directions           *application.DirectionsService
 	buildings            *application.BuildingService
 }
 
 func NewDirectionsHandler(
-	directionsRedirector application.DirectionsRedirecter,
+	directionsRedirector application.DirectionsRedirector,
 	directionsService *application.DirectionsService,
 	buildingsService *application.BuildingService,
 ) *DirectionsHandler {

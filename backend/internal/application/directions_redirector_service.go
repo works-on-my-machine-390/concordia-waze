@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/works-on-my-machine-390/concordia-waze/internal/constants"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/domain/request_format"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/persistence/repository"
 )
 
-type DirectionsRedirecter interface {
+type DirectionsRedirector interface {
 	GetFullDirections(request *request_format.RouteRequest) ([]fullDirectionsResponse, error)
 }
 
@@ -246,13 +247,11 @@ func (s *directionsRedirectorService) GetDuration(response []fullDirectionsRespo
 		"walking": 0,
 	}
 
-	const walkingSpeedMps = 1.42
-
 	for _, res := range response {
 		switch res.Type {
 		case "indoor":
 			if indoorBody, ok := res.Body.(*MultiFloorPathResult); ok && indoorBody != nil {
-				indoorTime += int(float64(indoorBody.TotalDistance) / walkingSpeedMps)
+				indoorTime += int(float64(indoorBody.TotalDistance) / constants.WalkingSpeedMps)
 			}
 		case "outdoor":
 			if outdoorBody, ok := res.Body.([]domain.DirectionsResponse); ok {

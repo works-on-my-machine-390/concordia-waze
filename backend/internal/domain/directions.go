@@ -25,7 +25,7 @@ type DirectionsResponse struct {
 	Mode             string          `json:"mode"`
 	DepartureMessage string          `json:"departure_message,omitempty"`
 	Distance         string          `json:"distance,omitempty"`
-	Duration         int             `json:"duration,omitempty"`
+	Duration         int             `json:"duration,omitempty"` // duration in seconds
 	Polyline         string          `json:"polyline"`
 	Steps            []DirectionStep `json:"steps"`
 }
