@@ -2,9 +2,11 @@ package application
 
 import (
 	"errors"
+	"fmt"
 	"math"
 	"strings"
 
+	"github.com/works-on-my-machine-390/concordia-waze/internal/constants"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
 )
 
@@ -37,8 +39,10 @@ const (
 	TurnStraight TurnDirection = "straight"
 )
 
-// StraightTurnThreshold is the cosine threshold for considering a turn as "straight" (cos 15°)
-const StraightTurnThreshold = 0.966
+type IndoorPathFinder interface {
+	ShortestPath(req IndoorPathRequest) (*IndoorPathResult, error)
+	MultiFloorShortestPath(req MultiFloorPathRequest) (*MultiFloorPathResult, error)
+}
 
 type FloorGetter interface {
 	GetBuildingFloors(code string) ([]domain.Floor, error)
@@ -161,7 +165,7 @@ func (s *IndoorPathService) MultiFloorShortestPath(req MultiFloorPathRequest) (*
 		return nil, errors.New("start coordinate or startRoom is required")
 	}
 	if req.EndCoord == nil && req.EndRoom == "" {
-		return nil, errors.New("end coordinate or endRoom is required")
+		return nil, fmt.Errorf("end coordinate or endRoom is required for building %s floor %d", req.BuildingCode, req.EndFloor)
 	}
 
 	floors, err := s.floors.GetBuildingFloors(req.BuildingCode)
@@ -425,21 +429,26 @@ func (s *IndoorPathService) resolveEndpoints(req IndoorPathRequest, g *graph, fl
 
 func (s *IndoorPathService) roomCentroid(building string, floorNum int, room string) (*domain.Coordinates, error) {
 	rooms, err := s.rooms.GetByBuilding(building)
+	fmt.Println(rooms)
 	if err != nil {
 		return nil, err
 	}
 
 	target := normalizeRoom(room)
+	fmt.Println(target)
 	for _, r := range rooms {
 		if r.Floor != floorNum {
 			continue
 		}
+
+		room2 := normalizeRoom(r.Room)
+		fmt.Println(room2)
 		if normalizeRoom(r.Room) == target {
 			return &domain.Coordinates{X: r.Centroid.X, Y: r.Centroid.Y}, nil
 		}
 	}
 
-	return nil, errors.New("room not found on that floor")
+	return nil, fmt.Errorf("room '%s' not found on floor %d of building %s", room, floorNum, building)
 }
 
 func normalizeRoom(s string) string {
@@ -572,7 +581,7 @@ func (g *graph) shortestPath(start, goal int) ([]int, float64, error) {
 		path[i], path[j] = path[j], path[i]
 	}
 
-	return path, dist[goal], nil
+	return path, constants.IndoorPathDistanceToMeterRatio * dist[goal], nil
 }
 
 // calculateTurnDirections computes turn directions (left/right/straight) at each point in the path
@@ -608,7 +617,7 @@ func calculateTurnDirections(coords []domain.Coordinates) []TurnDirection {
 
 		if magCurr > 0 && magNext > 0 {
 			cosAngle := dotProduct / (magCurr * magNext)
-			if cosAngle > StraightTurnThreshold {
+			if cosAngle > constants.IndoorPathStraightTurnThreshold {
 				directions = append(directions, TurnStraight)
 			} else if crossProduct > 0 {
 				directions = append(directions, TurnLeft)

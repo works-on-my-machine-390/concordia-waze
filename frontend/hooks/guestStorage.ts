@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   SavedAddress,
-  ScheduleItem,
+  CourseItem,
   SearchHistoryItem,
   UserProfile,
 } from "./firebase/useFirestore";
@@ -42,6 +42,7 @@ export const setGuestProfile = async (profile: UserProfile): Promise<void> => {
   await AsyncStorage.setItem(buildKey("profile"), JSON.stringify(profile));
 };
 
+// === History ===
 export const addGuestSearchHistory = async (
   item: SearchHistoryItem,
 ): Promise<void> => {
@@ -59,24 +60,28 @@ export const clearGuestSearchHistory = async (): Promise<void> => {
   await AsyncStorage.removeItem(buildKey("searchHistory"));
 };
 
-export const addGuestScheduleItem = async (
-  item: ScheduleItem,
+// === Schedule ===
+
+export const addGuestCourse = async (
+  item: CourseItem,
 ): Promise<void> => {
-  const key = buildKey("schedule");
-  const items = await readList<ScheduleItem>(key);
+  const key = buildKey("courses");
+  const items = await readList<CourseItem>(key);
   items.push(item);
   await writeList(key, items);
 };
 
-export const getGuestSchedule = async (): Promise<ScheduleItem[]> => {
-  return readList<ScheduleItem>(buildKey("schedule"));
+export const getGuestCourses = async (): Promise<CourseItem[]> => {
+  return readList<CourseItem>(buildKey("courses"));
 };
 
-export const setGuestSchedule = async (
-  items: ScheduleItem[],
+export const setGuestCourses = async (
+  items: CourseItem[],
 ): Promise<void> => {
-  await writeList(buildKey("schedule"), items);
+  await writeList(buildKey("courses"), items);
 };
+
+// === Address ==
 
 export const addGuestSavedAddress = async (
   item: SavedAddress,
@@ -101,7 +106,7 @@ export const clearGuestData = async (): Promise<void> => {
   await AsyncStorage.multiRemove([
     buildKey("profile"),
     buildKey("searchHistory"),
-    buildKey("schedule"),
+    buildKey("courses"),
     buildKey("savedAddresses"),
   ]);
 };
