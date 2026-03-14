@@ -1,4 +1,4 @@
-// Validation functions returning the error message string if invalid, or null if valid. 
+// Validation functions returning the error message string if invalid, or null if valid.
 // This is just to allow both checking and displaying the error in one step in the UI.
 
 export const validateCourseName = (name: string): string | null => {
@@ -36,23 +36,29 @@ export const validateTimeRange = (
 };
 
 export const validateNoTimeOverlap = (
-  newSession: { day: string; startTime: string; endTime: string },
-  existingSessions: { day: string; startTime: string; endTime: string }[],
+  newClass: { day: string; startTime: string; endTime: string },
+  existingClasses: {
+    day: string;
+    startTime: string;
+    endTime: string;
+    courseName?: string;
+  }[],
 ): string | null => {
   const toMinutes = (time: string): number => {
     const [hours, minutes] = time.split(":").map(Number);
     return hours * 60 + minutes;
   };
-
-  const newStart = toMinutes(newSession.startTime);
-  const newEnd = toMinutes(newSession.endTime);
-
-  for (const session of existingSessions) {
-    if (session.day !== newSession.day) continue;
-    const existingStart = toMinutes(session.startTime);
-    const existingEnd = toMinutes(session.endTime);
+  const newStart = toMinutes(newClass.startTime);
+  const newEnd = toMinutes(newClass.endTime);
+  for (const existing of existingClasses) {
+    if (existing.day !== newClass.day) continue;
+    const existingStart = toMinutes(existing.startTime);
+    const existingEnd = toMinutes(existing.endTime);
     if (newStart < existingEnd && newEnd > existingStart) {
-      return `This class overlaps with an existing class.`;
+      if (existing.courseName) {
+        return `This class overlaps with ${existing.courseName} on ${existing.day} ${existing.startTime} - ${existing.endTime}.`;
+      }
+      return "This class overlaps with an existing class.";
     }
   }
   return null;

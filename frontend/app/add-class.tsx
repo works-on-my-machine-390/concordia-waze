@@ -1,6 +1,6 @@
 import BackHeader from "@/components/BackHeader";
-import { router } from "expo-router";
-import { useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -18,7 +18,8 @@ import AddClassInfoForm, {
   ClassInfoFormData,
 } from "../components/classes/AddClassInfoForm";
 import ClassInfoCard from "../components/classes/ClassInfoCard";
-import { addGuestCourse } from "../hooks/guestStorage";
+import { ClassItem, CourseItem } from "../hooks/firebase/useFirestore";
+import { addGuestCourse, getGuestCourses } from "../hooks/guestStorage";
 import { COLORS } from "./constants";
 
 export default function AddClassScreen() {
@@ -27,6 +28,21 @@ export default function AddClassScreen() {
   const [showClassInfoForm, setShowClassInfoForm] = useState(false);
   const [courseNameError, setCourseNameError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [storedClasses, setStoredClasses] = useState<ClassItem[]>([]);
+
+  const addCourseNameToClasses = (course: CourseItem) =>
+    course.classes.map((c) => ({ ...c, courseName: course.name }));
+
+  useFocusEffect(
+    useCallback(() => {
+      const load = async () => {
+        const courses = await getGuestCourses();
+        const classes = courses.flatMap(addCourseNameToClasses);
+        setStoredClasses(classes);
+      };
+      load();
+    }, []),
+  );
 
   const handleAddCourseInfo = (data: ClassInfoFormData) => {
     setClassInfo((prev) => [...prev, data]);
@@ -60,7 +76,7 @@ export default function AddClassScreen() {
       await addGuestCourse(course);
       router.push("/schedule");
     } catch {
-      setSaveError("Something went wrong. Please try again.");
+      setSaveError("Saving failed. Please try again.");
     }
   };
 
@@ -110,7 +126,7 @@ export default function AddClassScreen() {
             <AddClassInfoForm
               onAdd={handleAddCourseInfo}
               onCancel={() => setShowClassInfoForm(false)}
-              existingSessions={classInfo}
+              existingSessions={[...storedClasses, ...classInfo]}
             />
           ) : (
             <TouchableOpacity
@@ -125,7 +141,7 @@ export default function AddClassScreen() {
           )}
 
           {!!saveError && <Text style={styles.errorText}>{saveError}</Text>}
-          
+
           {classInfo.length > 0 && !showClassInfoForm && (
             <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
               <Text style={styles.saveText}>Save Class</Text>
