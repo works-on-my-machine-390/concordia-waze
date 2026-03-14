@@ -47,4 +47,8 @@ const (
 
 	ShuttlePolylineLOYtoSGW = "ermtGxnm`MBK_D}DP_@IIeA}AQ[eAuBIMgAqCQ_@{BeFgBkEaBqDkBoEgE{JSo@q@oAUSG_@Oi@u@eBkDeIsA}C_@gAcAyBmAsCsC}GqFsMwAeD{@oB[y@eDaIkDuIm@qA_@}@GYcAaCYu@{AoD}AyD_CwFm@sAgAyAaK{LeKaM{CqDWSO[eAqAiC}C_F{F{D{EqJiLuAaBw@cA_CoCuFyGYa@KUUi@u@yC{@cDc@oA[m@oBqCgBaC}CqDQM}AgBi@m@qAwA}@eAMQOGoAiBoBsDmAaCqB_EUa@_@e@IUQQe@c@qCaCyHsGQWm@g@y@w@k@a@oBoB|@_C|@cCn@cBOMkAcA"
 	ShuttlePolylineSGWtoLOY = "adutGjxa`MzApAwAxDYv@o@|AIVlAjA`@b@j@`@x@v@l@f@PVv@n@l@h@rExDpC`Cd@b@PPHT^d@Xh@lBvDlA`CnBrDnAhBNFLP|@dApAvAh@l@|AfBPLtBdCf@j@fB`CnBpCZl@b@nAz@bDt@xCTh@JTX`@zAfBv@~@`BpB~BnCv@bAtA`BnEnFhHtIfCzCtG|HdApANZVRRTdAnA`AjAhC|CrDpE|F`HjEjFfAxAl@rAbAdCxCjHzAnD|AvDFX^|@l@pAjDtIdD`IZx@z@nBvAdD~AxDdHvPlArCbAxB^fArA|CjDdIt@dBNh@F^TRp@nARn@fEzJjBnE`BpDfBjEzBdFP^fApCHLr@|APVPZdA|AHHQ^~C|DCJ"
+
+	IndoorPathDistanceToMeterRatio  = 66.8
+	IndoorPathStraightTurnThreshold = 0.966
+	WalkingSpeedMps                 = 1.42
 )
