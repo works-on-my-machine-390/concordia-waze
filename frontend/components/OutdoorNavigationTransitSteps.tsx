@@ -5,7 +5,7 @@ import {
   getTransitStepVerticalLineColorStyle,
 } from "@/app/styles/directionStyles";
 import {
-  DirectionsModel,
+  OutdoorDirectionsModel,
   StepModel,
   TransitMode,
   TransitType,
@@ -16,7 +16,7 @@ import TransitTypeIcon from "./TransitTypeIcon";
 import WalkingDottedLine from "./WalkingDottedLine";
 
 export type OutdoorNavigationStepsProps = {
-  directions: DirectionsModel;
+  directions: OutdoorDirectionsModel;
 };
 
 export default function OutdoorNavigationTransitSteps(

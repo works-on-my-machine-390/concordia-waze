@@ -2,7 +2,7 @@ import { DIRECTION_COLORS } from "@/app/constants";
 import { directionPolylineStyles } from "@/app/styles/directionStyles";
 import NavigationPolylines from "@/components/NavigationPolylines";
 import {
-  DirectionsModel,
+  OutdoorDirectionsModel,
   StepModel,
   TransitMode,
   useGetDirections,
@@ -58,8 +58,8 @@ describe("NavigationPolylines", () => {
   });
 
   const createDirections = (
-    overrides?: Partial<DirectionsModel>,
-  ): DirectionsModel => ({
+    overrides?: Partial<OutdoorDirectionsModel>,
+  ): OutdoorDirectionsModel => ({
     mode: TransitMode.WALKING,
     duration: "12 min",
     distance: "1.4 km",

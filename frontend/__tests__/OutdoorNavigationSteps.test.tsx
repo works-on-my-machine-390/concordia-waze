@@ -1,7 +1,7 @@
 import { COLORS } from "@/app/constants";
 import { stripHtmlTags } from "@/app/utils/stringUtils";
 import {
-  DirectionsModel,
+  OutdoorDirectionsModel,
   StepModel,
   TransitMode,
 } from "@/hooks/queries/navigationQueries";
@@ -26,7 +26,7 @@ jest.mock("../components/DirectionIcon", () => {
 
 jest.mock("../components/OutdoorNavigationTransitSteps", () => {
   return function MockOutdoorNavigationTransitSteps(props: {
-    directions: DirectionsModel;
+    directions: OutdoorDirectionsModel;
   }) {
     const { Text } = require("react-native");
     mockOutdoorNavigationTransitSteps(props);
@@ -50,8 +50,8 @@ describe("OutdoorNavigationSteps", () => {
   });
 
   const createDirections = (
-    overrides?: Partial<DirectionsModel>,
-  ): DirectionsModel => ({
+    overrides?: Partial<OutdoorDirectionsModel>,
+  ): OutdoorDirectionsModel => ({
     mode: TransitMode.WALKING,
     duration: "12 min",
     distance: "1.4 km",
@@ -126,7 +126,7 @@ describe("OutdoorNavigationSteps", () => {
 
   it("renders placeholder when directions are missing", () => {
     const { getByText } = render(
-      <OutdoorNavigationSteps directions={undefined as unknown as DirectionsModel} />,
+      <OutdoorNavigationSteps directions={undefined as unknown as OutdoorDirectionsModel} />,
     );
 
     expect(getByText("No directions available")).toBeTruthy();

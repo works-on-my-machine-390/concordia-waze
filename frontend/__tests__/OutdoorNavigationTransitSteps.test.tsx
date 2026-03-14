@@ -1,5 +1,5 @@
 import {
-	DirectionsModel,
+	OutdoorDirectionsModel,
 	StepModel,
 	TransitMode,
 	TransitType,
@@ -52,8 +52,8 @@ describe("OutdoorNavigationTransitSteps", () => {
 	});
 
 	const createDirections = (
-		overrides?: Partial<DirectionsModel>,
-	): DirectionsModel => ({
+		overrides?: Partial<OutdoorDirectionsModel>,
+	): OutdoorDirectionsModel => ({
 		mode: TransitMode.TRANSIT,
 		duration: "18 min",
 		distance: "2.6 km",

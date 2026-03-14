@@ -2,7 +2,7 @@ import { COLORS } from "@/app/constants";
 import { directionStepsStyles } from "@/app/styles/directionStyles";
 import { stripHtmlTags } from "@/app/utils/stringUtils";
 import {
-  DirectionsModel,
+  OutdoorDirectionsModel,
   StepModel,
   TransitMode,
 } from "@/hooks/queries/navigationQueries";
@@ -12,7 +12,7 @@ import OutdoorNavigationTransitSteps from "./OutdoorNavigationTransitSteps";
 const concordiaLogo = require("../assets/images/concordia_logo.png");
 
 export type OutdoorNavigationStepsProps = {
-  directions: DirectionsModel;
+  directions: OutdoorDirectionsModel;
 };
 
 export default function OutdoorNavigationSteps(
