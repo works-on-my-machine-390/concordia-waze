@@ -18,6 +18,9 @@ var (
 	// Other errors
 	ErrNotFound = errors.New("not found")
 
+	//directions errors
+	ErrInvalidMode = errors.New("Invalide mode, must be one of: walking, driving, transit, shuttle, bicycling")
+
 	// Favorite errors
 	ErrFavoriteNotFound     = errors.New("favorite not found")
 	ErrEmptyFavoriteName    = errors.New("name cannot be empty")
