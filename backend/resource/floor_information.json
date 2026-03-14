@@ -47,6 +47,78 @@
         ],
         "poi": [
           {
+            "name": "poi_1",
+            "type": "bathroom",
+            "position": {
+              "x": 0.15601471774971287,
+              "y": 0.3692630422970069
+            },
+            "polygon": []
+          },
+          {
+            "name": "poi_2",
+            "type": "stairs",
+            "position": {
+              "x": 0.3354214920609593,
+              "y": 0.3677786312396165
+            },
+            "polygon": []
+          },
+          {
+            "name": "poi_3",
+            "type": "stairs",
+            "position": {
+              "x": 0.3649878850992536,
+              "y": 0.5167335835872109
+            },
+            "polygon": []
+          },
+          {
+            "name": "poi_4",
+            "type": "stairs",
+            "position": {
+              "x": 0.6298487717522221,
+              "y": 0.510766353348572
+            },
+            "polygon": []
+          },
+          {
+            "name": "poi_5",
+            "type": "stairs",
+            "position": {
+              "x": 0.650417180318982,
+              "y": 0.35468867455392683
+            },
+            "polygon": []
+          },
+          {
+            "name": "poi_6",
+            "type": "stairs",
+            "position": {
+              "x": 0.8483878099368667,
+              "y": 0.5107174455447421
+            },
+            "polygon": []
+          },
+          {
+            "name": "poi_7",
+            "type": "stairs",
+            "position": {
+              "x": 0.8368753764943904,
+              "y": 0.36332095723400926
+            },
+            "polygon": []
+          },
+          {
+            "name": "poi_8",
+            "type": "stairs",
+            "position": {
+              "x": 0.88485370221224,
+              "y": 0.6088430076401892
+            },
+            "polygon": []
+          },
+          {
             "name": "Room 122",
             "type": "room",
             "position": {
