@@ -160,7 +160,6 @@ export const useGetDirections = (
         .url("/directions")
         .post(queryRequestBody)
         .json<DirectionsModel>((res) => {
-          console.log(res);
           return apiResponseToDirectionsModel(res);
         })
         .catch((error) => {

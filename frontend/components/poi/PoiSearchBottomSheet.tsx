@@ -95,7 +95,6 @@ export default function PoiSearchBottomSheet(
   const handleDirectionsPressed = (result: PoiSearchResultModel) => {
     setCurrentMode(MapMode.NAVIGATION);
 
-    console.log(navigationState.startLocation, !navigationState.startLocation);
 
     if (!navigationState.startLocation) {
       findAndSetStartLocation();
@@ -104,6 +103,7 @@ export default function PoiSearchBottomSheet(
       latitude: result.latitude,
       longitude: result.longitude,
       name: result.name,
+      code: "", // no code as it's not a concordia building
     });
   };
   const performRefetch = () => {
