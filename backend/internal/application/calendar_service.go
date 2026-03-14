@@ -1,7 +1,6 @@
 package application
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/works-on-my-machine-390/concordia-waze/internal/application/google"
@@ -29,7 +28,6 @@ func NewCalendarService(calGetter google.CalendarGetter, firebase FirebaseClassS
 func (s *calendarService) SyncCalendarEvents(token *oauth2.Token, userID string, day time.Time, calendarID string) (map[string][]*domain.ClassItem, []string, error) {
 
 	// get events from google calendar client
-	fmt.Println("syncCalendarEvents", "userID:", userID, "day:", day.Format("2006-01-02"), "calendarID:", calendarID)
 	events, errors, err := s.calGetter.GetCalendarEvents(token, day, calendarID)
 	if err != nil {
 		return nil, nil, err

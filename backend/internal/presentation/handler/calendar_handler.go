@@ -75,7 +75,6 @@ func (h *CalendarHandler) SyncCalendarEvents(c *gin.Context) {
 		q.CalendarID = "primary"
 	}
 
-	fmt.Println("handler")
 	events, errors, err2 := h.calendarService.SyncCalendarEvents(token, userID, q.Since, q.CalendarID)
 
 	if err2 != nil {

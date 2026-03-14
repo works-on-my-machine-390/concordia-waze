@@ -85,8 +85,6 @@ func (c *CalendarClient) GetCalendarEvents(token *oauth2.Token, startDate time.T
 		return nil, nil, err
 	}
 
-	fmt.Printf("Found %d events in %s\n", len(events.Items), calendarID)
-
 	// iterate through events and parse them into ClassItems, grouping by class ID
 	for _, item := range events.Items {
 		parsedEvent, err2 := c.parseEvent(item)

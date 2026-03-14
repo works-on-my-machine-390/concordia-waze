@@ -183,7 +183,6 @@ func (r *BuildingDataRepository) GetBuildingByFuzzyLongName(query string) (strin
 			found = true
 		}
 	}
-	fmt.Println("Fuzzy search for:", query, "best match:", best, "distance:", minDistance)
 
 	if !found {
 		return "", domain.ErrNotFound
