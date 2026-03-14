@@ -43,18 +43,6 @@ type DestinationHistoryItem struct {
 	Timestamp       time.Time `firestore:"timestamp" json:"timestamp,omitempty"`
 }
 
-// ScheduleItem stores a schedule entry.
-type ScheduleItem struct {
-	ScheduleID string   `firestore:"scheduleId" json:"scheduleId,omitempty"`
-	Name       string   `firestore:"name" json:"name"`
-	Building   string   `firestore:"building,omitempty" json:"building,omitempty"`
-	Room       string   `firestore:"room,omitempty" json:"room,omitempty"`
-	StartTime  string   `firestore:"startTime" json:"startTime"`
-	EndTime    string   `firestore:"endTime" json:"endTime"`
-	DaysOfWeek []string `firestore:"daysOfWeek" json:"daysOfWeek"`
-	Type       string   `firestore:"type" json:"type"`
-}
-
 // SavedAddress stores a favorite place.
 type SavedAddress struct {
 	AddressID string `firestore:"addressId" json:"addressId,omitempty"`
@@ -93,7 +81,6 @@ func (fs *FirebaseService) CreateUserProfile(ctx context.Context, userID string,
 		return fmt.Errorf("create user profile: %w", err)
 	}
 
-	// Initialize subcollections by creating a placeholder document
 	if err := fs.initializeSubcollections(ctx, userID); err != nil {
 		return fmt.Errorf("initialize subcollections: %w", err)
 	}
@@ -134,7 +121,6 @@ func (fs *FirebaseService) GetUserProfileByEmail(ctx context.Context, email stri
 }
 
 func (fs *FirebaseService) initializeSubcollections(ctx context.Context, userID string) error {
-	// Initialize searchHistory subcollection with a placeholder doc
 	_, err := fs.client.Collection("users").Doc(userID).Collection("searchHistory").Doc("_init").Set(ctx, map[string]interface{}{
 		"initialized": true,
 		"createdAt":   time.Now(),
@@ -143,16 +129,14 @@ func (fs *FirebaseService) initializeSubcollections(ctx context.Context, userID 
 		return fmt.Errorf("init searchHistory: %w", err)
 	}
 
-	// Initialize schedule subcollection
-	_, err = fs.client.Collection("users").Doc(userID).Collection("schedule").Doc("_init").Set(ctx, map[string]interface{}{
+	_, err = fs.client.Collection("users").Doc(userID).Collection("classes").Doc("_init").Set(ctx, map[string]interface{}{
 		"initialized": true,
 		"createdAt":   time.Now(),
 	})
 	if err != nil {
-		return fmt.Errorf("init schedule: %w", err)
+		return fmt.Errorf("init classes: %w", err)
 	}
 
-	// Initialize savedAddresses subcollection
 	_, err = fs.client.Collection("users").Doc(userID).Collection("savedAddresses").Doc("_init").Set(ctx, map[string]interface{}{
 		"initialized": true,
 		"createdAt":   time.Now(),
@@ -161,7 +145,6 @@ func (fs *FirebaseService) initializeSubcollections(ctx context.Context, userID 
 		return fmt.Errorf("init savedAddresses: %w", err)
 	}
 
-	// Initialize history subcollection
 	_, err = fs.client.Collection("users").Doc(userID).
 		Collection("history").Doc("_init").
 		Set(ctx, map[string]interface{}{
@@ -236,7 +219,6 @@ func (fs *FirebaseService) ClearDestinationHistory(ctx context.Context, userID s
 		if err != nil {
 			return fmt.Errorf("iterate destination history: %w", err)
 		}
-		// Keep placeholder doc
 		if doc.Ref.ID == "_init" {
 			continue
 		}
@@ -253,55 +235,155 @@ func (fs *FirebaseService) ClearDestinationHistory(ctx context.Context, userID s
 	return nil
 }
 
-// ===== Schedule =====
+// ===== Classes =====
 
-func (fs *FirebaseService) AddScheduleItem(ctx context.Context, userID string, item ScheduleItem) (string, error) {
-	ref, _, err := fs.client.Collection("users").Doc(userID).Collection("schedule").Add(ctx, item)
+// CreateClass creates an empty class document under users/{userId}/classes/{title}.
+// The class document is only used as a container for the classItems subcollection.
+func (fs *FirebaseService) CreateClass(ctx context.Context, userID, title string) error {
+	_, err := fs.client.
+		Collection("users").
+		Doc(userID).
+		Collection("classes").
+		Doc(title).
+		Set(ctx, map[string]interface{}{})
 	if err != nil {
-		return "", fmt.Errorf("add schedule item: %w", err)
-	}
-	return ref.ID, nil
-}
-
-func (fs *FirebaseService) GetUserSchedule(ctx context.Context, userID string) ([]ScheduleItem, error) {
-	docs, err := fs.client.Collection("users").Doc(userID).Collection("schedule").
-		OrderBy("startTime", firestore.Asc).
-		Documents(ctx).GetAll()
-	if err != nil {
-		return nil, fmt.Errorf("get schedule: %w", err)
+		return fmt.Errorf("create class: %w", err)
 	}
 
-	schedule := make([]ScheduleItem, 0, len(docs))
-	for _, doc := range docs {
-		// Skip initialization placeholder
-		if doc.Ref.ID == "_init" {
-			continue
-		}
-		var item ScheduleItem
-		if doc.DataTo(&item) != nil {
-			continue
-		}
-		item.ScheduleID = doc.Ref.ID
-		schedule = append(schedule, item)
-	}
-	return schedule, nil
-}
-
-func (fs *FirebaseService) UpdateScheduleItem(ctx context.Context, userID, scheduleID string, updates map[string]interface{}) error {
-	_, err := fs.client.Collection("users").Doc(userID).Collection("schedule").Doc(scheduleID).
-		Update(ctx, toFirestoreUpdates(updates))
-	if err != nil {
-		return fmt.Errorf("update schedule item: %w", err)
-	}
 	return nil
 }
 
-func (fs *FirebaseService) DeleteScheduleItem(ctx context.Context, userID, scheduleID string) error {
-	_, err := fs.client.Collection("users").Doc(userID).Collection("schedule").Doc(scheduleID).
+// GetUserClasses returns the class titles under users/{userId}/classes.
+func (fs *FirebaseService) GetUserClasses(ctx context.Context, userID string) ([]string, error) {
+	docs, err := fs.client.
+		Collection("users").
+		Doc(userID).
+		Collection("classes").
+		Documents(ctx).
+		GetAll()
+	if err != nil {
+		return nil, fmt.Errorf("get user classes: %w", err)
+	}
+
+	classes := make([]string, 0, len(docs))
+	for _, doc := range docs {
+		if doc.Ref.ID == "_init" {
+			continue
+		}
+		classes = append(classes, doc.Ref.ID)
+	}
+
+	return classes, nil
+}
+
+// DeleteClass deletes a class and all its schedule items stored in the classItems subcollection.
+func (fs *FirebaseService) DeleteClass(ctx context.Context, userID, title string) error {
+	itemDocs, err := fs.client.
+		Collection("users").
+		Doc(userID).
+		Collection("classes").
+		Doc(title).
+		Collection("classItems").
+		Documents(ctx).
+		GetAll()
+	if err != nil {
+		return fmt.Errorf("get class items for delete: %w", err)
+	}
+
+	batch := fs.client.Batch()
+	for _, doc := range itemDocs {
+		batch.Delete(doc.Ref)
+	}
+
+	classRef := fs.client.
+		Collection("users").
+		Doc(userID).
+		Collection("classes").
+		Doc(title)
+	batch.Delete(classRef)
+
+	if _, err := batch.Commit(ctx); err != nil {
+		return fmt.Errorf("delete class: %w", err)
+	}
+
+	return nil
+}
+
+// ===== Class Items =====
+
+func (fs *FirebaseService) AddClassItem(ctx context.Context, userID, title string, item domain.ClassItem) (string, error) {
+	ref, _, err := fs.client.
+		Collection("users").
+		Doc(userID).
+		Collection("classes").
+		Doc(title).
+		Collection("classItems").
+		Add(ctx, item)
+	if err != nil {
+		return "", fmt.Errorf("add class item: %w", err)
+	}
+
+	return ref.ID, nil
+}
+
+func (fs *FirebaseService) GetClassItems(ctx context.Context, userID, title string) ([]domain.ClassItem, error) {
+	docs, err := fs.client.
+		Collection("users").
+		Doc(userID).
+		Collection("classes").
+		Doc(title).
+		Collection("classItems").
+		OrderBy("day", firestore.Asc).
+		OrderBy("startTime", firestore.Asc).
+		Documents(ctx).
+		GetAll()
+	if err != nil {
+		return nil, fmt.Errorf("get class items: %w", err)
+	}
+
+	items := make([]domain.ClassItem, 0, len(docs))
+	for _, doc := range docs {
+		var item domain.ClassItem
+		if doc.DataTo(&item) != nil {
+			continue
+		}
+
+		item.ClassID = doc.Ref.ID
+		items = append(items, item)
+	}
+
+	return items, nil
+}
+
+func (fs *FirebaseService) UpdateClassItem(ctx context.Context, userID, title, classID string, updates map[string]interface{}) error {
+	_, err := fs.client.
+		Collection("users").
+		Doc(userID).
+		Collection("classes").
+		Doc(title).
+		Collection("classItems").
+		Doc(classID).
+		Update(ctx, toFirestoreUpdates(updates))
+	if err != nil {
+		return fmt.Errorf("update class item: %w", err)
+	}
+
+	return nil
+}
+
+func (fs *FirebaseService) DeleteClassItem(ctx context.Context, userID, title, classID string) error {
+	_, err := fs.client.
+		Collection("users").
+		Doc(userID).
+		Collection("classes").
+		Doc(title).
+		Collection("classItems").
+		Doc(classID).
 		Delete(ctx)
 	if err != nil {
-		return fmt.Errorf("delete schedule item: %w", err)
+		return fmt.Errorf("delete class item: %w", err)
 	}
+
 	return nil
 }
 
@@ -325,7 +407,6 @@ func (fs *FirebaseService) GetSavedAddresses(ctx context.Context, userID string)
 
 	addresses := make([]SavedAddress, 0, len(docs))
 	for _, doc := range docs {
-		// Skip initialization placeholder
 		if doc.Ref.ID == "_init" {
 			continue
 		}
@@ -589,4 +670,45 @@ func (r *HybridFavoriteRepository) Delete(id, userID string) error {
 		return r.memoryRepo.Delete(id, userID)
 	}
 	return r.firestoreRepo.Delete(id, userID)
+}
+
+// ===== FavoritesService =====
+
+// FavoritesService handles favorites-related business logic
+type FavoritesService struct {
+	repo repository.FavoriteRepository
+}
+
+// NewFavoritesService creates a new favorites service
+func NewFavoritesService(repo repository.FavoriteRepository) *FavoritesService {
+	return &FavoritesService{repo: repo}
+}
+
+// AddFavorite creates a new favorite location for a user.
+// The caller is responsible for setting fav.Type, fav.UserID, fav.Name, and the
+// type-appropriate location fields before calling this method.
+func (s *FavoritesService) AddFavorite(fav *domain.Favorite) (*domain.Favorite, error) {
+	if fav.Name == "" {
+		return nil, domain.ErrEmptyFavoriteName
+	}
+
+	if fav.Type != domain.FavoriteTypeOutdoor && fav.Type != domain.FavoriteTypeIndoor {
+		return nil, domain.ErrInvalidFavoriteType
+	}
+
+	if err := s.repo.Create(fav); err != nil {
+		return nil, err
+	}
+
+	return fav, nil
+}
+
+// GetFavorites returns all favorites for the given user identifier
+func (s *FavoritesService) GetFavorites(userID string) ([]*domain.Favorite, error) {
+	return s.repo.FindByUserID(userID)
+}
+
+// DeleteFavorite removes a favorite by ID, scoped to the authenticated user
+func (s *FavoritesService) DeleteFavorite(id, userID string) error {
+	return s.repo.Delete(id, userID)
 }

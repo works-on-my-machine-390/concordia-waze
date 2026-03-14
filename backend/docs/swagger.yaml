@@ -78,27 +78,6 @@ definitions:
       addressId:
         type: string
     type: object
-  application.ScheduleItem:
-    properties:
-      building:
-        type: string
-      daysOfWeek:
-        items:
-          type: string
-        type: array
-      endTime:
-        type: string
-      name:
-        type: string
-      room:
-        type: string
-      scheduleId:
-        type: string
-      startTime:
-        type: string
-      type:
-        type: string
-    type: object
   application.TransitionType:
     enum:
     - 0
@@ -250,7 +229,7 @@ definitions:
       distance:
         type: string
       duration:
-        type: string
+        type: integer
       mode:
         type: string
       polyline:
@@ -322,6 +301,13 @@ definitions:
         items:
           $ref: '#/definitions/domain.Coordinates'
         type: array
+    type: object
+  domain.IndoorPosition:
+    properties:
+      x:
+        type: number
+      "y":
+        type: number
     type: object
   domain.LatLng:
     properties:
@@ -445,6 +431,54 @@ definitions:
       userId:
         type: string
     type: object
+  request_format.RouteLocation:
+    properties:
+      building:
+        type: string
+      floor_number:
+        type: integer
+      indoor_position:
+        $ref: '#/definitions/domain.IndoorPosition'
+      latitude:
+        type: number
+      longitude:
+        type: number
+    type: object
+  request_format.RoutePreferences:
+    properties:
+      day:
+        enum:
+        - Monday
+        - Tuesday
+        - Wednesday
+        - Thursday
+        - Friday
+        - Saturday
+        - Sunday
+        type: string
+      mode:
+        items:
+          type: string
+        type: array
+      prefer_elevator:
+        type: boolean
+      require_accessible:
+        type: boolean
+      time:
+        type: string
+    type: object
+  request_format.RouteRequest:
+    properties:
+      end:
+        $ref: '#/definitions/request_format.RouteLocation'
+      preferences:
+        $ref: '#/definitions/request_format.RoutePreferences'
+      start:
+        $ref: '#/definitions/request_format.RouteLocation'
+    required:
+    - end
+    - start
+    type: object
 host: localhost:8080
 info:
   contact: {}
@@ -465,6 +499,12 @@ paths:
       - description: Optional fallback userId if not available in auth context
         in: query
         name: userId
+        type: string
+      - default: Bearer <token>
+        description: Bearer token
+        in: header
+        name: Authorization
+        required: true
         type: string
       produces:
       - application/json
@@ -791,129 +831,6 @@ paths:
       summary: List all buildings grouped by campus
       tags:
       - buildings
-  /calendar:
-    delete:
-      description: Deletes Google Calendar events for the authenticated user
-      responses:
-        "200":
-          description: Events deleted successfully
-          schema:
-            type: string
-        "401":
-          description: Google auth required
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Failed to delete events
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Delete Google Calendar events
-      tags:
-      - calendar
-    get:
-      description: Retrieves Google Calendar events for the authenticated user
-      responses:
-        "200":
-          description: List of calendar events
-          schema:
-            items:
-              type: object
-            type: array
-        "401":
-          description: Google auth required
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Failed to fetch events
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Get Google Calendar events
-      tags:
-      - calendar
-    post:
-      consumes:
-      - application/json
-      description: Adds new Google Calendar events for the authenticated user
-      parameters:
-      - description: Event to add
-        in: body
-        name: event
-        required: true
-        schema:
-          type: object
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Event added successfully
-          schema:
-            type: string
-        "401":
-          description: Google auth required
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Failed to add event
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Add Google Calendar events
-      tags:
-      - calendar
-  /calendar/sync:
-    get:
-      description: Synchronizes Google Calendar events for the authenticated user
-        since a given date
-      parameters:
-      - description: Sync events since this date (YYYY-MM-DD)
-        in: query
-        name: since
-        type: string
-      responses:
-        "200":
-          description: Events synced successfully
-          schema:
-            type: string
-        "400":
-          description: Invalid date
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "401":
-          description: Google auth required
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Failed to fetch events or token
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Sync Google Calendar events
-      tags:
-      - calendar
   /campuses/{campus}/buildings:
     get:
       consumes:
@@ -1012,6 +929,36 @@ paths:
               type: string
             type: object
       summary: Get directions between coordinates
+      tags:
+      - directions
+    post:
+      consumes:
+      - application/json
+      description: Returns list of routes polyline + step instructions (walking/driving/transit/shuttle/bicycling)
+      parameters:
+      - description: Route request with start/end locations and preferences
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/request_format.RouteRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/domain.DirectionsResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get directions between coordinates, adapts between indoor/outdoor as
+        needed
       tags:
       - directions
   /directions/buildings:
@@ -1895,207 +1842,6 @@ paths:
       summary: Update saved address
       tags:
       - addresses
-  /users/{userId}/schedule:
-    get:
-      description: Get schedule items for a user
-      parameters:
-      - description: User ID
-        in: path
-        name: userId
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/application.ScheduleItem'
-            type: array
-        "401":
-          description: Not authenticated
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "403":
-          description: Forbidden
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Get user schedule
-      tags:
-      - schedule
-    post:
-      consumes:
-      - application/json
-      description: Add a schedule item for a user
-      parameters:
-      - description: User ID
-        in: path
-        name: userId
-        required: true
-        type: string
-      - description: Schedule item
-        in: body
-        name: item
-        required: true
-        schema:
-          $ref: '#/definitions/application.ScheduleItem'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "401":
-          description: Not authenticated
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "403":
-          description: Forbidden
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Add schedule item
-      tags:
-      - schedule
-  /users/{userId}/schedule/{scheduleId}:
-    delete:
-      description: Delete a schedule item for a user
-      parameters:
-      - description: User ID
-        in: path
-        name: userId
-        required: true
-        type: string
-      - description: Schedule ID
-        in: path
-        name: scheduleId
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "401":
-          description: Not authenticated
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "403":
-          description: Forbidden
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Delete schedule item
-      tags:
-      - schedule
-    put:
-      consumes:
-      - application/json
-      description: Update a schedule item for a user
-      parameters:
-      - description: User ID
-        in: path
-        name: userId
-        required: true
-        type: string
-      - description: Schedule ID
-        in: path
-        name: scheduleId
-        required: true
-        type: string
-      - description: Schedule updates
-        in: body
-        name: updates
-        required: true
-        schema:
-          additionalProperties: true
-          type: object
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "400":
-          description: Bad Request
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "401":
-          description: Not authenticated
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "403":
-          description: Forbidden
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-        "500":
-          description: Internal Server Error
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      security:
-      - BearerAuth: []
-      summary: Update schedule item
-      tags:
-      - schedule
 securityDefinitions:
   BearerAuth:
     description: Type "Bearer" followed by a space and JWT token.
