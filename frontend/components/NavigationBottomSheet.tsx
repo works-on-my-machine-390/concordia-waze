@@ -1,7 +1,8 @@
 import { getIsCrossCampus } from "@/app/utils/mapUtils";
 import {
+  DirectionsResponseBlockType,
   TransitMode,
-  useGetAllModesDirections,
+  useGetDirections,
 } from "@/hooks/queries/navigationQueries";
 import { useMapStore } from "@/hooks/useMapStore";
 import { useNavigationStore } from "@/hooks/useNavigationStore";
@@ -19,6 +20,7 @@ import {
   WalkingIcon,
 } from "../app/icons";
 import OutdoorNavigationSteps from "./OutdoorNavigationSteps";
+import { formatDuration } from "@/app/utils/stringUtils";
 
 const concordiaLogo = require("../assets/images/concordia_logo.png");
 
@@ -29,12 +31,15 @@ export default function NavigationBottomSheet(
 ) {
   const insets = useSafeAreaInsets();
 
-  const queries = useGetAllModesDirections(
+  const query = useGetDirections(
     useNavigationStore().startLocation,
     useNavigationStore().endLocation,
     new Date(),
   );
-  const directionsData = queries.map((query) => query.data);
+  const durationsByMode = query.data?.durationBlock?.durations;
+  const outdoorBlock = query.data?.directionBlocks.find(
+    (block) => block.type === DirectionsResponseBlockType.OUTDOOR,
+  );
 
   const closeSheet = useMapStore((state) => state.closeSheet);
 
@@ -56,46 +61,45 @@ export default function NavigationBottomSheet(
         Icon: CarIcon,
         label: "Drive",
         duration:
-          directionsData.find(
-            (data) => data?.mode.toUpperCase() === TransitMode.DRIVING,
-          )?.duration || "",
+          formatDuration(
+            durationsByMode?.[TransitMode.DRIVING.toLowerCase()],
+          ) || "",
       },
       {
         mode: TransitMode.TRANSIT,
         Icon: TrainIcon,
         label: "Transit",
         duration:
-          directionsData.find(
-            (data) => data?.mode.toUpperCase() === TransitMode.TRANSIT,
-          )?.duration || "",
+          formatDuration(
+            durationsByMode?.[TransitMode.TRANSIT.toLowerCase()],
+          ) || "",
       },
       {
         mode: TransitMode.WALKING,
         Icon: WalkingIcon,
         label: "Walk",
         duration:
-          directionsData.find(
-            (data) => data?.mode.toUpperCase() === TransitMode.WALKING,
-          )?.duration || "",
+          formatDuration(
+            durationsByMode?.[TransitMode.WALKING.toLowerCase()],
+          ) || "",
       },
       {
         mode: TransitMode.BICYCLING,
         Icon: BikeIcon,
         label: "Bike",
         duration:
-          directionsData.find(
-            (data) => data?.mode.toUpperCase() === TransitMode.BICYCLING,
-          )?.duration || "",
+          formatDuration(
+            durationsByMode?.[TransitMode.BICYCLING.toLowerCase()],
+          ) || "",
       },
       {
         mode: TransitMode.SHUTTLE,
         image: concordiaLogo,
         label: "Shuttle",
-        // does not have a duration for now, see #240
         duration:
-          directionsData.find(
-            (data) => data?.mode.toUpperCase() === TransitMode.SHUTTLE,
-          )?.duration || "",
+          formatDuration(
+            durationsByMode?.[TransitMode.SHUTTLE.toLowerCase()],
+          ) || "",
       },
     ];
 
@@ -106,11 +110,14 @@ export default function NavigationBottomSheet(
       const otherOptions = baseOptions.filter(
         (option) => option.mode !== TransitMode.SHUTTLE,
       );
-      return shuttleOption ? [shuttleOption, ...otherOptions] : baseOptions;
+      return shuttleOption &&
+        !!outdoorBlock?.directionsByMode[TransitMode.SHUTTLE.toLowerCase()]
+        ? [shuttleOption, ...otherOptions]
+        : baseOptions;
     }
 
     return baseOptions;
-  }, [isCrossCampus, directionsData]);
+  }, [isCrossCampus, durationsByMode]);
 
   useEffect(() => {
     const hasSelectedMode = transitOptions.some(

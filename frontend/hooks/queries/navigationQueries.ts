@@ -67,9 +67,7 @@ export function prepareDirectionsQuery(
   const queryRequestBody: DirectionsRequestModel = {
     start: startLocation,
     end: endLocation,
-    preferences: {
-      time: new Date(roundedStartTime).toISOString(),
-    },
+    preferences: {},
   };
 
   // it would be nice if locations had IDs, but i'm hoping that we won't have clashing names.
@@ -141,7 +139,7 @@ export type IndoorDirectionsBlockModel = {
 
 export type DurationBlockModel = {
   type: "duration";
-  durations: Record<string, number>; // e.g. { "walking": 5, "driving": 2 }
+  durations: Record<string, number>; // e.g. { "walking": 5, "driving": 2 } where time is in seconds.
 };
 
 export const useGetDirections = (
@@ -164,6 +162,10 @@ export const useGetDirections = (
         .json<DirectionsModel>((res) => {
           console.log(res);
           return apiResponseToDirectionsModel(res);
+        })
+        .catch((error) => {
+          console.error("Error fetching directions:", error);
+          throw error;
         });
     },
     staleTime: Infinity,

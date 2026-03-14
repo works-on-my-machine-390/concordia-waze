@@ -1,6 +1,9 @@
 import { create } from "zustand";
-import { OutdoorDirectionsModel, TransitMode } from "./queries/navigationQueries";
 import { Coordinates } from "./queries/indoorDirectionsQueries";
+import {
+  OutdoorDirectionsModel,
+  TransitMode,
+} from "./queries/navigationQueries";
 
 /**
  * Zustand store for managing states during navigation.
@@ -10,21 +13,23 @@ export type NavigableLocation =
   | OutdoorNavigableLocation
   | IndoorNavigableLocation;
 
-export type OutdoorNavigableLocation = {
+type NavigableLocationBase = {
   latitude: number;
   longitude: number;
   name: string;
-  code?: string;
-  address?: string;
+  code: string; // duplicate of building if indoors
 };
 
+export type OutdoorNavigableLocation = {
+  code?: string;
+  address?: string;
+} & NavigableLocationBase;
+
 export type IndoorNavigableLocation = {
-  name: string;
   building: string;
   floor_number: string;
   indoor_position: Coordinates;
-  fallback?: OutdoorNavigableLocation;
-};
+} & NavigableLocationBase;
 
 interface NavigationState {
   startLocation?: NavigableLocation;
