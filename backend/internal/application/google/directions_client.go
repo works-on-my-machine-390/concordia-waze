@@ -54,7 +54,8 @@ func (c *googleDirectionsClient) GetDirections(start, end domain.LatLng, mode st
 					Text string `json:"text"`
 				} `json:"distance"`
 				Duration struct {
-					Text string `json:"text"`
+					Text  string `json:"text"`
+					Value int    `json:"value"`
 				} `json:"duration"`
 				Steps []struct {
 					HTMLInstructions string `json:"html_instructions"`
@@ -157,7 +158,7 @@ func (c *googleDirectionsClient) GetDirections(start, end domain.LatLng, mode st
 	return domain.DirectionsResponse{
 		Mode:     mode,
 		Distance: leg.Distance.Text,
-		Duration: leg.Duration.Text,
+		Duration: leg.Duration.Value,
 		Polyline: route.OverviewPolyline.Points,
 		Steps:    steps,
 	}, nil
