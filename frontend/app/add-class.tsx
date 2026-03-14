@@ -23,6 +23,7 @@ import AddClassInfoForm, {
 import ClassInfoCard from "../components/classes/ClassInfoCard";
 import { CourseItem } from "../hooks/firebase/useFirestore";
 import { addGuestCourse, getGuestCourses } from "../hooks/guestStorage";
+import { useGetProfile } from "../hooks/queries/userQueries";
 import { COLORS } from "./constants";
 
 const addCourseNameToClasses = (course: CourseItem) =>
@@ -37,6 +38,7 @@ export default function AddClassScreen() {
   >(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [storedCourses, setStoredCourses] = useState<CourseItem[]>([]);
+  const { data: userProfile } = useGetProfile();
 
   useFocusEffect(
     useCallback(() => {
@@ -84,7 +86,9 @@ export default function AddClassScreen() {
     if (!validateCourseNameInput()) return;
     try {
       const course = buildCourseItem(courseName, classInfo);
-      await addGuestCourse(course);
+      if (!userProfile?.id) {
+        await addGuestCourse(course);
+      }
       router.push("/schedule");
     } catch {
       setSaveError("Saving failed. Please try again.");
