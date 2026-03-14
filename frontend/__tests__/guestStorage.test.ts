@@ -1,23 +1,23 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import type {
+  CourseItem,
   SavedAddress,
-  ScheduleItem,
   SearchHistoryItem,
   UserProfile,
 } from "../hooks/firebase/useFirestore";
 import {
+  addGuestCourse,
   addGuestSavedAddress,
-  addGuestScheduleItem,
   addGuestSearchHistory,
   clearGuestData,
   clearGuestSearchHistory,
+  getGuestCourses,
   getGuestProfile,
   getGuestSavedAddresses,
-  getGuestSchedule,
   getGuestSearchHistory,
+  setGuestCourses,
   setGuestProfile,
   setGuestSavedAddresses,
-  setGuestSchedule,
 } from "../hooks/guestStorage";
 
 // Mock AsyncStorage
@@ -143,45 +143,45 @@ describe("guestStorage", () => {
   });
 
   describe("Schedule", () => {
-    it("should add guest schedule item", async () => {
-      const item: ScheduleItem = {
-        name: "SOEN 390 Lecture",
-        building: "Hall Building",
-        room: "H-929",
-        startTime: "17:45",
-        endTime: "20:15",
-        daysOfWeek: ["Monday", "Wednesday"],
-        type: "class",
+    it("should add guest course", async () => {
+      const item: CourseItem = {
+        name: "SOEN 384",
+        classes: [
+          {
+            type: "Lecture",
+            section: "N",
+            day: "MON",
+            startTime: "10:00",
+            endTime: "12:00",
+            buildingCode: "H",
+            room: "110",
+            origin: "manual",
+          },
+        ],
       };
 
       (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
       (AsyncStorage.setItem as jest.Mock).mockResolvedValue(undefined);
 
-      await addGuestScheduleItem(item);
+      await addGuestCourse(item);
 
       expect(AsyncStorage.setItem).toHaveBeenCalled();
       const callArgs = (AsyncStorage.setItem as jest.Mock).mock.calls[0];
-      expect(callArgs[0]).toBe("guest:schedule");
+      expect(callArgs[0]).toBe("guest:courses");
       const data = JSON.parse(callArgs[1]);
       expect(data).toHaveLength(1);
-      expect(data[0].name).toBe("SOEN 390 Lecture");
+      expect(data[0].name).toBe("SOEN 384");
     });
 
-    it("should get guest schedule", async () => {
-      const items: ScheduleItem[] = [
+    it("should get guest courses", async () => {
+      const items: CourseItem[] = [
         {
-          name: "Morning Class",
-          startTime: "09:00",
-          endTime: "10:30",
-          daysOfWeek: ["Monday"],
-          type: "class",
+          name: "SOEN 384",
+          classes: [],
         },
         {
-          name: "Afternoon Class",
-          startTime: "14:00",
-          endTime: "15:30",
-          daysOfWeek: ["Monday"],
-          type: "class",
+          name: "COMP 352",
+          classes: [],
         },
       ];
 
@@ -189,33 +189,29 @@ describe("guestStorage", () => {
         JSON.stringify(items),
       );
 
-      const result = await getGuestSchedule();
+      const result = await getGuestCourses();
 
       expect(result).toHaveLength(2);
-      expect(result[0].name).toBe("Morning Class");
+      expect(result[0].name).toBe("SOEN 384");
     });
 
-    it("should update guest schedule", async () => {
-      const updatedItems: ScheduleItem[] = [
+    it("should update guest courses", async () => {
+      const updatedItems: CourseItem[] = [
         {
-          scheduleId: "schedule-1",
-          name: "Updated Class",
-          startTime: "14:00",
-          endTime: "15:30",
-          daysOfWeek: ["Monday"],
-          type: "class",
+          name: "SOEN 384",
+          classes: [],
         },
       ];
 
       (AsyncStorage.setItem as jest.Mock).mockResolvedValue(undefined);
 
-      await setGuestSchedule(updatedItems);
+      await setGuestCourses(updatedItems);
 
       expect(AsyncStorage.setItem).toHaveBeenCalled();
       const callArgs = (AsyncStorage.setItem as jest.Mock).mock.calls[0];
-      expect(callArgs[0]).toBe("guest:schedule");
+      expect(callArgs[0]).toBe("guest:courses");
       const data = JSON.parse(callArgs[1]);
-      expect(data[0].name).toBe("Updated Class");
+      expect(data[0].name).toBe("SOEN 384");
     });
 
     it("should clear guest data", async () => {
@@ -225,7 +221,7 @@ describe("guestStorage", () => {
 
       expect(AsyncStorage.multiRemove).toHaveBeenCalled();
       const callArgs = (AsyncStorage.multiRemove as jest.Mock).mock.calls[0][0];
-      expect(callArgs).toContain("guest:schedule");
+      expect(callArgs).toContain("guest:courses");
     });
   });
 

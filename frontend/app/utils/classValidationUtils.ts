@@ -1,4 +1,4 @@
-// Validation functions returning the error message string if invalid, or null if valid. 
+// Validation functions returning the error message string if invalid, or null if valid.
 // This is just to allow both checking and displaying the error in one step in the UI.
 
 export const validateCourseName = (name: string): string | null => {
@@ -36,25 +36,43 @@ export const validateTimeRange = (
 };
 
 export const validateNoTimeOverlap = (
-  newSession: { day: string; start_time: string; end_time: string },
-  existingSessions: { day: string; start_time: string; end_time: string }[],
+  newClass: { day: string; startTime: string; endTime: string },
+  existingClasses: {
+    day: string;
+    startTime: string;
+    endTime: string;
+    courseName?: string;
+  }[],
 ): string | null => {
   const toMinutes = (time: string): number => {
     const [hours, minutes] = time.split(":").map(Number);
     return hours * 60 + minutes;
   };
-
-  const newStart = toMinutes(newSession.start_time);
-  const newEnd = toMinutes(newSession.end_time);
-
-  for (const session of existingSessions) {
-    if (session.day !== newSession.day) continue;
-    const existingStart = toMinutes(session.start_time);
-    const existingEnd = toMinutes(session.end_time);
+  const newStart = toMinutes(newClass.startTime);
+  const newEnd = toMinutes(newClass.endTime);
+  for (const existing of existingClasses) {
+    if (existing.day !== newClass.day) continue;
+    const existingStart = toMinutes(existing.startTime);
+    const existingEnd = toMinutes(existing.endTime);
     if (newStart < existingEnd && newEnd > existingStart) {
-      return `This class overlaps with an existing class.`;
+      if (existing.courseName) {
+        return `This class overlaps with ${existing.courseName} on ${existing.day} ${existing.startTime} - ${existing.endTime}.`;
+      }
+      return "This class overlaps with an existing class.";
     }
   }
+  return null;
+};
+
+export const validateNoDuplicateCourseName = (
+  name: string,
+  existingCourses: { name: string }[],
+): string | null => {
+  const duplicate = existingCourses.find(
+    (course) => course.name.trim().toLowerCase() === name.trim().toLowerCase(),
+  );
+  if (duplicate)
+    return `A course named ${name.trim().toUpperCase()} already exists. If you want to modify classes for this course, please go to the modification page.`;
   return null;
 };
 
