@@ -76,7 +76,8 @@ describe("api", () => {
       headers: mockHeadersFn,
     });
 
-    const longToken = "header.payload.signature-with-many-characters";
+    const longToken =
+      "eyJhbGciOiJIUzI1NiJ9.eyJleHAiOjk5OTk5OTk5OTl9.signature-with-many-characters";
 
     await api(longToken);
 

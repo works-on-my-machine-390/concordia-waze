@@ -440,7 +440,7 @@ describe("IndoorNavigationPage", () => {
         success: false,
         reason: "screen_unmount",
         building_code: "VL",
-        total_steps: 2,
+        total_steps: 0,
       }),
     );
   });
