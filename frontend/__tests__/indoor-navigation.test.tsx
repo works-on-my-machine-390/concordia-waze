@@ -7,6 +7,9 @@ import {
 } from "@testing-library/react-native";
 import IndoorNavigationPage from "@/app/indoor-navigation";
 
+const mockStartTaskTimer = jest.fn();
+const mockEndTaskTimer = jest.fn();
+
 const mockReplace = jest.fn();
 const mockBuildIndoorNavigationSteps = buildIndoorNavigationSteps as jest.Mock;
 
@@ -58,6 +61,11 @@ jest.mock("@/app/constants", () => ({
   COLORS: { maroon: "#912338" },
 }));
 
+jest.mock("@/lib/telemetry", () => ({
+  startTaskTimer: (...args: any[]) => mockStartTaskTimer(...args),
+  endTaskTimer: (...args: any[]) => mockEndTaskTimer(...args),
+}));
+
 jest.mock("@/hooks/useIndoorNavigationStore", () => ({
   useIndoorNavigationStore: jest.fn((selector: any) => selector(mockState)),
 }));
@@ -71,7 +79,6 @@ jest.mock("@/app/utils/indoorNavigationSteps", () => ({
 }));
 
 jest.mock("@/components/indoor/IndoorMapContainer", () => {
-  const React = require("react");
   const { Text } = require("react-native");
   return function MockIndoorMapContainer(props: any) {
     return (
@@ -91,7 +98,6 @@ jest.mock("@/components/indoor/IndoorMapContainer", () => {
 });
 
 jest.mock("@/components/indoor/IndoorNavigationInstructionCard", () => {
-  const React = require("react");
   const { Text } = require("react-native");
   return function MockInstructionCard({ step }: any) {
     return (
@@ -103,7 +109,6 @@ jest.mock("@/components/indoor/IndoorNavigationInstructionCard", () => {
 });
 
 jest.mock("@/components/indoor/IndoorNavigationBottomSheet", () => {
-  const React = require("react");
   const { Pressable, Text } = require("react-native");
   return function MockBottomSheet(props: any) {
     return (
@@ -151,6 +156,7 @@ const mockSteps = [
 describe("IndoorNavigationPage", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockEndTaskTimer.mockResolvedValue(500);
 
     mockState.currentFloor = 1;
     mockState.routeSegments = [
@@ -260,152 +266,182 @@ describe("IndoorNavigationPage", () => {
   });
 
   it("uses previous step target as navigationStartOverride on non-arrival second step", async () => {
-  const twoWalkSteps = [
-    {
-      id: "step-1",
-      floorNumber: 2,
-      targetPoint: { x: 0.4, y: 0.2 },
-      kind: "walk",
-      iconName: "walk",
-      instruction: "Head straight",
-      distanceMeters: 10,
-      remainingDistanceMeters: 20,
-    },
-    {
-      id: "step-2",
-      floorNumber: 2,
-      targetPoint: { x: 0.7, y: 0.2 },
-      kind: "walk",
-      iconName: "walk",
-      instruction: "Keep going",
-      distanceMeters: 10,
-      remainingDistanceMeters: 10,
-    },
-  ];
+    const twoWalkSteps = [
+      {
+        id: "step-1",
+        floorNumber: 2,
+        targetPoint: { x: 0.4, y: 0.2 },
+        kind: "walk",
+        iconName: "walk",
+        instruction: "Head straight",
+        distanceMeters: 10,
+        remainingDistanceMeters: 20,
+      },
+      {
+        id: "step-2",
+        floorNumber: 2,
+        targetPoint: { x: 0.7, y: 0.2 },
+        kind: "walk",
+        iconName: "walk",
+        instruction: "Keep going",
+        distanceMeters: 10,
+        remainingDistanceMeters: 10,
+      },
+    ];
 
-  mockBuildIndoorNavigationSteps.mockResolvedValue(twoWalkSteps);
+    mockBuildIndoorNavigationSteps.mockResolvedValue(twoWalkSteps);
 
-  const screen = render(<IndoorNavigationPage />);
+    const screen = render(<IndoorNavigationPage />);
 
-  await waitFor(() => {
-    expect(screen.getByTestId("next-btn")).toBeTruthy();
-  });
+    await waitFor(() => {
+      expect(screen.getByTestId("next-btn")).toBeTruthy();
+    });
 
-  fireEvent.press(screen.getByTestId("next-btn"));
+    fireEvent.press(screen.getByTestId("next-btn"));
 
-  await waitFor(() => {
-    expect(screen.getByTestId("instruction-card").props.children).toBe(
-      "Keep going",
+    await waitFor(() => {
+      expect(screen.getByTestId("instruction-card").props.children).toBe(
+        "Keep going",
+      );
+    });
+
+    expect(screen.getByTestId("nav-map-container").props.children).toContain(
+      `"navigationStartOverride":{"x":0.4,"y":0.2}`,
     );
   });
 
-  expect(screen.getByTestId("nav-map-container").props.children).toContain(
-    `"navigationStartOverride":{"x":0.4,"y":0.2}`,
-  );
-});
+  it("uses current segment first point as navigationStartOverride when changing floors", async () => {
+    mockState.routeSegments = [
+      {
+        floorNumber: 1,
+        distance: 10,
+        path: [
+          { x: 0.1, y: 0.1 },
+          { x: 0.2, y: 0.2 },
+        ],
+      },
+      {
+        floorNumber: 2,
+        distance: 10,
+        path: [
+          { x: 0.8, y: 0.8 },
+          { x: 0.9, y: 0.9 },
+        ],
+      },
+    ] as any;
 
-it("uses current segment first point as navigationStartOverride when changing floors", async () => {
-  mockState.routeSegments = [
-    {
-      floorNumber: 1,
-      distance: 10,
-      path: [
-        { x: 0.1, y: 0.1 },
-        { x: 0.2, y: 0.2 },
-      ],
-    },
-    {
-      floorNumber: 2,
-      distance: 10,
-      path: [
-        { x: 0.8, y: 0.8 },
-        { x: 0.9, y: 0.9 },
-      ],
-    },
-  ] as any;
+    const crossFloorSteps = [
+      {
+        id: "step-1",
+        floorNumber: 1,
+        targetPoint: { x: 0.2, y: 0.2 },
+        kind: "walk",
+        iconName: "walk",
+        instruction: "Go to stairs",
+        distanceMeters: 10,
+        remainingDistanceMeters: 20,
+      },
+      {
+        id: "step-2",
+        floorNumber: 2,
+        targetPoint: { x: 0.9, y: 0.9 },
+        kind: "walk",
+        iconName: "walk",
+        instruction: "Continue on floor 2",
+        distanceMeters: 10,
+        remainingDistanceMeters: 10,
+      },
+    ];
 
-  const crossFloorSteps = [
-    {
-      id: "step-1",
-      floorNumber: 1,
-      targetPoint: { x: 0.2, y: 0.2 },
-      kind: "walk",
-      iconName: "walk",
-      instruction: "Go to stairs",
-      distanceMeters: 10,
-      remainingDistanceMeters: 20,
-    },
-    {
-      id: "step-2",
-      floorNumber: 2,
-      targetPoint: { x: 0.9, y: 0.9 },
-      kind: "walk",
-      iconName: "walk",
-      instruction: "Continue on floor 2",
-      distanceMeters: 10,
-      remainingDistanceMeters: 10,
-    },
-  ];
+    mockBuildIndoorNavigationSteps.mockResolvedValue(crossFloorSteps);
 
-  mockBuildIndoorNavigationSteps.mockResolvedValue(crossFloorSteps);
+    const screen = render(<IndoorNavigationPage />);
 
-  const screen = render(<IndoorNavigationPage />);
+    await waitFor(() => {
+      expect(screen.getByTestId("next-btn")).toBeTruthy();
+    });
 
-  await waitFor(() => {
-    expect(screen.getByTestId("next-btn")).toBeTruthy();
-  });
+    fireEvent.press(screen.getByTestId("next-btn"));
 
-  fireEvent.press(screen.getByTestId("next-btn"));
+    await waitFor(() => {
+      expect(screen.getByTestId("instruction-card").props.children).toBe(
+        "Continue on floor 2",
+      );
+    });
 
-  await waitFor(() => {
-    expect(screen.getByTestId("instruction-card").props.children).toBe(
-      "Continue on floor 2",
+    expect(screen.getByTestId("nav-map-container").props.children).toContain(
+      `"navigationStartOverride":{"x":0.8,"y":0.8}`,
     );
   });
 
-  expect(screen.getByTestId("nav-map-container").props.children).toContain(
-    `"navigationStartOverride":{"x":0.8,"y":0.8}`,
-  );
-});
+  it("falls back to start coord when previous step is missing", async () => {
+    const singleSecondStep = [
+      {
+        id: "step-2",
+        floorNumber: 2,
+        targetPoint: { x: 0.7, y: 0.2 },
+        kind: "walk",
+        iconName: "walk",
+        instruction: "Only step",
+        distanceMeters: 10,
+        remainingDistanceMeters: 10,
+      },
+    ];
 
-it("falls back to start coord when previous step is missing", async () => {
-  const singleSecondStep = [
-    {
-      id: "step-2",
-      floorNumber: 2,
-      targetPoint: { x: 0.7, y: 0.2 },
-      kind: "walk",
-      iconName: "walk",
-      instruction: "Only step",
-      distanceMeters: 10,
-      remainingDistanceMeters: 10,
-    },
-  ];
+    mockBuildIndoorNavigationSteps.mockResolvedValue(singleSecondStep);
 
-  mockBuildIndoorNavigationSteps.mockResolvedValue(singleSecondStep);
+    const screen = render(<IndoorNavigationPage />);
 
-  const screen = render(<IndoorNavigationPage />);
+    await waitFor(() => {
+      expect(screen.getByTestId("instruction-card").props.children).toBe(
+        "Only step",
+      );
+    });
 
-  await waitFor(() => {
-    expect(screen.getByTestId("instruction-card").props.children).toBe(
-      "Only step",
+    expect(screen.getByTestId("nav-map-container").props.children).toContain(
+      `"navigationStartOverride":{"x":0.1,"y":0.2}`,
     );
   });
 
-  expect(screen.getByTestId("nav-map-container").props.children).toContain(
-    `"navigationStartOverride":{"x":0.1,"y":0.2}`,
-  );
-});
+  it("does not call setCurrentFloor when already on the correct floor", async () => {
+    mockState.currentFloor = 2;
 
-it("does not call setCurrentFloor when already on the correct floor", async () => {
-  mockState.currentFloor = 2;
+    render(<IndoorNavigationPage />);
 
-  render(<IndoorNavigationPage />);
+    await waitFor(() => {
+      expect(mockBuildIndoorNavigationSteps).toHaveBeenCalled();
+    });
 
-  await waitFor(() => {
-    expect(mockBuildIndoorNavigationSteps).toHaveBeenCalled();
+    expect(mockState.setCurrentFloor).not.toHaveBeenCalledWith(2);
   });
 
-  expect(mockState.setCurrentFloor).not.toHaveBeenCalledWith(2);
-});
+  it("starts telemetry timer on mount", async () => {
+    render(<IndoorNavigationPage />);
+
+    await waitFor(() => {
+      expect(mockStartTaskTimer).toHaveBeenCalledWith("indoor_navigation");
+    });
+  });
+
+  it("ends telemetry timer on unmount", async () => {
+    const screen = render(<IndoorNavigationPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("instruction-card").props.children).toBe(
+        "Head straight",
+      );
+    });
+
+    screen.unmount();
+
+    expect(mockEndTaskTimer).toHaveBeenCalledWith(
+      "indoor_navigation",
+      expect.objectContaining({
+        success: false,
+        reason: "screen_unmount",
+        building_code: "VL",
+        total_steps: 0,
+      }),
+    );
+  });
 });

@@ -5,6 +5,7 @@ import IndoorMapContainer from "@/components/indoor/IndoorMapContainer";
 import { COLORS } from "@/app/constants";
 import { useGetBuildingFloors } from "@/hooks/queries/indoorMapQueries";
 import { useIndoorNavigationStore } from "@/hooks/useIndoorNavigationStore";
+import { endTaskTimer, startTaskTimer } from "@/lib/telemetry";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -27,13 +28,37 @@ export default function IndoorNavigationPage() {
 
   const { data } = useGetBuildingFloors(buildingCode ?? "");
 
-  const [steps, setSteps] = useState<Awaited<
-    ReturnType<typeof buildIndoorNavigationSteps>
-  >>([]);
+  const [steps, setSteps] = useState<
+    Awaited<ReturnType<typeof buildIndoorNavigationSteps>>
+  >([]);
   const [loadingSteps, setLoadingSteps] = useState(true);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
   const lastRouteKeyRef = useRef<string>("");
+  const indoorTimerActiveRef = useRef(false);
+
+  const endIndoorNavigationTimer = (success: boolean, reason: string) => {
+    if (!indoorTimerActiveRef.current) {
+      return;
+    }
+
+    indoorTimerActiveRef.current = false;
+    void endTaskTimer("indoor_navigation", {
+      success,
+      reason,
+      building_code: buildingCode ?? "unknown",
+      total_steps: steps.length,
+    });
+  };
+
+  useEffect(() => {
+    startTaskTimer("indoor_navigation");
+    indoorTimerActiveRef.current = true;
+
+    return () => {
+      endIndoorNavigationTimer(false, "screen_unmount");
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -138,6 +163,7 @@ export default function IndoorNavigationPage() {
   };
 
   const handleBack = () => {
+    endIndoorNavigationTimer(false, "back_button");
     cleanupAndReturnToBrowse();
   };
 
@@ -145,6 +171,7 @@ export default function IndoorNavigationPage() {
     if (steps.length === 0) return;
 
     if (currentStepIndex >= steps.length - 1) {
+      endIndoorNavigationTimer(true, "completed");
       cleanupAndReturnToBrowse();
       return;
     }
