@@ -36,6 +36,9 @@ func SetupRouter() *gin.Engine {
 	jwtManager := application.NewJWTManager(os.Getenv("JWT_SECRET"), constants.DefaultJWTDuration*time.Hour)
 	userService := application.NewUserService(userRepo, jwtManager)
 
+	calendarClient := google.NewCalendarClient()
+	calendarService := application.NewCalendarService(calendarClient)
+
 	placesClient := google.NewGooglePlacesClient(os.Getenv("GOOGLE_PLACES_API_KEY"))
 
 	buildingService := application.NewBuildingService(buildingDataRepo, floorDataRepo, placesClient, "./")
@@ -105,6 +108,8 @@ func SetupRouter() *gin.Engine {
 	}
 	googleOAuthHandler := handler.NewGoogleOAuthHandler(firebaseSvc)
 
+	calendarHandler := handler.NewCalendarHandler(firebaseSvc, calendarService)
+
 	authGroup := router.Group("/auth")
 	{
 		authGroup.POST("/signup", authHandler.SignUp)
@@ -162,6 +167,16 @@ func SetupRouter() *gin.Engine {
 		userFavGroup.POST("", favoritesHandler.CreateFavorite)
 		userFavGroup.GET("", favoritesHandler.GetFavorites)
 		userFavGroup.DELETE("/:id", favoritesHandler.DeleteFavorite)
+	}
+
+	// Calendar
+	calendarGroup := router.Group("/calendar")
+	calendarGroup.Use(middleware.RequireAuth())
+	{
+		calendarGroup.GET("/sync", calendarHandler.SyncCalendarEvents)
+		calendarGroup.GET("", calendarHandler.GetCalendarEvents)
+		calendarGroup.DELETE("", calendarHandler.DeleteCalendarEvents)
+		calendarGroup.POST("", calendarHandler.AddCalendarEvents)
 	}
 
 	// =========================

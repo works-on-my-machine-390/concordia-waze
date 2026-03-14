@@ -1,31 +1,46 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/works-on-my-machine-390/concordia-waze/internal/application"
 )
 
 type CalendarHandler struct {
-	store GoogleTokenStore
+	tokenStore      GoogleTokenStore
+	calendarService application.CalendarService
 }
 
-func NewCalendarHandler(tokenStore GoogleTokenStore) *CalendarHandler {
+func NewCalendarHandler(tokenStore GoogleTokenStore, calendarService application.CalendarService) *CalendarHandler {
 	return &CalendarHandler{
-		store: tokenStore,
+		tokenStore:      tokenStore,
+		calendarService: calendarService,
 	}
 }
 
-func (h *CalendarHandler) GetCalendarEvents(c *gin.Context) {
-	v, ok := c.Get("userID")
-	userID, isString := v.(string)
+type query struct {
+	Since time.Time `form:"since" time_format:"2006-01-02"`
+}
 
-	if !ok || !isString || userID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "missing userId (query or from auth context)"})
-		return
-	}
+// SyncCalendarEvents godoc
+// @Summary Sync Google Calendar events
+// @Description Synchronizes Google Calendar events for the authenticated user since a given date
+// @Tags calendar
+// @Param since query string false "Sync events since this date (YYYY-MM-DD)"
+// @Success 200 {string} string "Events synced successfully"
+// @Failure 400 {object} map[string]string "Invalid date"
+// @Failure 401 {object} map[string]string "Google auth required"
+// @Failure 500 {object} map[string]string "Failed to fetch events or token"
+// @Router /calendar/sync [get]
+func (h *CalendarHandler) SyncCalendarEvents(c *gin.Context) {
+	fmt.Println("1aaaaaaaaaaaaaaaaaa")
 
-	token, found, err := h.store.GetGoogleToken(c.Request.Context(), userID)
+	userID := c.GetString("userID")
+
+	token, found, err := h.tokenStore.GetGoogleToken(c.Request.Context(), userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve token"})
 		return
@@ -36,10 +51,73 @@ func (h *CalendarHandler) GetCalendarEvents(c *gin.Context) {
 		return
 	}
 
-	//events, err := h.calendarService.ListEvents(c.Request.Context(), token)
+	var q query
+	if err := c.ShouldBindQuery(&q); err != nil {
+		c.JSON(400, gin.H{"error": "Invalid date"})
+		return
+	}
+
+	err2 := h.calendarService.SyncCalendarEvents(q.Since, token)
+
+	fmt.Println("2aaaaaaaaaaaaaaaaaa")
+
+	if err2 != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch events"})
+		return
+	}
+
+}
+
+// GetCalendarEvents godoc
+// @Summary Get Google Calendar events
+// @Description Retrieves Google Calendar events for the authenticated user
+// @Tags calendar
+// @Success 200 {array} object "List of calendar events"
+// @Failure 401 {object} map[string]string "Google auth required"
+// @Failure 500 {object} map[string]string "Failed to fetch events"
+// @Router /calendar [get]
+func (h *CalendarHandler) GetCalendarEvents(c *gin.Context) {
+	// userID := c.GetString("userID") // Unused, commented out
+	//events, err := h.calendarService.getEvents(q.Since, token)
 	//if err != nil {
 	//	c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch events"})
 	//	return
 	//}
+}
 
+// DeleteCalendarEvents godoc
+// @Summary Delete Google Calendar events
+// @Description Deletes Google Calendar events for the authenticated user
+// @Tags calendar
+// @Success 200 {string} string "Events deleted successfully"
+// @Failure 401 {object} map[string]string "Google auth required"
+// @Failure 500 {object} map[string]string "Failed to delete events"
+// @Router /calendar [delete]
+func (h *CalendarHandler) DeleteCalendarEvents(c *gin.Context) {
+	// userID := c.GetString("userID") // Unused, commented out
+	//events, err := h.calendarService.deleteCalendarEvents(userID)
+	//if err != nil {
+	//	c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch events"})
+	//	return
+	//}
+}
+
+// AddCalendarEvents godoc
+// @Summary Add Google Calendar events
+// @Description Adds new Google Calendar events for the authenticated user
+// @Tags calendar
+// @Accept json
+// @Produce json
+// @Param event body object true "Event to add"
+// @Success 200 {string} string "Event added successfully"
+// @Failure 401 {object} map[string]string "Google auth required"
+// @Failure 500 {object} map[string]string "Failed to add event"
+// @Router /calendar [post]
+func (h *CalendarHandler) AddCalendarEvents(c *gin.Context) {
+	// userID := c.GetString("userID") // Unused, commented out
+	//events, err := h.calendarService.addCalendarEvents(userID)
+	//if err != nil {
+	//	c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch events"})
+	//	return
+	//}
 }

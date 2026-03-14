@@ -791,6 +791,121 @@ paths:
       summary: List all buildings grouped by campus
       tags:
       - buildings
+  /calendar:
+    delete:
+      description: Deletes Google Calendar events for the authenticated user
+      responses:
+        "200":
+          description: Events deleted successfully
+          schema:
+            type: string
+        "401":
+          description: Google auth required
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Failed to delete events
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete Google Calendar events
+      tags:
+      - calendar
+    get:
+      description: Retrieves Google Calendar events for the authenticated user
+      responses:
+        "200":
+          description: List of calendar events
+          schema:
+            items:
+              type: object
+            type: array
+        "401":
+          description: Google auth required
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Failed to fetch events
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get Google Calendar events
+      tags:
+      - calendar
+    post:
+      consumes:
+      - application/json
+      description: Adds new Google Calendar events for the authenticated user
+      parameters:
+      - description: Event to add
+        in: body
+        name: event
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Event added successfully
+          schema:
+            type: string
+        "401":
+          description: Google auth required
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Failed to add event
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Add Google Calendar events
+      tags:
+      - calendar
+  /calendar/sync:
+    get:
+      description: Synchronizes Google Calendar events for the authenticated user
+        since a given date
+      parameters:
+      - description: Sync events since this date (YYYY-MM-DD)
+        in: query
+        name: since
+        type: string
+      responses:
+        "200":
+          description: Events synced successfully
+          schema:
+            type: string
+        "400":
+          description: Invalid date
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Google auth required
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Failed to fetch events or token
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Sync Google Calendar events
+      tags:
+      - calendar
   /campuses/{campus}/buildings:
     get:
       consumes:

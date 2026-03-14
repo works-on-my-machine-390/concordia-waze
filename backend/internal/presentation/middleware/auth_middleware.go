@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"net/http"
 	"strings"
 	"time"
 
@@ -72,6 +73,15 @@ func RequireAuth() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
+
+		v, ok := c.Get("userID")
+		userID, isString := v.(string)
+
+		if !ok || !isString || userID == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "missing userId (from auth context)"})
+			return
+		}
+
 		c.Next()
 	}
 }
