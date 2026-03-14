@@ -29,13 +29,22 @@ export type NavigationBottomSheetProps = {};
 export default function NavigationBottomSheet(
   props: Readonly<NavigationBottomSheetProps>,
 ) {
+  const navigationState = useNavigationStore();
+
   const insets = useSafeAreaInsets();
 
   const query = useGetDirections(
-    useNavigationStore().startLocation,
-    useNavigationStore().endLocation,
+    navigationState.startLocation,
+    navigationState.endLocation,
     new Date(),
   );
+
+  useEffect(() => {
+    if (query.data) {
+      navigationState.setCurrentDirections(query.data);
+    }
+  }, [query.data]);
+
   const durationsByMode = query.data?.durationBlock?.durations;
   const outdoorBlock = query.data?.directionBlocks.find(
     (block) => block.type === DirectionsResponseBlockType.OUTDOOR,
@@ -43,7 +52,6 @@ export default function NavigationBottomSheet(
 
   const closeSheet = useMapStore((state) => state.closeSheet);
 
-  const navigationState = useNavigationStore();
 
   const isCrossCampus = useMemo(() => {
     if (!navigationState.startLocation || !navigationState.endLocation)
@@ -57,61 +65,61 @@ export default function NavigationBottomSheet(
   const transitOptions = useMemo(() => {
     const baseOptions = [
       {
-        mode: TransitMode.DRIVING,
+        mode: TransitMode.driving,
         Icon: CarIcon,
         label: "Drive",
         duration:
           formatDuration(
-            durationsByMode?.[TransitMode.DRIVING.toLowerCase()],
+            durationsByMode?.[TransitMode.driving],
           ) || "",
       },
       {
-        mode: TransitMode.TRANSIT,
+        mode: TransitMode.transit,
         Icon: TrainIcon,
         label: "Transit",
         duration:
           formatDuration(
-            durationsByMode?.[TransitMode.TRANSIT.toLowerCase()],
+            durationsByMode?.[TransitMode.transit],
           ) || "",
       },
       {
-        mode: TransitMode.WALKING,
+        mode: TransitMode.walking,
         Icon: WalkingIcon,
         label: "Walk",
         duration:
           formatDuration(
-            durationsByMode?.[TransitMode.WALKING.toLowerCase()],
+            durationsByMode?.[TransitMode.walking],
           ) || "",
       },
       {
-        mode: TransitMode.BICYCLING,
+        mode: TransitMode.bicycling,
         Icon: BikeIcon,
         label: "Bike",
         duration:
           formatDuration(
-            durationsByMode?.[TransitMode.BICYCLING.toLowerCase()],
+            durationsByMode?.[TransitMode.bicycling],
           ) || "",
       },
       {
-        mode: TransitMode.SHUTTLE,
+        mode: TransitMode.shuttle,
         image: concordiaLogo,
         label: "Shuttle",
         duration:
           formatDuration(
-            durationsByMode?.[TransitMode.SHUTTLE.toLowerCase()],
+            durationsByMode?.[TransitMode.shuttle],
           ) || "",
       },
     ];
 
     if (isCrossCampus) {
       const shuttleOption = baseOptions.find(
-        (option) => option.mode === TransitMode.SHUTTLE,
+        (option) => option.mode === TransitMode.shuttle,
       );
       const otherOptions = baseOptions.filter(
-        (option) => option.mode !== TransitMode.SHUTTLE,
+        (option) => option.mode !== TransitMode.shuttle,
       );
       return shuttleOption &&
-        !!outdoorBlock?.directionsByMode[TransitMode.SHUTTLE.toLowerCase()]
+        !!outdoorBlock?.directionsByMode[TransitMode.shuttle.toLowerCase()]
         ? [shuttleOption, ...otherOptions]
         : baseOptions;
     }
@@ -190,7 +198,7 @@ export default function NavigationBottomSheet(
             >
               {transitOptions.map(({ mode, Icon, image, duration }) => {
                 const selected = navigationState.transitMode === mode;
-                const disabled = mode === TransitMode.SHUTTLE && !isCrossCampus;
+                const disabled = mode === TransitMode.shuttle && !isCrossCampus;
                 return (
                   <TouchableOpacity
                     key={mode}
@@ -250,7 +258,9 @@ export default function NavigationBottomSheet(
         >
           {!!navigationState.currentDirections && (
             <OutdoorNavigationSteps
-              directions={navigationState.currentDirections}
+              directions={navigationState.currentDirections.directionBlocks.find(
+                (block) => block.type === DirectionsResponseBlockType.OUTDOOR,
+              )?.directionsByMode[selectedOption.mode.toLowerCase() || ""]}
             />
           )}
         </BottomSheetScrollView>

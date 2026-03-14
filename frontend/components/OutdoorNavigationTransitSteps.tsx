@@ -158,7 +158,7 @@ export default function OutdoorNavigationTransitSteps(
       </View>
 
       {props.directions.steps.map((step: StepModel, index) => {
-        if (step.travel_mode === TransitMode.TRANSIT) {
+        if (step.travel_mode.toLowerCase() === TransitMode.transit) {
           return renderTransitStep(step, index);
         } else {
           return renderWalkingStep(step, index);

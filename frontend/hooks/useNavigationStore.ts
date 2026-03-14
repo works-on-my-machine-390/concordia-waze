@@ -1,9 +1,6 @@
 import { create } from "zustand";
 import { Coordinates } from "./queries/indoorDirectionsQueries";
-import {
-  OutdoorDirectionsModel,
-  TransitMode,
-} from "./queries/navigationQueries";
+import { DirectionsModel, TransitMode } from "./queries/navigationQueries";
 
 /**
  * Zustand store for managing states during navigation.
@@ -38,8 +35,8 @@ interface NavigationState {
   setEndLocation: (location: NavigableLocation) => void;
   transitMode?: TransitMode;
   setTransitMode?: (mode: TransitMode) => void;
-  currentDirections?: OutdoorDirectionsModel;
-  setCurrentDirections?: (directions: OutdoorDirectionsModel) => void;
+  currentDirections?: DirectionsModel;
+  setCurrentDirections?: (directions: DirectionsModel) => void;
 
   clearState: () => void;
 }
@@ -55,7 +52,7 @@ export const useNavigationStore = create<NavigationState>()((set) => ({
   setTransitMode: (mode: TransitMode) => set({ transitMode: mode }),
 
   currentDirections: undefined,
-  setCurrentDirections: (directions: OutdoorDirectionsModel) =>
+  setCurrentDirections: (directions: DirectionsModel) =>
     set({ currentDirections: directions }),
 
   clearState: () =>

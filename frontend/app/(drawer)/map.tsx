@@ -374,9 +374,9 @@ export default function MainMap() {
         onRegionChangeComplete={handleRegionChangeComplete}
       >
         <CampusBuildingPolygons buildings={buildingsToRender} />
-        {/* {mapState.currentMode === MapMode.NAVIGATION && (
+        {mapState.currentMode === MapMode.NAVIGATION && (
           <NavigationPolylines showEndPoint />
-        )} */}
+        )}
         {mapState.currentMode === MapMode.POI && <PoiOutdoorMarkers />}
         <ShuttleBusMarkers />
       </MapView>

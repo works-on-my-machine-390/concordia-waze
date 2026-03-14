@@ -50,7 +50,7 @@ export default function OutdoorNavigationSteps(
   };
 
   const renderSteps = () => {
-    if (props.directions.mode.toUpperCase() === TransitMode.TRANSIT) {
+    if (props.directions.mode === TransitMode.transit) {
       return <OutdoorNavigationTransitSteps directions={props.directions} />;
       // transit steps are more complicated to render, so we use a separate component for them.
     }

@@ -49,7 +49,7 @@ export default function NavigationPolylines(
     const travelMode = step.travel_mode;
 
     // check first for travel mode transit, and apply the transit line color if available.
-    if (travelMode === TransitMode.TRANSIT) {
+    if (travelMode === TransitMode.transit) {
       return {
         ...directionPolylineStyles.transit,
         strokeColor: step.transit_line_color || DIRECTION_COLORS.transit,
@@ -58,7 +58,7 @@ export default function NavigationPolylines(
 
     if (
       Object.values(TransitMode).includes(
-        travelMode.toUpperCase() as TransitMode,
+        travelMode.toLowerCase() as TransitMode,
       )
     ) {
       return (

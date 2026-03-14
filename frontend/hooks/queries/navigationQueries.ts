@@ -5,11 +5,11 @@ import { Point } from "./buildingQueries";
 import { MultiFloorPathResult } from "./indoorDirectionsQueries";
 
 export const TransitMode = {
-  DRIVING: "DRIVING",
-  TRANSIT: "TRANSIT",
-  WALKING: "WALKING",
-  BICYCLING: "BICYCLING",
-  SHUTTLE: "SHUTTLE",
+  driving: "driving",
+  transit: "transit",
+  walking: "walking",
+  bicycling: "bicycling",
+  shuttle: "shuttle",
 } as const;
 
 export type TransitMode = (typeof TransitMode)[keyof typeof TransitMode];
