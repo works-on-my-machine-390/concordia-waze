@@ -9,23 +9,24 @@ import (
 	"strings"
 	"time"
 
+	"github.com/works-on-my-machine-390/concordia-waze/internal/application/google"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/constants"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
 )
-
-type DirectionsFetcher interface {
-	GetDirections(start, end domain.LatLng, mode string) (domain.DirectionsResponse, error)
-}
 
 type ShuttleScheduleProvider interface {
 	// day: "monday", "tuesday", ...
 	// campus: "SGW" or "LOY"
 	GetDepartures(day, campus string) ([]string, error)
 }
+type DirectionsFetcher interface {
+	GetDirections(start, end domain.LatLng, mode []string) ([]domain.DirectionsResponse, error)
+	GetDirectionsWithSchedule(start, end domain.LatLng, modes []string, day, at string) ([]domain.DirectionsResponse, error)
+}
 
 type DirectionsService struct {
-	fetcher     DirectionsFetcher
-	shuttleRepo ShuttleScheduleProvider // optional
+	directionsClient google.DirectionsClient
+	shuttleRepo      ShuttleScheduleProvider // optional
 }
 
 const (
@@ -33,9 +34,9 @@ const (
 	noShuttleErrText = "No shuttle available at this time."
 )
 
-func NewDirectionsService(fetcher DirectionsFetcher) *DirectionsService {
+func NewDirectionsService(directionClient google.DirectionsClient) *DirectionsService {
 	return &DirectionsService{
-		fetcher: fetcher,
+		directionsClient: directionClient,
 	}
 }
 
@@ -46,52 +47,46 @@ func (s *DirectionsService) WithShuttleRepo(repo ShuttleScheduleProvider) *Direc
 }
 
 // Backwards-compatible entrypoint (existing callers/tests keep working)
-func (s *DirectionsService) GetDirections(start, end domain.LatLng, mode string) (domain.DirectionsResponse, error) {
+func (s *DirectionsService) GetDirections(start, end domain.LatLng, mode []string) ([]domain.DirectionsResponse, error) {
 	return s.GetDirectionsWithSchedule(start, end, mode, "", "")
 }
 
 // NEW: optional day/time for shuttle mode
 // day: "monday"..."sunday" (optional)
 // at: "HH:MM" 24h (optional)
-func (s *DirectionsService) GetDirectionsWithSchedule(start, end domain.LatLng, mode, day, at string) (domain.DirectionsResponse, error) {
-	m := strings.ToLower(strings.TrimSpace(mode))
-	if m == "" {
-		m = "walking"
-	}
+func (s *DirectionsService) GetDirectionsWithSchedule(start, end domain.LatLng, modes []string, day, at string) ([]domain.DirectionsResponse, error) {
+	var responses []domain.DirectionsResponse
 
-	allowed := map[string]bool{
-		"walking":   true,
-		"driving":   true,
-		"transit":   true,
-		"shuttle":   true,
-		"bicycling": true,
+	ref, d, err := parseOptionalDayTime(day, at)
+	if err != nil {
+		return nil, err // Return nil on error for clean API behavior
 	}
-	if !allowed[m] {
-		return domain.DirectionsResponse{}, errors.New("invalid mode")
-	}
-
-	// For departure message style
 	userProvidedTime := strings.TrimSpace(at) != ""
 
-	// Shuttle is composed (walk -> shuttle -> walk)
-	if m == "shuttle" {
-		ref, d, err := parseOptionalDayTime(day, at)
-		if err != nil {
-			return domain.DirectionsResponse{}, err
+	for _, m := range modes {
+		var direction domain.DirectionsResponse
+
+		if m == "shuttle" {
+			direction, err = s.getShuttleDirectionsAt(start, end, ref, d, userProvidedTime)
+		} else {
+			direction, err = s.directionsClient.GetDirections(start, end, m)
+			if err == nil {
+				if userProvidedTime {
+					direction.DepartureMessage = "Depart at " + ref.Format("15:04")
+				} else {
+					direction.DepartureMessage = "Leave now at " + time.Now().Format("15:04")
+				}
+			}
 		}
-		return s.getShuttleDirectionsAt(start, end, ref, d, userProvidedTime)
+
+		if err != nil {
+			return nil, err
+		}
+
+		responses = append(responses, direction)
 	}
 
-	// Non-shuttle: normal Google route
-	resp, err := s.fetcher.GetDirections(start, end, m)
-	if err != nil {
-		return domain.DirectionsResponse{}, err
-	}
-
-	// Departure message for non-shuttle: always "Leave now"
-	resp.DepartureMessage = "Leave now"
-
-	return resp, nil
+	return responses, nil
 }
 
 // ---- Shuttle composition logic ----
@@ -199,63 +194,13 @@ func isValidDay(d string) bool {
 	}
 }
 
-// Manual shuttle departure selection
-func (s *DirectionsService) GetShuttleDirectionsManual(start, end domain.LatLng, day, departure string) (domain.DirectionsResponse, error) {
-	d := strings.ToLower(strings.TrimSpace(day))
-	if !isValidDay(d) {
-		return domain.DirectionsResponse{}, errors.New("invalid shuttle_day")
-	}
-
-	departure = strings.TrimSpace(departure)
-	depParsed, err := time.Parse("15:04", departure)
-	if err != nil {
-		return domain.DirectionsResponse{}, errors.New("invalid shuttle_time")
-	}
-
-	if s.shuttleRepo == nil {
-		return domain.DirectionsResponse{}, errors.New(noShuttleErrText)
-	}
-
-	// Determine direction based on start proximity to shuttle stops.
-	fromStop, toStop, fromCampus, toCampus := shuttleDirection(start)
-
-	times, err := s.shuttleRepo.GetDepartures(d, fromCampus)
-	if err != nil || len(times) == 0 {
-		return domain.DirectionsResponse{}, errors.New(noShuttleErrText)
-	}
-
-	// validate the departure exists exactly in schedule
-	if !hasExactDeparture(times, departure) {
-		return domain.DirectionsResponse{}, errors.New("invalid shuttle departure")
-	}
-
-	walkToStop, walkFromStop, walkDur, err := s.fetchShuttleWalkLegs(start, end, fromStop, toStop)
-	if err != nil {
-		return domain.DirectionsResponse{}, err
-	}
-
-	now := time.Now()
-	targetWd, _ := weekdayFromString(d)
-	depDate := nextOccurrence(now, targetWd)
-	depDateTime := time.Date(depDate.Year(), depDate.Month(), depDate.Day(), depParsed.Hour(), depParsed.Minute(), 0, 0, depDate.Location())
-
-	leaveAt := depDateTime.Add(-walkDur).Format("15:04")
-	depMsg := fmt.Sprintf("Depart at %s to catch the %s shuttle", leaveAt, departure)
-
-	shuttleStep := newBaseShuttleStep(fromCampus, toCampus, fromStop, toStop)
-	shuttleStep.Instruction = fmt.Sprintf("Take the Concordia Shuttle Bus from %s to %s (day: %s, departure: %s)", fromCampus, toCampus, d, depParsed.Format("15:04"))
-	applyShuttlePolyline(&shuttleStep, fromCampus, toCampus)
-
-	return buildShuttleRouteResponse(depMsg, walkToStop, shuttleStep, walkFromStop), nil
-}
-
 func (s *DirectionsService) fetchShuttleWalkLegs(start, end, fromStop, toStop domain.LatLng) (domain.DirectionsResponse, domain.DirectionsResponse, time.Duration, error) {
-	walkToStop, err := s.fetcher.GetDirections(start, fromStop, "walking")
+	walkToStop, err := s.directionsClient.GetDirections(start, fromStop, "walking")
 	if err != nil {
 		return domain.DirectionsResponse{}, domain.DirectionsResponse{}, 0, fmt.Errorf("walking to shuttle stop: %w", err)
 	}
 
-	walkFromStop, err := s.fetcher.GetDirections(toStop, end, "walking")
+	walkFromStop, err := s.directionsClient.GetDirections(toStop, end, "walking")
 	if err != nil {
 		return domain.DirectionsResponse{}, domain.DirectionsResponse{}, 0, fmt.Errorf("walking from shuttle stop: %w", err)
 	}
@@ -301,19 +246,10 @@ func buildShuttleRouteResponse(depMsg string, walkToStop domain.DirectionsRespon
 		Mode:             "shuttle",
 		DepartureMessage: depMsg,
 		Distance:         formatKm(totalDistanceKm),
-		Duration:         formatDuration(totalDuration),
+		Duration:         int(totalDuration.Seconds()),
 		Polyline:         combinedPolyline,
 		Steps:            steps,
 	}
-}
-
-func hasExactDeparture(times []string, departure string) bool {
-	for _, t := range times {
-		if strings.TrimSpace(t) == departure {
-			return true
-		}
-	}
-	return false
 }
 
 // ---- Helpers ----

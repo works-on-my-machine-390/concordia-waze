@@ -77,7 +77,8 @@ func SetupRouter() *gin.Engine {
 	// ---- Directions wiring (FIXED: inject shuttle schedule repo) ----
 	directionsClient := google.NewGoogleDirectionsClient(os.Getenv("GOOGLE_DIRECTIONS_API_KEY"))
 	directionsService := application.NewDirectionsService(directionsClient).WithShuttleRepo(shuttleService)
-	directionsHandler := handler.NewDirectionsHandler(directionsService, buildingService)
+	directionsRedirector := application.NewDirectionsRedirectorService(directionsService, indoorPathService, indoorPOIRepo, buildingService)
+	directionsHandler := handler.NewDirectionsHandler(directionsRedirector, directionsService, buildingService)
 	// ---------------------------------------------------------------
 
 	authHandler := handler.NewAuthHandler(userService, authFirebaseService)
@@ -99,12 +100,21 @@ func SetupRouter() *gin.Engine {
 
 	router.Use(middleware.AuthMiddleware(jwtManager))
 
+	tokenStorePath := os.Getenv("GOOGLE_TOKEN_STORE_FILE")
+	if tokenStorePath == "" {
+		tokenStorePath = "data/google-token-store.json"
+	}
+	googleOAuthHandler := handler.NewGoogleOAuthHandler(firebaseSvc)
+
 	authGroup := router.Group("/auth")
 	{
 		authGroup.POST("/signup", authHandler.SignUp)
 		authGroup.POST("/login", authHandler.Login)
 		authGroup.GET("/profile", middleware.RequireAuth(), authHandler.GetProfile)
 		authGroup.POST("/logout", middleware.RequireAuth(), authHandler.Logout)
+
+		authGroup.GET("/google", middleware.RequireAuth(), googleOAuthHandler.GetAuthStatus)
+		authGroup.GET("/google/callback", googleOAuthHandler.Callback)
 	}
 
 	buildingsGroup := router.Group("/buildings")
@@ -125,8 +135,7 @@ func SetupRouter() *gin.Engine {
 	router.GET("/images/*path", imageHandler.GetStaticImage)
 
 	// Directions endpoints (PUBLIC) - calls Google Directions API -> rate limit
-	router.GET("/directions", googleLimited, directionsHandler.GetDirections)
-	router.GET("/directions/buildings", googleLimited, directionsHandler.GetDirectionsByBuildings)
+	router.POST("/directions", googleLimited, directionsHandler.GetFullDirections)
 	router.POST("/directions/indoor/multi-floor-path", indoorPathHandler.GetMultiFloorShortestPath)
 
 	shuttleGroup := router.Group("/shuttle")

@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"time"
@@ -11,7 +12,10 @@ import (
 	"github.com/works-on-my-machine-390/concordia-waze/internal/application/firebase"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/persistence/repository"
+	"golang.org/x/oauth2"
 	"google.golang.org/api/iterator"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // FirebaseService handles Firestore operations.
@@ -43,6 +47,12 @@ type DestinationHistoryItem struct {
 type SavedAddress struct {
 	AddressID string `firestore:"addressId" json:"addressId,omitempty"`
 	Address   string `firestore:"address" json:"address"`
+}
+
+// used to store a Google oauth2.Token.
+type googleTokenDoc struct {
+	TokenJSON string    `firestore:"tokenJSON"`
+	UpdatedAt time.Time `firestore:"updatedAt"`
 }
 
 // FirestoreFavorite is the Firestore-stored representation of a saved favorite location.
@@ -500,6 +510,58 @@ func toFirestoreUpdates(data map[string]interface{}) []firestore.Update {
 		})
 	}
 	return updates
+}
+
+func (fs *FirebaseService) SaveGoogleToken(ctx context.Context, userID string, token *oauth2.Token) error {
+	if token == nil {
+		return fmt.Errorf("token is nil")
+	}
+
+	b, err := json.Marshal(token)
+	if err != nil {
+		return fmt.Errorf("marshal token: %w", err)
+	}
+
+	doc := googleTokenDoc{
+		TokenJSON: string(b),
+		UpdatedAt: time.Now().UTC(),
+	}
+
+	_, err = fs.client.Collection("users").Doc(userID).Collection("tokens").Doc("google").Set(ctx, doc)
+	if err != nil {
+		return fmt.Errorf("save google token: %w", err)
+	}
+	return nil
+}
+
+func (fs *FirebaseService) GetGoogleToken(ctx context.Context, userID string) (*oauth2.Token, bool, error) {
+	docRef := fs.client.Collection("users").Doc(userID).Collection("tokens").Doc("google")
+	ds, err := docRef.Get(ctx)
+	if err != nil {
+		if status.Code(err) == codes.NotFound {
+			return nil, false, nil
+		}
+		return nil, false, fmt.Errorf("get google token doc: %w", err)
+	}
+
+	var td googleTokenDoc
+	if err := ds.DataTo(&td); err != nil {
+		return nil, false, fmt.Errorf("parse google token doc: %w", err)
+	}
+
+	var tok oauth2.Token
+	if err := json.Unmarshal([]byte(td.TokenJSON), &tok); err != nil {
+		return nil, false, fmt.Errorf("unmarshal token json: %w", err)
+	}
+	return &tok, true, nil
+}
+
+func (fs *FirebaseService) DeleteGoogleToken(ctx context.Context, userID string) error {
+	_, err := fs.client.Collection("users").Doc(userID).Collection("tokens").Doc("google").Delete(ctx)
+	if err != nil {
+		return fmt.Errorf("delete google token: %w", err)
+	}
+	return nil
 }
 
 // ===== Favorite repository adapters =====

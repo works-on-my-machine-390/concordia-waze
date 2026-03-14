@@ -15,6 +15,131 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/auth/google": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Checks stored Google tokens for the authenticated user and returns either a short-lived auth URL (when re-auth is required) or {\"ok\": true} when the token is usable. This endpoint SHOULD be called by an authenticated user (server-side JWT). The handler will use the server-side user ID from the auth context (do not rely on query userId in production).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Get Google OAuth2 status / auth URL",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Optional fallback userId if not available in auth context",
+                        "name": "userId",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "default": "Bearer \u003ctoken\u003e",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "No valid token; frontend should redirect user to this URL",
+                        "schema": {
+                            "$ref": "#/definitions/handler.AuthURLResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Missing userId or invalid request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error checking token or generating URL",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/google/callback": {
+            "get": {
+                "description": "Callback endpoint invoked by Google after user consent. Exchanges the authorization code for tokens and persists them on the server. The ` + "`" + `state` + "`" + ` parameter must be a signed short-lived token previously returned to the frontend by GetAuthStatus (contains the userId). This endpoint is public (called by Google) and must validate the signed state.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Google OAuth2 callback",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Authorization code returned by Google",
+                        "name": "code",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Signed state token issued by backend (contains userId and short expiry)",
+                        "name": "state",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Tokens saved on server",
+                        "schema": {
+                            "$ref": "#/definitions/handler.TokenSaveResponse"
+                        }
+                    },
+                    "302": {
+                        "description": "Redirect to configured frontend success URL",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Missing or invalid code/state",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to exchange code or save token",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/auth/login": {
             "post": {
                 "description": "Authenticate a user with email and password, receive JWT token",
@@ -522,6 +647,50 @@ const docTemplate = `{
                     },
                     "500": {
                         "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Returns list of routes polyline + step instructions (walking/driving/transit/shuttle/bicycling)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "directions"
+                ],
+                "summary": "Get directions between coordinates, adapts between indoor/outdoor as needed",
+                "parameters": [
+                    {
+                        "description": "Route request with start/end locations and preferences",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request_format.RouteRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/domain.DirectionsResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -2202,7 +2371,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "duration": {
-                    "type": "string"
+                    "type": "integer"
                 },
                 "mode": {
                     "type": "string"
@@ -2312,6 +2481,17 @@ const docTemplate = `{
                 }
             }
         },
+        "domain.IndoorPosition": {
+            "type": "object",
+            "properties": {
+                "x": {
+                    "type": "number"
+                },
+                "y": {
+                    "type": "number"
+                }
+            }
+        },
         "domain.LatLng": {
             "type": "object",
             "properties": {
@@ -2376,6 +2556,14 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "token": {
+                    "type": "string"
+                }
+            }
+        },
+        "handler.AuthURLResponse": {
+            "type": "object",
+            "properties": {
+                "url": {
                     "type": "string"
                 }
             }
@@ -2462,6 +2650,98 @@ const docTemplate = `{
                 "password": {
                     "type": "string",
                     "minLength": 6
+                }
+            }
+        },
+        "handler.StatusOKResponse": {
+            "type": "object",
+            "properties": {
+                "ok": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "handler.TokenSaveResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "ok": {
+                    "type": "boolean"
+                },
+                "userId": {
+                    "type": "string"
+                }
+            }
+        },
+        "request_format.RouteLocation": {
+            "type": "object",
+            "properties": {
+                "building": {
+                    "type": "string"
+                },
+                "floor_number": {
+                    "type": "integer"
+                },
+                "indoor_position": {
+                    "$ref": "#/definitions/domain.IndoorPosition"
+                },
+                "latitude": {
+                    "type": "number"
+                },
+                "longitude": {
+                    "type": "number"
+                }
+            }
+        },
+        "request_format.RoutePreferences": {
+            "type": "object",
+            "properties": {
+                "day": {
+                    "type": "string",
+                    "enum": [
+                        "Monday",
+                        "Tuesday",
+                        "Wednesday",
+                        "Thursday",
+                        "Friday",
+                        "Saturday",
+                        "Sunday"
+                    ]
+                },
+                "mode": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "prefer_elevator": {
+                    "type": "boolean"
+                },
+                "require_accessible": {
+                    "type": "boolean"
+                },
+                "time": {
+                    "type": "string"
+                }
+            }
+        },
+        "request_format.RouteRequest": {
+            "type": "object",
+            "required": [
+                "end",
+                "start"
+            ],
+            "properties": {
+                "end": {
+                    "$ref": "#/definitions/request_format.RouteLocation"
+                },
+                "preferences": {
+                    "$ref": "#/definitions/request_format.RoutePreferences"
+                },
+                "start": {
+                    "$ref": "#/definitions/request_format.RouteLocation"
                 }
             }
         }
