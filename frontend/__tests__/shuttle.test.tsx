@@ -340,4 +340,20 @@ describe("ShuttleSchedule screen", () => {
       }),
     );
   });
+
+  test("ends telemetry timer with success false when loaded schedule has no departures", () => {
+    mockLoaded({ monday: { LOY: [], SGW: [] } });
+    const screen = renderWithProviders(<ShuttleSchedule />);
+
+    screen.unmount();
+
+    expect(mockEndTaskTimer).toHaveBeenCalledWith(
+      "view_shuttle_schedule",
+      expect.objectContaining({
+        success: false,
+        selected_day: "monday",
+        departures_displayed: 0,
+      }),
+    );
+  });
 });

@@ -53,10 +53,10 @@ export default function ShuttleSchedule() {
   }, [tab, rows.length]);
 
   useEffect(() => {
-    if (!isLoading && !error) {
+    if (!isLoading && !error && rows.length > 0) {
       hasViewedScheduleRef.current = true;
     }
-  }, [isLoading, error]);
+  }, [isLoading, error, rows.length]);
 
   useEffect(() => {
     startTaskTimer("view_shuttle_schedule");
