@@ -16,19 +16,21 @@ jest.mock("../hooks/api", () => ({
 }));
 
 import {
-  addSearchHistory,
-  getSearchHistory,
-  clearSearchHistory,
-  addScheduleItem,
-  getUserSchedule,
-  updateScheduleItem,
-  deleteScheduleItem,
+  addClass,
   addSavedAddress,
-  getSavedAddresses,
-  updateSavedAddress,
-  deleteSavedAddress,
+  addSearchHistory,
+  clearSearchHistory,
+  createCourse,
   createUserProfile,
+  deleteClass,
+  deleteCourse,
+  deleteSavedAddress,
+  getSavedAddresses,
+  getSearchHistory,
+  getUserCourses,
   getUserProfile,
+  updateClass,
+  updateSavedAddress,
 } from "../hooks/firebase/useFirestore";
 
 describe("useFirestore", () => {
@@ -147,68 +149,72 @@ describe("useFirestore", () => {
   });
 
   describe("Schedule", () => {
-    it("should add schedule item", async () => {
-      mockJson.mockResolvedValue({ id: "schedule-123" });
-
-      const item = {
-        name: "SOEN 390 Lecture",
-        building: "Hall Building",
-        room: "H-929",
-        startTime: "17:45",
-        endTime: "20:15",
-        daysOfWeek: ["Monday", "Wednesday"],
-        type: "class",
-      };
-
-      const result = await addScheduleItem(userId, item);
-
-      expect(result).toBe("schedule-123");
-      expect(mockPost).toHaveBeenCalledWith(item, `/users/${userId}/schedule`);
-    });
-
-    it("should get user schedule", async () => {
-      const mockSchedule = [
-        {
-          scheduleId: "schedule-1",
-          name: "Morning Class",
-          startTime: "09:00",
-          endTime: "10:30",
-          daysOfWeek: ["Monday"],
-          type: "class",
-        },
-      ];
-
-      mockJson.mockResolvedValue(mockSchedule);
-
-      const result = await getUserSchedule(userId);
-
-      expect(result).toEqual(mockSchedule);
-      expect(mockGet).toHaveBeenCalledWith(`/users/${userId}/schedule`);
-    });
-
-    it("should update schedule item", async () => {
+    it("should create a course", async () => {
       mockRes.mockResolvedValue({});
-
-      const updates = {
-        name: "Updated Class",
-        startTime: "14:00",
-      };
-
-      await updateScheduleItem(userId, "schedule-123", updates);
-
-      expect(mockPut).toHaveBeenCalledWith(
-        updates,
-        `/users/${userId}/schedule/schedule-123`,
+      await createCourse(userId, "SOEN 384");
+      expect(mockPost).toHaveBeenCalledWith(
+        {},
+        `/users/${userId}/courses/SOEN 384`,
       );
     });
 
-    it("should delete schedule item", async () => {
+    it("should get user courses", async () => {
+      const mockCourses = [
+        {
+          name: "SOEN 384",
+          origin: "manual",
+          classes: [],
+        },
+      ];
+      mockJson.mockResolvedValue(mockCourses);
+      const result = await getUserCourses(userId);
+      expect(result).toEqual(mockCourses);
+      expect(mockGet).toHaveBeenCalledWith(`/users/${userId}/courses`);
+    });
+
+    it("should add a class to a course", async () => {
+      mockJson.mockResolvedValue({ id: "class-123" });
+      const item = {
+        type: "Lecture" as const,
+        section: "N",
+        day: "MON" as const,
+        startTime: "10:00",
+        endTime: "12:00",
+        buildingCode: "H",
+        room: "110",
+        origin: "manual" as const,
+      };
+      const result = await addClass(userId, "SOEN 384", item);
+      expect(result).toBe("class-123");
+      expect(mockPost).toHaveBeenCalledWith(
+        item,
+        `/users/${userId}/courses/SOEN 384/classes`,
+      );
+    });
+
+    it("should update a class", async () => {
       mockRes.mockResolvedValue({});
+      const updates = { room: "200" };
+      await updateClass(userId, "SOEN 384", "class-123", updates);
+      expect(mockPut).toHaveBeenCalledWith(
+        updates,
+        `/users/${userId}/courses/SOEN 384/classes/class-123`,
+      );
+    });
 
-      await deleteScheduleItem(userId, "schedule-123");
-
+    it("should delete a class", async () => {
+      mockRes.mockResolvedValue({});
+      await deleteClass(userId, "SOEN 384", "class-123");
       expect(mockDelete).toHaveBeenCalledWith(
-        `/users/${userId}/schedule/schedule-123`,
+        `/users/${userId}/courses/SOEN 384/classes/class-123`,
+      );
+    });
+
+    it("should delete a course", async () => {
+      mockRes.mockResolvedValue({});
+      await deleteCourse(userId, "SOEN 384");
+      expect(mockDelete).toHaveBeenCalledWith(
+        `/users/${userId}/courses/SOEN 384`,
       );
     });
   });
