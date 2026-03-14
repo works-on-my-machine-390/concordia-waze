@@ -1,4 +1,5 @@
 import BackHeader from "@/components/BackHeader";
+import { router } from "expo-router";
 import { useState } from "react";
 import {
   KeyboardAvoidingView,
@@ -12,10 +13,12 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { validateCourseName } from "../app/utils/classValidationUtils";
+import { buildCourseItem } from "../app/utils/courseUtils";
 import AddClassInfoForm, {
   ClassInfoFormData,
 } from "../components/classes/AddClassInfoForm";
 import ClassInfoCard from "../components/classes/ClassInfoCard";
+import { addGuestCourse } from "../hooks/guestStorage";
 import { COLORS } from "./constants";
 
 export default function AddClassScreen() {
@@ -23,6 +26,7 @@ export default function AddClassScreen() {
   const [classInfo, setClassInfo] = useState<ClassInfoFormData[]>([]);
   const [showClassInfoForm, setShowClassInfoForm] = useState(false);
   const [courseNameError, setCourseNameError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const handleAddCourseInfo = (data: ClassInfoFormData) => {
     setClassInfo((prev) => [...prev, data]);
@@ -43,14 +47,21 @@ export default function AddClassScreen() {
     setClassInfo((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const error = validateCourseName(courseName);
     if (error) {
       setCourseNameError(error);
       return;
     }
     setCourseNameError(null);
-    // when we want to save to db, or guest storage it can go here
+
+    try {
+      const course = buildCourseItem(courseName, classInfo);
+      await addGuestCourse(course);
+      router.push("/schedule");
+    } catch {
+      setSaveError("Something went wrong. Please try again.");
+    }
   };
 
   return (
@@ -113,6 +124,8 @@ export default function AddClassScreen() {
             </TouchableOpacity>
           )}
 
+          {!!saveError && <Text style={styles.errorText}>{saveError}</Text>}
+          
           {classInfo.length > 0 && !showClassInfoForm && (
             <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
               <Text style={styles.saveText}>Save Class</Text>
