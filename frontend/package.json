@@ -79,5 +79,8 @@
     "jest-expo": "^47.0.1",
     "typescript": "~5.9.2"
   },
+  "overrides": {
+    "@expo/json-file": "10.0.8"
+  },
   "private": true
 }
