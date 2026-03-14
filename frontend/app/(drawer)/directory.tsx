@@ -23,7 +23,7 @@ export default function Directory() {
   const [searchQuery, setSearchQuery] = useState("");
 
   // Connected to backend /buildings/list endpoint
-  const { data: buildingsData, isLoading, error } = useGetAllBuildings();
+  const { data: buildingsData, isLoading, error } = useGetAllBuildings(true);
 
   // Filter buildings based on search query
   const filteredBuildings = useMemo(() => {

@@ -37,6 +37,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colors, SHADOW } from "./styles/theme";
 import { filterBuildingsByQuery } from "./utils/searchUtils";
+import SearchForRoomsButton from "@/components/SearchForRoomsButton";
 
 export type SearchQueryParamsModel = {
   campus?: string;
@@ -73,7 +74,7 @@ export default function SearchPage() {
     locations: string;
   } | null>(null);
 
-  const allBuildingsQuery = useGetAllBuildings();
+  const allBuildingsQuery = useGetAllBuildings(true);
   const navigationState = useNavigationStore();
 
   useEffect(() => {
@@ -387,6 +388,12 @@ export default function SearchPage() {
     });
   };
 
+  const handleSearchForRoomsPress = () => {
+    router.push({
+      pathname: "/indoor-search",
+      params: {},
+    });
+  };
   const renderHeaderComponent = () => {
     // search nearby and recent searches are mutually exclusive,
     // so nearby gets priority when query is present
@@ -479,7 +486,12 @@ export default function SearchPage() {
               )}
             </View>
           </View>
-          {editMode !== "start" && <SearchNearbySuggestions onClick={handleSearchNearbyPressed} />}
+          {editMode !== "start" && (
+            <SearchNearbySuggestions onClick={handleSearchNearbyPressed} />
+          )}
+          {query.length === 0 && (
+            <SearchForRoomsButton onPress={handleSearchForRoomsPress} />
+          )}
         </View>
 
         <FlatList

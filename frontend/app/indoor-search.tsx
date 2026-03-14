@@ -4,10 +4,11 @@ import IndoorPoiFilters from "@/components/indoor/IndoorPoiFilters";
 import IndoorRecentSearches from "@/components/indoor/IndoorRecentSearches";
 import IndoorSearchResults from "@/components/indoor/IndoorSearchResults";
 import SearchPill from "@/components/shared/SearchPill";
+import { useGetAllBuildings } from "@/hooks/queries/buildingQueries";
 import { useGetBuildingFloors } from "@/hooks/queries/indoorMapQueries";
+import { useIndoorNavigationStore } from "@/hooks/useIndoorNavigationStore";
 import { RecentIndoorSearch, useIndoorSearch } from "@/hooks/useIndoorSearch";
 import { useIndoorSearchStore } from "@/hooks/useIndoorSearchStore";
-import { useIndoorNavigationStore } from "@/hooks/useIndoorNavigationStore";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
@@ -45,11 +46,23 @@ export default function IndoorSearchPage() {
     }, []),
   );
 
+  const buildingListQuery = useGetAllBuildings(true);
+  const allFloors = Object.values(buildingListQuery.data?.buildings || {})
+    .flat()
+    .flatMap((building) =>
+      building.floors?.map((floor) => ({
+        ...floor,
+        building: building.code,
+        latitude: building.latitude,
+        longitude: building.longitude,
+      })),
+    )
+    .filter((floor) => !!floor);
   const { data, isLoading } = useGetBuildingFloors(buildingCode);
   const floors = data?.floors || [];
 
   const { results, recentSearches, addRecentSearch, clearRecentSearches } =
-    useIndoorSearch(floors, query, buildingCode);
+    useIndoorSearch(allFloors, query, buildingCode);
 
   const handleResultSelect = (
     roomCode: string,
@@ -102,8 +115,9 @@ export default function IndoorSearchPage() {
 
     const poiByFormattedName = floor?.pois.find(
       (p) =>
-        formatIndoorPoiName(p.name, p.type, buildingCode).trim().toLowerCase() ===
-        normalizedDisplayName,
+        formatIndoorPoiName(p.name, p.type, buildingCode)
+          .trim()
+          .toLowerCase() === normalizedDisplayName,
     );
 
     const extractedRoomCode = search.displayName
@@ -114,7 +128,8 @@ export default function IndoorSearchPage() {
     const poiByExtractedCode =
       extractedRoomCode.length > 0
         ? floor?.pois.find(
-            (p) => p.name.trim().toLowerCase() === extractedRoomCode.toLowerCase(),
+            (p) =>
+              p.name.trim().toLowerCase() === extractedRoomCode.toLowerCase(),
           )
         : undefined;
 
@@ -167,17 +182,21 @@ export default function IndoorSearchPage() {
 
   const showRecent = query.trim().length === 0 && recentSearches.length > 0;
 
-      const searchPlaceholder = (() => {
-      if (itineraryField === "start") {
-        return `Choose start in ${buildingName}...`;
-      }
+  const searchPlaceholder = (() => {
+    if (!buildingName) {
+      return "Search for indoor locations...";
+    }
 
-      if (itineraryField === "end") {
-        return `Choose destination in ${buildingName}...`;
-      }
+    if (itineraryField === "start") {
+      return `Choose start in ${buildingName}...`;
+    }
 
-      return `Search in ${buildingName}...`;
-    })();
+    if (itineraryField === "end") {
+      return `Choose destination in ${buildingName}...`;
+    }
+
+    return `Search in ${buildingName}...`;
+  })();
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
       <KeyboardAvoidingView

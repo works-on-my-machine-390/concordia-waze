@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../api";
+import { Floor } from "./indoorMapQueries";
 
 export const CampusCode = { SGW: "SGW", LOY: "LOY" } as const;
 export type CampusCode = (typeof CampusCode)[keyof typeof CampusCode];
@@ -45,7 +46,7 @@ export type OpeningHoursModel = {
     open: string;
     close: string;
   };
-}
+};
 
 export type Building = {
   code: string;
@@ -106,15 +107,18 @@ export interface BuildingListItem {
   address: string;
   latitude: number;
   longitude: number;
+  floors?: Floor[];
 }
 
 // Hook to fetch all buildings for Directory page
-export const useGetAllBuildings = () => {
+export const useGetAllBuildings = (appendFloors?: boolean) => {
   return useQuery<AllBuildingsResponse>({
     queryKey: ["buildings", "all"],
     queryFn: async () => {
       const apiClient = await api();
-      return apiClient.get("/buildings/list").json<AllBuildingsResponse>();
+      return apiClient
+        .get(`/buildings/list?appendFloors=${!!appendFloors}`)
+        .json<AllBuildingsResponse>();
     },
     staleTime: 1000 * 60 * 10,
   });

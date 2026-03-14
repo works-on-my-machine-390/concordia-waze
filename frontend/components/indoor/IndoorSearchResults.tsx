@@ -31,7 +31,7 @@ export default function IndoorSearchResults({
         const displayName = formatIndoorPoiName(
           item.poi.name,
           item.poi.type,
-          buildingCode,
+          item.poi.building
         );
 
         return (
@@ -43,7 +43,7 @@ export default function IndoorSearchResults({
           >
             <Text style={styles.resultTitle}>{displayName}</Text>
             <Text style={styles.resultSubtitle}>
-              {`Floor ${item.floor.number}`}
+              {`${item.poi.building} - Floor ${item.floor.number}`}
             </Text>
           </Pressable>
         );
