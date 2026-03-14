@@ -270,7 +270,7 @@ func TestBuildingService_GetAllBuildingsByCampus_Success(t *testing.T) {
 	cacheDir := t.TempDir()
 	svc := NewBuildingService(repo, nil, nil, cacheDir)
 
-	grouped, err := svc.GetAllBuildingsByCampus()
+	grouped, err := svc.GetAllBuildingsByCampus(false)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}

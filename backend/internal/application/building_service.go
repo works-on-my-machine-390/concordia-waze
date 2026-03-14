@@ -289,8 +289,25 @@ func campusFallback(lat, lng float64) (string, domain.LatLng, bool) {
 	return constants.SirGeorgeWilliamsCampusName, sgw, true
 }
 
-func (s *BuildingService) GetAllBuildingsByCampus() (map[string][]domain.BuildingSummary, error) {
-	return s.buildingRepo.GetAllBuildingsByCampus()
+func (s *BuildingService) GetAllBuildingsByCampus(appendFloors bool) (map[string][]domain.BuildingSummary, error) {
+	buildings, err := s.buildingRepo.GetAllBuildingsByCampus()
+	if err != nil {
+		return nil, err
+	}
+	if appendFloors {
+		for campus, bList := range buildings {
+			for i, b := range bList {
+				floors, err := s.floorRepo.GetBuildingFloors(b.Code)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "BuildingService: failed to get floors for building %s: %v\n", b.Code, err)
+					continue
+				}
+				buildings[campus][i].Floors = floors
+			}
+		}
+	}
+
+	return buildings, nil
 }
 
 func (s *BuildingService) GetBuildingFloors(code string) ([]domain.Floor, error) {
