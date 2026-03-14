@@ -24,12 +24,12 @@ func main() {
 	_ = godotenv.Load()
 
 	if os.Getenv("GO_ENV") == "production" {
-			docs.SwaggerInfo.Host = os.Getenv("PRODUCTION_URL")
-			docs.SwaggerInfo.Schemes = []string{"https"}
-		} else if os.Getenv("GO_ENV") == "development" {
-			docs.SwaggerInfo.Host = "localhost:8080"
-			docs.SwaggerInfo.Schemes = []string{"http"}
-		}
+		docs.SwaggerInfo.Host = os.Getenv("PRODUCTION_URL")
+		docs.SwaggerInfo.Schemes = []string{"https"}
+	} else if os.Getenv("GO_ENV") == "development" {
+		docs.SwaggerInfo.Host = "localhost:8080"
+		docs.SwaggerInfo.Schemes = []string{"http"}
+	}
 
 	// Local-only bypass
 	if os.Getenv("SKIP_FIREBASE") != "true" {
