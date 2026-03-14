@@ -1,11 +1,13 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/application"
+	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
 )
 
 type CalendarHandler struct {
@@ -21,14 +23,21 @@ func NewCalendarHandler(tokenStore GoogleTokenStore, calendarService application
 }
 
 type query struct {
-	Since time.Time `form:"since" time_format:"2006-01-02"`
+	Since      time.Time `form:"since" time_format:"2006-01-02" binding:"required"`
+	CalendarID string    `form:"calendar_id"`
+}
+
+type SyncResponse struct {
+	Events map[string][]*domain.ClassItem `json:"events"`
+	Errors []string                       `json:"errors,omitempty"`
 }
 
 // SyncCalendarEvents godoc
 // @Summary Sync Google Calendar events
 // @Description Synchronizes Google Calendar events for the authenticated user since a given date
 // @Tags calendar
-// @Param since query string false "Sync events since this date (YYYY-MM-DD)"
+// @Param since query string true "Sync events since this date (YYYY-MM-DD)"
+// @Param calendar_id query string false "calendar id, default to primary"
 // @Success 200 {string} string "Events synced successfully"
 // @Failure 400 {object} map[string]string "Invalid date"
 // @Failure 401 {object} map[string]string "Google auth required"
@@ -56,12 +65,22 @@ func (h *CalendarHandler) SyncCalendarEvents(c *gin.Context) {
 		return
 	}
 
-	err2 := h.calendarService.SyncCalendarEvents(q.Since, token)
+	if q.CalendarID == "" {
+		q.CalendarID = "primary"
+	}
+
+	fmt.Println("handler")
+	events, errors, err2 := h.calendarService.SyncCalendarEvents(token, userID, q.Since, q.CalendarID)
 
 	if err2 != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch events"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch events", "details": err2.Error()})
 		return
 	}
+
+	c.JSON(http.StatusOK, SyncResponse{
+		Events: events,
+		Errors: errors,
+	})
 
 }
 

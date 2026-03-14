@@ -23,6 +23,17 @@ type FirebaseService struct {
 	client *firestore.Client
 }
 
+type FirebaseClassService interface {
+	CreateClass(ctx context.Context, userID, title string) error
+	GetUserClasses(ctx context.Context, userID string) ([]string, error)
+	DeleteClass(ctx context.Context, userID, title string) error
+	AddClassItem(ctx context.Context, userID, title string, item domain.ClassItem) (string, error)
+	GetClassItems(ctx context.Context, userID, title string) ([]domain.ClassItem, error)
+	GetAllClassItems(userID string) (map[string][]*domain.ClassItem, error)
+	UpdateClassItem(ctx context.Context, userID, title, classID string, updates map[string]interface{}) error
+	DeleteClassItem(ctx context.Context, userID, title, classID string) error
+}
+
 // NewFirebaseService creates a new Firebase service.
 func NewFirebaseService() *FirebaseService {
 	return &FirebaseService{
@@ -353,6 +364,40 @@ func (fs *FirebaseService) GetClassItems(ctx context.Context, userID, title stri
 	}
 
 	return items, nil
+}
+
+func (fs *FirebaseService) GetAllClassItems(userID string) (map[string][]*domain.ClassItem, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	classDocs, err := fs.client.
+		Collection("users").
+		Doc(userID).
+		Collection("classes").
+		Documents(ctx).
+		GetAll()
+	if err != nil {
+		return nil, fmt.Errorf("listing classes: %w", err)
+	}
+
+	result := make(map[string][]*domain.ClassItem)
+
+	for _, classDoc := range classDocs {
+		title := classDoc.Ref.ID
+		items, err := fs.GetClassItems(ctx, userID, title)
+		if err != nil {
+			return nil, fmt.Errorf("getting items for class %s: %w", title, err)
+		}
+
+		itemPointers := make([]*domain.ClassItem, len(items))
+		for i := range items {
+			itemPointers[i] = &items[i]
+		}
+
+		result[title] = itemPointers
+	}
+
+	return result, nil
 }
 
 func (fs *FirebaseService) UpdateClassItem(ctx context.Context, userID, title, classID string, updates map[string]interface{}) error {

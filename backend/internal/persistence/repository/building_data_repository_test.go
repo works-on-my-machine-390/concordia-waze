@@ -334,3 +334,59 @@ func TestGetAllBuildingsByCampus_ReturnsGroupedSummaries(t *testing.T) {
 		t.Fatalf("unexpected LOY entry: %+v", loyList[0])
 	}
 }
+
+func TestGetBuildingByFuzzyLongName(t *testing.T) {
+	jsonContent := `{
+		"SGW": [
+			{
+				"code": "MB",
+				"name": "MB Building",
+				"long_name": "John Molson Building",
+				"address": "1450 Guy St"
+			},
+			{
+				"code": "VL",
+				"name": "Vanier Library",
+				"long_name": "Vanier Library Building",
+				"address": "7141 Sherbrooke W"
+			},
+			{
+				"code": "H",
+				"name": "Hall Building",
+				"long_name": "Henry F. Hall Building",
+				"address": "1455 De Maisonneuve Blvd W"
+			}
+		]
+	}`
+
+	path := writeTempJSON(t, jsonContent)
+	repo := NewBuildingDataRepository(path)
+
+	cases := []struct {
+		query    string
+		expected string
+	}{
+		{"john molson", "MB"},
+		{"vanier libary", "VL"}, // typo in 'library'
+		{"Henry Hall", "H"},
+	}
+
+	for _, c := range cases {
+		code, err := repo.GetBuildingByFuzzyLongName(c.query)
+		if c.expected == "" {
+			if err != domain.ErrNotFound {
+				t.Errorf("expected domain.ErrNotFound for query '%s', got %v", c.query, err)
+			}
+			if code != "" {
+				t.Errorf("expected empty code for query '%s', got '%s'", c.query, code)
+			}
+		} else {
+			if err != nil {
+				t.Errorf("expected no error for query '%s', got %v", c.query, err)
+			}
+			if code != c.expected {
+				t.Errorf("expected code '%s' for query '%s', got '%s'", c.expected, c.query, code)
+			}
+		}
+	}
+}

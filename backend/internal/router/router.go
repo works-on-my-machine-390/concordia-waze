@@ -36,9 +36,6 @@ func SetupRouter() *gin.Engine {
 	jwtManager := application.NewJWTManager(os.Getenv("JWT_SECRET"), constants.DefaultJWTDuration*time.Hour)
 	userService := application.NewUserService(userRepo, jwtManager)
 
-	calendarClient := google.NewCalendarClient()
-	calendarService := application.NewCalendarService(calendarClient)
-
 	placesClient := google.NewGooglePlacesClient(os.Getenv("GOOGLE_PLACES_API_KEY"))
 
 	buildingService := application.NewBuildingService(buildingDataRepo, floorDataRepo, placesClient, "./")
@@ -54,6 +51,9 @@ func SetupRouter() *gin.Engine {
 	}
 	shuttleService := application.NewShuttleService(shuttleDataRepo)
 	pointOfInterestService := application.NewPointOfInterestService(placesClient)
+
+	calendarClient := google.NewCalendarClient(buildingDataRepo)
+	calendarService := application.NewCalendarService(calendarClient, firebaseSvc)
 
 	var favoriteRepo repository.FavoriteRepository
 	if firebaseSvc != nil {
