@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 
@@ -34,9 +33,9 @@ type query struct {
 // @Failure 400 {object} map[string]string "Invalid date"
 // @Failure 401 {object} map[string]string "Google auth required"
 // @Failure 500 {object} map[string]string "Failed to fetch events or token"
+// @Security    BearerAuth
 // @Router /calendar/sync [get]
 func (h *CalendarHandler) SyncCalendarEvents(c *gin.Context) {
-	fmt.Println("1aaaaaaaaaaaaaaaaaa")
 
 	userID := c.GetString("userID")
 
@@ -59,8 +58,6 @@ func (h *CalendarHandler) SyncCalendarEvents(c *gin.Context) {
 
 	err2 := h.calendarService.SyncCalendarEvents(q.Since, token)
 
-	fmt.Println("2aaaaaaaaaaaaaaaaaa")
-
 	if err2 != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch events"})
 		return
@@ -75,6 +72,7 @@ func (h *CalendarHandler) SyncCalendarEvents(c *gin.Context) {
 // @Success 200 {array} object "List of calendar events"
 // @Failure 401 {object} map[string]string "Google auth required"
 // @Failure 500 {object} map[string]string "Failed to fetch events"
+// @Security    BearerAuth
 // @Router /calendar [get]
 func (h *CalendarHandler) GetCalendarEvents(c *gin.Context) {
 	// userID := c.GetString("userID") // Unused, commented out
@@ -92,6 +90,7 @@ func (h *CalendarHandler) GetCalendarEvents(c *gin.Context) {
 // @Success 200 {string} string "Events deleted successfully"
 // @Failure 401 {object} map[string]string "Google auth required"
 // @Failure 500 {object} map[string]string "Failed to delete events"
+// @Security    BearerAuth
 // @Router /calendar [delete]
 func (h *CalendarHandler) DeleteCalendarEvents(c *gin.Context) {
 	// userID := c.GetString("userID") // Unused, commented out
@@ -112,6 +111,7 @@ func (h *CalendarHandler) DeleteCalendarEvents(c *gin.Context) {
 // @Success 200 {string} string "Event added successfully"
 // @Failure 401 {object} map[string]string "Google auth required"
 // @Failure 500 {object} map[string]string "Failed to add event"
+// @Security    BearerAuth
 // @Router /calendar [post]
 func (h *CalendarHandler) AddCalendarEvents(c *gin.Context) {
 	// userID := c.GetString("userID") // Unused, commented out

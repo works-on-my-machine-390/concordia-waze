@@ -811,6 +811,8 @@ paths:
             additionalProperties:
               type: string
             type: object
+      security:
+      - BearerAuth: []
       summary: Delete Google Calendar events
       tags:
       - calendar
@@ -835,6 +837,8 @@ paths:
             additionalProperties:
               type: string
             type: object
+      security:
+      - BearerAuth: []
       summary: Get Google Calendar events
       tags:
       - calendar
@@ -868,6 +872,8 @@ paths:
             additionalProperties:
               type: string
             type: object
+      security:
+      - BearerAuth: []
       summary: Add Google Calendar events
       tags:
       - calendar
@@ -903,6 +909,8 @@ paths:
             additionalProperties:
               type: string
             type: object
+      security:
+      - BearerAuth: []
       summary: Sync Google Calendar events
       tags:
       - calendar

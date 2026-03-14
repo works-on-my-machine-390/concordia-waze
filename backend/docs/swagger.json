@@ -496,6 +496,11 @@
         },
         "/calendar": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Retrieves Google Calendar events for the authenticated user",
                 "tags": [
                     "calendar"
@@ -532,6 +537,11 @@
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Adds new Google Calendar events for the authenticated user",
                 "consumes": [
                     "application/json"
@@ -582,6 +592,11 @@
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Deletes Google Calendar events for the authenticated user",
                 "tags": [
                     "calendar"
@@ -617,6 +632,11 @@
         },
         "/calendar/sync": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Synchronizes Google Calendar events for the authenticated user since a given date",
                 "tags": [
                     "calendar"

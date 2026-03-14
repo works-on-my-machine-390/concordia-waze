@@ -503,6 +503,11 @@ const docTemplate = `{
         },
         "/calendar": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Retrieves Google Calendar events for the authenticated user",
                 "tags": [
                     "calendar"
@@ -539,6 +544,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Adds new Google Calendar events for the authenticated user",
                 "consumes": [
                     "application/json"
@@ -589,6 +599,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Deletes Google Calendar events for the authenticated user",
                 "tags": [
                     "calendar"
@@ -624,6 +639,11 @@ const docTemplate = `{
         },
         "/calendar/sync": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Synchronizes Google Calendar events for the authenticated user since a given date",
                 "tags": [
                     "calendar"

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
 	"golang.org/x/oauth2"
 	"google.golang.org/api/calendar/v3"
 	"google.golang.org/api/option"
@@ -32,9 +33,24 @@ func (c *CalendarClient) GetCalendarEvents(token *oauth2.Token) ([]string, error
 		return nil, err
 	}
 
-	events, err := service.Events.List("primary").Do()
+	events, err := service.Events.List("primary").MaxResults(1).Do()
 
-	fmt.Println(events)
+	fmt.Println(events, err)
+	for _, item := range events.Items {
+		c.parseEvent(item)
+	}
 
 	return nil, err
+}
+
+func (c *CalendarClient) parseEvent(event *calendar.Event) *domain.ClassItem {
+	name := event.Summary
+	location := event.Location
+	startTime := event.Start.DateTime
+	endTime := event.End.DateTime
+
+	fmt.Printf("Event: %s, Location: %s, Start: %s, End: %s\n ", name, location, startTime, endTime)
+
+	return &domain.ClassItem{}
+
 }
