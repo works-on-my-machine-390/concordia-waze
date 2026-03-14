@@ -19,8 +19,8 @@ export type ClassInfoFormData = {
   type: (typeof TYPES)[number];
   section: string;
   day: (typeof DAYS)[number];
-  start_time: string;
-  end_time: string;
+  startTime: string;
+  endTime: string;
   buildingCode: string;
   room: string;
 };
@@ -61,7 +61,7 @@ export default function AddClassInfoForm({
     }
 
     const overlapError = validateNoTimeOverlap(
-      { day: day, start_time: startTime, end_time: endTime },
+      { day: day, startTime: startTime, endTime: endTime },
       existingSessions,
     );
     if (overlapError) {
@@ -74,8 +74,8 @@ export default function AddClassInfoForm({
       type,
       section,
       day,
-      start_time: startTime,
-      end_time: endTime,
+      startTime: startTime,
+      endTime: endTime,
       buildingCode,
       room,
     });

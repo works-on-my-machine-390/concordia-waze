@@ -27,7 +27,7 @@ export default function ClassInfoCard({
         </View>
         <View style={styles.bottom}>
           <Text style={styles.text}>
-            {classInfo.day} {classInfo.start_time} - {classInfo.end_time}
+            {classInfo.day} {classInfo.startTime} - {classInfo.endTime}
           </Text>
           <Text style={styles.text}>
             {classInfo.buildingCode.toUpperCase()}{" "}
