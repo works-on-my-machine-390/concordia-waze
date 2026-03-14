@@ -12,33 +12,37 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { validateCourseName } from "../app/utils/classValidationUtils";
+import {
+  validateCourseName,
+  validateNoDuplicateCourseName,
+} from "../app/utils/classValidationUtils";
 import { buildCourseItem } from "../app/utils/courseUtils";
 import AddClassInfoForm, {
   ClassInfoFormData,
 } from "../components/classes/AddClassInfoForm";
 import ClassInfoCard from "../components/classes/ClassInfoCard";
-import { ClassItem, CourseItem } from "../hooks/firebase/useFirestore";
+import { CourseItem } from "../hooks/firebase/useFirestore";
 import { addGuestCourse, getGuestCourses } from "../hooks/guestStorage";
 import { COLORS } from "./constants";
+
+const addCourseNameToClasses = (course: CourseItem) =>
+  course.classes.map((c) => ({ ...c, courseName: course.name }));
 
 export default function AddClassScreen() {
   const [courseName, setCourseName] = useState("");
   const [classInfo, setClassInfo] = useState<ClassInfoFormData[]>([]);
   const [showClassInfoForm, setShowClassInfoForm] = useState(false);
-  const [courseNameError, setCourseNameError] = useState<string | null>(null);
+  const [emptyCourseNameError, setemptyCourseNameError] = useState<
+    string | null
+  >(null);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [storedClasses, setStoredClasses] = useState<ClassItem[]>([]);
-
-  const addCourseNameToClasses = (course: CourseItem) =>
-    course.classes.map((c) => ({ ...c, courseName: course.name }));
+  const [storedCourses, setStoredCourses] = useState<CourseItem[]>([]);
 
   useFocusEffect(
     useCallback(() => {
       const load = async () => {
         const courses = await getGuestCourses();
-        const classes = courses.flatMap(addCourseNameToClasses);
-        setStoredClasses(classes);
+        setStoredCourses(courses);
       };
       load();
     }, []),
@@ -49,13 +53,26 @@ export default function AddClassScreen() {
     setShowClassInfoForm(false);
   };
 
-  const handleShowClassInfoForm = () => {
+  const validateCourseNameInput = (): boolean => {
     const error = validateCourseName(courseName);
     if (error) {
-      setCourseNameError(error);
-      return;
+      setemptyCourseNameError(error);
+      return false;
     }
-    setCourseNameError(null);
+    const duplicateError = validateNoDuplicateCourseName(
+      courseName,
+      storedCourses,
+    );
+    if (duplicateError) {
+      setemptyCourseNameError(duplicateError);
+      return false;
+    }
+    setemptyCourseNameError(null);
+    return true;
+  };
+
+  const handleShowClassInfoForm = () => {
+    if (!validateCourseNameInput()) return;
     setShowClassInfoForm(true);
   };
 
@@ -64,13 +81,7 @@ export default function AddClassScreen() {
   };
 
   const handleSave = async () => {
-    const error = validateCourseName(courseName);
-    if (error) {
-      setCourseNameError(error);
-      return;
-    }
-    setCourseNameError(null);
-
+    if (!validateCourseNameInput()) return;
     try {
       const course = buildCourseItem(courseName, classInfo);
       await addGuestCourse(course);
@@ -95,18 +106,18 @@ export default function AddClassScreen() {
 
           <Text style={styles.inputLabel}>Course Name</Text>
           <TextInput
-            style={[styles.input, !!courseNameError && styles.inputError]}
+            style={[styles.input, !!emptyCourseNameError && styles.inputError]}
             placeholder="e.g. SOEN 384"
             placeholderTextColor="#bbb"
             value={courseName}
             onChangeText={(v) => {
               setCourseName(v);
-              setCourseNameError(null);
+              setemptyCourseNameError(null);
             }}
             autoCapitalize="characters"
           />
-          {!!courseNameError && (
-            <Text style={styles.errorText}>{courseNameError}</Text>
+          {!!emptyCourseNameError && (
+            <Text style={styles.errorText}>{emptyCourseNameError}</Text>
           )}
 
           {classInfo.length > 0 && (
@@ -126,7 +137,10 @@ export default function AddClassScreen() {
             <AddClassInfoForm
               onAdd={handleAddCourseInfo}
               onCancel={() => setShowClassInfoForm(false)}
-              existingSessions={[...storedClasses, ...classInfo]}
+              existingSessions={[
+                ...storedCourses.flatMap(addCourseNameToClasses),
+                ...classInfo,
+              ]}
             />
           ) : (
             <TouchableOpacity

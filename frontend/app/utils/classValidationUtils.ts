@@ -64,6 +64,18 @@ export const validateNoTimeOverlap = (
   return null;
 };
 
+export const validateNoDuplicateCourseName = (
+  name: string,
+  existingCourses: { name: string }[],
+): string | null => {
+  const duplicate = existingCourses.find(
+    (course) => course.name.trim().toLowerCase() === name.trim().toLowerCase(),
+  );
+  if (duplicate)
+    return `A course named ${name.trim().toUpperCase()} already exists. If you want to modify classes for this course, please go to the modification page.`;
+  return null;
+};
+
 export const validateClassInfoForm = (
   type: string | null,
   section: string,
