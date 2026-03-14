@@ -109,7 +109,7 @@ func SetupRouter() *gin.Engine {
 	}
 	googleOAuthHandler := handler.NewGoogleOAuthHandler(firebaseSvc)
 
-	calendarHandler := handler.NewCalendarHandler(firebaseSvc, calendarService)
+	calendarHandler := handler.NewCalendarHandler(firebaseSvc, calendarService, firebaseSvc)
 
 	authGroup := router.Group("/auth")
 	{
@@ -174,9 +174,14 @@ func SetupRouter() *gin.Engine {
 	calendarGroup.Use(middleware.RequireAuth())
 	{
 		calendarGroup.GET("/sync", calendarHandler.SyncCalendarEvents)
-		calendarGroup.GET("", calendarHandler.GetCalendarEvents)
-		calendarGroup.DELETE("", calendarHandler.DeleteCalendarEvents)
-		calendarGroup.POST("", calendarHandler.AddCalendarEvents)
+		calendarGroup.GET("", calendarHandler.GetClasses)
+		calendarGroup.POST("", calendarHandler.AddClass)
+		calendarGroup.DELETE("/:title", calendarHandler.DeleteClass)
+
+		calendarGroup.GET("/:title/items", calendarHandler.GetClassItems)
+		calendarGroup.POST("/:title/items", calendarHandler.AddClassItem)
+		calendarGroup.DELETE("/:title/items/:classID", calendarHandler.DeleteClassItem)
+		calendarGroup.PATCH("/:title/items/:classID", calendarHandler.UpdateClassItem)
 	}
 
 	// =========================
