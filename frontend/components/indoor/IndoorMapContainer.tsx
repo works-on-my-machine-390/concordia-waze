@@ -86,7 +86,6 @@ export default function IndoorMapContainer({
         floor={data?.floors.find(
           (f) => f.number == Number.parseInt(params.selectedFloor),
         )}
-        buildingCode={buildingCode}
         buildingName={buildingData?.long_name || ""}
         metroAccessible={buildingData?.metro_accessible}
         requireAccessible={requireAccessible}
@@ -99,7 +98,10 @@ export default function IndoorMapContainer({
         floors={data.floors}
         selectedFloor={Number.parseInt(params.selectedFloor)}
         onSelectFloor={(floorNumber: number) =>
-          router.setParams({ selectedFloor: floorNumber.toString() })
+          router.setParams({
+            selectedFloor: floorNumber.toString(),
+            selectedPoiName: null, // reset selected POI when changing floors
+          })
         }
         bottomOffset={floorSelectorBottomOffset}
       />

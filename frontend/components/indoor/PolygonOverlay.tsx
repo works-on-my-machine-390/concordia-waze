@@ -11,30 +11,10 @@ type Props = {
 
   selectedPoiName?: string;
   onSelectPoi?: (name: string) => void;
-
-  destinationPoiName?: string | null;
 };
 
-const normalizeName = (s: string) => s.trim().toLowerCase().replace(/\s+/g, "");
-
 const PolygonOverlay = memo(
-  ({
-    pois,
-    width,
-    height,
-    selectedPoiName,
-    onSelectPoi,
-    destinationPoiName = null,
-  }: Props) => {
-    const effectiveSelectedName =
-      destinationPoiName && destinationPoiName.trim().length > 0
-        ? destinationPoiName
-        : selectedPoiName;
-
-    const normalizedSelected = effectiveSelectedName
-      ? normalizeName(effectiveSelectedName)
-      : "";
-
+  ({ pois, width, height, selectedPoiName, onSelectPoi }: Props) => {
     return (
       <View style={styles.overlay} pointerEvents="box-none">
         {}
@@ -42,9 +22,7 @@ const PolygonOverlay = memo(
           {pois
             .filter((poi) => (poi.polygon?.length ?? 0) > 2)
             .map((poi) => {
-              const isSelected =
-                normalizedSelected.length > 0 &&
-                normalizeName(poi.name ?? "") === normalizedSelected;
+              const isSelected = poi.name === selectedPoiName;
 
               return (
                 <RoomPolygon
@@ -52,7 +30,7 @@ const PolygonOverlay = memo(
                   polygon={poi.polygon}
                   width={width}
                   height={height}
-                  isSelected={isSelected} 
+                  isSelected={isSelected}
                   onPress={() => onSelectPoi?.(poi.name)}
                 />
               );

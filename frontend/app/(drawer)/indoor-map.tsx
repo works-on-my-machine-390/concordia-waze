@@ -15,7 +15,10 @@ const BROWSE_SHEET_HEIGHT = 160;
 export type IndoorMapPageParams = {
   buildingCode: string;
   selectedFloor: string;
-  selectedRoom?: string;
+
+  // including both room and non-room POIs. POIs don't have IDs which is why we resort to names.
+  // names aren't unique across floors which is why they must be processed in conjunction with the selected floor & building.
+  selectedPoiName?: string;
 };
 
 export default function IndoorMapPage() {
