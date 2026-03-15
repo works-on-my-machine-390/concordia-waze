@@ -169,12 +169,44 @@ definitions:
       campus:
         type: string
     type: object
+  domain.ClassItem:
+    properties:
+      buildingCode:
+        type: string
+      classId:
+        type: string
+      day:
+        type: string
+      endTime:
+        type: string
+      origin:
+        description: '"manual" or "google"'
+        type: string
+      room:
+        type: string
+      section:
+        type: string
+      startTime:
+        type: string
+      type:
+        description: lab, lec, tut
+        type: string
+    type: object
   domain.Coordinates:
     properties:
       x:
         type: number
       "y":
         type: number
+    type: object
+  domain.CourseItem:
+    properties:
+      classes:
+        items:
+          $ref: '#/definitions/domain.ClassItem'
+        type: array
+      name:
+        type: string
     type: object
   domain.DayHours:
     properties:
@@ -229,6 +261,7 @@ definitions:
       distance:
         type: string
       duration:
+        description: duration in seconds
         type: integer
       mode:
         type: string
@@ -431,6 +464,13 @@ definitions:
       userId:
         type: string
     type: object
+  handler.createCourseRequest:
+    properties:
+      name:
+        type: string
+    required:
+    - name
+    type: object
   request_format.RouteLocation:
     properties:
       building:
@@ -479,7 +519,7 @@ definitions:
     - end
     - start
     type: object
-host: localhost:8080
+host: concordia-waze.onrender.com
 info:
   contact: {}
   description: This is the Concordia Waze API server.
@@ -1328,6 +1368,323 @@ paths:
       summary: Get shuttle marker positions
       tags:
       - shuttle
+  /users/{userId}/courses:
+    get:
+      description: Get all courses with their nested class sessions for a user
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/domain.CourseItem'
+            type: array
+        "401":
+          description: Not authenticated
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get all courses
+      tags:
+      - schedule
+    post:
+      consumes:
+      - application/json
+      description: Create an empty course container for a user
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      - description: Course payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handler.createCourseRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Not authenticated
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a course
+      tags:
+      - schedule
+  /users/{userId}/courses/{title}:
+    delete:
+      description: Delete a course and all its class sessions
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      - description: Course title
+        in: path
+        name: title
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Not authenticated
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a course
+      tags:
+      - schedule
+  /users/{userId}/courses/{title}/classes:
+    post:
+      consumes:
+      - application/json
+      description: Add a class session (lecture, lab, tutorial) to an existing course
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      - description: Course title
+        in: path
+        name: title
+        required: true
+        type: string
+      - description: Class session
+        in: body
+        name: item
+        required: true
+        schema:
+          $ref: '#/definitions/domain.ClassItem'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Not authenticated
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Add a class to a course
+      tags:
+      - schedule
+  /users/{userId}/courses/{title}/classes/{classId}:
+    delete:
+      description: Delete a specific class session from a course
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      - description: Course title
+        in: path
+        name: title
+        required: true
+        type: string
+      - description: Class ID
+        in: path
+        name: classId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Not authenticated
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a class session
+      tags:
+      - schedule
+    put:
+      consumes:
+      - application/json
+      description: Update fields of a specific class session within a course
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      - description: Course title
+        in: path
+        name: title
+        required: true
+        type: string
+      - description: Class ID
+        in: path
+        name: classId
+        required: true
+        type: string
+      - description: Fields to update
+        in: body
+        name: updates
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Not authenticated
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update a class session
+      tags:
+      - schedule
   /users/{userId}/favorites:
     get:
       description: Retrieve all saved favorite locations for the given user. Returns
