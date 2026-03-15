@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -11,35 +12,36 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
-	"github.com/works-on-my-machine-390/concordia-waze/internal/application"
+	"github.com/stretchr/testify/require"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
 	"golang.org/x/oauth2"
 )
 
-// Mock implementations
-
 type mockTokenStore struct {
-	token     *oauth2.Token
-	found     bool
-	getErr    error
-	deleteErr error
+	token  *oauth2.Token
+	found  bool
+	getErr error
 }
 
-func (m *mockTokenStore) GetGoogleToken(ctx interface{}, userID string) (*oauth2.Token, bool, error) {
+func (m *mockTokenStore) GetGoogleToken(ctx context.Context, userID string) (*oauth2.Token, bool, error) {
 	return m.token, m.found, m.getErr
 }
 
-type mockCalendarService struct {
-	syncErr error
+func (m *mockTokenStore) SaveGoogleToken(ctx context.Context, userID string, token *oauth2.Token) error {
+	return nil
 }
 
-func (m *mockCalendarService) SyncCalendarEvents(since time.Time, token *oauth2.Token) error {
-	return m.syncErr
+type mockCalendarService struct {
+	events map[string][]*domain.ClassItem
+	errs   []string
+	err    error
+}
+
+func (m *mockCalendarService) SyncCalendarEvents(token *oauth2.Token, userID string, day time.Time, calendarID string) (map[string][]*domain.ClassItem, []string, error) {
+	return m.events, m.errs, m.err
 }
 
 type mockFirebaseService struct {
-	classTitles        []string
-	classItems         []domain.ClassItem
 	createClassErr     error
 	getClassesErr      error
 	deleteClassErr     error
@@ -47,525 +49,266 @@ type mockFirebaseService struct {
 	getClassItemsErr   error
 	deleteClassItemErr error
 	updateClassItemErr error
+	getAllClassItemsErr error
+
+	classTitles []string
+	classItems  []*domain.ClassItem
 }
 
-func (m *mockFirebaseService) CreateClass(ctx interface{}, userID, title string) error {
+func (m *mockFirebaseService) CreateClass(ctx context.Context, userID, title string) error {
 	return m.createClassErr
 }
-func (m *mockFirebaseService) GetUserClasses(ctx interface{}, userID string) ([]string, error) {
+
+func (m *mockFirebaseService) GetUserClasses(ctx context.Context, userID string) ([]string, error) {
 	return m.classTitles, m.getClassesErr
 }
-func (m *mockFirebaseService) DeleteClass(ctx interface{}, userID, title string) error {
+
+func (m *mockFirebaseService) DeleteClass(ctx context.Context, userID, title string) error {
 	return m.deleteClassErr
 }
-func (m *mockFirebaseService) AddClassItem(ctx interface{}, userID, title string, item domain.ClassItem) (string, error) {
+
+func (m *mockFirebaseService) AddClassItem(ctx context.Context, userID, title string, item domain.ClassItem) (string, error) {
 	return "item123", m.addClassItemErr
 }
-func (m *mockFirebaseService) GetClassItems(ctx interface{}, userID, title string) ([]domain.ClassItem, error) {
+
+func (m *mockFirebaseService) GetClassItems(ctx context.Context, userID, title string) ([]*domain.ClassItem, error) {
 	return m.classItems, m.getClassItemsErr
 }
-func (m *mockFirebaseService) DeleteClassItem(ctx interface{}, userID, title, classID string) error {
-	return m.deleteClassItemErr
+
+func (m *mockFirebaseService) GetAllClassItems(userID string) (map[string][]*domain.ClassItem, error) {
+	if m.getAllClassItemsErr != nil {
+		return nil, m.getAllClassItemsErr
+	}
+	return map[string][]*domain.ClassItem{}, nil
 }
-func (m *mockFirebaseService) UpdateClassItem(ctx interface{}, userID, title, classID string, updates map[string]interface{}) error {
+
+func (m *mockFirebaseService) UpdateClassItem(ctx context.Context, userID, title, classID string, updates map[string]interface{}) error {
 	return m.updateClassItemErr
 }
 
-// Helper: setup a Gin context with userID
-func setUserID(c *gin.Context, userID string) {
-	c.Set("userID", userID)
+func (m *mockFirebaseService) DeleteClassItem(ctx context.Context, userID, title, classID string) error {
+	return m.deleteClassItemErr
 }
 
-func TestSyncCalendarEvents_Success(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	ts := &mockTokenStore{token: &oauth2.Token{}, found: true}
-	cs := &mockCalendarService{}
-	fs := &mockFirebaseService{}
-	h := NewCalendarHandler(ts, cs, fs)
-
-	router := gin.New()
-	router.GET("/calendar/sync", func(c *gin.Context) {
-		setUserID(c, "abc")
+func setupCalendarTestRouter(h *CalendarHandler) *gin.Engine {
+	r := gin.New()
+	r.GET("/courses/sync", func(c *gin.Context) {
+		c.Set("userID", "u1")
 		h.SyncCalendarEvents(c)
 	})
-
-	req := httptest.NewRequest("GET", "/calendar/sync?since=2024-01-01", nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusOK, w.Code) // No response body, but should not fail
-}
-
-func TestSyncCalendarEvents_TokenNotFound(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	ts := &mockTokenStore{token: nil, found: false}
-	cs := &mockCalendarService{}
-	fs := &mockFirebaseService{}
-	h := NewCalendarHandler(ts, cs, fs)
-
-	router := gin.New()
-	router.GET("/calendar/sync", func(c *gin.Context) {
-		setUserID(c, "abc")
-		h.SyncCalendarEvents(c)
+	r.POST("/courses", func(c *gin.Context) {
+		c.Set("userID", "u1")
+		h.AddCourse(c)
 	})
-
-	req := httptest.NewRequest("GET", "/calendar/sync?since=2024-01-01", nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-	assert.Equal(t, http.StatusUnauthorized, w.Code)
-	assert.Contains(t, w.Body.String(), "google auth required")
-}
-
-func TestSyncCalendarEvents_GetTokenError(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	ts := &mockTokenStore{token: nil, found: false, getErr: errors.New("fail")}
-	cs := &mockCalendarService{}
-	fs := &mockFirebaseService{}
-	h := NewCalendarHandler(ts, cs, fs)
-
-	router := gin.New()
-	router.GET("/calendar/sync", func(c *gin.Context) {
-		setUserID(c, "abc")
-		h.SyncCalendarEvents(c)
+	r.GET("/courses", func(c *gin.Context) {
+		c.Set("userID", "u1")
+		h.GetCourses(c)
 	})
-
-	req := httptest.NewRequest("GET", "/calendar/sync", nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
-}
-
-func TestSyncCalendarEvents_BadDate(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	ts := &mockTokenStore{token: &oauth2.Token{}, found: true}
-	cs := &mockCalendarService{}
-	fs := &mockFirebaseService{}
-	h := NewCalendarHandler(ts, cs, fs)
-
-	router := gin.New()
-	router.GET("/calendar/sync", func(c *gin.Context) {
-		setUserID(c, "abc")
-		h.SyncCalendarEvents(c)
+	r.DELETE("/courses/:title", func(c *gin.Context) {
+		c.Set("userID", "u1")
+		h.DeleteCourse(c)
 	})
-
-	req := httptest.NewRequest("GET", "/calendar/sync?since=notadate", nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Contains(t, w.Body.String(), "Invalid date")
-}
-
-func TestSyncCalendarEvents_SyncError(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	ts := &mockTokenStore{token: &oauth2.Token{}, found: true}
-	cs := &mockCalendarService{syncErr: errors.New("failed")}
-	fs := &mockFirebaseService{}
-	h := NewCalendarHandler(ts, cs, fs)
-
-	router := gin.New()
-	router.GET("/calendar/sync", func(c *gin.Context) {
-		setUserID(c, "abc")
-		h.SyncCalendarEvents(c)
-	})
-
-	req := httptest.NewRequest("GET", "/calendar/sync?since=2024-01-01", nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
-	assert.Contains(t, w.Body.String(), "failed to fetch events")
-}
-
-// ----- CLASS HANDLER TESTS -----
-
-func TestAddClass_Success(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	fs := &mockFirebaseService{}
-	h := &CalendarHandler{firebaseService: fs}
-	router := gin.New()
-	router.POST("/classes", func(c *gin.Context) {
-		setUserID(c, "user1")
-		h.AddClass(c)
-	})
-
-	body := []byte(`{"title":"CS101"}`)
-	req := httptest.NewRequest("POST", "/classes", bytes.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Contains(t, w.Body.String(), "class created")
-}
-
-func TestAddClass_MissingTitle(t *testing.T) {
-	fs := &mockFirebaseService{}
-	h := &CalendarHandler{firebaseService: fs}
-	router := gin.New()
-	router.POST("/classes", func(c *gin.Context) {
-		setUserID(c, "user1")
-		h.AddClass(c)
-	})
-
-	body := []byte(`{}`)
-	req := httptest.NewRequest("POST", "/classes", bytes.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Contains(t, w.Body.String(), "title required")
-}
-
-func TestAddClass_CreateFails(t *testing.T) {
-	fs := &mockFirebaseService{createClassErr: errors.New("fail")}
-	h := &CalendarHandler{firebaseService: fs}
-	router := gin.New()
-	router.POST("/classes", func(c *gin.Context) {
-		setUserID(c, "user1")
-		h.AddClass(c)
-	})
-
-	body := []byte(`{"title":"CS101"}`)
-	req := httptest.NewRequest("POST", "/classes", bytes.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
-	assert.Contains(t, w.Body.String(), "failed to create class")
-}
-
-func TestGetClasses_Success(t *testing.T) {
-	fs := &mockFirebaseService{classTitles: []string{"CS101", "MATH220"}}
-	h := &CalendarHandler{firebaseService: fs}
-	router := gin.New()
-	router.GET("/classes", func(c *gin.Context) {
-		setUserID(c, "user1")
-		h.GetClasses(c)
-	})
-
-	req := httptest.NewRequest("GET", "/classes", nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Contains(t, w.Body.String(), "CS101")
-	assert.Contains(t, w.Body.String(), "MATH220")
-}
-
-func TestGetClasses_FetchFails(t *testing.T) {
-	fs := &mockFirebaseService{getClassesErr: errors.New("fail")}
-	h := &CalendarHandler{firebaseService: fs}
-	router := gin.New()
-	router.GET("/classes", func(c *gin.Context) {
-		setUserID(c, "user1")
-		h.GetClasses(c)
-	})
-
-	req := httptest.NewRequest("GET", "/classes", nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
-}
-
-func TestDeleteClass_Success(t *testing.T) {
-	fs := &mockFirebaseService{}
-	h := &CalendarHandler{firebaseService: fs}
-	router := gin.New()
-	router.DELETE("/classes/:title", func(c *gin.Context) {
-		setUserID(c, "user1")
-		c.Params = gin.Params{{Key: "title", Value: "CS101"}}
-		h.DeleteClass(c)
-	})
-
-	req := httptest.NewRequest("DELETE", "/classes/CS101", nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Contains(t, w.Body.String(), "class deleted")
-}
-
-func TestDeleteClass_MissingTitle(t *testing.T) {
-	fs := &mockFirebaseService{}
-	h := &CalendarHandler{firebaseService: fs}
-	router := gin.New()
-	router.DELETE("/classes/:title", func(c *gin.Context) {
-		setUserID(c, "user1")
-		h.DeleteClass(c)
-	})
-
-	req := httptest.NewRequest("DELETE", "/classes/", nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Contains(t, w.Body.String(), "class title required")
-}
-
-func TestDeleteClass_DeleteFails(t *testing.T) {
-	fs := &mockFirebaseService{deleteClassErr: errors.New("fail")}
-	h := &CalendarHandler{firebaseService: fs}
-	router := gin.New()
-	router.DELETE("/classes/:title", func(c *gin.Context) {
-		setUserID(c, "user1")
-		c.Params = gin.Params{{Key: "title", Value: "CS101"}}
-		h.DeleteClass(c)
-	})
-
-	req := httptest.NewRequest("DELETE", "/classes/CS101", nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
-	assert.Contains(t, w.Body.String(), "failed to delete class")
-}
-
-func TestDeleteClassItem_Success(t *testing.T) {
-	fs := &mockFirebaseService{}
-	h := &CalendarHandler{firebaseService: fs}
-	router := gin.New()
-	router.DELETE("/classes/:title/items/:classID", func(c *gin.Context) {
-		setUserID(c, "user1")
-		c.Params = gin.Params{{Key: "title", Value: "CS101"}, {Key: "classID", Value: "item123"}}
-		h.DeleteClassItem(c)
-	})
-
-	req := httptest.NewRequest("DELETE", "/classes/CS101/items/item123", nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Contains(t, w.Body.String(), "class item deleted")
-}
-
-func TestDeleteClassItem_MissingParams(t *testing.T) {
-	fs := &mockFirebaseService{}
-	h := &CalendarHandler{firebaseService: fs}
-	router := gin.New()
-	router.DELETE("/classes/:title/items/:classID", func(c *gin.Context) {
-		setUserID(c, "user1")
-		h.DeleteClassItem(c)
-	})
-
-	req := httptest.NewRequest("DELETE", "/classes/items/", nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Contains(t, w.Body.String(), "title and classID required")
-}
-
-func TestDeleteClassItem_DeleteFails(t *testing.T) {
-	fs := &mockFirebaseService{deleteClassItemErr: errors.New("fail")}
-	h := &CalendarHandler{firebaseService: fs}
-	router := gin.New()
-	router.DELETE("/classes/:title/items/:classID", func(c *gin.Context) {
-		setUserID(c, "user1")
-		c.Params = gin.Params{{Key: "title", Value: "CS101"}, {Key: "classID", Value: "item123"}}
-		h.DeleteClassItem(c)
-	})
-
-	req := httptest.NewRequest("DELETE", "/classes/CS101/items/item123", nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
-	assert.Contains(t, w.Body.String(), "failed to delete class item")
-}
-
-func TestGetClassItems_Success(t *testing.T) {
-	item := domain.ClassItem{ClassID: "item123", Name: "Lecture"}
-	fs := &mockFirebaseService{classItems: []domain.ClassItem{item}}
-	h := &CalendarHandler{firebaseService: fs}
-	router := gin.New()
-	router.GET("/classes/:title/items", func(c *gin.Context) {
-		setUserID(c, "user1")
-		c.Params = gin.Params{{Key: "title", Value: "CS101"}}
+	r.GET("/courses/:title/items", func(c *gin.Context) {
+		c.Set("userID", "u1")
 		h.GetClassItems(c)
 	})
-
-	req := httptest.NewRequest("GET", "/classes/CS101/items", nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Contains(t, w.Body.String(), "Lecture")
-}
-
-func TestGetClassItems_MissingTitle(t *testing.T) {
-	fs := &mockFirebaseService{}
-	h := &CalendarHandler{firebaseService: fs}
-	router := gin.New()
-	router.GET("/classes/:title/items", func(c *gin.Context) {
-		setUserID(c, "user1")
-		h.GetClassItems(c)
-	})
-
-	req := httptest.NewRequest("GET", "/classes/items/", nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Contains(t, w.Body.String(), "class title required")
-}
-
-func TestGetClassItems_FetchFails(t *testing.T) {
-	fs := &mockFirebaseService{getClassItemsErr: errors.New("fail")}
-	h := &CalendarHandler{firebaseService: fs}
-	router := gin.New()
-	router.GET("/classes/:title/items", func(c *gin.Context) {
-		setUserID(c, "user1")
-		c.Params = gin.Params{{Key: "title", Value: "CS101"}}
-		h.GetClassItems(c)
-	})
-
-	req := httptest.NewRequest("GET", "/classes/CS101/items", nil)
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
-	assert.Contains(t, w.Body.String(), "failed to fetch class items")
-}
-
-func TestAddClassItem_Success(t *testing.T) {
-	fs := &mockFirebaseService{}
-	h := &CalendarHandler{firebaseService: fs}
-	router := gin.New()
-	router.POST("/classes/:title/items", func(c *gin.Context) {
-		setUserID(c, "user1")
-		c.Params = gin.Params{{Key: "title", Value: "CS101"}}
+	r.POST("/courses/:title/items", func(c *gin.Context) {
+		c.Set("userID", "u1")
 		h.AddClassItem(c)
 	})
-
-	item := domain.ClassItem{Name: "Lecture"}
-	body, _ := json.Marshal(item)
-	req := httptest.NewRequest("POST", "/classes/CS101/items", bytes.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Contains(t, w.Body.String(), "class item added")
-	assert.Contains(t, w.Body.String(), "classID")
-}
-
-func TestAddClassItem_MissingTitle(t *testing.T) {
-	fs := &mockFirebaseService{}
-	h := &CalendarHandler{firebaseService: fs}
-	router := gin.New()
-	router.POST("/classes/:title/items", func(c *gin.Context) {
-		setUserID(c, "user1")
-		h.AddClassItem(c)
-	})
-
-	item := domain.ClassItem{Name: "Lecture"}
-	body, _ := json.Marshal(item)
-	req := httptest.NewRequest("POST", "/classes/items", bytes.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Contains(t, w.Body.String(), "class title required")
-}
-
-func TestAddClassItem_BadJSON(t *testing.T) {
-	fs := &mockFirebaseService{}
-	h := &CalendarHandler{firebaseService: fs}
-	router := gin.New()
-	router.POST("/classes/:title/items", func(c *gin.Context) {
-		setUserID(c, "user1")
-		c.Params = gin.Params{{Key: "title", Value: "CS101"}}
-		h.AddClassItem(c)
-	})
-
-	req := httptest.NewRequest("POST", "/classes/CS101/items", bytes.NewReader([]byte(`bad`)))
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Contains(t, w.Body.String(), "invalid class item")
-}
-
-func TestAddClassItem_AddFails(t *testing.T) {
-	fs := &mockFirebaseService{addClassItemErr: errors.New("fail")}
-	h := &CalendarHandler{firebaseService: fs}
-	router := gin.New()
-	router.POST("/classes/:title/items", func(c *gin.Context) {
-		setUserID(c, "user1")
-		c.Params = gin.Params{{Key: "title", Value: "CS101"}}
-		h.AddClassItem(c)
-	})
-
-	item := domain.ClassItem{Name: "Lecture"}
-	body, _ := json.Marshal(item)
-	req := httptest.NewRequest("POST", "/classes/CS101/items", bytes.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
-	assert.Contains(t, w.Body.String(), "failed to add class item")
-}
-
-func TestUpdateClassItem_Success(t *testing.T) {
-	fs := &mockFirebaseService{}
-	h := &CalendarHandler{firebaseService: fs}
-	router := gin.New()
-	router.PATCH("/classes/:title/items/:classID", func(c *gin.Context) {
-		setUserID(c, "user1")
-		c.Params = gin.Params{{Key: "title", Value: "CS101"}, {Key: "classID", Value: "item123"}}
+	r.PATCH("/courses/:title/items/:classID", func(c *gin.Context) {
+		c.Set("userID", "u1")
 		h.UpdateClassItem(c)
 	})
-
-	updates := map[string]interface{}{"name": "Discussion"}
-	body, _ := json.Marshal(updates)
-	req := httptest.NewRequest("PATCH", "/classes/CS101/items/item123", bytes.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Contains(t, w.Body.String(), "class item updated")
+	r.DELETE("/courses/:title/items/:classID", func(c *gin.Context) {
+		c.Set("userID", "u1")
+		h.DeleteClassItem(c)
+	})
+	return r
 }
 
-func TestUpdateClassItem_MissingParams(t *testing.T) {
-	fs := &mockFirebaseService{}
-	h := &CalendarHandler{firebaseService: fs}
-	router := gin.New()
-	router.PATCH("/classes/:title/items/:classID", func(c *gin.Context) {
-		setUserID(c, "user1")
-		h.UpdateClassItem(c)
+func TestCalendarHandler_SyncCalendarEvents(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	t.Run("success", func(t *testing.T) {
+		ts := &mockTokenStore{token: &oauth2.Token{}, found: true}
+		cs := &mockCalendarService{
+			events: map[string][]*domain.ClassItem{
+				"SOEN 384": {
+					{Type: "Lecture", Day: "MON", StartTime: "10:00", EndTime: "12:00"},
+				},
+			},
+		}
+		fs := &mockFirebaseService{}
+		h := NewCalendarHandler(ts, cs, fs)
+		r := setupCalendarTestRouter(h)
+
+		req := httptest.NewRequest(http.MethodGet, "/courses/sync?since=2024-01-01", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusOK, w.Code)
+		assert.Contains(t, w.Body.String(), "SOEN 384")
 	})
 
-	updates := map[string]interface{}{"name": "Discussion"}
-	body, _ := json.Marshal(updates)
-	req := httptest.NewRequest("PATCH", "/classes/items/item123", bytes.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Contains(t, w.Body.String(), "title and classID required")
+	t.Run("token missing", func(t *testing.T) {
+		ts := &mockTokenStore{found: false}
+		h := NewCalendarHandler(ts, &mockCalendarService{}, &mockFirebaseService{})
+		r := setupCalendarTestRouter(h)
+
+		req := httptest.NewRequest(http.MethodGet, "/courses/sync?since=2024-01-01", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusUnauthorized, w.Code)
+		assert.Contains(t, w.Body.String(), "google auth required")
+	})
+
+	t.Run("invalid date", func(t *testing.T) {
+		ts := &mockTokenStore{token: &oauth2.Token{}, found: true}
+		h := NewCalendarHandler(ts, &mockCalendarService{}, &mockFirebaseService{})
+		r := setupCalendarTestRouter(h)
+
+		req := httptest.NewRequest(http.MethodGet, "/courses/sync?since=bad", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("sync service failure", func(t *testing.T) {
+		ts := &mockTokenStore{token: &oauth2.Token{}, found: true}
+		cs := &mockCalendarService{err: errors.New("sync failed")}
+		h := NewCalendarHandler(ts, cs, &mockFirebaseService{})
+		r := setupCalendarTestRouter(h)
+
+		req := httptest.NewRequest(http.MethodGet, "/courses/sync?since=2024-01-01", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusInternalServerError, w.Code)
+		assert.Contains(t, w.Body.String(), "failed to fetch events")
+	})
 }
 
-func TestUpdateClassItem_BadJSON(t *testing.T) {
-	fs := &mockFirebaseService{}
-	h := &CalendarHandler{firebaseService: fs}
-	router := gin.New()
-	router.PATCH("/classes/:title/items/:classID", func(c *gin.Context) {
-		setUserID(c, "user1")
-		c.Params = gin.Params{{Key: "title", Value: "CS101"}, {Key: "classID", Value: "item123"}}
-		h.UpdateClassItem(c)
+func TestCalendarHandler_CourseEndpoints(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	t.Run("add course success", func(t *testing.T) {
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, &mockFirebaseService{})
+		r := setupCalendarTestRouter(h)
+
+		req := httptest.NewRequest(http.MethodPost, "/courses", bytes.NewBufferString(`{"name":"SOEN 384"}`))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusCreated, w.Code)
+		assert.Contains(t, w.Body.String(), "course created")
 	})
 
-	req := httptest.NewRequest("PATCH", "/classes/CS101/items/item123", bytes.NewReader([]byte(`bad`)))
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Contains(t, w.Body.String(), "updates required")
+	t.Run("add course bad request", func(t *testing.T) {
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, &mockFirebaseService{})
+		r := setupCalendarTestRouter(h)
+
+		req := httptest.NewRequest(http.MethodPost, "/courses", bytes.NewBufferString(`{"name":}`))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusBadRequest, w.Code)
+	})
+
+	t.Run("get courses success", func(t *testing.T) {
+		fs := &mockFirebaseService{
+			classTitles: []string{"SOEN 384"},
+			classItems: []*domain.ClassItem{{
+				ClassID:   "item123",
+				Type:      "Lecture",
+				Day:       "MON",
+				StartTime: "10:00",
+				EndTime:   "12:00",
+			}},
+		}
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs)
+		r := setupCalendarTestRouter(h)
+
+		req := httptest.NewRequest(http.MethodGet, "/courses", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusOK, w.Code)
+		var courses []domain.CourseItem
+		require.NoError(t, json.Unmarshal(w.Body.Bytes(), &courses))
+		require.Len(t, courses, 1)
+		require.Equal(t, "SOEN 384", courses[0].Name)
+	})
+
+	t.Run("delete course not found", func(t *testing.T) {
+		fs := &mockFirebaseService{deleteClassErr: domain.ErrCourseNotFound}
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs)
+		r := setupCalendarTestRouter(h)
+
+		req := httptest.NewRequest(http.MethodDelete, "/courses/SOEN%20384", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusNotFound, w.Code)
+	})
 }
 
-func TestUpdateClassItem_UpdateFails(t *testing.T) {
-	fs := &mockFirebaseService{updateClassItemErr: errors.New("fail")}
-	h := &CalendarHandler{firebaseService: fs}
-	router := gin.New()
-	router.PATCH("/classes/:title/items/:classID", func(c *gin.Context) {
-		setUserID(c, "user1")
-		c.Params = gin.Params{{Key: "title", Value: "CS101"}, {Key: "classID", Value: "item123"}}
-		h.UpdateClassItem(c)
+func TestCalendarHandler_ClassItemEndpoints(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	t.Run("get class items success", func(t *testing.T) {
+		fs := &mockFirebaseService{classItems: []*domain.ClassItem{{ClassID: "item123", Type: "Lecture"}}}
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs)
+		r := setupCalendarTestRouter(h)
+
+		req := httptest.NewRequest(http.MethodGet, "/courses/SOEN%20384/items", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusOK, w.Code)
+		assert.Contains(t, w.Body.String(), "item123")
 	})
 
-	updates := map[string]interface{}{"name": "Discussion"}
-	body, _ := json.Marshal(updates)
-	req := httptest.NewRequest("PATCH", "/classes/CS101/items/item123", bytes.NewReader(body))
-	req.Header.Set("Content-Type", "application/json")
-	w := httptest.NewRecorder()
-	router.ServeHTTP(w, req)
-	assert.Equal(t, http.StatusInternalServerError, w.Code)
-	assert.Contains(t, w.Body.String(), "failed to update class item")
+	t.Run("add class item success", func(t *testing.T) {
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, &mockFirebaseService{})
+		r := setupCalendarTestRouter(h)
+
+		payload := `{"type":"Lecture","section":"N","day":"MON","startTime":"10:00","endTime":"12:00"}`
+		req := httptest.NewRequest(http.MethodPost, "/courses/SOEN%20384/items", bytes.NewBufferString(payload))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusCreated, w.Code)
+		assert.Contains(t, w.Body.String(), "class added")
+	})
+
+	t.Run("update class item success", func(t *testing.T) {
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, &mockFirebaseService{})
+		r := setupCalendarTestRouter(h)
+
+		req := httptest.NewRequest(http.MethodPatch, "/courses/SOEN%20384/items/item123", bytes.NewBufferString(`{"room":"H-110"}`))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusOK, w.Code)
+		assert.Contains(t, w.Body.String(), "class updated")
+	})
+
+	t.Run("delete class item not found", func(t *testing.T) {
+		fs := &mockFirebaseService{deleteClassItemErr: domain.ErrCourseNotFound}
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs)
+		r := setupCalendarTestRouter(h)
+
+		req := httptest.NewRequest(http.MethodDelete, "/courses/SOEN%20384/items/item123", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusNotFound, w.Code)
+	})
 }

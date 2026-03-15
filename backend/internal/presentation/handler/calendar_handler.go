@@ -13,10 +13,10 @@ import (
 type CalendarHandler struct {
 	tokenStore      GoogleTokenStore
 	calendarService application.CalendarService
-	firebaseService *application.FirebaseService
+	firebaseService application.FirebaseClassService
 }
 
-func NewCalendarHandler(tokenStore GoogleTokenStore, calendarService application.CalendarService, firebaseService *application.FirebaseService) *CalendarHandler {
+func NewCalendarHandler(tokenStore GoogleTokenStore, calendarService application.CalendarService, firebaseService application.FirebaseClassService) *CalendarHandler {
 	return &CalendarHandler{
 		tokenStore:      tokenStore,
 		calendarService: calendarService,
@@ -34,8 +34,8 @@ type SyncResponse struct {
 	Errors []string            `json:"errors,omitempty"`
 }
 
-type AddClassRequest struct {
-	Title string `json:"title" binding:"required"`
+type createCourseRequest struct {
+	Name string `json:"name" binding:"required"`
 }
 
 // SyncCalendarEvents godoc

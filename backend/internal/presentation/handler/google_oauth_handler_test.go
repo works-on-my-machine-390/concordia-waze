@@ -459,14 +459,14 @@ func Test_Callback_ParseFallbackWhenParseStateNil(t *testing.T) {
 	}
 }
 
-// extractUserID tests: make sure context keys "userId" and "sub" are recognized.
+// extractUserID tests: make sure context keys "userID" and "sub" are recognized.
 func Test_extractUserID_ContextKeys(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	w := httptest.NewRecorder()
 	c, _ := gin.CreateTestContext(w)
 
-	// 1) userId key
-	c.Set("userId", "u1")
+	// 1) userID key
+	c.Set("userID", "u1")
 	if got := extractUserID(c); got != "u1" {
 		t.Fatalf("expected extractUserID to return 'u1', got %q", got)
 	}
@@ -478,9 +478,16 @@ func Test_extractUserID_ContextKeys(t *testing.T) {
 		t.Fatalf("expected extractUserID to return 'sub1', got %q", got)
 	}
 
-	// 3) no keys -> empty
+	// 3) query fallback
 	c3, _ := gin.CreateTestContext(w)
-	if got := extractUserID(c3); got != "" {
+	c3.Request = httptest.NewRequest(http.MethodGet, "/auth/google?userId=query-user", nil)
+	if got := extractUserID(c3); got != "query-user" {
+		t.Fatalf("expected extractUserID to return query fallback 'query-user', got %q", got)
+	}
+
+	// 4) no keys and no query -> empty
+	c4, _ := gin.CreateTestContext(w)
+	if got := extractUserID(c4); got != "" {
 		t.Fatalf("expected extractUserID to return empty, got %q", got)
 	}
 }
