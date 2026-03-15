@@ -129,7 +129,7 @@ export default function IndoorSearchPage() {
         pathname: "/indoor-map",
         params: {
           buildingCode: poi.building,
-          selectedRoom: poi.name,
+          selectedPoiName: poi.name,
           selectedFloor: poi.floor_number.toString(),
         },
       });
@@ -194,7 +194,7 @@ export default function IndoorSearchPage() {
           pathname: "/indoor-map",
           params: {
             buildingCode,
-            selectedRoom: poi.name,
+            selectedPoiName: poi.name,
             selectedFloor: search.floor.toString(),
           },
         });
