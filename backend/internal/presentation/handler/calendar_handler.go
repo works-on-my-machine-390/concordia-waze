@@ -205,7 +205,7 @@ func (h *CalendarHandler) DeleteCourse(c *gin.Context) {
 func (h *CalendarHandler) DeleteClassItem(c *gin.Context) {
 	userID := c.GetString("userID")
 	title := c.Param("title")
-	classID := c.Param("classId")
+	classID := c.Param("classID")
 
 	if err := h.firebaseService.DeleteClassItem(c.Request.Context(), userID, title, classID); err != nil {
 		if errors.Is(err, domain.ErrCourseNotFound) {
@@ -277,7 +277,7 @@ func (h *CalendarHandler) AddClassItem(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": "class added", "classId": classID})
+	c.JSON(http.StatusCreated, gin.H{"message": "class added", "classID": classID})
 }
 
 // UpdateClassItem godoc
@@ -297,7 +297,7 @@ func (h *CalendarHandler) AddClassItem(c *gin.Context) {
 func (h *CalendarHandler) UpdateClassItem(c *gin.Context) {
 	userID := c.GetString("userID")
 	title := c.Param("title")
-	classID := c.Param("classId")
+	classID := c.Param("classID")
 
 	var updates map[string]interface{}
 	if err := c.ShouldBindJSON(&updates); err != nil {

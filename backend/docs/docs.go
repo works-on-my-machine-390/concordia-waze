@@ -652,7 +652,7 @@ const docTemplate = `{
                 ],
                 "description": "Synchronizes Google Calendar events for the authenticated user since a given date",
                 "tags": [
-                    "courses"
+                    "class"
                 ],
                 "summary": "Sync Google Calendar events",
                 "parameters": [

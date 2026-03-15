@@ -345,7 +345,7 @@ func (fs *FirebaseService) ensureCourseExists(ctx context.Context, userID, title
 
 func (fs *FirebaseService) AddClassItem(ctx context.Context, userID, title string, item domain.ClassItem) (string, error) {
 	if err := fs.ensureCourseExists(ctx, userID, title); err != nil {
-		return "", err
+		fs.CreateClass(ctx, userID, title)
 	}
 
 	ref, _, err := fs.client.
@@ -418,12 +418,10 @@ func (fs *FirebaseService) GetAllClassItems(userID string) (map[string][]*domain
 
 	for _, classDoc := range classDocs {
 		title := classDoc.Ref.ID
-		items, err := fs.GetClassItems(ctx, userID, title)
-		if err != nil {
-			return nil, fmt.Errorf("getting items for class %s: %w", title, err)
+		items, _ := fs.GetClassItems(ctx, userID, title)
+		if items != nil {
+			result[title] = items
 		}
-
-		result[title] = items
 	}
 
 	return result, nil

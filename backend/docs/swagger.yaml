@@ -1193,7 +1193,7 @@ paths:
       - BearerAuth: []
       summary: Sync Google Calendar events
       tags:
-      - courses
+      - class
   /directions:
     get:
       description: Returns route polyline + step instructions (walking/driving/transit/shuttle/bicycling)
