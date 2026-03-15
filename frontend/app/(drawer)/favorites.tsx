@@ -12,6 +12,7 @@ import { useGetProfile } from "@/hooks/queries/userQueries";
 import { DrawerActions, useNavigation } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
+import { Toast as toast } from "toastify-react-native";
 import {
   ActivityIndicator,
   FlatList,
@@ -47,64 +48,6 @@ export default function Favorites() {
     return map;
   }, [allBuildingsQuery.data]);
 
-  const filteredFavorites = useMemo(() => {
-    const query = searchQuery.toLowerCase().trim();
-    const favorites = favoritesQuery.data || [];
-
-    if (!query) {
-      return favorites;
-    }
-
-    return favorites.filter((favorite) => {
-      const relatedBuilding = favorite.buildingCode
-        ? buildingByCode.get(favorite.buildingCode)
-        : undefined;
-
-      const searchableText = [
-        favorite.name,
-        favorite.buildingCode || "",
-        favorite.poiType || "",
-        relatedBuilding?.long_name || "",
-      ]
-        .join(" ")
-        .toLowerCase();
-
-      return searchableText.includes(query);
-    });
-  }, [buildingByCode, favoritesQuery.data, searchQuery]);
-
-  const getSubtitle = (favorite: FavoriteLocation) => {
-    if (favorite.poiType) {
-      return favorite.poiType
-        .split("_")
-        .map((part) => part[0].toUpperCase() + part.slice(1))
-        .join(" ");
-    }
-
-    if (favorite.type === "indoor" && favorite.buildingCode) {
-      const floorText =
-        typeof favorite.floorNumber === "number"
-          ? ` - Floor ${favorite.floorNumber}`
-          : "";
-
-      return `${favorite.buildingCode}${floorText}`;
-    }
-
-    return "Saved location";
-  };
-
-  const getDisplayTitle = (favorite: FavoriteLocation) => {
-    if (favorite.type === "indoor" && favorite.buildingCode) {
-      return formatIndoorPoiName(
-        favorite.name,
-        favorite.poiType || "",
-        favorite.buildingCode,
-      );
-    }
-
-    return favorite.name;
-  };
-
   const resolveBuildingForFavorite = (favorite: FavoriteLocation) => {
     if (favorite.buildingCode) {
       return buildingByCode.get(favorite.buildingCode);
@@ -129,6 +72,66 @@ export default function Favorites() {
     return undefined;
   };
 
+  const getSubtitle = (favorite: FavoriteLocation) => {
+    if (favorite.type === "indoor" && favorite.buildingCode) {
+      const floorText =
+        typeof favorite.floorNumber === "number"
+          ? ` - Floor ${favorite.floorNumber}`
+          : "";
+
+      return `${favorite.buildingCode}${floorText}`;
+    }
+
+    if (favorite.type === "outdoor") {
+      const relatedBuilding = resolveBuildingForFavorite(favorite);
+
+      if (relatedBuilding) {
+        return `Concordia Building - ${relatedBuilding.code}`;
+      }
+    }
+
+    return "Saved location";
+  };
+
+  const filteredFavorites = useMemo(() => {
+    const query = searchQuery.toLowerCase().trim();
+    const favorites = favoritesQuery.data || [];
+
+    if (!query) {
+      return favorites;
+    }
+
+    return favorites.filter((favorite) => {
+      const relatedBuilding = favorite.buildingCode
+        ? buildingByCode.get(favorite.buildingCode)
+        : undefined;
+
+      const searchableText = [
+        favorite.name,
+        favorite.buildingCode || "",
+        favorite.poiType || "",
+        relatedBuilding?.long_name || "",
+        getSubtitle(favorite),
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      return searchableText.includes(query);
+    });
+  }, [buildingByCode, favoritesQuery.data, searchQuery]);
+
+  const getDisplayTitle = (favorite: FavoriteLocation) => {
+    if (favorite.type === "indoor" && favorite.buildingCode) {
+      return formatIndoorPoiName(
+        favorite.name,
+        favorite.poiType || "",
+        favorite.buildingCode,
+      );
+    }
+
+    return favorite.name;
+  };
+
   const handleFavoritePress = (favorite: FavoriteLocation) => {
     const relatedBuilding = resolveBuildingForFavorite(favorite);
     let camLat: string | undefined;
@@ -146,11 +149,11 @@ export default function Favorites() {
       camLng = String(relatedBuilding.longitude);
     }
 
-    if (favorite.type === "indoor" && relatedBuilding) {
+    if (favorite.type === "indoor" && favorite.buildingCode) {
       router.push({
-        pathname: "/(drawer)/indoor-map",
+        pathname: "/indoor-map",
         params: {
-          buildingCode: relatedBuilding.code,
+          buildingCode: favorite.buildingCode,
           selectedRoom: favorite.name,
           selectedFloor:
             typeof favorite.floorNumber === "number"
@@ -176,30 +179,8 @@ export default function Favorites() {
     });
   };
 
-  const handleDirectionsPress = (favorite: FavoriteLocation) => {
-    const relatedBuilding = resolveBuildingForFavorite(favorite);
-
-    const latitude =
-      favorite.latitude ??
-      (typeof relatedBuilding?.latitude === "number"
-        ? relatedBuilding.latitude
-        : undefined);
-
-    const longitude =
-      favorite.longitude ??
-      (typeof relatedBuilding?.longitude === "number"
-        ? relatedBuilding.longitude
-        : undefined);
-
-    router.push({
-      pathname: "/map",
-      params: {
-        selected: favorite.buildingCode,
-        campus: relatedBuilding?.campus,
-        camLat: typeof latitude === "number" ? String(latitude) : undefined,
-        camLng: typeof longitude === "number" ? String(longitude) : undefined,
-      },
-    });
+  const handleDirectionsPress = (_favorite: FavoriteLocation) => {
+    toast.info("STEVEN IS WORKING ON IT");
   };
 
   const renderFavoriteItem = ({ item }: { item: FavoriteLocation }) => (
@@ -249,7 +230,7 @@ export default function Favorites() {
         <View style={styles.searchWrap}>
           <SearchPill
             value={searchQuery}
-            placeholder="Favorites"
+            placeholder="Search favorites"
             editable
             onChangeText={setSearchQuery}
             onClear={() => setSearchQuery("")}
