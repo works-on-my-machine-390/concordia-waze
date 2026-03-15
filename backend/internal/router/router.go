@@ -91,6 +91,12 @@ func SetupRouter() *gin.Engine {
 	imageHandler := handler.NewImageHandler(imageService)
 	firebaseHandler := handler.NewFirebaseHandler(firebaseHandlerService)
 	shuttleHandler := handler.NewShuttleHandler(shuttleService)
+
+	var scheduleService handler.ScheduleService
+	if firebaseSvc != nil {
+		scheduleService = firebaseSvc
+	}
+	scheduleHandler := handler.NewScheduleHandler(scheduleService)
 	pointOfInterestHandler := handler.NewPointOfInterestHandler(pointOfInterestService, indoorPOIService)
 	favoritesHandler := handler.NewFavoritesHandler(favoritesService)
 
@@ -202,6 +208,13 @@ func SetupRouter() *gin.Engine {
 		usersGroup.POST("/:userId/history", firebaseHandler.AddDestinationHistory)
 		usersGroup.GET("/:userId/history", firebaseHandler.GetDestinationHistory)
 		usersGroup.DELETE("/:userId/history", firebaseHandler.ClearDestinationHistory)
+
+		usersGroup.POST("/:userId/courses", scheduleHandler.CreateCourse)
+		usersGroup.GET("/:userId/courses", scheduleHandler.GetCourses)
+		usersGroup.DELETE("/:userId/courses/:title", scheduleHandler.DeleteCourse)
+		usersGroup.POST("/:userId/courses/:title/classes", scheduleHandler.AddClassItem)
+		usersGroup.PUT("/:userId/courses/:title/classes/:classId", scheduleHandler.UpdateClassItem)
+		usersGroup.DELETE("/:userId/courses/:title/classes/:classId", scheduleHandler.DeleteClassItem)
 	}
 
 	return router
