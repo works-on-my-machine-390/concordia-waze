@@ -324,6 +324,8 @@ export default function MainMap() {
   };
 
   const handleStartLocationPress = () => {
+    navigationState.setModifyingField("start");
+
     router.push({
       pathname: "/search",
       params: {
@@ -337,6 +339,7 @@ export default function MainMap() {
   };
 
   const handleEndLocationPress = () => {
+    navigationState.setModifyingField("end");
     router.push({
       pathname: "/search",
       params: {

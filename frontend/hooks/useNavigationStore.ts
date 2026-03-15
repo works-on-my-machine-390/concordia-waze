@@ -24,7 +24,7 @@ export type OutdoorNavigableLocation = {
 
 export type IndoorNavigableLocation = {
   building: string;
-  floor_number: string;
+  floor_number: number;
   indoor_position: Coordinates;
 } & NavigableLocationBase;
 
@@ -37,6 +37,10 @@ interface NavigationState {
   setTransitMode?: (mode: TransitMode) => void;
   currentDirections?: DirectionsModel;
   setCurrentDirections?: (directions: DirectionsModel) => void;
+
+  modifyingField?: "start" | "end" | null;
+  setModifyingField?: (field: "start" | "end" | null) => void;
+
 
   clearState: () => void;
 }
@@ -55,11 +59,16 @@ export const useNavigationStore = create<NavigationState>()((set) => ({
   setCurrentDirections: (directions: DirectionsModel) =>
     set({ currentDirections: directions }),
 
+  modifyingField: null,
+  setModifyingField: (field: "start" | "end" | null) =>
+    set({ modifyingField: field }),
+
   clearState: () =>
     set({
       startLocation: undefined,
       endLocation: undefined,
       transitMode: undefined,
       currentDirections: undefined,
+      modifyingField: null,
     }),
 }));

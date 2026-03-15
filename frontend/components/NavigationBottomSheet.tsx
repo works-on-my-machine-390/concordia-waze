@@ -52,7 +52,6 @@ export default function NavigationBottomSheet(
 
   const closeSheet = useMapStore((state) => state.closeSheet);
 
-
   const isCrossCampus = useMemo(() => {
     if (!navigationState.startLocation || !navigationState.endLocation)
       return false;
@@ -68,46 +67,32 @@ export default function NavigationBottomSheet(
         mode: TransitMode.driving,
         Icon: CarIcon,
         label: "Drive",
-        duration:
-          formatDuration(
-            durationsByMode?.[TransitMode.driving],
-          ) || "",
+        duration: formatDuration(durationsByMode?.[TransitMode.driving]) || "",
       },
       {
         mode: TransitMode.transit,
         Icon: TrainIcon,
         label: "Transit",
-        duration:
-          formatDuration(
-            durationsByMode?.[TransitMode.transit],
-          ) || "",
+        duration: formatDuration(durationsByMode?.[TransitMode.transit]) || "",
       },
       {
         mode: TransitMode.walking,
         Icon: WalkingIcon,
         label: "Walk",
-        duration:
-          formatDuration(
-            durationsByMode?.[TransitMode.walking],
-          ) || "",
+        duration: formatDuration(durationsByMode?.[TransitMode.walking]) || "",
       },
       {
         mode: TransitMode.bicycling,
         Icon: BikeIcon,
         label: "Bike",
         duration:
-          formatDuration(
-            durationsByMode?.[TransitMode.bicycling],
-          ) || "",
+          formatDuration(durationsByMode?.[TransitMode.bicycling]) || "",
       },
       {
         mode: TransitMode.shuttle,
         image: concordiaLogo,
         label: "Shuttle",
-        duration:
-          formatDuration(
-            durationsByMode?.[TransitMode.shuttle],
-          ) || "",
+        duration: formatDuration(durationsByMode?.[TransitMode.shuttle]) || "",
       },
     ];
 
@@ -258,9 +243,19 @@ export default function NavigationBottomSheet(
         >
           {!!navigationState.currentDirections && (
             <OutdoorNavigationSteps
-              directions={navigationState.currentDirections.directionBlocks.find(
-                (block) => block.type === DirectionsResponseBlockType.OUTDOOR,
-              )?.directionsByMode[selectedOption.mode || ""]}
+              indoorDirectionBlocks={navigationState.currentDirections?.directionBlocks.filter(
+                (block) => block.type === DirectionsResponseBlockType.INDOOR,
+              )}
+              directions={
+                navigationState.currentDirections.directionBlocks.find(
+                  (block) => block.type === DirectionsResponseBlockType.OUTDOOR,
+                )?.directionsByMode[selectedOption.mode || ""]
+              }
+              outdoorDirectionSequenceNumber={
+                navigationState.currentDirections.directionBlocks.find(
+                  (block) => block.type === DirectionsResponseBlockType.OUTDOOR,
+                )?.sequenceNumber
+              }
             />
           )}
         </BottomSheetScrollView>

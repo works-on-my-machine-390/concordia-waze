@@ -19,6 +19,7 @@ export type PointOfInterest = {
   type: string; //for now, i just put it as a string, but when we get to rendering POIs on the map, we can have config file in app/constants (with name and icon for each POI) 
   position: Coordinate;
   polygon: Coordinate[]; //has polygon because this type includes rooms too, not just POIs
+  floor_number: number;
 } & OutdoorExtension;
 
 export type Floor = {

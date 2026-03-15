@@ -464,7 +464,9 @@ export default function SearchPage() {
           <View style={styles.header}>
             <Pressable
               style={styles.iconButton}
-              onPress={() => router.back()}
+              onPress={() => {router.back()
+                navigationState.setModifyingField(null);
+              }}
               testID="back-button"
             >
               <Ionicons name="arrow-back" size={26} color={colors.maroon} />

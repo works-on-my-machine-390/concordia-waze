@@ -5,10 +5,14 @@ import IndoorRecentSearches from "@/components/indoor/IndoorRecentSearches";
 import IndoorSearchResults from "@/components/indoor/IndoorSearchResults";
 import SearchPill from "@/components/shared/SearchPill";
 import { useGetAllBuildings } from "@/hooks/queries/buildingQueries";
-import { useGetBuildingFloors } from "@/hooks/queries/indoorMapQueries";
+import {
+  PointOfInterest,
+  useGetBuildingFloors,
+} from "@/hooks/queries/indoorMapQueries";
 import { useIndoorNavigationStore } from "@/hooks/useIndoorNavigationStore";
 import { RecentIndoorSearch, useIndoorSearch } from "@/hooks/useIndoorSearch";
 import { useIndoorSearchStore } from "@/hooks/useIndoorSearchStore";
+import { useNavigationStore } from "@/hooks/useNavigationStore";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
@@ -33,6 +37,7 @@ export default function IndoorSearchPage() {
   const router = useRouter();
   const params = useLocalSearchParams<SearchParams>();
   const { buildingCode, buildingName, itineraryField } = params;
+  const navigationState = useNavigationStore();
 
   const [query, setQuery] = useState("");
 
@@ -64,20 +69,47 @@ export default function IndoorSearchPage() {
   const { results, recentSearches, addRecentSearch, clearRecentSearches } =
     useIndoorSearch(allFloors, query, buildingCode);
 
-  const handleResultSelect = (
-    roomCode: string,
-    floorNumber: number,
-    displayName: string,
-  ) => {
-    const floor = floors.find((f) => f.number === floorNumber);
-    const poi = floor?.pois.find((p) => p.name === roomCode);
+  const handleResultSelect = (poi: PointOfInterest, displayName: string) => {
     if (!poi) return;
+
+    if (navigationState.modifyingField) {
+      const selectedLocation = {
+        name: displayName,
+        code: poi.building,
+        indoor_position: {
+          x: poi.position.x,
+          y: poi.position.y,
+        },
+        building: poi.building,
+        floor_number: poi.floor_number,
+        latitude: poi.latitude,
+        longitude: poi.longitude,
+      };
+
+      if (navigationState.modifyingField === "start") {
+        navigationState.setStartLocation(selectedLocation);
+      } else if (navigationState.modifyingField === "end") {
+        navigationState.setEndLocation(selectedLocation);
+      }
+      navigationState.setModifyingField(null);
+
+      // TODO: route correctly
+      router.push({
+        pathname: "/map",
+
+        params: {
+          camLat: poi.latitude,
+          camLng: poi.longitude,
+        },
+      });
+      return;
+    }
 
     if (itineraryField === "start" || itineraryField === "end") {
       const selectedPoint = {
         label: poi.name,
         displayLabel: displayName,
-        floor: floorNumber,
+        floor: poi.floor_number,
         coord: {
           x: poi.position.x,
           y: poi.position.y,
@@ -90,21 +122,21 @@ export default function IndoorSearchPage() {
         setEnd(selectedPoint);
       }
 
-      setCurrentFloor(floorNumber);
+      setCurrentFloor(poi.floor_number);
       router.back();
     } else {
       router.navigate({
         pathname: "/indoor-map",
         params: {
           buildingCode: params.buildingCode,
-          selectedRoom: roomCode,
-          selectedFloor: floorNumber.toString(),
+          selectedRoom: poi.name,
+          selectedFloor: poi.floor_number.toString(),
         },
       });
     }
 
     if (poi.type.toLowerCase() === "room") {
-      addRecentSearch(displayName, roomCode, floorNumber);
+      addRecentSearch(displayName, poi.name, poi.floor_number);
     }
   };
 

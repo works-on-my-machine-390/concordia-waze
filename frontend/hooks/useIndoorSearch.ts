@@ -169,6 +169,7 @@ export const useIndoorSearch = (
           latitude: floor.latitude,
           longitude: floor.longitude,
           building: floor.building,
+          floor_number: floor.number,
         };
         const score = calculateSearchScore(extendedPoi, cleanedQuery, q);
 

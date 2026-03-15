@@ -64,9 +64,24 @@ export function prepareDirectionsQuery(
   // round to nearest minute
   const roundedStartTime = Math.round(startDateTime.getTime() / 60000) * 60000;
 
+  let finalStartLocation = startLocation;
+  let finalEndLocation = endLocation;
+
+  if (startLocation && "building" in startLocation) {
+    finalStartLocation = { ...startLocation };
+    delete finalStartLocation.latitude;
+    delete finalStartLocation.longitude;
+  }
+
+  if (endLocation && "building" in endLocation) {
+    finalEndLocation = { ...endLocation };
+    delete finalEndLocation.latitude;
+    delete finalEndLocation.longitude;
+  }
+
   const queryRequestBody: DirectionsRequestModel = {
-    start: startLocation,
-    end: endLocation,
+    start: finalStartLocation,
+    end: finalEndLocation,
     preferences: {},
   };
 
@@ -130,11 +145,13 @@ export type DirectionsResponseBlockModel =
 export type OutdoorDirectionsBlockModel = {
   type: "outdoor";
   directionsByMode: Record<string, OutdoorDirectionsModel>; // maps a transit mode (e.g. "walking", "shuttle") to its corresponding directions model
+  sequenceNumber?: number; // indicates the order of this block in the overall directions.
 };
 
 export type IndoorDirectionsBlockModel = {
   type: "indoor";
   directions: MultiFloorPathResult;
+  sequenceNumber?: number; // indicates the order of this block in the overall directions.
 };
 
 export type DurationBlockModel = {
@@ -189,7 +206,7 @@ const apiResponseToDirectionsModel = (response: any): DirectionsModel => {
 
   // parse blocks. the backend returns an array of blocks,
   // where each block can be either "outdoor", "indoor", or "duration" type.
-  response.forEach((block: any) => {
+  response.forEach((block: any, index: number) => {
     switch (block.type) {
       case DirectionsResponseBlockType.OUTDOOR: {
         let directionsByMode: Record<string, OutdoorDirectionsModel> = {};
@@ -199,6 +216,7 @@ const apiResponseToDirectionsModel = (response: any): DirectionsModel => {
         directionBlocks.push({
           type: DirectionsResponseBlockType.OUTDOOR,
           directionsByMode,
+          sequenceNumber: index,
         } as OutdoorDirectionsBlockModel);
         break;
       }
@@ -206,10 +224,12 @@ const apiResponseToDirectionsModel = (response: any): DirectionsModel => {
         directionBlocks.push({
           type: DirectionsResponseBlockType.INDOOR,
           directions: block.body as MultiFloorPathResult,
+          sequenceNumber: index,
         } as IndoorDirectionsBlockModel);
 
         break;
 
+      // duration is always returned as the last one
       case DirectionsResponseBlockType.DURATION: {
         durationBlock = {
           type: DirectionsResponseBlockType.DURATION,
