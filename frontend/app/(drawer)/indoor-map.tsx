@@ -6,7 +6,6 @@ import IndoorItineraryBottomSheet, {
 import IndoorItineraryHeader from "@/components/indoor/IndoorItineraryHeader";
 
 import { useGetBuildingDetails } from "@/hooks/queries/buildingQueries";
-import { useIndoorItineraryController } from "@/hooks/useIndoorItineraryController";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect } from "react";
 import { StyleSheet, View } from "react-native";
@@ -27,7 +26,7 @@ export default function IndoorMapPage() {
   }>();
 
   const buildingCode = params.buildingCode ?? "";
-  const ctrl = useIndoorItineraryController(buildingCode);
+  // const ctrl = useIndoorItineraryController(buildingCode);
 
   const { data: buildingData } = useGetBuildingDetails(buildingCode);
   const { mapSettings, updateSetting } = useMapSettings();
@@ -89,7 +88,7 @@ export default function IndoorMapPage() {
     <View style={styles.container}>
       <IndoorMapContainer
         buildingCode={buildingCode}
-        routeSegments={ctrl.routeSegments}
+        // routeSegments={ctrl.routeSegments}
         // preferredFloorNumber={nav.currentFloor ?? null}
         // selectedRoomFromSearch={
         //   nav.mode === "BROWSE" ? params.selectedRoom : undefined
