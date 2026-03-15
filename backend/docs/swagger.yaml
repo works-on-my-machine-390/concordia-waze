@@ -229,6 +229,7 @@ definitions:
       distance:
         type: string
       duration:
+        description: duration in seconds
         type: integer
       mode:
         type: string
@@ -479,7 +480,6 @@ definitions:
     - end
     - start
     type: object
-host: localhost:8080
 info:
   contact: {}
   description: This is the Concordia Waze API server.
