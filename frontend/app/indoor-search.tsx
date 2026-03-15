@@ -128,7 +128,7 @@ export default function IndoorSearchPage() {
       router.navigate({
         pathname: "/indoor-map",
         params: {
-          buildingCode: params.buildingCode,
+          buildingCode: poi.building,
           selectedRoom: poi.name,
           selectedFloor: poi.floor_number.toString(),
         },
