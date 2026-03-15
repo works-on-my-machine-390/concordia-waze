@@ -66,8 +66,6 @@ export default function IndoorItineraryHeader({
                 router.push({
                   pathname: "/indoor-search",
                   params: {
-                    buildingCode,
-                    buildingName,
                     itineraryField: "start",
                   },
                 });
@@ -104,8 +102,6 @@ export default function IndoorItineraryHeader({
                 router.push({
                   pathname: "/indoor-search",
                   params: {
-                    buildingCode,
-                    buildingName,
                     itineraryField: "end",
                   },
                 });
