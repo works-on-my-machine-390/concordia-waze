@@ -102,7 +102,7 @@ function normalizePoiMatchName(name: string) {
   return name
     .trim()
     .toLowerCase()
-    .replace(/[\s-]+/g, "");
+    .replaceAll(/[\s-]+/g, "");
 }
 
 function findPoiByInitialSelection(

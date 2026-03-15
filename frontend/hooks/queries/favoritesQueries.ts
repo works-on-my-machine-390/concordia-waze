@@ -87,7 +87,7 @@ export const useCreateFavorite = (userId: string) => {
     mutationFn: async (payload: CreateFavoriteRequest) => {
       if (isGuestUser(userId)) {
         const existing = await readGuestFavorites();
-        const nowId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        const nowId = `${Date.now()}-${(crypto.getRandomValues(new Uint32Array(1))[0] / 4294967295).toString(36).slice(2, 8)}`;
         const created: FavoriteLocation =
           payload.type === "outdoor"
             ? {
