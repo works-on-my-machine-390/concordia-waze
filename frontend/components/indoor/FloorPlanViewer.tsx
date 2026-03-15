@@ -52,23 +52,8 @@ export function isNoAccessibleRouteError(error: unknown): boolean {
 
 type Props = {
   floor: Floor | undefined;
-
-  routePath?: Coordinates[] | null;
-  selectedPoiName?: string;
-  extraHighlightedPoiNames?: string[];
-
-  buildingCode?: string;
   buildingName?: string;
   metroAccessible?: boolean;
-
-  disablePoiSelection?: boolean;
-  navigationStartOverride?: Coordinates;
-  navigationPathColor?: string;
-  navigationStepIndex?: number;
-  hideBottomSheetSection?: boolean;
-
-  requireAccessible?: boolean;
-  onAccessibilityRouteUnavailable?: () => void;
 };
 
 const normalizeName = (s: string) => s.trim().toLowerCase().replace(/\s+/g, "");

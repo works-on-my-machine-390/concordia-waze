@@ -88,10 +88,6 @@ export default function IndoorMapContainer({
         )}
         buildingName={buildingData?.long_name || ""}
         metroAccessible={buildingData?.metro_accessible}
-        requireAccessible={requireAccessible}
-        onAccessibilityRouteUnavailable={() =>
-          setAccessibilityRouteUnavailable(true)
-        }
       />
 
       <FloorSelector
