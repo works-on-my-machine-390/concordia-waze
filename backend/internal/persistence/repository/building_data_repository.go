@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/agnivade/levenshtein"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
 )
 
@@ -163,4 +164,29 @@ func (r *BuildingDataRepository) GetAllBuildingsByCampus() (map[string][]domain.
 		out[campusKey] = list
 	}
 	return out, nil
+}
+
+func (r *BuildingDataRepository) GetBuildingByFuzzyLongName(query string) (string, error) {
+	if err := r.ensureLoaded(); err != nil {
+		return "", err
+	}
+
+	minDistance := -1
+	var best string
+	found := false
+
+	for _, b := range r.byCode {
+		distance := levenshtein.ComputeDistance(strings.ToLower(query), strings.ToLower(b.LongName))
+		if !found || distance < minDistance {
+			minDistance = distance
+			best = b.Code
+			found = true
+		}
+	}
+
+	if !found {
+		return "", domain.ErrNotFound
+	}
+
+	return best, nil
 }
