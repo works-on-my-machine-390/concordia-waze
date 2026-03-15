@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"sort"
 	"time"
 
 	"cloud.google.com/go/firestore"
@@ -278,6 +279,10 @@ func (fs *FirebaseService) GetUserClasses(ctx context.Context, userID string) ([
 
 // DeleteClass deletes a class and all its schedule items stored in the classItems subcollection.
 func (fs *FirebaseService) DeleteClass(ctx context.Context, userID, title string) error {
+	if err := fs.ensureCourseExists(ctx, userID, title); err != nil {
+		return err
+	}
+
 	itemDocs, err := fs.client.
 		Collection("users").
 		Doc(userID).
@@ -311,7 +316,27 @@ func (fs *FirebaseService) DeleteClass(ctx context.Context, userID, title string
 
 // ===== Class Items =====
 
+func (fs *FirebaseService) ensureCourseExists(ctx context.Context, userID, title string) error {
+	_, err := fs.client.
+		Collection("users").
+		Doc(userID).
+		Collection("classes").
+		Doc(title).
+		Get(ctx)
+	if err == nil {
+		return nil
+	}
+	if status.Code(err) == codes.NotFound {
+		return domain.ErrCourseNotFound
+	}
+	return fmt.Errorf("get course: %w", err)
+}
+
 func (fs *FirebaseService) AddClassItem(ctx context.Context, userID, title string, item domain.ClassItem) (string, error) {
+	if err := fs.ensureCourseExists(ctx, userID, title); err != nil {
+		return "", err
+	}
+
 	ref, _, err := fs.client.
 		Collection("users").
 		Doc(userID).
@@ -327,14 +352,16 @@ func (fs *FirebaseService) AddClassItem(ctx context.Context, userID, title strin
 }
 
 func (fs *FirebaseService) GetClassItems(ctx context.Context, userID, title string) ([]domain.ClassItem, error) {
+	if err := fs.ensureCourseExists(ctx, userID, title); err != nil {
+		return nil, err
+	}
+
 	docs, err := fs.client.
 		Collection("users").
 		Doc(userID).
 		Collection("classes").
 		Doc(title).
 		Collection("classItems").
-		OrderBy("day", firestore.Asc).
-		OrderBy("startTime", firestore.Asc).
 		Documents(ctx).
 		GetAll()
 	if err != nil {
@@ -352,10 +379,21 @@ func (fs *FirebaseService) GetClassItems(ctx context.Context, userID, title stri
 		items = append(items, item)
 	}
 
+	sort.Slice(items, func(i, j int) bool {
+		if items[i].Day == items[j].Day {
+			return items[i].StartTime < items[j].StartTime
+		}
+		return items[i].Day < items[j].Day
+	})
+
 	return items, nil
 }
 
 func (fs *FirebaseService) UpdateClassItem(ctx context.Context, userID, title, classID string, updates map[string]interface{}) error {
+	if err := fs.ensureCourseExists(ctx, userID, title); err != nil {
+		return err
+	}
+
 	_, err := fs.client.
 		Collection("users").
 		Doc(userID).
@@ -372,6 +410,10 @@ func (fs *FirebaseService) UpdateClassItem(ctx context.Context, userID, title, c
 }
 
 func (fs *FirebaseService) DeleteClassItem(ctx context.Context, userID, title, classID string) error {
+	if err := fs.ensureCourseExists(ctx, userID, title); err != nil {
+		return err
+	}
+
 	_, err := fs.client.
 		Collection("users").
 		Doc(userID).
