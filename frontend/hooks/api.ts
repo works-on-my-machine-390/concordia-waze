@@ -5,12 +5,26 @@ import { DeviceEventEmitter } from "react-native";
 
 const debuggerHost = Constants.expoConfig?.hostUri?.split(":").shift();
 export const AUTH_EXPIRED_EVENT = "auth:expired";
+const FALLBACK_PRODUCTION_API_URL = "https://concordia-waze.onrender.com";
+
+const normalizeBaseUrl = (url: string) => url.replace(/\/$/, "");
 
 const getBaseUrl = () => {
+  const configuredBaseUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
+
+  if (configuredBaseUrl) {
+    return normalizeBaseUrl(configuredBaseUrl);
+  }
+
   if (__DEV__ && debuggerHost) {
     return `http://${debuggerHost}:8080`;
   }
-  return "http://localhost:8080";
+
+  if (__DEV__) {
+    return "http://localhost:8080";
+  }
+
+  return FALLBACK_PRODUCTION_API_URL;
 };
 
 export const API_URL = getBaseUrl();

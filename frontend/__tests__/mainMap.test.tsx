@@ -1,4 +1,9 @@
-import { act, cleanup, fireEvent, waitFor } from "@testing-library/react-native";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  waitFor,
+} from "@testing-library/react-native";
 import * as ExpoRouter from "expo-router";
 import * as Location from "expo-location";
 import MainMap from "../app/(drawer)/map";
@@ -6,6 +11,14 @@ import { getDistance } from "../app/utils/mapUtils";
 import { MapMode, useMapStore } from "../hooks/useMapStore";
 import { useNavigationStore } from "../hooks/useNavigationStore";
 import { renderWithProviders } from "../test_utils/renderUtils";
+
+const mockStartTaskTimer = jest.fn();
+const mockEndTaskTimer = jest.fn();
+
+jest.mock("@/lib/telemetry", () => ({
+  startTaskTimer: (...args: any[]) => mockStartTaskTimer(...args),
+  endTaskTimer: (...args: any[]) => mockEndTaskTimer(...args),
+}));
 
 jest.mock("expo-location", () => ({
   requestForegroundPermissionsAsync: jest.fn(),
@@ -58,7 +71,10 @@ jest.mock("~/components/MapHeader", () => ({
     const { View, Button } = require("react-native");
     return (
       <View>
-        <Button title="Switch to Loyola" onPress={() => onCampusChange("LOY")} />
+        <Button
+          title="Switch to Loyola"
+          onPress={() => onCampusChange("LOY")}
+        />
         <Button title="Switch to SGW" onPress={() => onCampusChange("SGW")} />
       </View>
     );
@@ -161,6 +177,7 @@ describe("MainMap screen", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockEndTaskTimer.mockResolvedValue(1000);
     latestCampus = undefined;
     latestMapProps = undefined;
     capturedGoToMyLocation = undefined;
@@ -221,9 +238,11 @@ describe("MainMap screen", () => {
   });
 
   test("does not watch position if permission is denied", async () => {
-    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
-      status: "denied",
-    });
+    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue(
+      {
+        status: "denied",
+      },
+    );
 
     renderWithProviders(<MainMap />);
 
@@ -293,9 +312,11 @@ describe("MainMap screen", () => {
   });
 
   test("changing campus animates map to Loyola coords", async () => {
-    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
-      status: "denied",
-    });
+    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue(
+      {
+        status: "denied",
+      },
+    );
 
     const { getByText } = renderWithProviders(<MainMap />);
 
@@ -315,9 +336,11 @@ describe("MainMap screen", () => {
   });
 
   test("region change switches campus to the closest campus", async () => {
-    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
-      status: "denied",
-    });
+    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue(
+      {
+        status: "denied",
+      },
+    );
 
     (getDistance as jest.Mock).mockReturnValueOnce(100).mockReturnValueOnce(10);
 
@@ -352,9 +375,11 @@ describe("MainMap screen", () => {
   });
 
   test("navigation header edit buttons route to search with edit mode", async () => {
-    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
-      status: "denied",
-    });
+    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue(
+      {
+        status: "denied",
+      },
+    );
 
     useMapStore.getState().setCurrentMode(MapMode.NAVIGATION);
 
@@ -375,5 +400,98 @@ describe("MainMap screen", () => {
 
     expect(capturedStartLocationPress).toBeDefined();
     expect(capturedEndLocationPress).toBeDefined();
+  });
+
+  test("starts SGW to LOY telemetry timer when navigation route matches campuses", async () => {
+    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue(
+      {
+        status: "denied",
+      },
+    );
+
+    useNavigationStore.setState({
+      startLocation: {
+        latitude: 45.497,
+        longitude: -73.579,
+        name: "SGW Start",
+      },
+      endLocation: {
+        latitude: 45.4589,
+        longitude: -73.64,
+        name: "LOY End",
+      },
+    });
+
+    useMapStore.getState().setCurrentMode(MapMode.NAVIGATION);
+
+    // For start location: SGW closer than LOY. For end location: LOY closer than SGW.
+    (getDistance as jest.Mock)
+      .mockReturnValueOnce(1)
+      .mockReturnValueOnce(100)
+      .mockReturnValueOnce(100)
+      .mockReturnValueOnce(1);
+
+    renderWithProviders(<MainMap />);
+
+    await waitFor(() => {
+      expect(mockStartTaskTimer).toHaveBeenCalledWith("sgw_to_loyola_travel");
+    });
+  });
+
+  test("ends SGW to LOY telemetry timer on arrival to Loyola region during navigation", async () => {
+    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue(
+      {
+        status: "denied",
+      },
+    );
+
+    useNavigationStore.setState({
+      startLocation: {
+        latitude: 45.497,
+        longitude: -73.579,
+        name: "SGW Start",
+      },
+      endLocation: {
+        latitude: 45.4589,
+        longitude: -73.64,
+        name: "LOY End",
+      },
+      transitMode: "TRANSIT" as any,
+    });
+
+    useMapStore.getState().setCurrentMode(MapMode.NAVIGATION);
+
+    (getDistance as jest.Mock)
+      // Initial route check (start then end)
+      .mockReturnValueOnce(1)
+      .mockReturnValueOnce(100)
+      .mockReturnValueOnce(100)
+      .mockReturnValueOnce(1)
+      // Region change campus check -> LOY
+      .mockReturnValueOnce(100)
+      .mockReturnValueOnce(1);
+
+    renderWithProviders(<MainMap />);
+
+    await waitFor(() => {
+      expect(mockStartTaskTimer).toHaveBeenCalledWith("sgw_to_loyola_travel");
+    });
+
+    await act(async () => {
+      latestMapProps.onRegionChangeComplete({
+        latitude: 45.4589,
+        longitude: -73.64,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      });
+    });
+
+    await waitFor(() => {
+      expect(mockEndTaskTimer).toHaveBeenCalledWith("sgw_to_loyola_travel", {
+        success: true,
+        reason: "arrived_loyola",
+        mode: "TRANSIT",
+      });
+    });
   });
 });

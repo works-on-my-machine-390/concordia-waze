@@ -14,7 +14,7 @@ import * as Location from "expo-location";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
-import MapView, { Region } from "react-native-maps";
+import MapView, { PROVIDER_GOOGLE, Region } from "react-native-maps";
 import { Toast } from "toastify-react-native";
 import { isPointInPolygon } from "~/app/utils/pointInPolygon";
 import CampusBuildingPolygons from "~/components/CampusBuildingPolygons";
@@ -27,6 +27,7 @@ import {
 } from "../constants";
 import { getDistance } from "../utils/mapUtils";
 import NavigationPolylines from "@/components/NavigationPolylines";
+import { endTaskTimer, startTaskTimer } from "@/lib/telemetry";
 
 export type MapQueryParamsModel = {
   selected?: string;
@@ -62,6 +63,44 @@ export default function MainMap() {
     latitude: number;
     longitude: number;
   } | null>(null);
+  const sgwToLoyolaTimerActiveRef = useRef(false);
+
+  const getClosestCampus = (location: {
+    latitude: number;
+    longitude: number;
+  }) => {
+    const distanceToSGW = getDistance(location, CAMPUS_COORDS[CampusCode.SGW]);
+    const distanceToLOY = getDistance(location, CAMPUS_COORDS[CampusCode.LOY]);
+
+    return distanceToSGW < distanceToLOY ? CampusCode.SGW : CampusCode.LOY;
+  };
+
+  const isSgwToLoyolaRoute = () => {
+    if (!navigationState.startLocation || !navigationState.endLocation) {
+      return false;
+    }
+
+    return (
+      getClosestCampus(navigationState.startLocation) === CampusCode.SGW &&
+      getClosestCampus(navigationState.endLocation) === CampusCode.LOY
+    );
+  };
+
+  const endSgwToLoyolaTimer = (
+    success: boolean,
+    reason: "arrived_loyola" | "navigation_exit",
+  ) => {
+    if (!sgwToLoyolaTimerActiveRef.current) {
+      return;
+    }
+
+    sgwToLoyolaTimerActiveRef.current = false;
+    void endTaskTimer("sgw_to_loyola_travel", {
+      success,
+      reason,
+      mode: navigationState.transitMode ?? "unknown",
+    });
+  };
 
   // queried, but not acccessed here. the data is cached for when the user begins navigation
   useGetBuildingDetails(mapState.currentBuildingCode || undefined);
@@ -98,9 +137,25 @@ export default function MainMap() {
 
   useEffect(() => {
     if (mapState.currentMode !== MapMode.NAVIGATION) {
+      endSgwToLoyolaTimer(false, "navigation_exit");
       navigationState.clearState();
     }
   }, [mapState.currentMode]);
+
+  useEffect(() => {
+    if (
+      mapState.currentMode === MapMode.NAVIGATION &&
+      isSgwToLoyolaRoute() &&
+      !sgwToLoyolaTimerActiveRef.current
+    ) {
+      startTaskTimer("sgw_to_loyola_travel");
+      sgwToLoyolaTimerActiveRef.current = true;
+    }
+  }, [
+    mapState.currentMode,
+    navigationState.startLocation,
+    navigationState.endLocation,
+  ]);
 
   useEffect(() => {
     if (buildingListQuery.data) {
@@ -303,25 +358,27 @@ export default function MainMap() {
       camLng: String(longitude),
     });
 
-    // Calculate distance to each campus
-    const distanceToSGW = getDistance(
-      { latitude, longitude },
-      CAMPUS_COORDS[CampusCode.SGW],
-    );
-    const distanceToLOY = getDistance(
-      { latitude, longitude },
-      CAMPUS_COORDS[CampusCode.LOY],
-    );
+    const closestCampus = getClosestCampus({ latitude, longitude });
 
-    // Determine which campus is closer
-    const closestCampus =
-      distanceToSGW < distanceToLOY ? CampusCode.SGW : CampusCode.LOY;
+    if (
+      sgwToLoyolaTimerActiveRef.current &&
+      mapState.currentMode === MapMode.NAVIGATION &&
+      closestCampus === CampusCode.LOY
+    ) {
+      endSgwToLoyolaTimer(true, "arrived_loyola");
+    }
 
     // Update campus if different
     if (closestCampus !== campus) {
       setCampus(closestCampus);
     }
   };
+
+  useEffect(() => {
+    return () => {
+      endSgwToLoyolaTimer(false, "navigation_exit");
+    };
+  }, []);
 
   const handleStartLocationPress = () => {
     navigationState.setModifyingField("start");
@@ -361,6 +418,7 @@ export default function MainMap() {
   return (
     <View style={styles.container}>
       <MapView
+        provider={PROVIDER_GOOGLE}
         customMapStyle={mapStyle}
         showsPointsOfInterest={false}
         ref={mapRef}

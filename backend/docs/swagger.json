@@ -6,7 +6,6 @@
         "contact": {},
         "version": "1.0"
     },
-    "host": "localhost:8080",
     "paths": {
         "/auth/google": {
             "get": {
@@ -2364,6 +2363,7 @@
                     "type": "string"
                 },
                 "duration": {
+                    "description": "duration in seconds",
                     "type": "integer"
                 },
                 "mode": {
