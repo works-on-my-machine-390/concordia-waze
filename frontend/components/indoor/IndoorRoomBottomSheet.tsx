@@ -59,7 +59,6 @@ export default function IndoorRoomBottomSheet(
       containerStyle={{ overflow: "visible" }}
     >
       <View style={BottomSheetStyles.fakeHandleContainer}>
-        <View style={BottomSheetStyles.fakeHandleBar} />
       </View>
 
       <View style={BottomSheetStyles.headerContainer}>
