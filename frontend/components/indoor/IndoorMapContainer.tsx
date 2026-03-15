@@ -25,6 +25,7 @@ type Props = {
   floorSelectorBottomOffset?: number;
   selectedRoomFromSearch?: string;
   selectedFloorFromSearch?: number;
+  selectedPoiCoordFromSearch?: Coordinates;
 
   disablePoiSelection?: boolean;
   hideBottomSheetSection?: boolean;
@@ -36,8 +37,7 @@ type Props = {
   requireAccessible?: boolean;
 };
 
-const normalizeName = (s: string) =>
-  s.trim().toLowerCase().replace(/\s+/g, "");
+const normalizeName = (s: string) => s.trim().toLowerCase().replace(/\s+/g, "");
 
 const normalizeType = (s?: string) =>
   (s ?? "").trim().toLowerCase().replace(/\s+/g, "_");
@@ -99,6 +99,7 @@ export default function IndoorMapContainer({
   floorSelectorBottomOffset = 24,
   selectedRoomFromSearch,
   selectedFloorFromSearch,
+  selectedPoiCoordFromSearch,
   disablePoiSelection = false,
   hideBottomSheetSection = false,
   hideFloorSelector = false,
@@ -168,8 +169,8 @@ export default function IndoorMapContainer({
   const currentFloor =
     selectedFloor == null
       ? undefined
-      : data?.floors?.find((f) => f.number === selectedFloor) ??
-        data?.floors?.[0];
+      : (data?.floors?.find((f) => f.number === selectedFloor) ??
+        data?.floors?.[0]);
 
   const { routePathForCurrentFloor, extraHighlightedPoiNames } = useMemo(() => {
     if (!routeSegments || selectedFloor == null || !data?.floors?.length) {
@@ -275,7 +276,7 @@ export default function IndoorMapContainer({
 
   const highlightedPoiName =
     navMode === "ITINERARY"
-      ? navEnd?.label ?? navStart?.label
+      ? (navEnd?.label ?? navStart?.label)
       : navSelectedRoom?.label;
 
   if (isLoading) {
@@ -327,6 +328,7 @@ export default function IndoorMapContainer({
         buildingName={buildingData?.long_name || ""}
         metroAccessible={buildingData?.metro_accessible}
         initialSelectedRoom={selectedRoomFromSearch}
+        initialSelectedPoiCoord={selectedPoiCoordFromSearch}
         disablePoiSelection={disablePoiSelection}
         navigationStartOverride={navigationStartOverride}
         navigationPathColor={navigationPathColor}

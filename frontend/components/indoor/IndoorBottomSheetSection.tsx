@@ -80,6 +80,9 @@ export default function IndoorBottomSheetSection(
         <IndoorRoomBottomSheet
           roomCode={selectedPoi.name}
           buildingCode={buildingCode}
+          floorNumber={floor.number}
+          coordX={selectedPoi.position.x}
+          coordY={selectedPoi.position.y}
           roomType={selectedPoi.type}
           onClose={onClearSelectedPoi}
           onDirectionsPress={onDirectionsPress}

@@ -456,10 +456,10 @@ func (fs *FirebaseService) AddFavorite(ctx context.Context, userID string, fav F
 // GetFavorites retrieves all favorite locations for a user.
 func (fs *FirebaseService) GetFavorites(ctx context.Context, userID string) ([]FirestoreFavorite, error) {
 	collPath := fmt.Sprintf("users/%s/favorites", userID)
-	log.Printf("[firestore] reading favorites path=%s", collPath)
+	// log.Printf("[firestore] reading favorites path=%s", collPath)
 	docs, err := fs.client.Collection("users").Doc(userID).Collection("favorites").Documents(ctx).GetAll()
 	if err != nil {
-		log.Printf("[firestore] GetFavorites failed path=%s: %v", collPath, err)
+		// log.Printf("[firestore] GetFavorites failed path=%s: %v", collPath, err)
 		return nil, fmt.Errorf("get favorites: %w", err)
 	}
 
@@ -471,7 +471,7 @@ func (fs *FirebaseService) GetFavorites(ctx context.Context, userID string) ([]F
 		}
 		var fav FirestoreFavorite
 		if err := doc.DataTo(&fav); err != nil {
-			log.Printf("[firestore] GetFavorites skipping doc=%s: deserialize error: %v", doc.Ref.ID, err)
+			// log.Printf("[firestore] GetFavorites skipping doc=%s: deserialize error: %v", doc.Ref.ID, err)
 			continue
 		}
 		fav.ID = doc.Ref.ID

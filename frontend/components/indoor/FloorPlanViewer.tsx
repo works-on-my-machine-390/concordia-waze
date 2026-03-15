@@ -61,6 +61,7 @@ type Props = {
   metroAccessible?: boolean;
 
   initialSelectedRoom?: string;
+  initialSelectedPoiCoord?: Coordinates;
   disablePoiSelection?: boolean;
   navigationStartOverride?: Coordinates;
   navigationPathColor?: string;
@@ -71,8 +72,7 @@ type Props = {
   onAccessibilityRouteUnavailable?: () => void;
 };
 
-const normalizeName = (s: string) =>
-  s.trim().toLowerCase().replace(/\s+/g, "");
+const normalizeName = (s: string) => s.trim().toLowerCase().replace(/\s+/g, "");
 
 function renderStatus(message: string, loading = false) {
   return (
@@ -97,6 +97,18 @@ function findPoiByExactName(floor: Floor, name: string) {
   return floor.pois.find((poi) => (poi.name ?? "") === name) ?? null;
 }
 
+function findPoiByCoordinate(floor: Floor, coord?: Coordinates | null) {
+  if (!coord) return null;
+
+  return (
+    floor.pois.find(
+      (poi) =>
+        Math.abs(poi.position.x - coord.x) < 0.000001 &&
+        Math.abs(poi.position.y - coord.y) < 0.000001,
+    ) ?? null
+  );
+}
+
 function getPolygonOverride(
   poi:
     | {
@@ -113,12 +125,10 @@ function getPolygonOverride(
 
 function setBrowseSelectedRoom(params: {
   floor: Floor;
-  poi:
-    | {
-        name?: string | null;
-        position: Coordinates;
-      }
-    | null;
+  poi: {
+    name?: string | null;
+    position: Coordinates;
+  } | null;
   setSelectedRoom: (value: {
     label: string;
     floor: number;
@@ -227,6 +237,7 @@ export default function FloorPlanViewer({
   buildingName,
   metroAccessible,
   initialSelectedRoom,
+  initialSelectedPoiCoord,
   disablePoiSelection = false,
   navigationStartOverride,
   navigationPathColor,
@@ -270,20 +281,26 @@ export default function FloorPlanViewer({
   const resolvedPathColor = navigationPathColor ?? routeStyle.stroke;
 
   useEffect(() => {
-    if (!initialSelectedRoom || !floor || navMode !== "BROWSE") return;
-    if (localSelectedPoiName === initialSelectedRoom) return;
+    if (!floor || navMode !== "BROWSE") return;
 
-    const poi = findPoiByExactName(floor, initialSelectedRoom);
+    const poi = initialSelectedRoom
+      ? findPoiByExactName(floor, initialSelectedRoom)
+      : findPoiByCoordinate(floor, initialSelectedPoiCoord);
+
     if (!poi) return;
 
-    clearSelectedPoiFilter();
-    setLocalSelectedPoiName(initialSelectedRoom);
+    const poiName = poi.name ?? initialSelectedRoom ?? "Room";
+    if (localSelectedPoiName === poiName) return;
 
-    if (navSelectedRoom?.label !== initialSelectedRoom) {
+    clearSelectedPoiFilter();
+    setLocalSelectedPoiName(poiName);
+
+    if (navSelectedRoom?.label !== poiName) {
       setBrowseSelectedRoom({ floor, poi, setSelectedRoom });
     }
   }, [
     initialSelectedRoom,
+    initialSelectedPoiCoord,
     floor,
     navMode,
     localSelectedPoiName,
