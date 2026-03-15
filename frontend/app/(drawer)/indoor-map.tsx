@@ -7,7 +7,6 @@ import IndoorItineraryHeader from "@/components/indoor/IndoorItineraryHeader";
 
 import { useGetBuildingDetails } from "@/hooks/queries/buildingQueries";
 import { useIndoorItineraryController } from "@/hooks/useIndoorItineraryController";
-import { useIndoorNavigationStore } from "@/hooks/useIndoorNavigationStore";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect } from "react";
 import { StyleSheet, View } from "react-native";
@@ -19,7 +18,7 @@ const BROWSE_SHEET_HEIGHT = 160;
 export default function IndoorMapPage() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const nav = useIndoorNavigationStore();
+  // const nav = useIndoorNavigationStore();
 
   const params = useLocalSearchParams<{
     buildingCode?: string;
@@ -41,26 +40,26 @@ export default function IndoorMapPage() {
     );
   };
 
-  const hardReset = () => {
-    if (typeof (nav as any).reset === "function") {
-      (nav as any).reset();
-      return;
-    }
+  // const hardReset = () => {
+  //   if (typeof (nav as any).reset === "function") {
+  //     (nav as any).reset();
+  //     return;
+  //   }
 
-    nav.exitItinerary();
-    nav.setSelectedRoom(null);
-    nav.setPickMode("start");
-    nav.setStart(null);
-    nav.setEnd(null);
-    nav.clearRoute();
-    nav.setCurrentFloor?.(null);
-  };
+  //   nav.exitItinerary();
+  //   nav.setSelectedRoom(null);
+  //   nav.setPickMode("start");
+  //   nav.setStart(null);
+  //   nav.setEnd(null);
+  //   nav.clearRoute();
+  //   nav.setCurrentFloor?.(null);
+  // };
 
-  useEffect(() => {
-    hardReset();
-    return () => hardReset();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [buildingCode]);
+  // useEffect(() => {
+  //   hardReset();
+  //   return () => hardReset();
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [buildingCode]);
 
   const handleSearchPress = () => {
     router.push({
@@ -73,14 +72,14 @@ export default function IndoorMapPage() {
   };
 
   const handleBackToOutdoor = () => {
-    hardReset();
+    // hardReset();
     router.replace("/map");
   };
 
-  const selectorOffset =
-    nav.mode === "ITINERARY"
-      ? ITINERARY_SHEET_HEIGHT + Math.max(insets.bottom, 8) + 24
-      : BROWSE_SHEET_HEIGHT + Math.max(insets.bottom, 8) + 24;
+  // const selectorOffset =
+  //   nav.mode === "ITINERARY"
+  //     ? ITINERARY_SHEET_HEIGHT + Math.max(insets.bottom, 8) + 24
+  //     : BROWSE_SHEET_HEIGHT + Math.max(insets.bottom, 8) + 24;
 
   const parsedSearchFloor = params.selectedFloor
     ? Number.parseInt(params.selectedFloor, 10)
@@ -91,18 +90,17 @@ export default function IndoorMapPage() {
       <IndoorMapContainer
         buildingCode={buildingCode}
         routeSegments={ctrl.routeSegments}
-        preferredFloorNumber={nav.currentFloor ?? null}
-        floorSelectorBottomOffset={selectorOffset}
-        selectedRoomFromSearch={
-          nav.mode === "BROWSE" ? params.selectedRoom : undefined
-        }
-        selectedFloorFromSearch={
-          nav.mode === "BROWSE" ? parsedSearchFloor : undefined
-        }
+        // preferredFloorNumber={nav.currentFloor ?? null}
+        // selectedRoomFromSearch={
+        //   nav.mode === "BROWSE" ? params.selectedRoom : undefined
+        // }
+        // selectedFloorFromSearch={
+        //   nav.mode === "BROWSE" ? parsedSearchFloor : undefined
+        // }
         requireAccessible={isAccessibilityMode}
       />
 
-      {nav.mode === "ITINERARY" ? (
+      {/* {nav.mode === "ITINERARY" ? (
         <>
           <IndoorItineraryHeader
             buildingCode={buildingCode}
@@ -110,14 +108,14 @@ export default function IndoorMapPage() {
           />
           <IndoorItineraryBottomSheet buildingCode={buildingCode} />
         </>
-      ) : (
+      ) : ( */}
         <IndoorMapHeader
           onSearchPress={handleSearchPress}
           onBackToOutdoor={handleBackToOutdoor}
           isAccessibilityMode={isAccessibilityMode}
           onAccessibilityToggle={handleToggleAccessibilityMode}
         />
-      )}
+      {/* )} */}
     </View>
   );
 }
