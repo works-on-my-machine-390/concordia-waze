@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"net/http"
 	"time"
 
@@ -29,8 +30,8 @@ type query struct {
 }
 
 type SyncResponse struct {
-	Events map[string][]*domain.ClassItem `json:"events"`
-	Errors []string                       `json:"errors,omitempty"`
+	Events []domain.CourseItem `json:"events"`
+	Errors []string            `json:"errors,omitempty"`
 }
 
 type AddClassRequest struct {
@@ -40,7 +41,7 @@ type AddClassRequest struct {
 // SyncCalendarEvents godoc
 // @Summary Sync Google Calendar events
 // @Description Synchronizes Google Calendar events for the authenticated user since a given date
-// @Tags calendar
+// @Tags class
 // @Param since query string true "Sync events since this date (YYYY-MM-DD)"
 // @Param calendar_id query string false "calendar id, default to primary"
 // @Success 200 {string} string "Events synced successfully"
@@ -48,7 +49,7 @@ type AddClassRequest struct {
 // @Failure 401 {object} map[string]string "Google auth required"
 // @Failure 500 {object} map[string]string "Failed to fetch events or token"
 // @Security    BearerAuth
-// @Router /calendar/sync [get]
+// @Router /courses/sync [get]
 func (h *CalendarHandler) SyncCalendarEvents(c *gin.Context) {
 
 	userID := c.GetString("userID")
@@ -76,19 +77,32 @@ func (h *CalendarHandler) SyncCalendarEvents(c *gin.Context) {
 
 	events, errors, err2 := h.calendarService.SyncCalendarEvents(token, userID, q.Since, q.CalendarID)
 
+	courses := make([]domain.CourseItem, 0, len(events))
+
+	for course, event := range events {
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		courses = append(courses, domain.CourseItem{
+			Name:    course,
+			Classes: event,
+		})
+	}
+
 	if err2 != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch events", "details": err2.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, SyncResponse{
-		Events: events,
+		Events: courses,
 		Errors: errors,
 	})
 
 }
 
-// AddClass godoc
+// addCourse godoc
 // @Summary Create a new class (container)
 // @Description Creates a new class for the authenticated user
 // @Tags class
@@ -99,23 +113,24 @@ func (h *CalendarHandler) SyncCalendarEvents(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Security BearerAuth
-// @Router /classes [post]
-func (h *CalendarHandler) AddClass(c *gin.Context) {
+// @Router /courses [post]
+func (h *CalendarHandler) AddCourse(c *gin.Context) {
 	userID := c.GetString("userID")
-	var req AddClassRequest
+	var req createCourseRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "title required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body", "details": err.Error()})
 		return
 	}
-	err := h.firebaseService.CreateClass(c.Request.Context(), userID, req.Title)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create class"})
+
+	if err := h.firebaseService.CreateClass(c.Request.Context(), userID, req.Name); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "class created"})
+
+	c.JSON(http.StatusCreated, gin.H{"message": "course created"})
 }
 
-// GetClasses godoc
+// GetCourses godoc
 // @Summary List user classes
 // @Description Retrieves all class titles for the authenticated user
 // @Tags class
@@ -123,18 +138,34 @@ func (h *CalendarHandler) AddClass(c *gin.Context) {
 // @Success 200 {array} string
 // @Failure 500 {object} map[string]string
 // @Security BearerAuth
-// @Router /classes [get]
-func (h *CalendarHandler) GetClasses(c *gin.Context) {
+// @Router /courses [get]
+func (h *CalendarHandler) GetCourses(c *gin.Context) {
 	userID := c.GetString("userID")
-	classes, err := h.firebaseService.GetUserClasses(c.Request.Context(), userID)
+	ctx := c.Request.Context()
+
+	titles, err := h.firebaseService.GetUserClasses(ctx, userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch classes"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"classes": classes})
+
+	courses := make([]domain.CourseItem, 0, len(titles))
+	for _, title := range titles {
+		items, err := h.firebaseService.GetClassItems(ctx, userID, title)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		courses = append(courses, domain.CourseItem{
+			Name:    title,
+			Classes: items,
+		})
+	}
+
+	c.JSON(http.StatusOK, courses)
 }
 
-// DeleteClass godoc
+// DeleteCourse godoc
 // @Summary Delete a class and its items
 // @Description Deletes a specified class for the authenticated user
 // @Tags class
@@ -143,20 +174,21 @@ func (h *CalendarHandler) GetClasses(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Security BearerAuth
-// @Router /classes/{title} [delete]
-func (h *CalendarHandler) DeleteClass(c *gin.Context) {
+// @Router /courses/{title} [delete]
+func (h *CalendarHandler) DeleteCourse(c *gin.Context) {
 	userID := c.GetString("userID")
 	title := c.Param("title")
-	if title == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "class title required"})
+
+	if err := h.firebaseService.DeleteClass(c.Request.Context(), userID, title); err != nil {
+		if errors.Is(err, domain.ErrCourseNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	err := h.firebaseService.DeleteClass(c.Request.Context(), userID, title)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete class"})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"message": "class deleted"})
+
+	c.JSON(http.StatusOK, gin.H{"message": "course deleted"})
 }
 
 // DeleteClassItem godoc
@@ -169,21 +201,22 @@ func (h *CalendarHandler) DeleteClass(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Security BearerAuth
-// @Router /classes/{title}/items/{classID} [delete]
+// @Router /courses/{title}/items/{classID} [delete]
 func (h *CalendarHandler) DeleteClassItem(c *gin.Context) {
 	userID := c.GetString("userID")
 	title := c.Param("title")
-	classID := c.Param("classID")
-	if title == "" || classID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "title and classID required"})
+	classID := c.Param("classId")
+
+	if err := h.firebaseService.DeleteClassItem(c.Request.Context(), userID, title, classID); err != nil {
+		if errors.Is(err, domain.ErrCourseNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	err := h.firebaseService.DeleteClassItem(c.Request.Context(), userID, title, classID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete class item"})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"message": "class item deleted"})
+
+	c.JSON(http.StatusOK, gin.H{"message": "class deleted"})
 }
 
 // GetClassItems godoc
@@ -195,7 +228,7 @@ func (h *CalendarHandler) DeleteClassItem(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Security BearerAuth
-// @Router /classes/{title}/items [get]
+// @Router /courses/{title}/items [get]
 func (h *CalendarHandler) GetClassItems(c *gin.Context) {
 	userID := c.GetString("userID")
 	title := c.Param("title")
@@ -223,25 +256,28 @@ func (h *CalendarHandler) GetClassItems(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Security BearerAuth
-// @Router /classes/{title}/items [post]
+// @Router /courses/{title}/items [post]
 func (h *CalendarHandler) AddClassItem(c *gin.Context) {
 	userID := c.GetString("userID")
 	title := c.Param("title")
-	if title == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "class title required"})
-		return
-	}
+
 	var item domain.ClassItem
 	if err := c.ShouldBindJSON(&item); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid class item"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body", "details": err.Error()})
 		return
 	}
-	id, err := h.firebaseService.AddClassItem(c.Request.Context(), userID, title, item)
+
+	classID, err := h.firebaseService.AddClassItem(c.Request.Context(), userID, title, item)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to add class item"})
+		if errors.Is(err, domain.ErrCourseNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "class item added", "classID": id})
+
+	c.JSON(http.StatusCreated, gin.H{"message": "class added", "classId": classID})
 }
 
 // UpdateClassItem godoc
@@ -257,24 +293,26 @@ func (h *CalendarHandler) AddClassItem(c *gin.Context) {
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Security BearerAuth
-// @Router /classes/{title}/items/{classID} [patch]
+// @Router /courses/{title}/items/{classID} [patch]
 func (h *CalendarHandler) UpdateClassItem(c *gin.Context) {
 	userID := c.GetString("userID")
 	title := c.Param("title")
-	classID := c.Param("classID")
-	if title == "" || classID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "title and classID required"})
-		return
-	}
+	classID := c.Param("classId")
+
 	var updates map[string]interface{}
 	if err := c.ShouldBindJSON(&updates); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "updates required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
 		return
 	}
-	err := h.firebaseService.UpdateClassItem(c.Request.Context(), userID, title, classID, updates)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update class item"})
+
+	if err := h.firebaseService.UpdateClassItem(c.Request.Context(), userID, title, classID, updates); err != nil {
+		if errors.Is(err, domain.ErrCourseNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "class item updated"})
+
+	c.JSON(http.StatusOK, gin.H{"message": "class updated"})
 }

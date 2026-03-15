@@ -2,8 +2,8 @@ package domain
 
 // CourseItem groups a set of class sessions under a named course.
 type CourseItem struct {
-	Name    string      `json:"name"`
-	Classes []ClassItem `json:"classes"`
+	Name    string       `json:"name"`
+	Classes []*ClassItem `json:"classes"`
 }
 
 // ClassItem stores one schedule entry under a course.

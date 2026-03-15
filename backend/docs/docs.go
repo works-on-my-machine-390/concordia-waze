@@ -501,30 +501,37 @@ const docTemplate = `{
                 }
             }
         },
-        "/calendar": {
+        "/campuses/{campus}/buildings": {
             "get": {
-                "security": [
+                "description": "Return all building codes and names for a given campus (e.g. \"SGW\" or \"LOY\").",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "buildings"
+                ],
+                "summary": "List buildings for a campus",
+                "parameters": [
                     {
-                        "BearerAuth": []
+                        "type": "string",
+                        "description": "Campus code (SGW or LOY)",
+                        "name": "campus",
+                        "in": "path",
+                        "required": true
                     }
                 ],
-                "description": "Retrieves Google Calendar events for the authenticated user",
-                "tags": [
-                    "calendar"
-                ],
-                "summary": "Get Google Calendar events",
                 "responses": {
                     "200": {
-                        "description": "List of calendar events",
+                        "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "type": "object"
-                            }
+                            "$ref": "#/definitions/domain.CampusBuildingsResponse"
                         }
                     },
-                    "401": {
-                        "description": "Google auth required",
+                    "404": {
+                        "description": "campus not found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -533,7 +540,44 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Failed to fetch events",
+                        "description": "internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/courses": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves all class titles for the authenticated user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "class"
+                ],
+                "summary": "List user classes",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -549,7 +593,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Adds new Google Calendar events for the authenticated user",
+                "description": "Creates a new class for the authenticated user",
                 "consumes": [
                     "application/json"
                 ],
@@ -557,29 +601,29 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "calendar"
+                    "class"
                 ],
-                "summary": "Add Google Calendar events",
+                "summary": "Create a new class (container)",
                 "parameters": [
                     {
-                        "description": "Event to add",
-                        "name": "event",
+                        "description": "Class Title",
+                        "name": "class",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object"
+                            "$ref": "#/definitions/handler.AddClassRequest"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Event added successfully",
+                        "description": "Created class",
                         "schema": {
                             "type": "string"
                         }
                     },
-                    "401": {
-                        "description": "Google auth required",
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -588,45 +632,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Failed to add event",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Deletes Google Calendar events for the authenticated user",
-                "tags": [
-                    "calendar"
-                ],
-                "summary": "Delete Google Calendar events",
-                "responses": {
-                    "200": {
-                        "description": "Events deleted successfully",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "401": {
-                        "description": "Google auth required",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Failed to delete events",
+                        "description": "Internal Server Error",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -637,7 +643,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/calendar/sync": {
+        "/courses/sync": {
             "get": {
                 "security": [
                     {
@@ -646,7 +652,7 @@ const docTemplate = `{
                 ],
                 "description": "Synchronizes Google Calendar events for the authenticated user since a given date",
                 "tags": [
-                    "calendar"
+                    "courses"
                 ],
                 "summary": "Sync Google Calendar events",
                 "parameters": [
@@ -701,24 +707,23 @@ const docTemplate = `{
                 }
             }
         },
-        "/campuses/{campus}/buildings": {
-            "get": {
-                "description": "Return all building codes and names for a given campus (e.g. \"SGW\" or \"LOY\").",
-                "consumes": [
-                    "application/json"
+        "/courses/{title}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
                 ],
-                "produces": [
-                    "application/json"
-                ],
+                "description": "Deletes a specified class for the authenticated user",
                 "tags": [
-                    "buildings"
+                    "class"
                 ],
-                "summary": "List buildings for a campus",
+                "summary": "Delete a class and its items",
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "Campus code (SGW or LOY)",
-                        "name": "campus",
+                        "description": "Class title",
+                        "name": "title",
                         "in": "path",
                         "required": true
                     }
@@ -727,11 +732,11 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/domain.CampusBuildingsResponse"
+                            "type": "string"
                         }
                     },
-                    "404": {
-                        "description": "campus not found",
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -740,7 +745,247 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "internal server error",
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/courses/{title}/items": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Lists schedule items in the given class",
+                "tags": [
+                    "class"
+                ],
+                "summary": "List items in a class",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Class title",
+                        "name": "title",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/domain.ClassItem"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Add a new class item to an existing class",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "class"
+                ],
+                "summary": "Add a schedule item to a class",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Class title",
+                        "name": "title",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Class Item",
+                        "name": "item",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/domain.ClassItem"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/courses/{title}/items/{classID}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete a specific class item from a user's class",
+                "tags": [
+                    "class"
+                ],
+                "summary": "Delete a single item from a class",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Class title",
+                        "name": "title",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Class item ID",
+                        "name": "classID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update fields of a class item (PATCH semantics)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "class"
+                ],
+                "summary": "Update a class item (partial)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Class title",
+                        "name": "title",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Class item ID",
+                        "name": "classID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Updates",
+                        "name": "updates",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -2964,13 +3209,16 @@ const docTemplate = `{
                 "buildingCode": {
                     "type": "string"
                 },
-                "classId": {
-                    "type": "string"
-                },
                 "day": {
                     "type": "string"
                 },
                 "endTime": {
+                    "type": "string"
+                },
+                "eventId": {
+                    "type": "string"
+                },
+                "itemId": {
                     "type": "string"
                 },
                 "origin": {
@@ -3266,6 +3514,17 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "handler.AddClassRequest": {
+            "type": "object",
+            "required": [
+                "title"
+            ],
+            "properties": {
+                "title": {
                     "type": "string"
                 }
             }

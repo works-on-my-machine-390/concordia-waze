@@ -92,11 +92,11 @@ func SetupRouter() *gin.Engine {
 	firebaseHandler := handler.NewFirebaseHandler(firebaseHandlerService)
 	shuttleHandler := handler.NewShuttleHandler(shuttleService)
 
-	var scheduleService handler.ScheduleService
-	if firebaseSvc != nil {
-		scheduleService = firebaseSvc
-	}
-	scheduleHandler := handler.NewScheduleHandler(scheduleService)
+	//var scheduleService handler.ScheduleService
+	//if firebaseSvc != nil {
+	//	scheduleService = firebaseSvc
+	//}
+	//scheduleHandler := handler.NewScheduleHandler(scheduleService)
 	pointOfInterestHandler := handler.NewPointOfInterestHandler(pointOfInterestService, indoorPOIService)
 	favoritesHandler := handler.NewFavoritesHandler(favoritesService)
 
@@ -176,13 +176,13 @@ func SetupRouter() *gin.Engine {
 	}
 
 	// Calendar
-	calendarGroup := router.Group("/calendar")
+	calendarGroup := router.Group("/courses")
 	calendarGroup.Use(middleware.RequireAuth())
 	{
 		calendarGroup.GET("/sync", calendarHandler.SyncCalendarEvents)
-		calendarGroup.GET("", calendarHandler.GetClasses)
-		calendarGroup.POST("", calendarHandler.AddClass)
-		calendarGroup.DELETE("/:title", calendarHandler.DeleteClass)
+		calendarGroup.GET("", calendarHandler.GetCourses)
+		calendarGroup.POST("", calendarHandler.AddCourse)
+		calendarGroup.DELETE("/:title", calendarHandler.DeleteCourse)
 
 		calendarGroup.GET("/:title/items", calendarHandler.GetClassItems)
 		calendarGroup.POST("/:title/items", calendarHandler.AddClassItem)
@@ -209,12 +209,6 @@ func SetupRouter() *gin.Engine {
 		usersGroup.GET("/:userId/history", firebaseHandler.GetDestinationHistory)
 		usersGroup.DELETE("/:userId/history", firebaseHandler.ClearDestinationHistory)
 
-		usersGroup.POST("/:userId/courses", scheduleHandler.CreateCourse)
-		usersGroup.GET("/:userId/courses", scheduleHandler.GetCourses)
-		usersGroup.DELETE("/:userId/courses/:title", scheduleHandler.DeleteCourse)
-		usersGroup.POST("/:userId/courses/:title/classes", scheduleHandler.AddClassItem)
-		usersGroup.PUT("/:userId/courses/:title/classes/:classId", scheduleHandler.UpdateClassItem)
-		usersGroup.DELETE("/:userId/courses/:title/classes/:classId", scheduleHandler.DeleteClassItem)
 	}
 
 	return router

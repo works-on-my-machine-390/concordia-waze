@@ -1,28 +1,19 @@
 package handler
 
 import (
-	"context"
 	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/works-on-my-machine-390/concordia-waze/internal/application"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
 )
 
 // ScheduleService defines the Firestore operations used by the schedule handler.
-type ScheduleService interface {
-	CreateClass(ctx context.Context, userID, title string) error
-	GetUserClasses(ctx context.Context, userID string) ([]string, error)
-	GetClassItems(ctx context.Context, userID, title string) ([]domain.ClassItem, error)
-	AddClassItem(ctx context.Context, userID, title string, item domain.ClassItem) (string, error)
-	UpdateClassItem(ctx context.Context, userID, title, classID string, updates map[string]interface{}) error
-	DeleteClassItem(ctx context.Context, userID, title, classID string) error
-	DeleteClass(ctx context.Context, userID, title string) error
-}
 
 // ScheduleHandler handles course schedule endpoints.
 type ScheduleHandler struct {
-	service ScheduleService
+	service application.FirebaseClassService
 }
 
 type createCourseRequest struct {
@@ -30,8 +21,8 @@ type createCourseRequest struct {
 }
 
 // NewScheduleHandler creates a new ScheduleHandler.
-func NewScheduleHandler(service ScheduleService) *ScheduleHandler {
-	return &ScheduleHandler{service: service}
+func NewScheduleHandler(firebase application.FirebaseClassService) *ScheduleHandler {
+	return &ScheduleHandler{service: firebase}
 }
 
 // CreateCourse godoc

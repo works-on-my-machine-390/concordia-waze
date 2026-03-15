@@ -29,7 +29,7 @@ type FirebaseClassService interface {
 	GetUserClasses(ctx context.Context, userID string) ([]string, error)
 	DeleteClass(ctx context.Context, userID, title string) error
 	AddClassItem(ctx context.Context, userID, title string, item domain.ClassItem) (string, error)
-	GetClassItems(ctx context.Context, userID, title string) ([]domain.ClassItem, error)
+	GetClassItems(ctx context.Context, userID, title string) ([]*domain.ClassItem, error)
 	GetAllClassItems(userID string) (map[string][]*domain.ClassItem, error)
 	UpdateClassItem(ctx context.Context, userID, title, classID string, updates map[string]interface{}) error
 	DeleteClassItem(ctx context.Context, userID, title, classID string) error
@@ -362,7 +362,7 @@ func (fs *FirebaseService) AddClassItem(ctx context.Context, userID, title strin
 	return ref.ID, nil
 }
 
-func (fs *FirebaseService) GetClassItems(ctx context.Context, userID, title string) ([]domain.ClassItem, error) {
+func (fs *FirebaseService) GetClassItems(ctx context.Context, userID, title string) ([]*domain.ClassItem, error) {
 	if err := fs.ensureCourseExists(ctx, userID, title); err != nil {
 		return nil, err
 	}
@@ -379,7 +379,7 @@ func (fs *FirebaseService) GetClassItems(ctx context.Context, userID, title stri
 		return nil, fmt.Errorf("get class items: %w", err)
 	}
 
-	items := make([]domain.ClassItem, 0, len(docs))
+	items := make([]*domain.ClassItem, 0, len(docs))
 	for _, doc := range docs {
 		var item domain.ClassItem
 		if doc.DataTo(&item) != nil {
@@ -387,7 +387,7 @@ func (fs *FirebaseService) GetClassItems(ctx context.Context, userID, title stri
 		}
 
 		item.ClassID = doc.Ref.ID
-		items = append(items, item)
+		items = append(items, &item)
 	}
 
 	sort.Slice(items, func(i, j int) bool {
@@ -423,12 +423,7 @@ func (fs *FirebaseService) GetAllClassItems(userID string) (map[string][]*domain
 			return nil, fmt.Errorf("getting items for class %s: %w", title, err)
 		}
 
-		itemPointers := make([]*domain.ClassItem, len(items))
-		for i := range items {
-			itemPointers[i] = &items[i]
-		}
-
-		result[title] = itemPointers
+		result[title] = items
 	}
 
 	return result, nil
