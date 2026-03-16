@@ -40,6 +40,11 @@ const GUEST_FAVORITES_STORAGE_KEY = "guest_favorites";
 
 const isGuestUser = (userId?: string) => !userId || userId === GUEST_USER_ID;
 
+const generateGuestFavoriteId = () => {
+  // Avoid crypto APIs for compatibility across all RN runtimes.
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+};
+
 const readGuestFavorites = async (): Promise<FavoriteLocation[]> => {
   try {
     const raw = await AsyncStorage.getItem(GUEST_FAVORITES_STORAGE_KEY);
@@ -87,7 +92,7 @@ export const useCreateFavorite = (userId: string) => {
     mutationFn: async (payload: CreateFavoriteRequest) => {
       if (isGuestUser(userId)) {
         const existing = await readGuestFavorites();
-        const nowId = `${Date.now()}-${(crypto.getRandomValues(new Uint32Array(1))[0] / 4294967295).toString(36).slice(2, 8)}`;
+        const nowId = generateGuestFavoriteId();
         const created: FavoriteLocation =
           payload.type === "outdoor"
             ? {
