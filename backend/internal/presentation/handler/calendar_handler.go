@@ -75,30 +75,23 @@ func (h *CalendarHandler) SyncCalendarEvents(c *gin.Context) {
 		q.CalendarID = "primary"
 	}
 
-	events, errors, err2 := h.calendarService.SyncCalendarEvents(token, userID, q.Since, q.CalendarID)
-
-	courses := make([]domain.CourseItem, 0, len(events))
-
-	for course, event := range events {
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
+	if events, syncErrors, err := h.calendarService.SyncCalendarEvents(token, userID, q.Since, q.CalendarID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch events", "details": err.Error()})
+		return
+	} else {
+		courses := make([]domain.CourseItem, 0, len(events))
+		for course, event := range events {
+			courses = append(courses, domain.CourseItem{
+				Name:    course,
+				Classes: event,
+			})
 		}
-		courses = append(courses, domain.CourseItem{
-			Name:    course,
-			Classes: event,
+
+		c.JSON(http.StatusOK, SyncResponse{
+			Events: courses,
+			Errors: syncErrors,
 		})
 	}
-
-	if err2 != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch events", "details": err2.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, SyncResponse{
-		Events: courses,
-		Errors: errors,
-	})
 
 }
 
