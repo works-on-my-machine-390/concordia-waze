@@ -33,7 +33,6 @@ export default function NavigationBottomSheet(
   props: Readonly<NavigationBottomSheetProps>,
 ) {
   const navigationState = useNavigationStore();
-  console.log(navigationState.startLocation, navigationState.endLocation);
 
   const insets = useSafeAreaInsets();
 
