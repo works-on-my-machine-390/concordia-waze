@@ -73,7 +73,7 @@ type Props = {
   onAccessibilityRouteUnavailable?: () => void;
 };
 
-const normalizeName = (s: string) => s.trim().toLowerCase().replace(/\s+/g, "");
+const normalizeName = (s: string) => s.trim().toLowerCase().replaceAll(/\s+/g, "");
 
 function renderStatus(message: string, loading = false) {
   return (
