@@ -32,8 +32,7 @@ export default function RoomPolygon({
       fill={style.fillColor}
       stroke={style.strokeColor}
       strokeWidth={style.strokeWidth}
-      // onPress={onPress} // https://github.com/software-mansion/react-native-svg/issues/2796
-      onPressIn={onPress} // favor onPressIn due to a bug preventing the polygon from being pressable. decent workaround
+      onPress={onPress}
     />
   );
 }
