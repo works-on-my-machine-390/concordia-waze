@@ -108,7 +108,7 @@ func (h *CalendarHandler) SyncCalendarEvents(c *gin.Context) {
 // @Tags class
 // @Accept json
 // @Produce json
-// @Param class body AddClassRequest true "Class Title"
+// @Param class body createCourseRequest true "Class Title"
 // @Success 200 {string} string "Created class"
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string

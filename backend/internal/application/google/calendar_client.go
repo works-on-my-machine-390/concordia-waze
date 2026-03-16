@@ -126,7 +126,7 @@ func (c *CalendarClient) parseEvent(event *calendar.Event) (*domain.ClassItem, s
 	// date parsing
 	startTime, err := time.Parse(time.RFC3339, event.Start.DateTime)
 	if err != nil {
-		return nil, fmt.Sprintf("Error parsing date:", err)
+		return nil, fmt.Sprintf("Error parsing date: %s", err)
 	}
 
 	classItem.Day = startTime.Weekday().String()
@@ -134,7 +134,7 @@ func (c *CalendarClient) parseEvent(event *calendar.Event) (*domain.ClassItem, s
 
 	endTime, err := time.Parse(time.RFC3339, event.End.DateTime)
 	if err != nil {
-		return nil, fmt.Sprintf("Error parsing date:", err)
+		return nil, fmt.Sprintf("Error parsing date: %s", err)
 	}
 	classItem.EndTime = endTime.Format("15:04")
 
@@ -150,7 +150,7 @@ func (c *CalendarClient) parseEvent(event *calendar.Event) (*domain.ClassItem, s
 		// to do add building code from fuzz matching building name (create method in building repository that does this)
 		classItem.BuildingCode, err = c.buildingRepo.GetBuildingByFuzzyLongName(matches[2])
 		if err != nil {
-			return nil, fmt.Sprintf("Error getting building code:", err)
+			return nil, fmt.Sprintf("Error getting building code: %s", err)
 		}
 	}
 	if len(matches) == 4 && strings.TrimSpace(matches[3]) != "" {
