@@ -101,7 +101,7 @@ export default function NavigationBottomSheet(
         mode: TransitMode.shuttle,
         image: concordiaLogo,
         label: "Shuttle",
-        duration: formatDuration(durationsByMode?.[TransitMode.shuttle]) || "",
+        duration: isCrossCampus && formatDuration(durationsByMode?.[TransitMode.shuttle]) || "",
       },
     ];
 
