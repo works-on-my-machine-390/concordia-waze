@@ -14,7 +14,6 @@ import (
 // @title           Concordia Waze API
 // @version         1.0
 // @description     This is the Concordia Waze API server.
-// @host            concordia-waze.onrender.com
 
 // @securityDefinitions.apikey BearerAuth
 // @in header
