@@ -1,35 +1,30 @@
-import { useIndoorNavigationStore } from "@/hooks/useIndoorNavigationStore";
-import { Pressable, StyleSheet, Text, View } from "react-native";
 import { COLORS } from "@/app/constants";
 import { CircleIcon, LocationIcon } from "@/app/icons";
+import { MapMode, useMapStore } from "@/hooks/useMapStore";
+import { useNavigationStore } from "@/hooks/useNavigationStore";
 import { Ionicons } from "@expo/vector-icons";
 import { DrawerActions } from "@react-navigation/native";
 import { useNavigation, useRouter } from "expo-router";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-type Props = {
-  buildingCode: string;
-  buildingName: string;
-};
+type Props = {};
 
-export default function IndoorItineraryHeader({
-  buildingCode,
-  buildingName,
-}: Readonly<Props>) {
-  const indoor = useIndoorNavigationStore();
+export default function IndoorItineraryHeader({}: Readonly<Props>) {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const router = useRouter();
 
+  const navigationState = useNavigationStore();
+  const mapState = useMapStore();
+
   const handleBack = () => {
-    indoor.exitItinerary();
-    indoor.setSelectedRoom(null);
+    navigationState.clearState();
+    mapState.setCurrentMode(MapMode.NONE);
   };
 
-  const startText =
-    indoor.start?.displayLabel || indoor.start?.label || "Select start";
-  const endText =
-    indoor.end?.displayLabel || indoor.end?.label || "Select destination";
+  const startText = navigationState.startLocation?.name || "Select start";
+  const endText = navigationState.endLocation?.name || "Select destination";
 
   return (
     <View
@@ -62,7 +57,7 @@ export default function IndoorItineraryHeader({
             <Pressable
               style={styles.locationRow}
               onPress={() => {
-                indoor.setPickMode("start");
+                navigationState.setModifyingField("start");
                 router.push({
                   pathname: "/indoor-search",
                   params: {
@@ -98,7 +93,7 @@ export default function IndoorItineraryHeader({
             <Pressable
               style={styles.locationRow}
               onPress={() => {
-                indoor.setPickMode("end");
+                navigationState.setModifyingField("end");
                 router.push({
                   pathname: "/indoor-search",
                   params: {

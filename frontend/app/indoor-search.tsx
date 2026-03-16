@@ -9,7 +9,6 @@ import {
   PointOfInterest,
   useGetBuildingFloors,
 } from "@/hooks/queries/indoorMapQueries";
-import { useIndoorNavigationStore } from "@/hooks/useIndoorNavigationStore";
 import { RecentIndoorSearch, useIndoorSearch } from "@/hooks/useIndoorSearch";
 import { useIndoorSearchStore } from "@/hooks/useIndoorSearchStore";
 import { useNavigationStore } from "@/hooks/useNavigationStore";
@@ -30,20 +29,15 @@ import { SafeAreaView } from "react-native-safe-area-context";
 type SearchParams = {
   buildingCode: string;
   buildingName: string;
-  itineraryField?: "start" | "end";
 };
 
 export default function IndoorSearchPage() {
   const router = useRouter();
   const params = useLocalSearchParams<SearchParams>();
-  const { buildingCode, buildingName, itineraryField } = params;
+  const { buildingCode, buildingName } = params;
   const navigationState = useNavigationStore();
 
   const [query, setQuery] = useState("");
-
-  const setStart = useIndoorNavigationStore((s) => s.setStart);
-  const setEnd = useIndoorNavigationStore((s) => s.setEnd);
-  const setCurrentFloor = useIndoorNavigationStore((s) => s.setCurrentFloor);
 
   useFocusEffect(
     useCallback(() => {
@@ -103,27 +97,6 @@ export default function IndoorSearchPage() {
         },
       });
       return;
-    }
-
-    if (itineraryField === "start" || itineraryField === "end") {
-      const selectedPoint = {
-        label: poi.name,
-        displayLabel: displayName,
-        floor: poi.floor_number,
-        coord: {
-          x: poi.position.x,
-          y: poi.position.y,
-        },
-      };
-
-      if (itineraryField === "start") {
-        setStart(selectedPoint);
-      } else {
-        setEnd(selectedPoint);
-      }
-
-      setCurrentFloor(poi.floor_number);
-      router.back();
     } else {
       router.navigate({
         pathname: "/indoor-map",
@@ -170,25 +143,35 @@ export default function IndoorSearchPage() {
     if (poi) {
       addRecentSearch(search.displayName, poi.name, search.floor);
 
-      if (itineraryField === "start" || itineraryField === "end") {
-        const selectedPoint = {
-          label: poi.name,
-          displayLabel: search.displayName,
-          floor: search.floor,
-          coord: {
+      if (navigationState.modifyingField) {
+        const selectedLocation = {
+          name: search.displayName,
+          code: poi.building,
+          indoor_position: {
             x: poi.position.x,
             y: poi.position.y,
           },
+          building: poi.building,
+          floor_number: poi.floor_number,
+          latitude: poi.latitude,
+          longitude: poi.longitude,
         };
 
-        if (itineraryField === "start") {
-          setStart(selectedPoint);
-        } else {
-          setEnd(selectedPoint);
+        if (navigationState.modifyingField === "start") {
+          navigationState.setStartLocation(selectedLocation);
+        } else if (navigationState.modifyingField === "end") {
+          navigationState.setEndLocation(selectedLocation);
         }
+        navigationState.setModifyingField(null);
 
-        setCurrentFloor(search.floor);
-        router.back();
+        //TODO route correctly
+        router.push({
+          pathname: "/map",
+          params: {
+            camLat: poi.latitude,
+            camLng: poi.longitude,
+          },
+        });
       } else {
         router.navigate({
           pathname: "/indoor-map",
@@ -217,14 +200,6 @@ export default function IndoorSearchPage() {
   const searchPlaceholder = (() => {
     if (!buildingName) {
       return "Search for indoor locations...";
-    }
-
-    if (itineraryField === "start") {
-      return `Choose start in ${buildingName}...`;
-    }
-
-    if (itineraryField === "end") {
-      return `Choose destination in ${buildingName}...`;
     }
 
     return `Search in ${buildingName}...`;
@@ -257,7 +232,7 @@ export default function IndoorSearchPage() {
             />
           </View>
 
-          {query.trim().length === 0 && !itineraryField && (
+          {query.trim().length === 0 && !navigationState.modifyingField && (
             <IndoorPoiFilters onFilterPress={handleFilterPress} />
           )}
 

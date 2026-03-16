@@ -7,8 +7,12 @@ import { StyleSheet, View } from "react-native";
 import IndoorFloorBottomSheet from "./IndoorFloorBottomSheet";
 import PoiFilterBottomSheet from "./PoiFilterBottomSheet";
 import IndoorRoomBottomSheet from "./IndoorRoomBottomSheet";
-import { NavigationPhase, useNavigationStore } from "@/hooks/useNavigationStore";
+import {
+  NavigationPhase,
+  useNavigationStore,
+} from "@/hooks/useNavigationStore";
 import NavigationBottomSheet from "../NavigationBottomSheet";
+import { MapMode, useMapStore } from "@/hooks/useMapStore";
 
 export type IndoorBottomSheetSectionProps = {
   floor: Floor | undefined;
@@ -33,6 +37,7 @@ export default function IndoorBottomSheetSection(
   } = props;
 
   const navigationState = useNavigationStore();
+  const currentMapMode = useMapStore((s) => s.currentMode);
 
   const selectedPoiFilter = useIndoorSearchStore((s) => s.selectedPoiFilter);
   const clearSelectedPoiFilter = useIndoorSearchStore(
@@ -61,16 +66,19 @@ export default function IndoorBottomSheetSection(
 
   return (
     <View style={indoorBottomSheetStyles.bottomSheetContainer}>
-      {floor && !selectedPoi && !selectedPoiFilter && (
-        <IndoorFloorBottomSheet
-          floor={floor}
-          buildingName={buildingName}
-          buildingCode={buildingCode}
-          metroAccessible={metroAccessible}
-        />
-      )}
+      {floor &&
+        !selectedPoi &&
+        !selectedPoiFilter &&
+        currentMapMode !== MapMode.NAVIGATION && (
+          <IndoorFloorBottomSheet
+            floor={floor}
+            buildingName={buildingName}
+            buildingCode={buildingCode}
+            metroAccessible={metroAccessible}
+          />
+        )}
 
-      {selectedPoi && (
+      {selectedPoi && currentMapMode !== MapMode.NAVIGATION && (
         // room and POI bottom sheet
         <IndoorRoomBottomSheet
           selectedPoi={selectedPoi}
@@ -78,7 +86,7 @@ export default function IndoorBottomSheetSection(
         />
       )}
 
-      {selectedPoiFilter && (
+      {selectedPoiFilter && currentMapMode !== MapMode.NAVIGATION && (
         <PoiFilterBottomSheet
           poiType={selectedPoiFilter.type}
           poiLabel={selectedPoiFilter.label}
@@ -92,7 +100,6 @@ export default function IndoorBottomSheetSection(
       {navigationState.navigationPhase === NavigationPhase.PREPARATION && (
         <NavigationBottomSheet />
       )}
-
     </View>
   );
 }
