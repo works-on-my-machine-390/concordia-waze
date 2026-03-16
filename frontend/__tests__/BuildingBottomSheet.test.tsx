@@ -1,4 +1,9 @@
 import { useGetBuildingDetails } from "@/hooks/queries/buildingQueries";
+import {
+  useCreateFavorite,
+  useDeleteFavorite,
+  useGetUserFavorites,
+} from "@/hooks/queries/favoritesQueries";
 import { useSaveToHistory } from "@/hooks/queries/userHistoryQueries";
 import { useGetProfile } from "@/hooks/queries/userQueries";
 import { fireEvent, waitFor } from "@testing-library/react-native";
@@ -34,8 +39,16 @@ jest.mock("@/hooks/queries/userHistoryQueries", () => ({
   useSaveToHistory: jest.fn(),
 }));
 
+jest.mock("@/hooks/queries/favoritesQueries", () => ({
+  useCreateFavorite: jest.fn(),
+  useDeleteFavorite: jest.fn(),
+  useGetUserFavorites: jest.fn(),
+}));
+
 jest.mock("@/app/utils/mapUtils", () => ({
-  getAddressFromLocation: jest.fn().mockResolvedValue("1455 De Maisonneuve Blvd W"),
+  getAddressFromLocation: jest
+    .fn()
+    .mockResolvedValue("1455 De Maisonneuve Blvd W"),
 }));
 
 jest.mock("@gorhom/bottom-sheet", () => {
@@ -46,7 +59,7 @@ jest.mock("@gorhom/bottom-sheet", () => {
     default: React.forwardRef(({ children, onChange }: any, ref: any) => {
       React.useImperativeHandle(ref, () => ({ snapToIndex: jest.fn() }));
       return (
-        <View testID="bottom-sheet" onLayout={() => onChange && onChange(1)}>
+        <View testID="bottom-sheet" onLayout={() => onChange?.(1)}>
           {children}
         </View>
       );
@@ -61,6 +74,7 @@ jest.mock("../app/icons", () => {
     CloseIcon: () => <View testID="close-icon" />,
     ElevatorIcon: () => <View testID="elevator-icon" />,
     FavoriteEmptyIcon: () => <View testID="favorite-icon" />,
+    FavoriteFilledIcon: () => <View testID="favorite-filled-icon" />,
     GetDirectionsIcon: () => <View testID="get-directions-icon" />,
     WheelchairIcon: () => <View testID="wheelchair-icon" />,
     SlopeUpIcon: () => <View testID="slope-up-icon" />,
@@ -126,12 +140,22 @@ function resetStores() {
 }
 
 describe("BuildingBottomSheet", () => {
+  const createFavoriteMutate = jest.fn();
+  const deleteFavoriteMutate = jest.fn();
+
   beforeEach(() => {
     jest.clearAllMocks();
     resetStores();
 
     (useGetProfile as jest.Mock).mockReturnValue({ data: null });
     (useSaveToHistory as jest.Mock).mockReturnValue({ mutate: jest.fn() });
+    (useCreateFavorite as jest.Mock).mockReturnValue({
+      mutate: createFavoriteMutate,
+    });
+    (useDeleteFavorite as jest.Mock).mockReturnValue({
+      mutate: deleteFavoriteMutate,
+    });
+    (useGetUserFavorites as jest.Mock).mockReturnValue({ data: [] });
   });
 
   test("renders empty state when no building data is available", () => {
@@ -145,7 +169,9 @@ describe("BuildingBottomSheet", () => {
 
     const { getByText } = renderWithProviders(<BuildingBottomSheet />);
 
-    expect(getByText("No information available for this building")).toBeTruthy();
+    expect(
+      getByText("No information available for this building"),
+    ).toBeTruthy();
   });
 
   test("renders building details and sections when data loads", () => {
@@ -157,7 +183,9 @@ describe("BuildingBottomSheet", () => {
       isLoading: false,
     });
 
-    const { getByText, getByTestId } = renderWithProviders(<BuildingBottomSheet />);
+    const { getByText, getByTestId } = renderWithProviders(
+      <BuildingBottomSheet />,
+    );
 
     expect(getByText("John Molson Building (MB)")).toBeTruthy();
     expect(getByText("1450 Guy St, Montreal")).toBeTruthy();
@@ -177,7 +205,9 @@ describe("BuildingBottomSheet", () => {
       isLoading: false,
     });
 
-    const { getByTestId, queryByTestId } = renderWithProviders(<BuildingBottomSheet />);
+    const { getByTestId, queryByTestId } = renderWithProviders(
+      <BuildingBottomSheet />,
+    );
 
     expect(getByTestId("wheelchair-icon")).toBeTruthy();
     expect(getByTestId("elevator-icon")).toBeTruthy();
@@ -222,5 +252,56 @@ describe("BuildingBottomSheet", () => {
         "John Molson Building",
       );
     });
+  });
+
+  test("pressing favorite adds building when not already favorited", () => {
+    useMapStore.getState().setSelectedBuildingCode("MB");
+
+    (useGetBuildingDetails as jest.Mock).mockReturnValue({
+      data: mockBuilding,
+      isSuccess: true,
+      isLoading: false,
+    });
+    (useGetUserFavorites as jest.Mock).mockReturnValue({ data: [] });
+
+    const { getByTestId } = renderWithProviders(<BuildingBottomSheet />);
+
+    fireEvent.press(getByTestId("building-favorite-button"));
+
+    expect(createFavoriteMutate).toHaveBeenCalledWith({
+      type: "outdoor",
+      name: "John Molson Building",
+      latitude: 45.497,
+      longitude: -73.579,
+    });
+    expect(deleteFavoriteMutate).not.toHaveBeenCalled();
+  });
+
+  test("pressing favorite removes building when already favorited", () => {
+    useMapStore.getState().setSelectedBuildingCode("MB");
+
+    (useGetBuildingDetails as jest.Mock).mockReturnValue({
+      data: mockBuilding,
+      isSuccess: true,
+      isLoading: false,
+    });
+    (useGetUserFavorites as jest.Mock).mockReturnValue({
+      data: [
+        {
+          id: "fav-123",
+          type: "outdoor",
+          name: "John Molson Building",
+          latitude: 45.497,
+          longitude: -73.579,
+        },
+      ],
+    });
+
+    const { getByTestId } = renderWithProviders(<BuildingBottomSheet />);
+
+    fireEvent.press(getByTestId("building-favorite-button"));
+
+    expect(deleteFavoriteMutate).toHaveBeenCalledWith("fav-123");
+    expect(createFavoriteMutate).not.toHaveBeenCalled();
   });
 });

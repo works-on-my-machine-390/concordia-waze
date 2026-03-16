@@ -136,6 +136,17 @@ describe("useIndoorNavigationStore", () => {
     expect(state.routeError).toBeNull();
   });
 
+  it("setCurrentFloor is a no-op when the value is unchanged", () => {
+    useIndoorNavigationStore.getState().setCurrentFloor(2);
+
+    const stateAfterFirstSet = useIndoorNavigationStore.getState();
+
+    stateAfterFirstSet.setCurrentFloor(2);
+
+    expect(useIndoorNavigationStore.getState()).toBe(stateAfterFirstSet);
+    expect(useIndoorNavigationStore.getState().currentFloor).toBe(2);
+  });
+
   it("exitItinerary resets everything back to browse mode", () => {
     useIndoorNavigationStore.setState({
       mode: "ITINERARY",

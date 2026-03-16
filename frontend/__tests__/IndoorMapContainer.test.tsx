@@ -365,6 +365,45 @@ describe("IndoorMapContainer", () => {
     });
   });
 
+  test("does not resync current floor on rerender when resolved floor is unchanged", async () => {
+    (useGetBuildingFloors as jest.Mock)
+      .mockReturnValueOnce({
+        data: mockFloorsData,
+        isLoading: false,
+        error: null,
+      })
+      .mockReturnValueOnce({
+        data: {
+          floors: mockFloorsData.floors.map((floor) => ({ ...floor })),
+        },
+        isLoading: false,
+        error: null,
+      });
+
+    const { rerender, getAllByText } = renderWithProviders(
+      <IndoorMapContainer buildingCode="H" selectedFloorFromSearch={9} />,
+    );
+
+    await waitFor(() => {
+      expect(getAllByText("Floor 9").length).toBeGreaterThan(0);
+    });
+
+    expect(mockSetCurrentFloor).toHaveBeenCalledTimes(1);
+    expect(mockSetCurrentFloor).toHaveBeenLastCalledWith(9);
+
+    mockNavState.currentFloor = 9;
+
+    rerender(
+      <IndoorMapContainer buildingCode="H" selectedFloorFromSearch={9} />,
+    );
+
+    await waitFor(() => {
+      expect(getAllByText("Floor 9").length).toBeGreaterThan(0);
+    });
+
+    expect(mockSetCurrentFloor).toHaveBeenCalledTimes(1);
+  });
+
   test("uses preferredFloorNumber when provided", async () => {
     (useGetBuildingFloors as jest.Mock).mockReturnValue({
       data: mockFloorsData,
