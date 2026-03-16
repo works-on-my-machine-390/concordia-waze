@@ -31,7 +31,6 @@ type fakeFirebaseService struct {
 	getDestinationHistoryFn   func(ctx context.Context, userID string, limit int) ([]application.DestinationHistoryItem, error)
 	clearDestinationHistoryFn func(ctx context.Context, userID string) error
 
-	getNextClassFn func(ctx context.Context, userID string) (string, *domain.ClassItem, error)
 }
 
 func (f *fakeFirebaseService) AddDestinationHistory(ctx context.Context, userID string, item application.DestinationHistoryItem) (string, error) {
@@ -53,13 +52,6 @@ func (f *fakeFirebaseService) ClearDestinationHistory(ctx context.Context, userI
 		return f.clearDestinationHistoryFn(ctx, userID)
 	}
 	return nil
-}
-
-func (f *fakeFirebaseService) GetNextClass(ctx context.Context, userID string) (string, *domain.ClassItem, error) {
-	if f.getNextClassFn != nil {
-		return f.getNextClassFn(ctx, userID)
-	}
-	return "", nil, nil
 }
 
 func (f *fakeFirebaseService) CreateUserProfile(ctx context.Context, userID string, profile domain.User) error {
@@ -1081,81 +1073,6 @@ func (m *mockFavoritesServiceError) GetFavorites(userID string) ([]*domain.Favor
 
 func (m *mockFavoritesServiceError) DeleteFavorite(id, userID string) error {
 	return errors.New("service delete error")
-}
-
-// ===== GetNextClass handler tests =====
-
-func TestGetNextClassSuccess(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	item := &domain.ClassItem{
-		ClassID:   "item-1",
-		Type:      "lec",
-		Section:   "AA",
-		Day:       "Monday",
-		StartTime: "09:00",
-		EndTime:   "10:15",
-		Room:      "H-937",
-	}
-	service := &fakeFirebaseService{
-		getNextClassFn: func(ctx context.Context, userID string) (string, *domain.ClassItem, error) {
-			require.Equal(t, "user_1", userID)
-			return "SOEN345", item, nil
-		},
-	}
-	h := NewFirebaseHandler(service)
-
-	r := gin.New()
-	r.GET("/users/:userId/schedule/next", h.GetNextClass)
-
-	req := httptest.NewRequest(http.MethodGet, "/users/user_1/schedule/next", nil)
-	w := httptest.NewRecorder()
-	r.ServeHTTP(w, req)
-
-	require.Equal(t, http.StatusOK, w.Code)
-	var resp NextClassResponse
-	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
-	require.Equal(t, "SOEN345", resp.ClassName)
-	require.Equal(t, "Monday", resp.Item.Day)
-	require.Equal(t, "09:00", resp.Item.StartTime)
-	require.Equal(t, "H-937", resp.Item.Room)
-}
-
-func TestGetNextClassNotFound(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	service := &fakeFirebaseService{
-		getNextClassFn: func(ctx context.Context, userID string) (string, *domain.ClassItem, error) {
-			return "", nil, nil
-		},
-	}
-	h := NewFirebaseHandler(service)
-
-	r := gin.New()
-	r.GET("/users/:userId/schedule/next", h.GetNextClass)
-
-	req := httptest.NewRequest(http.MethodGet, "/users/user_1/schedule/next", nil)
-	w := httptest.NewRecorder()
-	r.ServeHTTP(w, req)
-
-	require.Equal(t, http.StatusNotFound, w.Code)
-}
-
-func TestGetNextClassServiceError(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	service := &fakeFirebaseService{
-		getNextClassFn: func(ctx context.Context, userID string) (string, *domain.ClassItem, error) {
-			return "", nil, errors.New("firestore unavailable")
-		},
-	}
-	h := NewFirebaseHandler(service)
-
-	r := gin.New()
-	r.GET("/users/:userId/schedule/next", h.GetNextClass)
-
-	req := httptest.NewRequest(http.MethodGet, "/users/user_1/schedule/next", nil)
-	w := httptest.NewRecorder()
-	r.ServeHTTP(w, req)
-
-	require.Equal(t, http.StatusInternalServerError, w.Code)
 }
 
 func TestFavoritesHandler_ServiceErrors(t *testing.T) {

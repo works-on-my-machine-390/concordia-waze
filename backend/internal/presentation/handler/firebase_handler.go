@@ -27,7 +27,6 @@ type FirebaseService interface {
 	GetDestinationHistory(ctx context.Context, userID string, limit int) ([]application.DestinationHistoryItem, error)
 	ClearDestinationHistory(ctx context.Context, userID string) error
 
-	GetNextClass(ctx context.Context, userID string) (string, *domain.ClassItem, error)
 }
 
 // FirebaseHandler handles Firestore-backed user endpoints.
@@ -95,41 +94,6 @@ func (fh *FirebaseHandler) GetUserProfile(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, profile)
-}
-
-// ===== Schedule =====
-
-// NextClassResponse is the response body for GetNextClass.
-type NextClassResponse struct {
-	ClassName string           `json:"className"`
-	Item      domain.ClassItem `json:"item"`
-}
-
-// GetNextClass godoc
-// @Summary      Get next class
-// @Description  Returns the user's next upcoming class based on the current time and their stored schedule
-// @Tags         schedule
-// @Produce      json
-// @Security     BearerAuth
-// @Param        userId  path      string            true  "User ID"
-// @Success      200     {object}  NextClassResponse
-// @Failure      401     {object}  map[string]string  "Not authenticated"
-// @Failure      403     {object}  map[string]string  "Forbidden"
-// @Failure      404     {object}  map[string]string  "No upcoming class found"
-// @Failure      500     {object}  map[string]string
-// @Router       /users/{userId}/schedule/next [get]
-func (fh *FirebaseHandler) GetNextClass(c *gin.Context) {
-	userID := c.Param("userId")
-	className, item, err := fh.service.GetNextClass(c.Request.Context(), userID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	if item == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "no upcoming class found"})
-		return
-	}
-	c.JSON(http.StatusOK, NextClassResponse{ClassName: className, Item: *item})
 }
 
 // ===== Destination History =====
