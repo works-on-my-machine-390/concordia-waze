@@ -11,7 +11,14 @@ import {
 } from "@/hooks/useNavigationStore";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { useEffect, useMemo } from "react";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { COLORS } from "../app/constants";
@@ -41,6 +48,8 @@ export default function NavigationBottomSheet(
     navigationState.endLocation,
     new Date(),
   );
+
+  const isLoading = query.isLoading || query.isRefetching;
 
   useEffect(() => {
     if (query.data) {
@@ -76,18 +85,21 @@ export default function NavigationBottomSheet(
         Icon: CarIcon,
         label: "Drive",
         duration: formatDuration(durationsByMode?.[TransitMode.driving]) || "",
+        disabled: !durationsByMode?.[TransitMode.driving.toLowerCase()],
       },
       {
         mode: TransitMode.transit,
         Icon: TrainIcon,
         label: "Transit",
         duration: formatDuration(durationsByMode?.[TransitMode.transit]) || "",
+        disabled: !durationsByMode?.[TransitMode.transit.toLowerCase()],
       },
       {
         mode: TransitMode.walking,
         Icon: WalkingIcon,
         label: "Walk",
         duration: formatDuration(durationsByMode?.[TransitMode.walking]) || "",
+        disabled: !durationsByMode?.[TransitMode.walking.toLowerCase()],
       },
       {
         mode: TransitMode.bicycling,
@@ -95,12 +107,19 @@ export default function NavigationBottomSheet(
         label: "Bike",
         duration:
           formatDuration(durationsByMode?.[TransitMode.bicycling]) || "",
+        disabled: !durationsByMode?.[TransitMode.bicycling.toLowerCase()],
       },
       {
         mode: TransitMode.shuttle,
         image: concordiaLogo,
         label: "Shuttle",
-        duration: isCrossCampus && formatDuration(durationsByMode?.[TransitMode.shuttle]) || "",
+        duration:
+          (isCrossCampus &&
+            formatDuration(durationsByMode?.[TransitMode.shuttle])) ||
+          "",
+        disabled:
+          !isCrossCampus ||
+          !durationsByMode?.[TransitMode.shuttle.toLowerCase()],
       },
     ];
 
@@ -115,15 +134,27 @@ export default function NavigationBottomSheet(
         !!outdoorBlock?.directionsByMode[TransitMode.shuttle.toLowerCase()]
         ? [shuttleOption, ...otherOptions]
         : baseOptions;
+    } else {
+      return baseOptions.sort((option) => (option.disabled ? 1 : -1));
     }
-
-    return baseOptions;
   }, [isCrossCampus, durationsByMode]);
 
   useEffect(() => {
     const hasSelectedMode = transitOptions.some(
       (option) => option.mode === navigationState.transitMode,
     );
+
+    if (
+      hasSelectedMode &&
+      transitOptions.find(
+        (option) => option.mode === navigationState.transitMode,
+      )?.disabled && transitOptions.some((option) => !option.disabled)
+    ) {
+      navigationState.setTransitMode(
+        transitOptions.find((option) => !option.disabled)?.mode,
+      );
+      return;
+    }
 
     if (transitOptions.length > 0 && !hasSelectedMode) {
       navigationState.setTransitMode(transitOptions[0].mode);
@@ -181,7 +212,14 @@ export default function NavigationBottomSheet(
             </TouchableOpacity>
           </View>
 
-          {!!navigationState.startLocation && (
+          {isLoading && (
+            <View
+              style={{ width: "100%", marginTop: 20, alignItems: "center" }}
+            >
+              <ActivityIndicator size="large" color={COLORS.conuRed} />
+            </View>
+          )}
+          {!!navigationState.startLocation && !isLoading && (
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -189,59 +227,55 @@ export default function NavigationBottomSheet(
               contentContainerStyle={NavigationBottomSheetStyles.transitRow}
               nestedScrollEnabled={true}
             >
-              {transitOptions.map(({ mode, Icon, image, duration }) => {
-                const selected = navigationState.transitMode === mode;
-                const disabled =
-                  mode === TransitMode.shuttle &&
-                  (!isCrossCampus ||
-                    !outdoorBlock?.directionsByMode[
-                      TransitMode.shuttle.toLowerCase()
-                    ]);
-                return (
-                  <TouchableOpacity
-                    key={mode}
-                    style={[
-                      NavigationBottomSheetStyles.transitChip,
-                      selected &&
-                        NavigationBottomSheetStyles.transitChipSelected,
-                      disabled &&
-                        NavigationBottomSheetStyles.transitChipDisabled,
-                    ]}
-                    onPress={() =>
-                      !disabled && navigationState.setTransitMode(mode)
-                    }
-                    disabled={disabled}
-                  >
-                    {Icon ? (
-                      <Icon
-                        size={18}
-                        color={selected ? "#fff" : COLORS.textPrimary}
-                      />
-                    ) : (
-                      <View style={disabled ? { opacity: 0.5 } : {}}>
-                        <Image
-                          source={image}
-                          style={{ width: 18, height: 18 }}
-                          resizeMode="contain"
+              {transitOptions.map(
+                ({ mode, Icon, image, duration, disabled }) => {
+                  const selected = navigationState.transitMode === mode;
+                  return (
+                    <TouchableOpacity
+                      key={mode}
+                      style={[
+                        NavigationBottomSheetStyles.transitChip,
+                        selected &&
+                          NavigationBottomSheetStyles.transitChipSelected,
+                        disabled &&
+                          NavigationBottomSheetStyles.transitChipDisabled,
+                      ]}
+                      onPress={() =>
+                        !disabled && navigationState.setTransitMode(mode)
+                      }
+                      disabled={disabled}
+                    >
+                      {Icon ? (
+                        <Icon
+                          size={18}
+                          color={selected ? "#fff" : COLORS.textPrimary}
                         />
-                      </View>
-                    )}
-                    {!!duration && (
-                      <Text
-                        style={[
-                          NavigationBottomSheetStyles.transitChipText,
-                          selected &&
-                            NavigationBottomSheetStyles.transitChipTextSelected,
-                          disabled &&
-                            NavigationBottomSheetStyles.transitChipTextDisabled,
-                        ]}
-                      >
-                        {duration}
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
+                      ) : (
+                        <View style={disabled ? { opacity: 0.5 } : {}}>
+                          <Image
+                            source={image}
+                            style={{ width: 18, height: 18 }}
+                            resizeMode="contain"
+                          />
+                        </View>
+                      )}
+                      {!!duration && (
+                        <Text
+                          style={[
+                            NavigationBottomSheetStyles.transitChipText,
+                            selected &&
+                              NavigationBottomSheetStyles.transitChipTextSelected,
+                            disabled &&
+                              NavigationBottomSheetStyles.transitChipTextDisabled,
+                          ]}
+                        >
+                          {duration}
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+                  );
+                },
+              )}
             </ScrollView>
           )}
         </View>
