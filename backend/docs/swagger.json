@@ -2015,6 +2015,76 @@
                     }
                 }
             }
+        },
+        "/users/{userId}/schedule/next": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns the user's next upcoming class based on the current time and their stored schedule",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "schedule"
+                ],
+                "summary": "Get next class",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "userId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/handler.NextClassResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Not authenticated",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "No upcoming class found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -2268,6 +2338,40 @@
                     }
                 },
                 "campus": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.ClassItem": {
+            "type": "object",
+            "properties": {
+                "buildingCode": {
+                    "type": "string"
+                },
+                "day": {
+                    "type": "string"
+                },
+                "endTime": {
+                    "type": "string"
+                },
+                "itemId": {
+                    "type": "string"
+                },
+                "origin": {
+                    "description": "e.g. \"manual\" or \"google\"",
+                    "type": "string"
+                },
+                "room": {
+                    "type": "string"
+                },
+                "section": {
+                    "type": "string"
+                },
+                "startTime": {
+                    "type": "string"
+                },
+                "type": {
+                    "description": "lab, lec, tut",
                     "type": "string"
                 }
             }
@@ -2623,6 +2727,17 @@
                 },
                 "password": {
                     "type": "string"
+                }
+            }
+        },
+        "handler.NextClassResponse": {
+            "type": "object",
+            "properties": {
+                "className": {
+                    "type": "string"
+                },
+                "item": {
+                    "$ref": "#/definitions/domain.ClassItem"
                 }
             }
         },

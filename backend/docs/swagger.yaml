@@ -169,6 +169,29 @@ definitions:
       campus:
         type: string
     type: object
+  domain.ClassItem:
+    properties:
+      buildingCode:
+        type: string
+      day:
+        type: string
+      endTime:
+        type: string
+      itemId:
+        type: string
+      origin:
+        description: e.g. "manual" or "google"
+        type: string
+      room:
+        type: string
+      section:
+        type: string
+      startTime:
+        type: string
+      type:
+        description: lab, lec, tut
+        type: string
+    type: object
   domain.Coordinates:
     properties:
       x:
@@ -403,6 +426,13 @@ definitions:
     required:
     - email
     - password
+    type: object
+  handler.NextClassResponse:
+    properties:
+      className:
+        type: string
+      item:
+        $ref: '#/definitions/domain.ClassItem'
     type: object
   handler.SignUpRequest:
     properties:
@@ -1842,6 +1872,52 @@ paths:
       summary: Update saved address
       tags:
       - addresses
+  /users/{userId}/schedule/next:
+    get:
+      description: Returns the user's next upcoming class based on the current time
+        and their stored schedule
+      parameters:
+      - description: User ID
+        in: path
+        name: userId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handler.NextClassResponse'
+        "401":
+          description: Not authenticated
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: Forbidden
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: No upcoming class found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get next class
+      tags:
+      - schedule
 securityDefinitions:
   BearerAuth:
     description: Type "Bearer" followed by a space and JWT token.
