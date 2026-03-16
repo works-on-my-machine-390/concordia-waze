@@ -215,8 +215,9 @@ func (s *IndoorPathService) MultiFloorShortestPath(req MultiFloorPathRequest) (*
 	var transitionType TransitionType
 	var startTransition, endTransition *domain.Coordinates
 	if req.RequireAccessible {
-		startTransition = s.findClosestTransitionPoint(startFloor, TransitionElevator, startPoint)
-		endTransition = s.findClosestTransitionPoint(endFloor, TransitionElevator, endPoint)
+		startTransition, endTransition = s.findClosestLinkedTransitionPair(
+			startFloor, endFloor, TransitionElevator, startPoint, endPoint,
+		)
 		if startTransition != nil && endTransition != nil {
 			transitionType = TransitionElevator
 		}
@@ -227,7 +228,7 @@ func (s *IndoorPathService) MultiFloorShortestPath(req MultiFloorPathRequest) (*
 	}
 
 	if startTransition == nil || endTransition == nil {
-		return nil, errors.New("no transition point (stairs/elevator) found on floor")
+		return nil, errors.New("no transition point (stairs/elevator) found on floor or no linked pair exists across floors")
 	}
 
 	// Calculate path on start floor: from start point to transition
@@ -357,14 +358,124 @@ func (s *IndoorPathService) findBestTransitions(
 	}
 
 	for _, tt := range typesToTry {
-		startTrans := s.findClosestTransitionPoint(startFloor, tt, startPoint)
-		endTrans := s.findClosestTransitionPoint(endFloor, tt, endPoint)
+		startTrans, endTrans := s.findClosestLinkedTransitionPair(startFloor, endFloor, tt, startPoint, endPoint)
 		if startTrans != nil && endTrans != nil {
 			return tt, startTrans, endTrans
 		}
 	}
 
 	return TransitionNone, nil, nil
+}
+
+// findClosestLinkedTransitionPair finds the best linked transition pair across floors for a type.
+// A pair is considered linked when both floors contain a transition POI with the same normalized name.
+func (s *IndoorPathService) findClosestLinkedTransitionPair(
+	startFloor, endFloor *domain.Floor,
+	transType TransitionType,
+	startRef, endRef domain.Coordinates,
+) (*domain.Coordinates, *domain.Coordinates) {
+	typeStr := transType.String()
+	if typeStr == "none" {
+		return nil, nil
+	}
+
+	startTransitions := s.transitionPOIsByType(startFloor, transType)
+	endTransitions := s.transitionPOIsByType(endFloor, transType)
+	if len(startTransitions) == 0 || len(endTransitions) == 0 {
+		return nil, nil
+	}
+
+	endByKey := make(map[string][]domain.PointOfInterest)
+	for _, poi := range endTransitions {
+		k := normalizeTransitionKey(poi.Name)
+		if k == "" {
+			continue
+		}
+		endByKey[k] = append(endByKey[k], poi)
+	}
+
+	minCost := math.MaxFloat64
+	var bestStart, bestEnd *domain.Coordinates
+
+	for _, startPOI := range startTransitions {
+		k := normalizeTransitionKey(startPOI.Name)
+		if k == "" {
+			continue
+		}
+
+		candidates, ok := endByKey[k]
+		if !ok {
+			continue
+		}
+
+		for _, endPOI := range candidates {
+			cost := euclid(startPOI.Position, startRef) + euclid(endPOI.Position, endRef)
+			if cost < minCost {
+				minCost = cost
+				s := startPOI.Position
+				e := endPOI.Position
+				bestStart = &s
+				bestEnd = &e
+			}
+		}
+	}
+
+	if bestStart != nil && bestEnd != nil {
+		return bestStart, bestEnd
+	}
+	
+	return s.findClosestGeometricTransitionPair(startTransitions, endTransitions, startRef, endRef)
+}
+
+func (s *IndoorPathService) findClosestGeometricTransitionPair(
+	startTransitions, endTransitions []domain.PointOfInterest,
+	startRef, endRef domain.Coordinates,
+) (*domain.Coordinates, *domain.Coordinates) {
+	const interFloorAlignmentWeight = 2.0
+
+	minCost := math.MaxFloat64
+	var bestStart, bestEnd *domain.Coordinates
+
+	for _, startPOI := range startTransitions {
+		for _, endPOI := range endTransitions {
+			cost := euclid(startPOI.Position, startRef) +
+				euclid(endPOI.Position, endRef) +
+				(interFloorAlignmentWeight * euclid(startPOI.Position, endPOI.Position))
+
+			if cost < minCost {
+				minCost = cost
+				s := startPOI.Position
+				e := endPOI.Position
+				bestStart = &s
+				bestEnd = &e
+			}
+		}
+	}
+
+	return bestStart, bestEnd
+}
+
+func (s *IndoorPathService) transitionPOIsByType(floor *domain.Floor, transType TransitionType) []domain.PointOfInterest {
+	typeStr := transType.String()
+	if typeStr == "none" || floor == nil {
+		return nil
+	}
+
+	pois := make([]domain.PointOfInterest, 0)
+	for _, poi := range floor.POIs {
+		if strings.EqualFold(poi.Type, typeStr) || strings.Contains(strings.ToLower(poi.Type), typeStr) {
+			pois = append(pois, poi)
+		}
+	}
+	return pois
+}
+
+func normalizeTransitionKey(s string) string {
+	key := strings.ToUpper(strings.TrimSpace(s))
+	key = strings.ReplaceAll(key, " ", "")
+	key = strings.ReplaceAll(key, "_", "")
+	key = strings.ReplaceAll(key, "-", "")
+	return key
 }
 
 // findClosestTransitionPoint finds the transition point of given type closest to the reference coordinate
@@ -429,20 +540,16 @@ func (s *IndoorPathService) resolveEndpoints(req IndoorPathRequest, g *graph, fl
 
 func (s *IndoorPathService) roomCentroid(building string, floorNum int, room string) (*domain.Coordinates, error) {
 	rooms, err := s.rooms.GetByBuilding(building)
-	fmt.Println(rooms)
 	if err != nil {
 		return nil, err
 	}
 
 	target := normalizeRoom(room)
-	fmt.Println(target)
 	for _, r := range rooms {
 		if r.Floor != floorNum {
 			continue
 		}
 
-		room2 := normalizeRoom(r.Room)
-		fmt.Println(room2)
 		if normalizeRoom(r.Room) == target {
 			return &domain.Coordinates{X: r.Centroid.X, Y: r.Centroid.Y}, nil
 		}
