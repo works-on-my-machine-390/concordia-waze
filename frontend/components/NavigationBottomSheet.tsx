@@ -50,6 +50,7 @@ export default function NavigationBottomSheet(
   );
 
   const isLoading = query.isLoading || query.isRefetching;
+  const isError = query.isError;
 
   useEffect(() => {
     if (query.data) {
@@ -148,7 +149,8 @@ export default function NavigationBottomSheet(
       hasSelectedMode &&
       transitOptions.find(
         (option) => option.mode === navigationState.transitMode,
-      )?.disabled && transitOptions.some((option) => !option.disabled)
+      )?.disabled &&
+      transitOptions.some((option) => !option.disabled)
     ) {
       navigationState.setTransitMode(
         transitOptions.find((option) => !option.disabled)?.mode,
@@ -219,7 +221,16 @@ export default function NavigationBottomSheet(
               <ActivityIndicator size="large" color={COLORS.conuRed} />
             </View>
           )}
-          {!!navigationState.startLocation && !isLoading && (
+          {isError && (
+            <View
+              style={{ width: "100%", marginTop: 20, alignItems: "center" }}
+            >
+              <Text style={NavigationBottomSheetStyles.errorText}>
+                Error fetching directions. Please try a different location.
+              </Text>
+            </View>
+          )}
+          {!!navigationState.startLocation && !isLoading && !isError && (
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -429,6 +440,11 @@ const NavigationBottomSheetStyles = StyleSheet.create({
   emptyStateText: {
     fontSize: 16,
     color: COLORS.textSecondary,
+    textAlign: "center",
+  },
+  errorText: {
+    fontSize: 16,
+    color: COLORS.conuRed,
     textAlign: "center",
   },
 });
