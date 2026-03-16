@@ -68,7 +68,10 @@ export const useIndoorNavigationStore = create<IndoorNavigationState>(
     routeError: null,
 
     currentFloor: null,
-    setCurrentFloor: (f) => set({ currentFloor: f }),
+    setCurrentFloor: (f) =>
+      set((state) =>
+        state.currentFloor === f ? state : { ...state, currentFloor: f },
+      ),
 
     setSelectedRoom: (p) => set({ selectedRoom: p }),
 
