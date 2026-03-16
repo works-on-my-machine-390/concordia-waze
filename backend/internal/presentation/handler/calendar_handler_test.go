@@ -42,13 +42,13 @@ func (m *mockCalendarService) SyncCalendarEvents(token *oauth2.Token, userID str
 }
 
 type mockFirebaseService struct {
-	createClassErr     error
-	getClassesErr      error
-	deleteClassErr     error
-	addClassItemErr    error
-	getClassItemsErr   error
-	deleteClassItemErr error
-	updateClassItemErr error
+	createClassErr      error
+	getClassesErr       error
+	deleteClassErr      error
+	addClassItemErr     error
+	getClassItemsErr    error
+	deleteClassItemErr  error
+	updateClassItemErr  error
 	getAllClassItemsErr error
 
 	classTitles []string
@@ -310,5 +310,173 @@ func TestCalendarHandler_ClassItemEndpoints(t *testing.T) {
 		r.ServeHTTP(w, req)
 
 		require.Equal(t, http.StatusNotFound, w.Code)
+	})
+}
+
+func TestCalendarHandler_ErrorBranches(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	t.Run("sync token store error -> 500", func(t *testing.T) {
+		ts := &mockTokenStore{getErr: errors.New("store failure")}
+		h := NewCalendarHandler(ts, &mockCalendarService{}, &mockFirebaseService{})
+		r := setupCalendarTestRouter(h)
+
+		req := httptest.NewRequest(http.MethodGet, "/courses/sync?since=2024-01-01", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusInternalServerError, w.Code)
+		assert.Contains(t, w.Body.String(), "failed to retrieve token")
+	})
+
+	t.Run("get courses GetUserClasses error -> 500", func(t *testing.T) {
+		fs := &mockFirebaseService{getClassesErr: errors.New("list failure")}
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs)
+		r := setupCalendarTestRouter(h)
+
+		req := httptest.NewRequest(http.MethodGet, "/courses", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusInternalServerError, w.Code)
+		assert.Contains(t, w.Body.String(), "list failure")
+	})
+
+	t.Run("get courses GetClassItems error -> 500", func(t *testing.T) {
+		fs := &mockFirebaseService{
+			classTitles:      []string{"SOEN 384"},
+			getClassItemsErr: errors.New("items failure"),
+		}
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs)
+		r := setupCalendarTestRouter(h)
+
+		req := httptest.NewRequest(http.MethodGet, "/courses", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusInternalServerError, w.Code)
+		assert.Contains(t, w.Body.String(), "items failure")
+	})
+
+	t.Run("delete course internal error -> 500", func(t *testing.T) {
+		fs := &mockFirebaseService{deleteClassErr: errors.New("delete failure")}
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs)
+		r := setupCalendarTestRouter(h)
+
+		req := httptest.NewRequest(http.MethodDelete, "/courses/SOEN%20384", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusInternalServerError, w.Code)
+		assert.Contains(t, w.Body.String(), "delete failure")
+	})
+
+	t.Run("delete class item internal error -> 500", func(t *testing.T) {
+		fs := &mockFirebaseService{deleteClassItemErr: errors.New("delete item fail")}
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs)
+		r := setupCalendarTestRouter(h)
+
+		req := httptest.NewRequest(http.MethodDelete, "/courses/SOEN%20384/items/item123", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusInternalServerError, w.Code)
+		assert.Contains(t, w.Body.String(), "delete item fail")
+	})
+
+	t.Run("get class items missing title -> 400", func(t *testing.T) {
+		// Request path with empty title segment. Gin will set param to empty string.
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, &mockFirebaseService{})
+		r := setupCalendarTestRouter(h)
+
+		req := httptest.NewRequest(http.MethodGet, "/courses//items", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		// handler should return Bad Request for empty title
+		require.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Contains(t, w.Body.String(), "class title required")
+	})
+
+	t.Run("add class item bad JSON -> 400", func(t *testing.T) {
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, &mockFirebaseService{})
+		r := setupCalendarTestRouter(h)
+
+		req := httptest.NewRequest(http.MethodPost, "/courses/SOEN%20384/items", bytes.NewBufferString(`{"type":`))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Contains(t, w.Body.String(), "invalid request body")
+	})
+
+	t.Run("add class item course not found -> 404", func(t *testing.T) {
+		fs := &mockFirebaseService{addClassItemErr: domain.ErrCourseNotFound}
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs)
+		r := setupCalendarTestRouter(h)
+
+		payload := `{"type":"Lecture","section":"N","day":"MON","startTime":"10:00","endTime":"12:00"}`
+		req := httptest.NewRequest(http.MethodPost, "/courses/SOEN%20384/items", bytes.NewBufferString(payload))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusNotFound, w.Code)
+	})
+
+	t.Run("add class item internal error -> 500", func(t *testing.T) {
+		fs := &mockFirebaseService{addClassItemErr: errors.New("add internal")}
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs)
+		r := setupCalendarTestRouter(h)
+
+		payload := `{"type":"Lecture","section":"N","day":"MON","startTime":"10:00","endTime":"12:00"}`
+		req := httptest.NewRequest(http.MethodPost, "/courses/SOEN%20384/items", bytes.NewBufferString(payload))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusInternalServerError, w.Code)
+		assert.Contains(t, w.Body.String(), "add internal")
+	})
+
+	t.Run("update class item bad JSON -> 400", func(t *testing.T) {
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, &mockFirebaseService{})
+		r := setupCalendarTestRouter(h)
+
+		req := httptest.NewRequest(http.MethodPatch, "/courses/SOEN%20384/items/item123", bytes.NewBufferString(`{bad`))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Contains(t, w.Body.String(), "invalid request body")
+	})
+
+	t.Run("update class item not found -> 404", func(t *testing.T) {
+		fs := &mockFirebaseService{updateClassItemErr: domain.ErrCourseNotFound}
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs)
+		r := setupCalendarTestRouter(h)
+
+		req := httptest.NewRequest(http.MethodPatch, "/courses/SOEN%20384/items/item123", bytes.NewBufferString(`{"room":"R-1"}`))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusNotFound, w.Code)
+	})
+
+	t.Run("update class item internal error -> 500", func(t *testing.T) {
+		fs := &mockFirebaseService{updateClassItemErr: errors.New("update fail")}
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs)
+		r := setupCalendarTestRouter(h)
+
+		req := httptest.NewRequest(http.MethodPatch, "/courses/SOEN%20384/items/item123", bytes.NewBufferString(`{"room":"R-1"}`))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusInternalServerError, w.Code)
+		assert.Contains(t, w.Body.String(), "update fail")
 	})
 }
