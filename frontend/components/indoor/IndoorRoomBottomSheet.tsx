@@ -19,6 +19,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Building } from "@/hooks/queries/buildingQueries";
 import useStartLocation from "@/hooks/useStartLocation";
 import { PointOfInterest } from "@/hooks/queries/indoorMapQueries";
+import { MapMode, useMapStore } from "@/hooks/useMapStore";
 
 export type IndoorRoomBottomSheetProps = {
   selectedPoi: PointOfInterest;
@@ -28,6 +29,7 @@ export type IndoorRoomBottomSheetProps = {
 export default function IndoorRoomBottomSheet(
   props: Readonly<IndoorRoomBottomSheetProps>,
 ) {
+  const setMapMode = useMapStore((state) => state.setCurrentMode);
   const queryClient = useQueryClient();
   const { findAndSetStartLocation } = useStartLocation();
 
@@ -67,6 +69,7 @@ export default function IndoorRoomBottomSheet(
       longitude: buildingData?.longitude ?? 0,
     });
 
+    setMapMode(MapMode.NAVIGATION);
     navigationState.setNavigationPhase(NavigationPhase.PREPARATION);
     props.onClose?.();
   };

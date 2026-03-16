@@ -14,7 +14,7 @@ import { MultiFloorPathResult } from "@/hooks/queries/indoorDirectionsQueries";
 const concordiaLogo = require("../assets/images/concordia_logo.png");
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useNavigationStore } from "@/hooks/useNavigationStore";
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { IndoorMapPageParams } from "@/app/(drawer)/indoor-map";
 import { MapQueryParamsModel } from "@/app/(drawer)/map";
 
@@ -96,6 +96,17 @@ export default function OutdoorNavigationSteps(
       return indoorParams.buildingCode === buildingCode; // the indoor map is already displayed for this building
     };
 
+    const handleViewMapPress = (buildingCode?: string) => {
+      if (!buildingCode) return;
+      router.replace({
+        pathname: "/indoor-map",
+        params: {
+          buildingCode,
+          buildingName: locationName,
+        },
+      });
+    }
+
     return (
       <View style={directionStepsStyles.indoorStepContainer}>
         <Ionicons name={iconName()} size={24} color="black" />
@@ -112,7 +123,7 @@ export default function OutdoorNavigationSteps(
             marginLeft: "auto",
             flexDirection: "row",
           }}
-          onPress={() => {}}
+          onPress={() => handleViewMapPress(buildingCode)}
         >
           {!hideViewButton() && (
             <Text style={{ color: COLORS.conuRed }}>View map</Text>
