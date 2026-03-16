@@ -95,7 +95,7 @@ func (fs *FirebaseService) GetUserProfile(ctx context.Context, userID string) (*
 	}
 
 	var profile domain.User
-	if err := doc.DataTo(&profile); err != nil {
+	if doc.DataTo(&profile) != nil {
 		return nil, fmt.Errorf("parse user profile: %w", err)
 	}
 	return &profile, nil
@@ -114,7 +114,7 @@ func (fs *FirebaseService) GetUserProfileByEmail(ctx context.Context, email stri
 	}
 
 	var profile domain.User
-	if err := doc.DataTo(&profile); err != nil {
+	if doc.DataTo(&profile) != nil {
 		return nil, fmt.Errorf("parse user profile: %w", err)
 	}
 	return &profile, nil
@@ -470,7 +470,7 @@ func (fs *FirebaseService) GetFavorites(ctx context.Context, userID string) ([]F
 			continue
 		}
 		var fav FirestoreFavorite
-		if err := doc.DataTo(&fav); err != nil {
+		if doc.DataTo(&fav) != nil {
 			// log.Printf("[firestore] GetFavorites skipping doc=%s: deserialize error: %v", doc.Ref.ID, err)
 			continue
 		}
@@ -545,7 +545,7 @@ func (fs *FirebaseService) GetGoogleToken(ctx context.Context, userID string) (*
 	}
 
 	var td googleTokenDoc
-	if err := ds.DataTo(&td); err != nil {
+	if ds.DataTo(&td) != nil {
 		return nil, false, fmt.Errorf("parse google token doc: %w", err)
 	}
 
