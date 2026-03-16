@@ -1,11 +1,7 @@
 import { COLORS, DIRECTION_COLORS } from "@/app/constants";
-import type { Coordinates } from "@/hooks/queries/indoorDirectionsQueries";
 import type { Floor } from "@/hooks/queries/indoorMapQueries";
-import { useIndoorNavigationStore } from "@/hooks/useIndoorNavigationStore";
-import { useIndoorSearchStore } from "@/hooks/useIndoorSearchStore";
 import { useSvgDimensions } from "@/hooks/useSvgDimensions";
 import { ReactNativeZoomableView } from "@openspacelabs/react-native-zoomable-view";
-import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   StyleSheet,
@@ -15,12 +11,12 @@ import {
 } from "react-native";
 import { SvgXml } from "react-native-svg";
 
+import { IndoorMapPageParams } from "@/app/(drawer)/indoor-map";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import IndoorBottomSheetSection from "./IndoorBottomSheetSection";
 import IndoorPathOverlay from "./IndoorPathOverlay";
 import PoiMarker from "./PoiMarker";
 import PolygonOverlay from "./PolygonOverlay";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { IndoorMapPageParams } from "@/app/(drawer)/indoor-map";
 
 /** Standard indoor route */
 export const ROUTE_STYLE_STANDARD = {
@@ -55,8 +51,6 @@ type Props = {
   buildingName?: string;
   metroAccessible?: boolean;
 };
-
-const normalizeName = (s: string) => s.trim().toLowerCase().replace(/\s+/g, "");
 
 function renderStatus(message: string, loading = false) {
   return (
@@ -149,6 +143,8 @@ export default function FloorPlanViewer({
             viewBox={`0 0 ${dimensions.width} ${dimensions.height}`}
             preserveAspectRatio="xMidYMid meet"
           />
+
+          <IndoorPathOverlay width={displayWidth} height={displayHeight} />
 
           <PolygonOverlay
             pois={floor.pois}

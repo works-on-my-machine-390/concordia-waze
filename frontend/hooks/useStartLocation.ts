@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useNavigationStore } from "./useNavigationStore";
+import { NavigableLocation, useNavigationStore } from "./useNavigationStore";
 import { Building } from "./queries/buildingQueries";
 import { useMapStore } from "./useMapStore";
 import { getAddressFromLocation } from "@/app/utils/mapUtils";
@@ -15,7 +15,11 @@ export default function useStartLocation() {
   const { userLocation, currentBuildingCode } = useMapStore();
   const queryClient = useQueryClient();
 
-  const findAndSetStartLocation = async () => {
+  /**
+   * Finds and sets the start location based on the user's current location.
+   * @param endLocation - The end location for navigation. If provided, we can check if the user is already in the same building and set the start location accordingly.
+   */
+  const findAndSetStartLocation = async (endLocation?: NavigableLocation) => {
     const currentLocationDetails = queryClient.getQueryData<Building>([
       "buildingDetails",
       currentBuildingCode,
@@ -28,6 +32,15 @@ export default function useStartLocation() {
 
     if (!currentLocationDetails && !userLocation) {
       setStartLocation(null);
+      return;
+    }
+
+    if (
+      endLocation &&
+      endLocation.code &&
+      endLocation.code === currentLocationDetails?.code
+    ) {
+      setStartLocation(null); // have user set manually since we can't be sure where they are in the building
       return;
     }
 

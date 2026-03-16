@@ -2,6 +2,7 @@ import { COLORS } from "@/app/constants";
 import { directionStepsStyles } from "@/app/styles/directionStyles";
 import { stripHtmlTags } from "@/app/utils/stringUtils";
 import {
+  DirectionsResponseBlockType,
   IndoorDirectionsBlockModel,
   OutdoorDirectionsModel,
   StepModel,
@@ -13,10 +14,14 @@ import OutdoorNavigationTransitSteps from "./OutdoorNavigationTransitSteps";
 import { MultiFloorPathResult } from "@/hooks/queries/indoorDirectionsQueries";
 const concordiaLogo = require("../assets/images/concordia_logo.png");
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useNavigationStore } from "@/hooks/useNavigationStore";
+import {
+  IndoorNavigableLocation,
+  useNavigationStore,
+} from "@/hooks/useNavigationStore";
 import { router, useLocalSearchParams } from "expo-router";
 import { IndoorMapPageParams } from "@/app/(drawer)/indoor-map";
 import { MapQueryParamsModel } from "@/app/(drawer)/map";
+import { useMemo } from "react";
 
 export type OutdoorNavigationStepsProps = {
   indoorDirectionBlocks?: IndoorDirectionsBlockModel[];
@@ -29,6 +34,17 @@ export default function OutdoorNavigationSteps(
 ) {
   const startLocation = useNavigationStore((state) => state.startLocation);
   const endLocation = useNavigationStore((state) => state.endLocation);
+  const currentDirections = useNavigationStore(
+    (state) => state.currentDirections,
+  );
+  const selectedTransitMode = useNavigationStore((state) => state.transitMode);
+
+  const outdoorDirections = useMemo(() => {
+    return currentDirections.directionBlocks.find(
+      (block) => block.type === DirectionsResponseBlockType.OUTDOOR,
+    )?.directionsByMode[selectedTransitMode || ""];
+  }, [currentDirections, selectedTransitMode]);
+
   const params = useLocalSearchParams<
     IndoorMapPageParams | MapQueryParamsModel
   >();
@@ -68,6 +84,7 @@ export default function OutdoorNavigationSteps(
     sequence: "enter" | "exit" | "only_indoor",
     locationName?: string,
     buildingCode?: string,
+    floorNumber?: number,
   ) => {
     const iconName = () => {
       switch (sequence) {
@@ -96,16 +113,20 @@ export default function OutdoorNavigationSteps(
       return indoorParams.buildingCode === buildingCode; // the indoor map is already displayed for this building
     };
 
-    const handleViewMapPress = (buildingCode?: string) => {
+    const handleViewMapPress = (
+      buildingCode?: string,
+      floorNumber?: number,
+    ) => {
       if (!buildingCode) return;
       router.replace({
         pathname: "/indoor-map",
         params: {
           buildingCode,
           buildingName: locationName,
+          selectedFloor: floorNumber,
         },
       });
-    }
+    };
 
     return (
       <View style={directionStepsStyles.indoorStepContainer}>
@@ -123,7 +144,7 @@ export default function OutdoorNavigationSteps(
             marginLeft: "auto",
             flexDirection: "row",
           }}
-          onPress={() => handleViewMapPress(buildingCode)}
+          onPress={() => handleViewMapPress(buildingCode, floorNumber)}
         >
           {!hideViewButton() && (
             <Text style={{ color: COLORS.conuRed }}>View map</Text>
@@ -134,14 +155,14 @@ export default function OutdoorNavigationSteps(
   };
 
   const renderSteps = () => {
-    if (props.directions.mode === TransitMode.transit) {
-      return <OutdoorNavigationTransitSteps directions={props.directions} />;
+    if (outdoorDirections?.mode === TransitMode.transit) {
+      return <OutdoorNavigationTransitSteps directions={outdoorDirections} />;
       // transit steps are more complicated to render, so we use a separate component for them.
     }
 
     const isAnIndoorToOutdoorTransitionPresent =
       props.indoorDirectionBlocks &&
-      props.directions &&
+      outdoorDirections &&
       props.indoorDirectionBlocks.length > 0;
 
     const shouldRenderStartIndoorStep =
@@ -152,48 +173,58 @@ export default function OutdoorNavigationSteps(
       props.indoorDirectionBlocks.at(-1)?.sequenceNumber >
         props.outdoorDirectionSequenceNumber;
     const shouldRenderOnlyIndoorStep =
-      props.indoorDirectionBlocks?.length === 1 && !props.directions;
+      props.indoorDirectionBlocks?.length === 1 && !outdoorDirections;
 
     return (
       <>
         {shouldRenderStartIndoorStep &&
           renderIndoorStep("exit", "", startLocation?.code)}
-        <View>
-          {props.directions.steps.map((step: StepModel, index) => (
-            <View
-              key={step.polyline + index}
-              style={directionStepsStyles.stepContainer}
-            >
-              <View style={{ minWidth: 40, alignItems: "center" }}>
-                {renderStepIcon(step)}
-              </View>
-              <View>
-                <Text
-                  style={[directionStepsStyles.stepText, { paddingBottom: 8 }]}
-                >
-                  {stripHtmlTags(step.instruction)}
-                </Text>
-                <View style={directionStepsStyles.distanceDivider}>
-                  <Text style={directionStepsStyles.distanceText}>
-                    {step.distance}
+        {outdoorDirections && (
+          <View>
+            {outdoorDirections.steps.map((step: StepModel, index) => (
+              <View
+                key={step.polyline + index}
+                style={directionStepsStyles.stepContainer}
+              >
+                <View style={{ minWidth: 40, alignItems: "center" }}>
+                  {renderStepIcon(step)}
+                </View>
+                <View>
+                  <Text
+                    style={[
+                      directionStepsStyles.stepText,
+                      { paddingBottom: 8 },
+                    ]}
+                  >
+                    {stripHtmlTags(step.instruction)}
                   </Text>
-                  <View
-                    style={{
-                      flex: 1,
-                      height: 1,
-                      backgroundColor: COLORS.border,
-                    }}
-                  />
+                  <View style={directionStepsStyles.distanceDivider}>
+                    <Text style={directionStepsStyles.distanceText}>
+                      {step.distance}
+                    </Text>
+                    <View
+                      style={{
+                        flex: 1,
+                        height: 1,
+                        backgroundColor: COLORS.border,
+                      }}
+                    />
+                  </View>
                 </View>
               </View>
-            </View>
-          ))}
-        </View>
+            ))}
+          </View>
+        )}
         {shouldRenderEndIndoorStep &&
           renderIndoorStep("enter", endLocation?.name, endLocation?.code)}
 
         {shouldRenderOnlyIndoorStep &&
-          renderIndoorStep("only_indoor", endLocation?.name, endLocation?.code)}
+          renderIndoorStep(
+            "only_indoor",
+            endLocation?.name,
+            endLocation?.code,
+            (startLocation as IndoorNavigableLocation).floor_number,
+          )}
       </>
     );
   };
@@ -202,10 +233,10 @@ export default function OutdoorNavigationSteps(
     <View>
       <View style={directionStepsStyles.sectionContainer}>
         <Text style={directionStepsStyles.sectionTitle}>Steps</Text>
-        {!props.directions &&
+        {!outdoorDirections &&
           !props.indoorDirectionBlocks &&
           renderNoDirectionsMessage()}
-        {props.directions && <View>{renderSteps()}</View>}
+        {currentDirections && <View>{renderSteps()}</View>}
       </View>
     </View>
   );

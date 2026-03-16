@@ -55,11 +55,8 @@ export default function IndoorRoomBottomSheet(
         "buildingDetails",
         params.buildingCode,
       ]);
-    if (!navigationState.startLocation) {
-      findAndSetStartLocation();
-    }
 
-    navigationState.setEndLocation({
+    const endLocation = {
       building: params.buildingCode,
       floor_number: Number.parseInt(params.selectedFloor),
       indoor_position: props.selectedPoi.position,
@@ -67,7 +64,13 @@ export default function IndoorRoomBottomSheet(
       name: displayTitle,
       latitude: buildingData?.latitude ?? 0,
       longitude: buildingData?.longitude ?? 0,
-    });
+    };
+
+    if (!navigationState.startLocation) {
+      findAndSetStartLocation(endLocation);
+    }
+
+    navigationState.setEndLocation(endLocation);
 
     setMapMode(MapMode.NAVIGATION);
     navigationState.setNavigationPhase(NavigationPhase.PREPARATION);
