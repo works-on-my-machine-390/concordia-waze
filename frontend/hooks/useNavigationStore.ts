@@ -28,6 +28,14 @@ export type IndoorNavigableLocation = {
   indoor_position: Coordinates;
 } & NavigableLocationBase;
 
+export const NavigationPhase = {
+  PREPARATION: "PREPARATION",
+  ACTIVE: "ACTIVE",
+} as const;
+
+export type NavigationPhase =
+  (typeof NavigationPhase)[keyof typeof NavigationPhase];
+
 interface NavigationState {
   startLocation?: NavigableLocation;
   setStartLocation: (location: NavigableLocation) => void;
@@ -41,6 +49,8 @@ interface NavigationState {
   modifyingField?: "start" | "end" | null;
   setModifyingField?: (field: "start" | "end" | null) => void;
 
+  navigationPhase?: NavigationPhase;
+  setNavigationPhase?: (phase: NavigationPhase) => void;
 
   clearState: () => void;
 }
@@ -63,6 +73,10 @@ export const useNavigationStore = create<NavigationState>()((set) => ({
   setModifyingField: (field: "start" | "end" | null) =>
     set({ modifyingField: field }),
 
+  navigationPhase: undefined,
+  setNavigationPhase: (phase: NavigationPhase) =>
+    set({ navigationPhase: phase }),
+
   clearState: () =>
     set({
       startLocation: undefined,
@@ -70,5 +84,6 @@ export const useNavigationStore = create<NavigationState>()((set) => ({
       transitMode: undefined,
       currentDirections: undefined,
       modifyingField: null,
+      navigationPhase: undefined,
     }),
 }));

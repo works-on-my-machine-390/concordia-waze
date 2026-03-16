@@ -7,6 +7,8 @@ import { StyleSheet, View } from "react-native";
 import IndoorFloorBottomSheet from "./IndoorFloorBottomSheet";
 import PoiFilterBottomSheet from "./PoiFilterBottomSheet";
 import IndoorRoomBottomSheet from "./IndoorRoomBottomSheet";
+import { NavigationPhase, useNavigationStore } from "@/hooks/useNavigationStore";
+import NavigationBottomSheet from "../NavigationBottomSheet";
 
 export type IndoorBottomSheetSectionProps = {
   floor: Floor | undefined;
@@ -16,16 +18,11 @@ export type IndoorBottomSheetSectionProps = {
 
   selectedPoiName?: string;
   onClearSelectedPoi: () => void;
-
-  onDirectionsPress?: () => void;
-  directionsDisabled?: boolean;
 };
 
 export default function IndoorBottomSheetSection(
   props: Readonly<IndoorBottomSheetSectionProps>,
 ) {
-  const navMode = useIndoorNavigationStore((s) => s.mode);
-
   const {
     floor,
     buildingCode,
@@ -33,9 +30,9 @@ export default function IndoorBottomSheetSection(
     metroAccessible,
     selectedPoiName,
     onClearSelectedPoi,
-    onDirectionsPress,
-    directionsDisabled = false,
   } = props;
+
+  const navigationState = useNavigationStore();
 
   const selectedPoiFilter = useIndoorSearchStore((s) => s.selectedPoiFilter);
   const clearSelectedPoiFilter = useIndoorSearchStore(
@@ -62,9 +59,6 @@ export default function IndoorBottomSheetSection(
     });
   };
 
-  // ✅ early return only AFTER all hooks
-  if (navMode === "ITINERARY") return null;
-
   return (
     <View style={indoorBottomSheetStyles.bottomSheetContainer}>
       {floor && !selectedPoi && !selectedPoiFilter && (
@@ -77,13 +71,10 @@ export default function IndoorBottomSheetSection(
       )}
 
       {selectedPoi && (
+        // room and POI bottom sheet
         <IndoorRoomBottomSheet
-          roomCode={selectedPoi.name}
-          buildingCode={buildingCode}
-          roomType={selectedPoi.type}
+          selectedPoi={selectedPoi}
           onClose={onClearSelectedPoi}
-          onDirectionsPress={onDirectionsPress}
-          directionsDisabled={directionsDisabled}
         />
       )}
 
@@ -97,6 +88,11 @@ export default function IndoorBottomSheetSection(
           onClose={clearSelectedPoiFilter}
         />
       )}
+
+      {navigationState.navigationPhase === NavigationPhase.PREPARATION && (
+        <NavigationBottomSheet />
+      )}
+
     </View>
   );
 }

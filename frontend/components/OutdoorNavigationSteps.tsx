@@ -14,6 +14,9 @@ import { MultiFloorPathResult } from "@/hooks/queries/indoorDirectionsQueries";
 const concordiaLogo = require("../assets/images/concordia_logo.png");
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useNavigationStore } from "@/hooks/useNavigationStore";
+import { useLocalSearchParams } from "expo-router";
+import { IndoorMapPageParams } from "@/app/(drawer)/indoor-map";
+import { MapQueryParamsModel } from "@/app/(drawer)/map";
 
 export type OutdoorNavigationStepsProps = {
   indoorDirectionBlocks?: IndoorDirectionsBlockModel[];
@@ -26,6 +29,9 @@ export default function OutdoorNavigationSteps(
 ) {
   const startLocation = useNavigationStore((state) => state.startLocation);
   const endLocation = useNavigationStore((state) => state.endLocation);
+  const params = useLocalSearchParams<
+    IndoorMapPageParams | MapQueryParamsModel
+  >();
 
   const renderNoDirectionsMessage = () => {
     return (
@@ -61,6 +67,7 @@ export default function OutdoorNavigationSteps(
   const renderIndoorStep = (
     sequence: "enter" | "exit" | "only_indoor",
     locationName?: string,
+    buildingCode?: string,
   ) => {
     const iconName = () => {
       switch (sequence) {
@@ -84,10 +91,20 @@ export default function OutdoorNavigationSteps(
       }
     };
 
+    const hideViewButton = () => {
+      const indoorParams = params as IndoorMapPageParams;
+      return indoorParams.buildingCode === buildingCode; // the indoor map is already displayed for this building
+    };
+
     return (
       <View style={directionStepsStyles.indoorStepContainer}>
         <Ionicons name={iconName()} size={24} color="black" />
-        <Text style={[directionStepsStyles.stepText, { maxWidth: "65%",marginLeft: 4 }]}>
+        <Text
+          style={[
+            directionStepsStyles.stepText,
+            { maxWidth: "65%", marginLeft: 4 },
+          ]}
+        >
           {text()}
         </Text>
         <Pressable
@@ -97,7 +114,9 @@ export default function OutdoorNavigationSteps(
           }}
           onPress={() => {}}
         >
-          <Text style={{ color: COLORS.conuRed }}>View map</Text>
+          {!hideViewButton() && (
+            <Text style={{ color: COLORS.conuRed }}>View map</Text>
+          )}
         </Pressable>
       </View>
     );
@@ -119,14 +138,15 @@ export default function OutdoorNavigationSteps(
       props.indoorDirectionBlocks[0].sequenceNumber === 0;
     const shouldRenderEndIndoorStep =
       isAnIndoorToOutdoorTransitionPresent &&
-      props.indoorDirectionBlocks.at(-1)?.sequenceNumber! >
+      props.indoorDirectionBlocks.at(-1)?.sequenceNumber >
         props.outdoorDirectionSequenceNumber;
     const shouldRenderOnlyIndoorStep =
       props.indoorDirectionBlocks?.length === 1 && !props.directions;
 
     return (
       <>
-        {shouldRenderStartIndoorStep && renderIndoorStep("exit")}
+        {shouldRenderStartIndoorStep &&
+          renderIndoorStep("exit", "", startLocation?.code)}
         <View>
           {props.directions.steps.map((step: StepModel, index) => (
             <View
@@ -159,10 +179,10 @@ export default function OutdoorNavigationSteps(
           ))}
         </View>
         {shouldRenderEndIndoorStep &&
-          renderIndoorStep("enter", endLocation?.name)}
+          renderIndoorStep("enter", endLocation?.name, endLocation?.code)}
 
         {shouldRenderOnlyIndoorStep &&
-          renderIndoorStep("only_indoor", endLocation?.name)}
+          renderIndoorStep("only_indoor", endLocation?.name, endLocation?.code)}
       </>
     );
   };

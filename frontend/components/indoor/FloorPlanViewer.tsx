@@ -173,7 +173,6 @@ export default function FloorPlanViewer({
         onClearSelectedPoi={() =>
           router.setParams({ selectedPoiName: undefined })
         }
-        onDirectionsPress={() => {}}
       />
     </View>
   );

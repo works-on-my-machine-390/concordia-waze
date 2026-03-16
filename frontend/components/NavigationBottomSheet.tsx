@@ -5,7 +5,10 @@ import {
   useGetDirections,
 } from "@/hooks/queries/navigationQueries";
 import { useMapStore } from "@/hooks/useMapStore";
-import { useNavigationStore } from "@/hooks/useNavigationStore";
+import {
+  OutdoorNavigableLocation,
+  useNavigationStore,
+} from "@/hooks/useNavigationStore";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { useEffect, useMemo } from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -30,6 +33,7 @@ export default function NavigationBottomSheet(
   props: Readonly<NavigationBottomSheetProps>,
 ) {
   const navigationState = useNavigationStore();
+  console.log(navigationState.startLocation, navigationState.endLocation);
 
   const insets = useSafeAreaInsets();
 
@@ -52,12 +56,17 @@ export default function NavigationBottomSheet(
 
   const closeSheet = useMapStore((state) => state.closeSheet);
 
+  const handleCloseSheet = () => {
+    navigationState.clearState();
+    closeSheet();
+  };
+
   const isCrossCampus = useMemo(() => {
     if (!navigationState.startLocation || !navigationState.endLocation)
       return false;
     return getIsCrossCampus(
-      navigationState.startLocation,
-      navigationState.endLocation,
+      navigationState.startLocation as OutdoorNavigableLocation,
+      navigationState.endLocation as OutdoorNavigableLocation,
     );
   }, [navigationState.startLocation, navigationState.endLocation]);
 
@@ -163,7 +172,7 @@ export default function NavigationBottomSheet(
                 )}
             </View>
             <TouchableOpacity
-              onPress={closeSheet}
+              onPress={handleCloseSheet}
               style={NavigationBottomSheetStyles.closeIcon}
               testID="close-navigation"
               accessibilityLabel="Close navigation"
@@ -183,7 +192,12 @@ export default function NavigationBottomSheet(
             >
               {transitOptions.map(({ mode, Icon, image, duration }) => {
                 const selected = navigationState.transitMode === mode;
-                const disabled = mode === TransitMode.shuttle && !isCrossCampus;
+                const disabled =
+                  mode === TransitMode.shuttle &&
+                  (!isCrossCampus ||
+                    !outdoorBlock?.directionsByMode[
+                      TransitMode.shuttle.toLowerCase()
+                    ]);
                 return (
                   <TouchableOpacity
                     key={mode}

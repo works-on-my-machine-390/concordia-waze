@@ -233,19 +233,28 @@ export const formatDuration = (
     return null;
   }
 
-  const durationInMinutes = Math.round(durationInSeconds / 60);
-  const durationInHours = Math.round(durationInMinutes / 60);
-  const hoursPrefix = durationInHours > 0 ? `${durationInHours} hr ` : "";
+  const roundedTotalSeconds = Math.round(durationInSeconds);
+  const roundedTotalMinutes = Math.round(durationInSeconds / 60);
 
   if (smallestUnitToDisplay === "hours") {
-    return `${durationInHours} hr`;
+    return `${Math.floor(roundedTotalMinutes / 60)} hr`;
   }
 
   if (smallestUnitToDisplay === "minutes") {
-    return `${hoursPrefix}${durationInMinutes} min`;
+    const hours = Math.floor(roundedTotalMinutes / 60);
+    if (hours > 0) {
+      return `${hours} hr ${roundedTotalMinutes % 60} min`;
+    }
+
+    return `${roundedTotalMinutes} min`;
   }
 
+  const hours = Math.floor(roundedTotalSeconds / 3600);
+  const minutes = Math.floor((roundedTotalSeconds % 3600) / 60);
+  const seconds = roundedTotalSeconds % 60;
+  const hoursPrefix = hours > 0 ? `${hours} hr ` : "";
   const minutesPrefix =
-    durationInMinutes > 0 ? `${durationInMinutes} min ` : "";
-  return `${hoursPrefix}${minutesPrefix}${durationInSeconds % 60} sec`;
+    roundedTotalSeconds >= 60 ? `${minutes} min ` : "";
+
+  return `${hoursPrefix}${minutesPrefix}${seconds} sec`;
 };

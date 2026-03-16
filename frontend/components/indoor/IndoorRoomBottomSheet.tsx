@@ -9,41 +9,67 @@ import {
 } from "../../app/icons";
 import { BottomSheetStyles } from "../BuildingBottomSheet";
 import { formatIndoorPoiName } from "../../app/utils/indoorNameFormattingUtils";
+import {
+  NavigationPhase,
+  useNavigationStore,
+} from "@/hooks/useNavigationStore";
+import { useLocalSearchParams } from "expo-router";
+import { IndoorMapPageParams } from "@/app/(drawer)/indoor-map";
+import { useQueryClient } from "@tanstack/react-query";
+import { Building } from "@/hooks/queries/buildingQueries";
+import useStartLocation from "@/hooks/useStartLocation";
+import { PointOfInterest } from "@/hooks/queries/indoorMapQueries";
 
 export type IndoorRoomBottomSheetProps = {
-  roomCode: string;
-  buildingCode: string;
-  roomType?: string | null;
+  selectedPoi: PointOfInterest;
   onClose: () => void;
-  onDirectionsPress?: () => void;
-  directionsDisabled?: boolean;
 };
 
 export default function IndoorRoomBottomSheet(
   props: Readonly<IndoorRoomBottomSheetProps>,
 ) {
-  const {
-    roomCode,
-    buildingCode,
-    roomType,
-    onClose,
-    onDirectionsPress,
-    directionsDisabled = false,
-  } = props;
+  const queryClient = useQueryClient();
+  const { findAndSetStartLocation } = useStartLocation();
+
+  const navigationState = useNavigationStore(); // link to global navigation (not just indoors)
+  const params = useLocalSearchParams<IndoorMapPageParams>();
 
   const snapPoints = useMemo(() => ["15%"], []);
   const handleSheetChanges = useCallback((_index: number) => {}, []);
 
-  const isRoom = roomType?.toLowerCase() === "room";
+  const isRoom = props.selectedPoi.type?.toLowerCase() === "room";
 
   const displayTitle = formatIndoorPoiName(
-    roomCode,
-    roomType ?? "",
-    buildingCode,
+    props.selectedPoi.name,
+    props.selectedPoi.type ?? "",
+    params.buildingCode,
   );
 
   const displaySubtitle = isRoom ? "Room" : null;
-  const canPressDirections = !directionsDisabled && !!onDirectionsPress;
+
+  const handleNavigatePress = () => {
+    const buildingData: Building | undefined =
+      queryClient.getQueryData<Building>([
+        "buildingDetails",
+        params.buildingCode,
+      ]);
+    if (!navigationState.startLocation) {
+      findAndSetStartLocation();
+    }
+
+    navigationState.setEndLocation({
+      building: params.buildingCode,
+      floor_number: Number.parseInt(params.selectedFloor),
+      indoor_position: props.selectedPoi.position,
+      code: params.buildingCode,
+      name: displayTitle,
+      latitude: buildingData?.latitude ?? 0,
+      longitude: buildingData?.longitude ?? 0,
+    });
+
+    navigationState.setNavigationPhase(NavigationPhase.PREPARATION);
+    props.onClose?.();
+  };
 
   return (
     <BottomSheet
@@ -58,31 +84,16 @@ export default function IndoorRoomBottomSheet(
       backgroundStyle={BottomSheetStyles.bottomSheet}
       containerStyle={{ overflow: "visible" }}
     >
-      <View style={BottomSheetStyles.fakeHandleContainer}>
-      </View>
+      <View style={BottomSheetStyles.fakeHandleContainer}></View>
 
       <View style={BottomSheetStyles.headerContainer}>
         <TouchableOpacity
           testID="indoor-room-navigate-button"
-          onPress={() => {
-            if (canPressDirections && onDirectionsPress) {
-              onDirectionsPress();
-            }
-            onClose();
-          }}
-          disabled={directionsDisabled}
+          onPress={handleNavigatePress}
           activeOpacity={0.8}
         >
-          <View
-            style={[
-              BottomSheetStyles.floatingIcon,
-              directionsDisabled && styles.disabledFloating,
-            ]}
-          >
-            <GetDirectionsIcon
-            size={90}
-            color={directionsDisabled ? "#BDBDBD" : COLORS.maroon}
-          />
+          <View style={[BottomSheetStyles.floatingIcon]}>
+            <GetDirectionsIcon size={90} color={COLORS.maroon} />
           </View>
         </TouchableOpacity>
 
@@ -99,7 +110,7 @@ export default function IndoorRoomBottomSheet(
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={onClose}
+            onPress={props.onClose}
             style={BottomSheetStyles.closeIcon}
             testID="indoor-room-close-button"
           >
@@ -127,11 +138,5 @@ const IndoorRoomStyles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginBottom: 4,
     textTransform: "capitalize",
-  },
-});
-
-const styles = StyleSheet.create({
-  disabledFloating: {
-    opacity: 0.6,
   },
 });

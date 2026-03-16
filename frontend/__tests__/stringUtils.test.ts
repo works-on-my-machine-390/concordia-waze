@@ -1,4 +1,5 @@
 import {
+	formatDuration,
 	getDistanceDisplayText,
 	getSimplifiedAddress,
 	stripHtmlTags,
@@ -32,6 +33,16 @@ describe("stringUtils", () => {
 		it("should keep inline tags as plain text on the same line", () => {
 			const html = '<div>Turn <b>left</b> onto <i>Main St</i></div>';
 			expect(stripHtmlTags(html)).toBe("Turn left onto Main St");
+		});
+	});
+
+	describe("formatDuration", () => {
+		it("should format hours with remaining minutes", () => {
+			expect(formatDuration(6340)).toBe("1 hr 46 min");
+		});
+
+		it("should format seconds mode with hour and minute breakdown", () => {
+			expect(formatDuration(6340, "seconds")).toBe("1 hr 45 min 40 sec");
 		});
 	});
 });

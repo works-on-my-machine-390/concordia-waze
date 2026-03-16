@@ -1,6 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../api";
-import { NavigableLocation } from "../useNavigationStore";
+import {
+  IndoorNavigableLocation,
+  NavigableLocation,
+  OutdoorNavigableLocation,
+} from "../useNavigationStore";
 import { Point } from "./buildingQueries";
 import { MultiFloorPathResult } from "./indoorDirectionsQueries";
 
@@ -35,8 +39,12 @@ export type DirectionsResponseBlockType =
 
 // matches the backend's RouteRequest, see direction_request.go
 export type DirectionsRequestModel = {
-  start: NavigableLocation;
-  end: NavigableLocation;
+  start:
+    | Omit<IndoorNavigableLocation, "latitude" | "longitude">
+    | OutdoorNavigableLocation;
+  end:
+    | Omit<IndoorNavigableLocation, "latitude" | "longitude">
+    | OutdoorNavigableLocation;
   preferences: RoutePreferences;
 };
 
