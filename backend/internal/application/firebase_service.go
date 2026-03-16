@@ -416,6 +416,26 @@ func parseTimeToMinutes(s string) (int, bool) {
 	return 0, false
 }
 
+// minutesUntilItem returns the positive number of minutes from now until item's
+// next weekly occurrence, and whether the item's day/time fields are parseable.
+func minutesUntilItem(item *domain.ClassItem, now time.Time) (int, bool) {
+	itemWeekday, ok := parseWeekday(item.Day)
+	if !ok {
+		return 0, false
+	}
+	itemMinutes, ok := parseTimeToMinutes(item.StartTime)
+	if !ok {
+		return 0, false
+	}
+	currentMinutes := now.Hour()*60 + now.Minute()
+	dayDelta := (int(itemWeekday) - int(now.Weekday()) + 7) % 7
+	delta := dayDelta*24*60 + itemMinutes - currentMinutes
+	if delta <= 0 {
+		delta += 7 * 24 * 60
+	}
+	return delta, true
+}
+
 func (fs *FirebaseService) GetNextClass(ctx context.Context, userID string) (string, *domain.ClassItem, error) {
 	titles, err := fs.GetUserClasses(ctx, userID)
 	if err != nil {
@@ -427,8 +447,6 @@ func (fs *FirebaseService) GetNextClass(ctx context.Context, userID string) (str
 		loc = time.UTC
 	}
 	now := time.Now().In(loc)
-	currentWeekday := now.Weekday()
-	currentMinutes := now.Hour()*60 + now.Minute()
 
 	bestDelta := math.MaxInt
 	var bestTitle string
@@ -440,26 +458,14 @@ func (fs *FirebaseService) GetNextClass(ctx context.Context, userID string) (str
 			continue
 		}
 		for i := range items {
-			item := &items[i]
-			itemWeekday, ok := parseWeekday(item.Day)
+			delta, ok := minutesUntilItem(&items[i], now)
 			if !ok {
 				continue
 			}
-			itemMinutes, ok := parseTimeToMinutes(item.StartTime)
-			if !ok {
-				continue
-			}
-
-			dayDelta := (int(itemWeekday) - int(currentWeekday) + 7) % 7
-			delta := dayDelta*24*60 + itemMinutes - currentMinutes
-			if delta <= 0 {
-				delta += 7 * 24 * 60
-			}
-
 			if delta < bestDelta {
 				bestDelta = delta
 				bestTitle = title
-				cp := *item
+				cp := items[i]
 				bestItem = &cp
 			}
 		}
