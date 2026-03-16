@@ -19,8 +19,7 @@ export default function IndoorItineraryHeader({}: Readonly<Props>) {
   const mapState = useMapStore();
 
   const handleBack = () => {
-    navigationState.clearState();
-    mapState.setCurrentMode(MapMode.NONE);
+    router.replace("/map");
   };
 
   const startText = navigationState.startLocation?.name || "Select start";
