@@ -182,6 +182,8 @@ func SetupRouter() *gin.Engine {
 		usersGroup.POST("/:userId/history", firebaseHandler.AddDestinationHistory)
 		usersGroup.GET("/:userId/history", firebaseHandler.GetDestinationHistory)
 		usersGroup.DELETE("/:userId/history", firebaseHandler.ClearDestinationHistory)
+
+		usersGroup.GET("/:userId/schedule/next", firebaseHandler.GetNextClass)
 	}
 
 	return router

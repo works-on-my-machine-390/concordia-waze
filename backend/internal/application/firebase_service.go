@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math"
+	"strings"
 	"time"
 
 	"cloud.google.com/go/firestore"
@@ -385,6 +387,85 @@ func (fs *FirebaseService) DeleteClassItem(ctx context.Context, userID, title, c
 	}
 
 	return nil
+}
+
+// ===== Schedule / Next Class =====
+
+var weekdayNames = map[string]time.Weekday{
+	"sunday": time.Sunday, "sun": time.Sunday,
+	"monday": time.Monday, "mon": time.Monday,
+	"tuesday": time.Tuesday, "tue": time.Tuesday,
+	"wednesday": time.Wednesday, "wed": time.Wednesday,
+	"thursday": time.Thursday, "thu": time.Thursday,
+	"friday": time.Friday, "fri": time.Friday,
+	"saturday": time.Saturday, "sat": time.Saturday,
+}
+
+func parseWeekday(s string) (time.Weekday, bool) {
+	w, ok := weekdayNames[strings.ToLower(strings.TrimSpace(s))]
+	return w, ok
+}
+
+func parseTimeToMinutes(s string) (int, bool) {
+	s = strings.TrimSpace(s)
+	for _, layout := range []string{"15:04", "3:04 PM", "3:04PM", "15:04:05"} {
+		if t, err := time.Parse(layout, s); err == nil {
+			return t.Hour()*60 + t.Minute(), true
+		}
+	}
+	return 0, false
+}
+
+func (fs *FirebaseService) GetNextClass(ctx context.Context, userID string) (string, *domain.ClassItem, error) {
+	titles, err := fs.GetUserClasses(ctx, userID)
+	if err != nil {
+		return "", nil, fmt.Errorf("get next class: %w", err)
+	}
+
+	loc, err := time.LoadLocation("America/Toronto")
+	if err != nil {
+		loc = time.UTC
+	}
+	now := time.Now().In(loc)
+	currentWeekday := now.Weekday()
+	currentMinutes := now.Hour()*60 + now.Minute()
+
+	bestDelta := math.MaxInt
+	var bestTitle string
+	var bestItem *domain.ClassItem
+
+	for _, title := range titles {
+		items, err := fs.GetClassItems(ctx, userID, title)
+		if err != nil {
+			continue
+		}
+		for i := range items {
+			item := &items[i]
+			itemWeekday, ok := parseWeekday(item.Day)
+			if !ok {
+				continue
+			}
+			itemMinutes, ok := parseTimeToMinutes(item.StartTime)
+			if !ok {
+				continue
+			}
+
+			dayDelta := (int(itemWeekday) - int(currentWeekday) + 7) % 7
+			delta := dayDelta*24*60 + itemMinutes - currentMinutes
+			if delta <= 0 {
+				delta += 7 * 24 * 60
+			}
+
+			if delta < bestDelta {
+				bestDelta = delta
+				bestTitle = title
+				cp := *item
+				bestItem = &cp
+			}
+		}
+	}
+
+	return bestTitle, bestItem, nil
 }
 
 // ===== Saved Addresses =====

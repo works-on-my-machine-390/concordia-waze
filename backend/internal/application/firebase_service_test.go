@@ -778,8 +778,83 @@ func TestSaveGoogleToken_Nil(t *testing.T) {
 	assert.Contains(t, err.Error(), "token is nil")
 }
 
-// ===== Favorites =====
+// ===== GetNextClass integration tests =====
 
+func TestGetNextClass_ReturnsItem(t *testing.T) {
+	service := setupTestService(t)
+	ctx := context.Background()
+	userID := "test-user-next-class-" + time.Now().Format("20060102150405")
+
+	profile := domain.User{Email: "nextclass@example.com", Name: "Next Class", Password: "password"}
+	require.NoError(t, service.CreateUserProfile(ctx, userID, profile))
+
+	require.NoError(t, service.CreateClass(ctx, userID, "SOEN345"))
+
+	days := []string{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday"}
+	for _, day := range days {
+		_, err := service.AddClassItem(ctx, userID, "SOEN345", domain.ClassItem{
+			Type:      "lec",
+			Section:   "AA",
+			Day:       day,
+			StartTime: "09:00",
+			EndTime:   "10:15",
+			Room:      "H-937",
+		})
+		require.NoError(t, err)
+	}
+
+	className, item, err := service.GetNextClass(ctx, userID)
+	require.NoError(t, err)
+	require.NotNil(t, item, "Expected a next class item")
+	require.Equal(t, "SOEN345", className)
+	require.Equal(t, "09:00", item.StartTime)
+}
+
+func TestGetNextClass_NoClasses(t *testing.T) {
+	service := setupTestService(t)
+	ctx := context.Background()
+	userID := "test-user-no-classes-" + time.Now().Format("20060102150405")
+
+	profile := domain.User{Email: "noclasses@example.com", Name: "No Classes", Password: "password"}
+	require.NoError(t, service.CreateUserProfile(ctx, userID, profile))
+
+	className, item, err := service.GetNextClass(ctx, userID)
+	require.NoError(t, err)
+	require.Nil(t, item)
+	require.Empty(t, className)
+}
+
+func TestGetNextClass_MultipleClasses_ReturnsEarliest(t *testing.T) {
+	service := setupTestService(t)
+	ctx := context.Background()
+	userID := "test-user-multi-next-" + time.Now().Format("20060102150405")
+
+	profile := domain.User{Email: "multinext@example.com", Name: "Multi Next", Password: "password"}
+	require.NoError(t, service.CreateUserProfile(ctx, userID, profile))
+
+	require.NoError(t, service.CreateClass(ctx, userID, "SOEN345"))
+	require.NoError(t, service.CreateClass(ctx, userID, "COMP352"))
+
+	days := []string{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday"}
+	for _, day := range days {
+		_, err := service.AddClassItem(ctx, userID, "SOEN345", domain.ClassItem{
+			Type: "lec", Section: "AA", Day: day, StartTime: "10:00", EndTime: "11:15",
+		})
+		require.NoError(t, err)
+		_, err = service.AddClassItem(ctx, userID, "COMP352", domain.ClassItem{
+			Type: "lec", Section: "BB", Day: day, StartTime: "14:00", EndTime: "15:15",
+		})
+		require.NoError(t, err)
+	}
+
+	_, item, err := service.GetNextClass(ctx, userID)
+	require.NoError(t, err)
+	require.NotNil(t, item)
+
+	require.Contains(t, []string{"10:00", "14:00"}, item.StartTime)
+}
+
+// ===== Favorites =====
 func TestAddAndGetFavorites(t *testing.T) {
 	service := setupTestService(t)
 	ctx := context.Background()
