@@ -38,6 +38,8 @@ type createCourseRequest struct {
 	Name string `json:"name" binding:"required"`
 }
 
+const invalidRequestBodyMsg = "invalid request body"
+
 // SyncCalendarEvents godoc
 // @Summary Sync Google Calendar events
 // @Description Synchronizes Google Calendar events for the authenticated user since a given date
@@ -111,7 +113,7 @@ func (h *CalendarHandler) AddCourse(c *gin.Context) {
 	userID := c.GetString("userID")
 	var req createCourseRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body", "details": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": invalidRequestBodyMsg, "details": err.Error()})
 		return
 	}
 
@@ -256,7 +258,7 @@ func (h *CalendarHandler) AddClassItem(c *gin.Context) {
 
 	var item domain.ClassItem
 	if err := c.ShouldBindJSON(&item); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body", "details": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": invalidRequestBodyMsg, "details": err.Error()})
 		return
 	}
 
@@ -294,7 +296,7 @@ func (h *CalendarHandler) UpdateClassItem(c *gin.Context) {
 
 	var updates map[string]interface{}
 	if err := c.ShouldBindJSON(&updates); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": invalidRequestBodyMsg})
 		return
 	}
 
