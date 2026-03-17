@@ -25,54 +25,70 @@ func NewCalendarService(calGetter google.CalendarGetter, firebase FirebaseClassS
 	}
 }
 
+type idSet map[string]struct{}
+type existingIDsMap map[string]idSet
+type eventsMap map[string][]*domain.ClassItem
+
 func (s *calendarService) SyncCalendarEvents(token *oauth2.Token, userID string, day time.Time, calendarID string) (map[string][]*domain.ClassItem, []string, error) {
-	// get events from google calendar client
-	events, errors, err := s.calGetter.GetCalendarEvents(token, day, calendarID)
+	events, errs, err := s.calGetter.GetCalendarEvents(token, day, calendarID)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// get existing classes for user
 	existingClasses, err := s.firebase.GetAllClassItems(userID)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// build a lookup set of existing event IDs per class to avoid nested loops
-	existingIDs := make(map[string]map[string]struct{}, len(existingClasses))
-	for class, items := range existingClasses {
-		if existingIDs[class] == nil {
-			existingIDs[class] = make(map[string]struct{}, len(items))
-		}
-		for _, it := range items {
-			existingIDs[class][it.EventID] = struct{}{}
-		}
+	existingIDs := buildExistingIDs(existingClasses)
+
+	err = s.addMissingEvents(userID, events, existingIDs)
+	if err != nil {
+		return nil, nil, err
 	}
 
-	// iterate events and add missing ones
-	for class, classItems := range events {
-		if existingIDs[class] == nil {
-			existingIDs[class] = make(map[string]struct{}, len(classItems))
+	return events, errs, nil
+}
+
+func buildExistingIDs(existingClasses map[string][]*domain.ClassItem) existingIDsMap {
+	out := make(existingIDsMap, len(existingClasses))
+	for class, items := range existingClasses {
+		set := make(idSet, len(items))
+		for _, it := range items {
+			set[it.EventID] = struct{}{}
 		}
+		out[class] = set
+	}
+	return out
+}
+
+func (s *calendarService) addMissingEvents(userID string, events eventsMap, existing existingIDsMap) error {
+	for class, classItems := range events {
+		ids := ensureIDSet(existing, class, len(classItems))
 		for _, classItem := range classItems {
-			_, exists := existingIDs[class][classItem.EventID]
-			if exists {
+			if _, ok := ids[classItem.EventID]; ok {
 				continue
 			}
-
-			// create a short-lived context for the add operation, call cancel immediately after use
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			_, err = s.firebase.AddClassItem(ctx, userID, class, *classItem)
+			err := s.addClassItemWithTimeout(userID, class, classItem)
 			if err != nil {
-				cancel()
-				return nil, nil, err
+				return err
 			}
-			cancel()
-
-			// mark as added so subsequent iterations don't re-add
-			existingIDs[class][classItem.EventID] = struct{}{}
+			ids[classItem.EventID] = struct{}{}
 		}
 	}
+	return nil
+}
 
-	return events, errors, nil
+func ensureIDSet(m existingIDsMap, class string, hint int) idSet {
+	if m[class] == nil {
+		m[class] = make(idSet, hint)
+	}
+	return m[class]
+}
+
+func (s *calendarService) addClassItemWithTimeout(userID, class string, item *domain.ClassItem) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel() // safe: function scope ends quickly, no loop accumulation
+	_, err := s.firebase.AddClassItem(ctx, userID, class, *item)
+	return err
 }
