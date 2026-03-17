@@ -38,7 +38,10 @@ type createCourseRequest struct {
 	Name string `json:"name" binding:"required"`
 }
 
-const invalidRequestBodyMsg = "invalid request body"
+const (
+	invalidRequestBodyMsg = "invalid request body"
+	contextUserIDKey     = "userID"
+)
 
 // SyncCalendarEvents godoc
 // @Summary Sync Google Calendar events
@@ -54,7 +57,7 @@ const invalidRequestBodyMsg = "invalid request body"
 // @Router /courses/sync [get]
 func (h *CalendarHandler) SyncCalendarEvents(c *gin.Context) {
 
-	userID := c.GetString("userID")
+	userID := c.GetString(contextUserIDKey)
 
 	token, found, err := h.tokenStore.GetGoogleToken(c.Request.Context(), userID)
 	if err != nil {
@@ -68,7 +71,8 @@ func (h *CalendarHandler) SyncCalendarEvents(c *gin.Context) {
 	}
 
 	var q query
-	if err := c.ShouldBindQuery(&q); err != nil {
+	err = c.ShouldBindQuery(&q)
+	if err != nil {
 		c.JSON(400, gin.H{"error": "Invalid date"})
 		return
 	}
@@ -77,23 +81,24 @@ func (h *CalendarHandler) SyncCalendarEvents(c *gin.Context) {
 		q.CalendarID = "primary"
 	}
 
-	if events, syncErrors, err := h.calendarService.SyncCalendarEvents(token, userID, q.Since, q.CalendarID); err != nil {
+	events, syncErrors, err := h.calendarService.SyncCalendarEvents(token, userID, q.Since, q.CalendarID)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch events", "details": err.Error()})
 		return
-	} else {
-		courses := make([]domain.CourseItem, 0, len(events))
-		for course, event := range events {
-			courses = append(courses, domain.CourseItem{
-				Name:    course,
-				Classes: event,
-			})
-		}
+	}
 
-		c.JSON(http.StatusOK, SyncResponse{
-			Events: courses,
-			Errors: syncErrors,
+	courses := make([]domain.CourseItem, 0, len(events))
+	for course, event := range events {
+		courses = append(courses, domain.CourseItem{
+			Name:    course,
+			Classes: event,
 		})
 	}
+
+	c.JSON(http.StatusOK, SyncResponse{
+		Events: courses,
+		Errors: syncErrors,
+	})
 
 }
 
@@ -110,14 +115,16 @@ func (h *CalendarHandler) SyncCalendarEvents(c *gin.Context) {
 // @Security BearerAuth
 // @Router /courses [post]
 func (h *CalendarHandler) AddCourse(c *gin.Context) {
-	userID := c.GetString("userID")
+	userID := c.GetString(contextUserIDKey)
 	var req createCourseRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	err := c.ShouldBindJSON(&req)
+	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": invalidRequestBodyMsg, "details": err.Error()})
 		return
 	}
 
-	if err := h.firebaseService.CreateClass(c.Request.Context(), userID, req.Name); err != nil {
+	err = h.firebaseService.CreateClass(c.Request.Context(), userID, req.Name)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -135,7 +142,7 @@ func (h *CalendarHandler) AddCourse(c *gin.Context) {
 // @Security BearerAuth
 // @Router /courses [get]
 func (h *CalendarHandler) GetCourses(c *gin.Context) {
-	userID := c.GetString("userID")
+	userID := c.GetString(contextUserIDKey)
 	ctx := c.Request.Context()
 
 	titles, err := h.firebaseService.GetUserClasses(ctx, userID)
@@ -171,10 +178,11 @@ func (h *CalendarHandler) GetCourses(c *gin.Context) {
 // @Security BearerAuth
 // @Router /courses/{title} [delete]
 func (h *CalendarHandler) DeleteCourse(c *gin.Context) {
-	userID := c.GetString("userID")
+	userID := c.GetString(contextUserIDKey)
 	title := c.Param("title")
 
-	if err := h.firebaseService.DeleteClass(c.Request.Context(), userID, title); err != nil {
+	err := h.firebaseService.DeleteClass(c.Request.Context(), userID, title)
+	if err != nil {
 		if errors.Is(err, domain.ErrCourseNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
@@ -198,11 +206,12 @@ func (h *CalendarHandler) DeleteCourse(c *gin.Context) {
 // @Security BearerAuth
 // @Router /courses/{title}/items/{classID} [delete]
 func (h *CalendarHandler) DeleteClassItem(c *gin.Context) {
-	userID := c.GetString("userID")
+	userID := c.GetString(contextUserIDKey)
 	title := c.Param("title")
 	classID := c.Param("classID")
 
-	if err := h.firebaseService.DeleteClassItem(c.Request.Context(), userID, title, classID); err != nil {
+	err := h.firebaseService.DeleteClassItem(c.Request.Context(), userID, title, classID)
+	if err != nil {
 		if errors.Is(err, domain.ErrCourseNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
@@ -225,7 +234,7 @@ func (h *CalendarHandler) DeleteClassItem(c *gin.Context) {
 // @Security BearerAuth
 // @Router /courses/{title}/items [get]
 func (h *CalendarHandler) GetClassItems(c *gin.Context) {
-	userID := c.GetString("userID")
+	userID := c.GetString(contextUserIDKey)
 	title := c.Param("title")
 	if title == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "class title required"})
@@ -253,11 +262,12 @@ func (h *CalendarHandler) GetClassItems(c *gin.Context) {
 // @Security BearerAuth
 // @Router /courses/{title}/items [post]
 func (h *CalendarHandler) AddClassItem(c *gin.Context) {
-	userID := c.GetString("userID")
+	userID := c.GetString(contextUserIDKey)
 	title := c.Param("title")
 
 	var item domain.ClassItem
-	if err := c.ShouldBindJSON(&item); err != nil {
+	err := c.ShouldBindJSON(&item)
+	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": invalidRequestBodyMsg, "details": err.Error()})
 		return
 	}
@@ -290,17 +300,19 @@ func (h *CalendarHandler) AddClassItem(c *gin.Context) {
 // @Security BearerAuth
 // @Router /courses/{title}/items/{classID} [patch]
 func (h *CalendarHandler) UpdateClassItem(c *gin.Context) {
-	userID := c.GetString("userID")
+	userID := c.GetString(contextUserIDKey)
 	title := c.Param("title")
 	classID := c.Param("classID")
 
 	var updates map[string]interface{}
-	if err := c.ShouldBindJSON(&updates); err != nil {
+	err := c.ShouldBindJSON(&updates)
+	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": invalidRequestBodyMsg})
 		return
 	}
 
-	if err := h.firebaseService.UpdateClassItem(c.Request.Context(), userID, title, classID, updates); err != nil {
+	err = h.firebaseService.UpdateClassItem(c.Request.Context(), userID, title, classID, updates)
+	if err != nil {
 		if errors.Is(err, domain.ErrCourseNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
