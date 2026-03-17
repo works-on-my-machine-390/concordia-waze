@@ -1220,3 +1220,99 @@ func TestAddFavoriteRepositoryError(t *testing.T) {
 		t.Errorf("Expected 'db error', got %v", err)
 	}
 }
+
+func TestGetAllClassItems(t *testing.T) {
+	service := setupTestService(t)
+	ctx := context.Background()
+
+	userID := "test-user-getall-" + time.Now().Format("20060102150405")
+
+	profile := domain.User{
+		Email:    "getall@example.com",
+		Name:     "Get All User",
+		Password: "password",
+	}
+	require.NoError(t, service.CreateUserProfile(ctx, userID, profile))
+
+	// create two classes
+	titleA := "TESTA-" + time.Now().Format("150405")
+	titleB := "TESTB-" + time.Now().Format("150405")
+
+	require.NoError(t, service.CreateClass(ctx, userID, titleA))
+	require.NoError(t, service.CreateClass(ctx, userID, titleB))
+
+	// add items to both classes
+	itemA := domain.ClassItem{
+		Type:         "lec",
+		Section:      "A1",
+		Day:          "Monday",
+		StartTime:    "09:00",
+		EndTime:      "10:00",
+		BuildingCode: "H",
+		Room:         "H-100",
+	}
+	itemB := domain.ClassItem{
+		Type:         "tut",
+		Section:      "T1",
+		Day:          "Wednesday",
+		StartTime:    "11:00",
+		EndTime:      "12:00",
+		BuildingCode: "EV",
+		Room:         "EV-200",
+	}
+
+	idA, err := service.AddClassItem(ctx, userID, titleA, itemA)
+	require.NoError(t, err)
+	require.NotEmpty(t, idA)
+
+	idB, err := service.AddClassItem(ctx, userID, titleB, itemB)
+	require.NoError(t, err)
+	require.NotEmpty(t, idB)
+
+	// retrieve everything
+	all, err := service.GetAllClassItems(userID)
+	require.NoError(t, err)
+
+	// ensure both classes are present
+	assert.Contains(t, all, titleA)
+	assert.Contains(t, all, titleB)
+
+	// ensure items are present and contain our added entries
+	itemsA, ok := all[titleA]
+	require.True(t, ok)
+	assert.GreaterOrEqual(t, len(itemsA), 1)
+
+	foundA := false
+	for _, it := range itemsA {
+		if it.ClassID == idA {
+			foundA = true
+			assert.Equal(t, "lec", it.Type)
+			assert.Equal(t, "A1", it.Section)
+			assert.Equal(t, "09:00", it.StartTime)
+			assert.Equal(t, "10:00", it.EndTime)
+			assert.Equal(t, "H", it.BuildingCode)
+			assert.Equal(t, "H-100", it.Room)
+			break
+		}
+	}
+	assert.True(t, foundA, "expected item for class A not found")
+
+	itemsB, ok := all[titleB]
+	require.True(t, ok)
+	assert.GreaterOrEqual(t, len(itemsB), 1)
+
+	foundB := false
+	for _, it := range itemsB {
+		if it.ClassID == idB {
+			foundB = true
+			assert.Equal(t, "tut", it.Type)
+			assert.Equal(t, "T1", it.Section)
+			assert.Equal(t, "11:00", it.StartTime)
+			assert.Equal(t, "12:00", it.EndTime)
+			assert.Equal(t, "EV", it.BuildingCode)
+			assert.Equal(t, "EV-200", it.Room)
+			break
+		}
+	}
+	assert.True(t, foundB, "expected item for class B not found")
+}

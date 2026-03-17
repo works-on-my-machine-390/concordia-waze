@@ -2,13 +2,14 @@ package domain
 
 // CourseItem groups a set of class sessions under a named course.
 type CourseItem struct {
-	Name    string      `json:"name"`
-	Classes []ClassItem `json:"classes"`
+	Name    string       `json:"name"`
+	Classes []*ClassItem `json:"classes"`
 }
 
 // ClassItem stores one schedule entry under a course.
 type ClassItem struct {
-	ClassID      string `firestore:"classId" json:"classId,omitempty"`
+	EventID      string `firestore:"eventId" json:"eventId,omitempty"`
+	ClassID      string `firestore:"itemId" json:"itemId,omitempty"`
 	Type         string `firestore:"type" json:"type"` // lab, lec, tut
 	Section      string `firestore:"section" json:"section"`
 	Day          string `firestore:"day" json:"day"`

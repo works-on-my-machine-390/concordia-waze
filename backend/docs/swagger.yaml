@@ -173,11 +173,13 @@ definitions:
     properties:
       buildingCode:
         type: string
-      classId:
-        type: string
       day:
         type: string
       endTime:
+        type: string
+      eventId:
+        type: string
+      itemId:
         type: string
       origin:
         description: '"manual" or "google"'
@@ -526,6 +528,7 @@ definitions:
     - end
     - start
     type: object
+host: concordia-waze.onrender.com
 info:
   contact: {}
   description: This is the Concordia Waze API server.
@@ -545,12 +548,6 @@ paths:
       - description: Optional fallback userId if not available in auth context
         in: query
         name: userId
-        type: string
-      - default: Bearer <token>
-        description: Bearer token
-        in: header
-        name: Authorization
-        required: true
         type: string
       produces:
       - application/json
@@ -911,6 +908,292 @@ paths:
       summary: List buildings for a campus
       tags:
       - buildings
+  /courses:
+    get:
+      description: Retrieves all class titles for the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: string
+            type: array
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List user classes
+      tags:
+      - class
+    post:
+      consumes:
+      - application/json
+      description: Creates a new class for the authenticated user
+      parameters:
+      - description: Class Title
+        in: body
+        name: class
+        required: true
+        schema:
+          $ref: '#/definitions/handler.createCourseRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Created class
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create a new class (container)
+      tags:
+      - class
+  /courses/{title}:
+    delete:
+      description: Deletes a specified class for the authenticated user
+      parameters:
+      - description: Class title
+        in: path
+        name: title
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a class and its items
+      tags:
+      - class
+  /courses/{title}/items:
+    get:
+      description: Lists schedule items in the given class
+      parameters:
+      - description: Class title
+        in: path
+        name: title
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/domain.ClassItem'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List items in a class
+      tags:
+      - class
+    post:
+      consumes:
+      - application/json
+      description: Add a new class item to an existing class
+      parameters:
+      - description: Class title
+        in: path
+        name: title
+        required: true
+        type: string
+      - description: Class Item
+        in: body
+        name: item
+        required: true
+        schema:
+          $ref: '#/definitions/domain.ClassItem'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Add a schedule item to a class
+      tags:
+      - class
+  /courses/{title}/items/{classID}:
+    delete:
+      description: Delete a specific class item from a user's class
+      parameters:
+      - description: Class title
+        in: path
+        name: title
+        required: true
+        type: string
+      - description: Class item ID
+        in: path
+        name: classID
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete a single item from a class
+      tags:
+      - class
+    patch:
+      consumes:
+      - application/json
+      description: Update fields of a class item (PATCH semantics)
+      parameters:
+      - description: Class title
+        in: path
+        name: title
+        required: true
+        type: string
+      - description: Class item ID
+        in: path
+        name: classID
+        required: true
+        type: string
+      - description: Updates
+        in: body
+        name: updates
+        required: true
+        schema:
+          additionalProperties: true
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update a class item (partial)
+      tags:
+      - class
+  /courses/sync:
+    get:
+      description: Synchronizes Google Calendar events for the authenticated user
+        since a given date
+      parameters:
+      - description: Sync events since this date (YYYY-MM-DD)
+        in: query
+        name: since
+        required: true
+        type: string
+      - description: calendar id, default to primary
+        in: query
+        name: calendar_id
+        type: string
+      responses:
+        "200":
+          description: Events synced successfully
+          schema:
+            type: string
+        "400":
+          description: Invalid date
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Google auth required
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Failed to fetch events or token
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Sync Google Calendar events
+      tags:
+      - class
   /directions:
     get:
       description: Returns route polyline + step instructions (walking/driving/transit/shuttle/bicycling)
