@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"sort"
 	"time"
 
 	"cloud.google.com/go/firestore"
@@ -21,6 +22,17 @@ import (
 // FirebaseService handles Firestore operations.
 type FirebaseService struct {
 	client *firestore.Client
+}
+
+type FirebaseClassService interface {
+	CreateClass(ctx context.Context, userID, title string) error
+	GetUserClasses(ctx context.Context, userID string) ([]string, error)
+	DeleteClass(ctx context.Context, userID, title string) error
+	AddClassItem(ctx context.Context, userID, title string, item domain.ClassItem) (string, error)
+	GetClassItems(ctx context.Context, userID, title string) ([]*domain.ClassItem, error)
+	GetAllClassItems(userID string) (map[string][]*domain.ClassItem, error)
+	UpdateClassItem(ctx context.Context, userID, title, classID string, updates map[string]interface{}) error
+	DeleteClassItem(ctx context.Context, userID, title, classID string) error
 }
 
 // NewFirebaseService creates a new Firebase service.
@@ -278,6 +290,10 @@ func (fs *FirebaseService) GetUserClasses(ctx context.Context, userID string) ([
 
 // DeleteClass deletes a class and all its schedule items stored in the classItems subcollection.
 func (fs *FirebaseService) DeleteClass(ctx context.Context, userID, title string) error {
+	if err := fs.ensureCourseExists(ctx, userID, title); err != nil {
+		return err
+	}
+
 	itemDocs, err := fs.client.
 		Collection("users").
 		Doc(userID).
@@ -311,7 +327,28 @@ func (fs *FirebaseService) DeleteClass(ctx context.Context, userID, title string
 
 // ===== Class Items =====
 
+func (fs *FirebaseService) ensureCourseExists(ctx context.Context, userID, title string) error {
+	_, err := fs.client.
+		Collection("users").
+		Doc(userID).
+		Collection("classes").
+		Doc(title).
+		Get(ctx)
+	if err == nil {
+		return nil
+	}
+	if status.Code(err) == codes.NotFound {
+		return domain.ErrCourseNotFound
+	}
+	return fmt.Errorf("get course: %w", err)
+}
+
 func (fs *FirebaseService) AddClassItem(ctx context.Context, userID, title string, item domain.ClassItem) (string, error) {
+	err := fs.ensureCourseExists(ctx, userID, title)
+	if err != nil {
+		fs.CreateClass(ctx, userID, title)
+	}
+
 	ref, _, err := fs.client.
 		Collection("users").
 		Doc(userID).
@@ -326,22 +363,24 @@ func (fs *FirebaseService) AddClassItem(ctx context.Context, userID, title strin
 	return ref.ID, nil
 }
 
-func (fs *FirebaseService) GetClassItems(ctx context.Context, userID, title string) ([]domain.ClassItem, error) {
+func (fs *FirebaseService) GetClassItems(ctx context.Context, userID, title string) ([]*domain.ClassItem, error) {
+	if err := fs.ensureCourseExists(ctx, userID, title); err != nil {
+		return nil, err
+	}
+
 	docs, err := fs.client.
 		Collection("users").
 		Doc(userID).
 		Collection("classes").
 		Doc(title).
 		Collection("classItems").
-		OrderBy("day", firestore.Asc).
-		OrderBy("startTime", firestore.Asc).
 		Documents(ctx).
 		GetAll()
 	if err != nil {
 		return nil, fmt.Errorf("get class items: %w", err)
 	}
 
-	items := make([]domain.ClassItem, 0, len(docs))
+	items := make([]*domain.ClassItem, 0, len(docs))
 	for _, doc := range docs {
 		var item domain.ClassItem
 		if doc.DataTo(&item) != nil {
@@ -349,13 +388,51 @@ func (fs *FirebaseService) GetClassItems(ctx context.Context, userID, title stri
 		}
 
 		item.ClassID = doc.Ref.ID
-		items = append(items, item)
+		items = append(items, &item)
 	}
+
+	sort.Slice(items, func(i, j int) bool {
+		if items[i].Day == items[j].Day {
+			return items[i].StartTime < items[j].StartTime
+		}
+		return items[i].Day < items[j].Day
+	})
 
 	return items, nil
 }
 
+func (fs *FirebaseService) GetAllClassItems(userID string) (map[string][]*domain.ClassItem, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	classDocs, err := fs.client.
+		Collection("users").
+		Doc(userID).
+		Collection("classes").
+		Documents(ctx).
+		GetAll()
+	if err != nil {
+		return nil, fmt.Errorf("listing classes: %w", err)
+	}
+
+	result := make(map[string][]*domain.ClassItem)
+
+	for _, classDoc := range classDocs {
+		title := classDoc.Ref.ID
+		items, _ := fs.GetClassItems(ctx, userID, title)
+		if items != nil {
+			result[title] = items
+		}
+	}
+
+	return result, nil
+}
+
 func (fs *FirebaseService) UpdateClassItem(ctx context.Context, userID, title, classID string, updates map[string]interface{}) error {
+	if err := fs.ensureCourseExists(ctx, userID, title); err != nil {
+		return err
+	}
+
 	_, err := fs.client.
 		Collection("users").
 		Doc(userID).
@@ -372,6 +449,10 @@ func (fs *FirebaseService) UpdateClassItem(ctx context.Context, userID, title, c
 }
 
 func (fs *FirebaseService) DeleteClassItem(ctx context.Context, userID, title, classID string) error {
+	if err := fs.ensureCourseExists(ctx, userID, title); err != nil {
+		return err
+	}
+
 	_, err := fs.client.
 		Collection("users").
 		Doc(userID).
