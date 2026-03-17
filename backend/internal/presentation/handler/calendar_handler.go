@@ -12,14 +12,14 @@ import (
 
 type CalendarHandler struct {
 	tokenStore      GoogleTokenStore
-	calendarService application.CalendarService
+	calendarSyncer  application.CalendarSyncer
 	firebaseService application.FirebaseClassService
 }
 
-func NewCalendarHandler(tokenStore GoogleTokenStore, calendarService application.CalendarService, firebaseService application.FirebaseClassService) *CalendarHandler {
+func NewCalendarHandler(tokenStore GoogleTokenStore, calendarSyncer application.CalendarSyncer, firebaseService application.FirebaseClassService) *CalendarHandler {
 	return &CalendarHandler{
 		tokenStore:      tokenStore,
-		calendarService: calendarService,
+		calendarSyncer:  calendarSyncer,
 		firebaseService: firebaseService,
 	}
 }
@@ -81,7 +81,7 @@ func (h *CalendarHandler) SyncCalendarEvents(c *gin.Context) {
 		q.CalendarID = "primary"
 	}
 
-	events, syncErrors, err := h.calendarService.SyncCalendarEvents(token, userID, q.Since, q.CalendarID)
+	events, syncErrors, err := h.calendarSyncer.SyncCalendarEvents(token, userID, q.Since, q.CalendarID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch events", "details": err.Error()})
 		return

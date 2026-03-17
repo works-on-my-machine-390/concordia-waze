@@ -512,7 +512,6 @@ definitions:
     - end
     - start
     type: object
-host: concordia-waze.onrender.com
 info:
   contact: {}
   description: This is the Concordia Waze API server.

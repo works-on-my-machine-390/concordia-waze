@@ -6,7 +6,6 @@
         "contact": {},
         "version": "1.0"
     },
-    "host": "concordia-waze.onrender.com",
     "paths": {
         "/auth/google": {
             "get": {
