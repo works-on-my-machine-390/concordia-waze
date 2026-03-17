@@ -9,9 +9,8 @@ import { getAddressFromLocation } from "@/app/utils/mapUtils";
  * @returns An object containing the function to find and set the start location.
  */
 export default function useStartLocation() {
-  const setStartLocation = useNavigationStore(
-    (state) => state.setStartLocation,
-  );
+  const { setStartLocation, setModifyingField, modifyingField } =
+    useNavigationStore();
   const { userLocation, currentBuildingCode } = useMapStore();
   const queryClient = useQueryClient();
 
@@ -25,23 +24,25 @@ export default function useStartLocation() {
       currentBuildingCode,
     ]);
 
+    const isUserInSameBuildingAsEndLocation =
+      endLocation &&
+      endLocation.code &&
+      endLocation.code === currentLocationDetails?.code;
+
+    const isUserLocationAvailable = !!userLocation;
+
+    if (
+      (!currentLocationDetails && !isUserLocationAvailable) ||
+      isUserInSameBuildingAsEndLocation
+    ) {
+      setStartLocation(null); // prompt the user to set it themselves
+      setModifyingField("start"); // let the user's next click on a building or indoor POI set the start location.
+      return;
+    }
+
     let startAddress = "";
     if (userLocation && !currentLocationDetails) {
       startAddress = await getAddressFromLocation(userLocation);
-    }
-
-    if (!currentLocationDetails && !userLocation) {
-      setStartLocation(null);
-      return;
-    }
-
-    if (
-      endLocation &&
-      endLocation.code &&
-      endLocation.code === currentLocationDetails?.code
-    ) {
-      setStartLocation(null); // have user set manually since we can't be sure where they are in the building
-      return;
     }
 
     setStartLocation({
@@ -55,5 +56,40 @@ export default function useStartLocation() {
     });
   };
 
-  return { findAndSetStartLocation };
+  /**
+   * provided a NavigableLocation, set it as the start location and reset modifying field.
+   * guarded to only update if the user is currently trying to modify the start location.
+   */
+  const setStartLocationManually = (location: NavigableLocation) => {
+    if (modifyingField === "start") {
+      setStartLocation(location);
+      setModifyingField(null);
+    }
+  };
+
+  /**
+   * Given a building code, looks up the information using queryClient and sets the start location accordingly.
+   * @param buildingCode the code of the building to set as the start location.
+   */
+  const setStartLocationAutocomplete = (buildingCode: string) => {
+    const buildingDetails = queryClient.getQueryData<Building>([
+      "buildingDetails",
+      buildingCode,
+    ]);
+    if (buildingDetails) {
+      setStartLocationManually({
+        name: buildingDetails.long_name,
+        latitude: buildingDetails.latitude,
+        longitude: buildingDetails.longitude,
+        code: buildingDetails.code,
+        address: buildingDetails.address,
+      });
+    }
+  };
+
+  return {
+    findAndSetStartLocation,
+    setStartLocationManually,
+    setStartLocationAutocomplete,
+  };
 }

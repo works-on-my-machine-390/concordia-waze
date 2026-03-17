@@ -1,5 +1,5 @@
 import { COLORS, DIRECTION_COLORS } from "@/app/constants";
-import type { Floor } from "@/hooks/queries/indoorMapQueries";
+import type { Floor, PointOfInterest } from "@/hooks/queries/indoorMapQueries";
 import { useSvgDimensions } from "@/hooks/useSvgDimensions";
 import { ReactNativeZoomableView } from "@openspacelabs/react-native-zoomable-view";
 import {
@@ -17,6 +17,8 @@ import IndoorBottomSheetSection from "./IndoorBottomSheetSection";
 import IndoorPathOverlay from "./IndoorPathOverlay";
 import PoiMarker from "./PoiMarker";
 import PolygonOverlay from "./PolygonOverlay";
+import { useNavigationStore } from "@/hooks/useNavigationStore";
+import useStartLocation from "@/hooks/useStartLocation";
 
 /** Standard indoor route */
 export const ROUTE_STYLE_STANDARD = {
@@ -73,6 +75,34 @@ export default function FloorPlanViewer({
     floor?.imgPath,
   );
 
+  const navigationState = useNavigationStore();
+  const { setStartLocationManually } = useStartLocation();
+
+  // includes both POIs and rooms which count as POIs
+  const handlePressPoi = (poi: PointOfInterest) => {
+    const isDisabled =
+      !!navigationState.navigationPhase && !!navigationState.startLocation;
+
+    if (isDisabled) return;
+
+    if (
+      !navigationState.startLocation &&
+      navigationState.modifyingField === "start"
+    ) {
+      setStartLocationManually({
+        name: poi.name,
+        code: params.buildingCode,
+        building: params.buildingCode,
+        floor_number: Number.parseInt(params.selectedFloor),
+        indoor_position: poi.position,
+        latitude: 0, // not used for indoors but required by type
+        longitude: 0, // not used for indoors but required by type
+      });
+    }
+
+    router.setParams({ selectedPoiName: poi.name });
+  };
+
   function renderPoiMarkers(parameters: {
     floor: Floor;
     displayWidth: number;
@@ -89,7 +119,7 @@ export default function FloorPlanViewer({
           width={displayWidth}
           height={displayHeight}
           highlighted={highlighted}
-          onPress={() => router.setParams({ selectedPoiName: poi.name })}
+          onPress={() => handlePressPoi(poi)}
         />
       );
     });
@@ -151,7 +181,7 @@ export default function FloorPlanViewer({
             width={displayWidth}
             height={displayHeight}
             selectedPoiName={params.selectedPoiName}
-            onSelectPoi={(name) => router.setParams({ selectedPoiName: name })}
+            onSelectPoi={handlePressPoi}
           />
 
           <View style={StyleSheet.absoluteFill} pointerEvents="box-none">

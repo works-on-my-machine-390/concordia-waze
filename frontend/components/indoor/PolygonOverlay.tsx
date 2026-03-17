@@ -10,7 +10,7 @@ type Props = {
   height: number;
 
   selectedPoiName?: string;
-  onSelectPoi?: (name: string) => void;
+  onSelectPoi?: (poi: PointOfInterest) => void;
 };
 
 const PolygonOverlay = memo(
@@ -31,7 +31,7 @@ const PolygonOverlay = memo(
                   width={width}
                   height={height}
                   isSelected={isSelected}
-                  onPress={() => onSelectPoi?.(poi.name)}
+                  onPress={() => onSelectPoi?.(poi)}
                 />
               );
             })}
