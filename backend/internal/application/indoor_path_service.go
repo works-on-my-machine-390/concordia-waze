@@ -423,7 +423,7 @@ func (s *IndoorPathService) findClosestLinkedTransitionPair(
 	if bestStart != nil && bestEnd != nil {
 		return bestStart, bestEnd
 	}
-	
+
 	return s.findClosestGeometricTransitionPair(startTransitions, endTransitions, startRef, endRef)
 }
 
