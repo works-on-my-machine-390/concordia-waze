@@ -300,7 +300,8 @@ func (h *GoogleOAuthHandler) Callback(c *gin.Context) {
 	}
 
 	// Save token using the injected token store.
-	if err := h.store.SaveGoogleToken(ctx, userID, tok); err != nil {
+	err = h.store.SaveGoogleToken(ctx, userID, tok)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to save token"})
 		return
 	}
