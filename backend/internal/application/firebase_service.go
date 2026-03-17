@@ -344,7 +344,8 @@ func (fs *FirebaseService) ensureCourseExists(ctx context.Context, userID, title
 }
 
 func (fs *FirebaseService) AddClassItem(ctx context.Context, userID, title string, item domain.ClassItem) (string, error) {
-	if err := fs.ensureCourseExists(ctx, userID, title); err != nil {
+	err := fs.ensureCourseExists(ctx, userID, title)
+	if err != nil {
 		fs.CreateClass(ctx, userID, title)
 	}
 
