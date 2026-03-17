@@ -40,7 +40,7 @@ type createCourseRequest struct {
 
 const (
 	invalidRequestBodyMsg = "invalid request body"
-	contextUserIDKey     = "userID"
+	contextUserIDKey      = "userID"
 )
 
 // SyncCalendarEvents godoc
