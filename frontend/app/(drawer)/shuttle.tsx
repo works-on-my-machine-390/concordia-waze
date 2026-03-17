@@ -12,7 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useGetShuttleSchedule } from "../../hooks/queries/shuttleQueries";
 import { COLORS } from "../constants";
 import { MenuIcon } from "../icons";
-import { endTaskTimer, startTaskTimer } from "@/lib/telemetry";
+import { endTaskTimer, startTaskTimer, trackEvent } from "@/lib/telemetry";
 
 const C = COLORS,
   M = C.maroon;
@@ -54,6 +54,9 @@ export default function ShuttleSchedule() {
 
   useEffect(() => {
     if (!isLoading && !error && rows.length > 0) {
+      if (!hasViewedScheduleRef.current) {
+        void trackEvent("shuttle_schedule_viewed", { day: tab });
+      }
       hasViewedScheduleRef.current = true;
     }
   }, [isLoading, error, rows.length]);

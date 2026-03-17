@@ -25,6 +25,7 @@ type Props = {
   floorSelectorBottomOffset?: number;
   selectedRoomFromSearch?: string;
   selectedFloorFromSearch?: number;
+  selectedPoiCoordFromSearch?: Coordinates;
 
   disablePoiSelection?: boolean;
   hideBottomSheetSection?: boolean;
@@ -36,8 +37,7 @@ type Props = {
   requireAccessible?: boolean;
 };
 
-const normalizeName = (s: string) =>
-  s.trim().toLowerCase().replace(/\s+/g, "");
+const normalizeName = (s: string) => s.trim().toLowerCase().replace(/\s+/g, "");
 
 const normalizeType = (s?: string) =>
   (s ?? "").trim().toLowerCase().replace(/\s+/g, "_");
@@ -99,6 +99,7 @@ export default function IndoorMapContainer({
   floorSelectorBottomOffset = 24,
   selectedRoomFromSearch,
   selectedFloorFromSearch,
+  selectedPoiCoordFromSearch,
   disablePoiSelection = false,
   hideBottomSheetSection = false,
   hideFloorSelector = false,
@@ -129,47 +130,68 @@ export default function IndoorMapContainer({
   const { data, isLoading, error } = useGetBuildingFloors(buildingCode);
   const { data: buildingData } = useGetBuildingDetails(buildingCode);
 
+  const availableFloorNumbers = useMemo(
+    () => data?.floors?.map((floor) => floor.number) ?? [],
+    [data?.floors],
+  );
+
+  const resolvedFloor = useMemo(() => {
+    if (availableFloorNumbers.length === 0) {
+      return null;
+    }
+
+    if (
+      navMode === "BROWSE" &&
+      selectedFloorFromSearch != null &&
+      availableFloorNumbers.includes(selectedFloorFromSearch)
+    ) {
+      return selectedFloorFromSearch;
+    }
+
+    if (
+      navCurrentFloor != null &&
+      availableFloorNumbers.includes(navCurrentFloor)
+    ) {
+      return navCurrentFloor;
+    }
+
+    if (
+      preferredFloorNumber != null &&
+      availableFloorNumbers.includes(preferredFloorNumber)
+    ) {
+      return preferredFloorNumber;
+    }
+
+    return availableFloorNumbers[0] ?? null;
+  }, [
+    availableFloorNumbers,
+    navMode,
+    selectedFloorFromSearch,
+    navCurrentFloor,
+    preferredFloorNumber,
+  ]);
+
   useEffect(() => {
     setAccessibilityRouteUnavailable(false);
   }, [requireAccessible]);
 
   useEffect(() => {
-    if (!data?.floors?.length) return;
+    if (resolvedFloor == null) return;
 
-    let nextFloor: number;
+    setSelectedFloor((prev) => (prev === resolvedFloor ? prev : resolvedFloor));
+  }, [resolvedFloor]);
 
-    if (navMode === "BROWSE" && selectedFloorFromSearch != null) {
-      nextFloor = selectedFloorFromSearch;
-    } else if (
-      navCurrentFloor != null &&
-      data.floors.some((f) => f.number === navCurrentFloor)
-    ) {
-      nextFloor = navCurrentFloor;
-    } else if (preferredFloorNumber == null) {
-      nextFloor = data.floors[0].number;
-    } else {
-      nextFloor = preferredFloorNumber;
-    }
+  useEffect(() => {
+    if (resolvedFloor == null || navCurrentFloor === resolvedFloor) return;
 
-    setSelectedFloor((prev) => (prev === nextFloor ? prev : nextFloor));
-
-    if (navCurrentFloor !== nextFloor) {
-      setCurrentFloor?.(nextFloor);
-    }
-  }, [
-    data?.floors,
-    navMode,
-    selectedFloorFromSearch,
-    navCurrentFloor,
-    preferredFloorNumber,
-    setCurrentFloor,
-  ]);
+    setCurrentFloor?.(resolvedFloor);
+  }, [resolvedFloor, navCurrentFloor, setCurrentFloor]);
 
   const currentFloor =
     selectedFloor == null
       ? undefined
-      : data?.floors?.find((f) => f.number === selectedFloor) ??
-        data?.floors?.[0];
+      : (data?.floors?.find((f) => f.number === selectedFloor) ??
+        data?.floors?.[0]);
 
   const { routePathForCurrentFloor, extraHighlightedPoiNames } = useMemo(() => {
     if (!routeSegments || selectedFloor == null || !data?.floors?.length) {
@@ -275,7 +297,7 @@ export default function IndoorMapContainer({
 
   const highlightedPoiName =
     navMode === "ITINERARY"
-      ? navEnd?.label ?? navStart?.label
+      ? (navEnd?.label ?? navStart?.label)
       : navSelectedRoom?.label;
 
   if (isLoading) {
@@ -327,6 +349,7 @@ export default function IndoorMapContainer({
         buildingName={buildingData?.long_name || ""}
         metroAccessible={buildingData?.metro_accessible}
         initialSelectedRoom={selectedRoomFromSearch}
+        initialSelectedPoiCoord={selectedPoiCoordFromSearch}
         disablePoiSelection={disablePoiSelection}
         navigationStartOverride={navigationStartOverride}
         navigationPathColor={navigationPathColor}

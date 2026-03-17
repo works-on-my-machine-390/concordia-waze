@@ -1,10 +1,17 @@
 import BottomSheet from "@gorhom/bottom-sheet";
+import {
+  useCreateFavorite,
+  useDeleteFavorite,
+  useGetUserFavorites,
+} from "@/hooks/queries/favoritesQueries";
+import { useGetProfile } from "@/hooks/queries/userQueries";
 import { useCallback, useMemo } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { COLORS } from "../../app/constants";
 import {
   CloseIcon,
   FavoriteEmptyIcon,
+  FavoriteFilledIcon,
   GetDirectionsIcon,
 } from "../../app/icons";
 import { BottomSheetStyles } from "../BuildingBottomSheet";
@@ -13,11 +20,16 @@ import { formatIndoorPoiName } from "../../app/utils/indoorNameFormattingUtils";
 export type IndoorRoomBottomSheetProps = {
   roomCode: string;
   buildingCode: string;
+  floorNumber: number;
+  coordX: number;
+  coordY: number;
   roomType?: string | null;
   onClose: () => void;
   onDirectionsPress?: () => void;
   directionsDisabled?: boolean;
 };
+
+const DEFAULT_GUEST_USER_ID = "guest";
 
 export default function IndoorRoomBottomSheet(
   props: Readonly<IndoorRoomBottomSheetProps>,
@@ -25,11 +37,20 @@ export default function IndoorRoomBottomSheet(
   const {
     roomCode,
     buildingCode,
+    floorNumber,
+    coordX,
+    coordY,
     roomType,
     onClose,
     onDirectionsPress,
     directionsDisabled = false,
   } = props;
+
+  const profileQuery = useGetProfile();
+  const favoriteUserId = profileQuery.data?.id || DEFAULT_GUEST_USER_ID;
+  const createFavorite = useCreateFavorite(favoriteUserId);
+  const deleteFavorite = useDeleteFavorite(favoriteUserId);
+  const favoritesQuery = useGetUserFavorites(favoriteUserId, true);
 
   const snapPoints = useMemo(() => ["15%"], []);
   const handleSheetChanges = useCallback((_index: number) => {}, []);
@@ -44,6 +65,36 @@ export default function IndoorRoomBottomSheet(
 
   const displaySubtitle = isRoom ? "Room" : null;
   const canPressDirections = !directionsDisabled && !!onDirectionsPress;
+
+  const existingFavorite = useMemo(
+    () =>
+      (favoritesQuery.data || []).find(
+        (favorite) =>
+          favorite.type === "indoor" &&
+          favorite.buildingCode === buildingCode &&
+          favorite.floorNumber === floorNumber &&
+          favorite.x === coordX &&
+          favorite.y === coordY,
+      ),
+    [buildingCode, coordX, coordY, favoritesQuery.data, floorNumber],
+  );
+
+  const handleAddFavorite = () => {
+    if (existingFavorite) {
+      deleteFavorite.mutate(existingFavorite.id);
+      return;
+    }
+
+    createFavorite.mutate({
+      type: "indoor",
+      name: roomCode,
+      buildingCode,
+      floorNumber,
+      x: coordX,
+      y: coordY,
+      poiType: roomType || undefined,
+    });
+  };
 
   return (
     <BottomSheet
@@ -81,9 +132,9 @@ export default function IndoorRoomBottomSheet(
             ]}
           >
             <GetDirectionsIcon
-            size={90}
-            color={directionsDisabled ? "#BDBDBD" : COLORS.maroon}
-          />
+              size={90}
+              color={directionsDisabled ? "#BDBDBD" : COLORS.maroon}
+            />
           </View>
         </TouchableOpacity>
 
@@ -95,8 +146,15 @@ export default function IndoorRoomBottomSheet(
         </View>
 
         <View style={IndoorRoomStyles.iconsContainer}>
-          <TouchableOpacity testID="indoor-room-favorite-button">
-            <FavoriteEmptyIcon color={COLORS.maroon} />
+          <TouchableOpacity
+            testID="indoor-room-favorite-button"
+            onPress={handleAddFavorite}
+          >
+            {existingFavorite ? (
+              <FavoriteFilledIcon color={COLORS.maroon} />
+            ) : (
+              <FavoriteEmptyIcon color={COLORS.textSecondary} />
+            )}
           </TouchableOpacity>
 
           <TouchableOpacity
