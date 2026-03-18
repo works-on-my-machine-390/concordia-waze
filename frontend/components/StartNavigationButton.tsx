@@ -29,6 +29,8 @@ export default function StartNavigationButton() {
     if (!isNavigationReady) return;
 
     navigationState.setNavigationPhase(NavigationPhase.ACTIVE);
+    navigationState.setCurrentStepIndex(0);
+    navigationState.setStartDateTime(new Date()); // set start time to now
 
     const startLocation = navigationState.startLocation;
 

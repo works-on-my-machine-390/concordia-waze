@@ -1,15 +1,16 @@
-import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
-import { Text, TouchableOpacity, View } from "react-native";
-import { BottomSheetStyles } from "./BuildingBottomSheet";
+import { CloseIcon } from "@/app/icons";
+import NavigationBottomSheetStyles from "@/app/styles/navigationBottomSheetStyles";
+import { DirectionsResponseBlockType } from "@/hooks/queries/navigationQueries";
 import {
   NavigationPhase,
   useNavigationStore,
 } from "@/hooks/useNavigationStore";
-import OutdoorNavigationSteps from "./OutdoorNavigationSteps";
-import { DirectionsResponseBlockType } from "@/hooks/queries/navigationQueries";
-import NavigationBottomSheetStyles from "@/app/styles/navigationBottomSheetStyles";
+import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import { Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { CloseIcon } from "@/app/icons";
+import { BottomSheetStyles } from "./BuildingBottomSheet";
+import OutdoorNavigationSteps from "./OutdoorNavigationSteps";
+import { formatDuration } from "@/app/utils/stringUtils";
 
 export default function ActiveNavigationBottomSheet() {
   const snapPoints = ["15%", "70%"];
@@ -25,6 +26,18 @@ export default function ActiveNavigationBottomSheet() {
     navigationState.setNavigationPhase(NavigationPhase.PREPARATION);
   };
 
+  const initialDuration =
+    navigationState.currentDirections?.durationBlock?.durations[
+      navigationState.transitMode
+    ];
+  const eta =
+    navigationState.startDateTime && initialDuration
+      ? new Date(
+          navigationState.startDateTime.getTime() + initialDuration * 1000,
+        )
+      : undefined;
+
+  // reusing navigationBottomSheetStyles - naming may be off but styles are still relevant
   return (
     <BottomSheet
       handleComponent={null}
@@ -43,8 +56,23 @@ export default function ActiveNavigationBottomSheet() {
         <View style={NavigationBottomSheetStyles.headerContainer}>
           <View style={NavigationBottomSheetStyles.navModeHeader}>
             <View>
-              <Text style={NavigationBottomSheetStyles.transitModeTitle}>
-                TRANSIT MODE
+              <View
+                style={{ flexDirection: "row", gap: 12, alignItems: "center" }}
+              >
+                <Text style={NavigationBottomSheetStyles.transitModeTitle}>
+                  Arriving at{" "}
+                  {eta.toLocaleTimeString("en-us", { timeStyle: "short" })}
+                </Text>
+                <Text style={NavigationBottomSheetStyles.transitModeDuration}>
+                  ({formatDuration(initialDuration)})
+                </Text>
+              </View>
+
+              <Text style={NavigationBottomSheetStyles.transitModeDuration}>
+                if departing at{" "}
+                {navigationState.startDateTime?.toLocaleTimeString("en-us", {
+                  timeStyle: "short",
+                })}
               </Text>
             </View>
             <View

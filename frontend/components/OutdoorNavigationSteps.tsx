@@ -22,6 +22,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { IndoorMapPageParams } from "@/app/(drawer)/indoor-map";
 import { MapQueryParamsModel } from "@/app/(drawer)/map";
 import { useMemo } from "react";
+import { isFloorPlanAvailable } from "@/app/utils/indoorMapUtils";
 
 export type OutdoorNavigationStepsProps = {
   indoorDirectionBlocks?: IndoorDirectionsBlockModel[];
@@ -110,7 +111,9 @@ export default function OutdoorNavigationSteps(
 
     const hideViewButton = () => {
       const indoorParams = params as IndoorMapPageParams;
-      return indoorParams.buildingCode === buildingCode; // the indoor map is already displayed for this building
+      const floorPlanAvailable = isFloorPlanAvailable(buildingCode);
+      // the indoor map is already displayed for this building or no floor plan available
+      return indoorParams.buildingCode === buildingCode || !floorPlanAvailable;
     };
 
     const handleViewMapPress = (

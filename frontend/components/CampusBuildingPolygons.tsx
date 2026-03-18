@@ -2,14 +2,11 @@ import { SELECTED_BUILDING_STYLE } from "@/app/styles/buildingPolygons/selectedB
 import { CampusBuilding } from "@/hooks/queries/buildingQueries";
 import useMapSettings from "@/hooks/useMapSettings";
 import { MapMode, useMapStore } from "@/hooks/useMapStore";
+import { useNavigationStore } from "@/hooks/useNavigationStore";
+import useStartLocation from "@/hooks/useStartLocation";
 import { Polygon } from "react-native-maps";
 import { CAMPUS_BUILDING_STYLE } from "../app/styles/buildingPolygons/campusBuildingStyle";
 import { CURRENT_BUILDING_STYLE } from "../app/styles/buildingPolygons/currentBuildingStyle";
-import {
-  OutdoorNavigableLocation,
-  useNavigationStore,
-} from "@/hooks/useNavigationStore";
-import useStartLocation from "@/hooks/useStartLocation";
 
 export type CampusBuildingPolygonsProps = {
   buildings: CampusBuilding[];

@@ -55,6 +55,13 @@ export const BackIcon: React.FC<IconProps> = ({
   color = DEFAULT_ICON_COLOR,
 }) => <Ionicons name="arrow-back" size={size} color={color} />;
 
+// Go forward icon
+export const ForwardIcon: React.FC<IconProps> = ({
+  size = DEFAULT_ICON_SIZE,
+  color = DEFAULT_ICON_COLOR,
+}) => <Ionicons name="arrow-forward" size={size} color={color} />;
+
+
 // Logout icon
 export const LogoutIcon: React.FC<IconProps> = ({
   size = DEFAULT_ICON_SIZE,

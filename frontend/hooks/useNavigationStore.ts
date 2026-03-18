@@ -39,12 +39,21 @@ export type NavigationPhase =
 interface NavigationState {
   startLocation?: NavigableLocation;
   setStartLocation: (location: NavigableLocation) => void;
+
   endLocation?: NavigableLocation;
   setEndLocation: (location: NavigableLocation) => void;
+
   transitMode?: TransitMode;
   setTransitMode?: (mode: TransitMode) => void;
+
   currentDirections?: DirectionsModel;
   setCurrentDirections?: (directions: DirectionsModel) => void;
+
+  currentStepIndex?: number;
+  setCurrentStepIndex?: (index: number) => void;
+
+  startDateTime?: Date;
+  setStartDateTime?: (dateTime: Date) => void;
 
   modifyingField?: "start" | "end" | null;
   setModifyingField?: (field: "start" | "end" | null) => void;
@@ -71,6 +80,12 @@ export const useNavigationStore = create<NavigationState>()((set) => ({
   setCurrentDirections: (directions: DirectionsModel) =>
     set({ currentDirections: directions }),
 
+  currentStepIndex: 0,
+  setCurrentStepIndex: (index: number) => set({ currentStepIndex: index }),
+
+  startDateTime: undefined,
+  setStartDateTime: (dateTime: Date) => set({ startDateTime: dateTime }),
+
   modifyingField: null,
   setModifyingField: (field: "start" | "end" | null) =>
     set({ modifyingField: field }),
@@ -85,6 +100,8 @@ export const useNavigationStore = create<NavigationState>()((set) => ({
       endLocation: undefined,
       transitMode: undefined,
       currentDirections: undefined,
+      currentStepIndex: undefined,
+      startDateTime: undefined,
       modifyingField: null,
       navigationPhase: undefined,
     }),
