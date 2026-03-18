@@ -319,7 +319,7 @@ export default function NavigationBottomSheet(
               indoorDirectionBlocks={navigationState.currentDirections?.directionBlocks.filter(
                 (block) => block.type === DirectionsResponseBlockType.INDOOR,
               )}
-              directions={
+              outdoorDirections={
                 navigationState.currentDirections.directionBlocks.find(
                   (block) => block.type === DirectionsResponseBlockType.OUTDOOR,
                 )?.directionsByMode[selectedOption.mode || ""]

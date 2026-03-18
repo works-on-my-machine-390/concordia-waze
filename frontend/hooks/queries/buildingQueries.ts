@@ -63,13 +63,20 @@ export type Building = {
   opening_hours: OpeningHoursModel;
 };
 
+export const getBuildingDetailsQueryKey = (buildingCode: string) => [
+  "buildingDetails",
+  buildingCode,
+] as const;
+
+export const fetchBuildingDetails = async (buildingCode: string) => {
+  const apiClient = await api();
+  return apiClient.get(`/buildings/${buildingCode}`).json<Building>();
+};
+
 export const useGetBuildingDetails = (buildingCode: string) => {
   return useQuery<Building>({
-    queryKey: ["buildingDetails", buildingCode],
-    queryFn: async () => {
-      const apiClient = await api();
-      return apiClient.get(`/buildings/${buildingCode}`).json<Building>();
-    },
+    queryKey: getBuildingDetailsQueryKey(buildingCode),
+    queryFn: () => fetchBuildingDetails(buildingCode),
     staleTime: Infinity,
     enabled: !!buildingCode,
   });

@@ -1,13 +1,21 @@
+import { IndoorMapPageParams } from "@/app/(drawer)/indoor-map";
 import { COLORS } from "@/app/constants";
+import { isFloorPlanAvailable } from "@/app/utils/indoorMapUtils";
 import {
+  IndoorNavigableLocation,
   NavigationPhase,
   useNavigationStore,
 } from "@/hooks/useNavigationStore";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { useRouter } from "expo-router";
 import { StyleSheet, Text, TouchableOpacity } from "react-native";
 
 export default function StartNavigationButton() {
   const navigationState = useNavigationStore();
+  const router = useRouter();
+
+  const isButtonHidden = !navigationState.startLocation;
+  if (isButtonHidden) return null; // hides button instead of disabling to leave space for the "Please select a start location" message.
 
   const isNavigationReady =
     navigationState.navigationPhase === NavigationPhase.PREPARATION &&
@@ -16,10 +24,36 @@ export default function StartNavigationButton() {
     !!navigationState.endLocation &&
     !!navigationState.transitMode;
 
+  // start navigation logic centralized here
   const handleStartNavigation = () => {
     if (!isNavigationReady) return;
 
     navigationState.setNavigationPhase(NavigationPhase.ACTIVE);
+
+    const startLocation = navigationState.startLocation;
+
+    // If the start location is an indoor location, validate that we have the floor map for it before navigating to the indoor map page.
+    if ((startLocation as IndoorNavigableLocation).building) {
+      const startAsIndoorLocation = startLocation as IndoorNavigableLocation;
+
+      if (
+        isFloorPlanAvailable(
+          startAsIndoorLocation.building,
+          startAsIndoorLocation.floor_number,
+        )
+      ) {
+        const upcomingQueryParams: IndoorMapPageParams = {
+          buildingCode: startAsIndoorLocation.building,
+          selectedFloor: startAsIndoorLocation.floor_number.toString(),
+          selectedPoiName: startAsIndoorLocation.name,
+        };
+
+        router.push({
+          pathname: "/indoor-map",
+          params: upcomingQueryParams,
+        });
+      }
+    }
   };
 
   return (

@@ -7,6 +7,7 @@ import MapSettingsButton from "./MapSettingsButton";
 import NavigationBottomSheet from "./NavigationBottomSheet";
 import PoiSearchBottomSheet from "./poi/PoiSearchBottomSheet";
 import { NavigationPhase, useNavigationStore } from "@/hooks/useNavigationStore";
+import ActiveNavigationBottomSheet from "./ActiveNavigationBottomSheet";
 
 export type MapBottomSectionProps = {
   goToMyLocation: () => void;
@@ -54,6 +55,7 @@ export default function MapBottomSection(
         {state.currentMode === MapMode.BUILDING && <BuildingBottomSheet />}
 
         {state.currentMode === MapMode.NAVIGATION && navigationPhase === NavigationPhase.PREPARATION && <NavigationBottomSheet />}
+        {state.currentMode === MapMode.NAVIGATION && navigationPhase === NavigationPhase.ACTIVE && <ActiveNavigationBottomSheet />}
 
         {state.currentMode === MapMode.SETTINGS && <MapSettingsBottomSheet />}
       </>

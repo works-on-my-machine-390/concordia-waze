@@ -83,7 +83,7 @@ describe("OutdoorNavigationSteps", () => {
       ],
     });
 
-    const { getByText } = render(<OutdoorNavigationSteps directions={directions} />);
+    const { getByText } = render(<OutdoorNavigationSteps outdoorDirections={directions} />);
 
     expect(getByText("Steps")).toBeTruthy();
     expect(getByText("Head north")).toBeTruthy();
@@ -113,7 +113,7 @@ describe("OutdoorNavigationSteps", () => {
     });
 
     const { getByTestId, queryByText } = render(
-      <OutdoorNavigationSteps directions={directions} />,
+      <OutdoorNavigationSteps outdoorDirections={directions} />,
     );
 
     expect(getByTestId("outdoor-navigation-transit-steps")).toBeTruthy();
@@ -126,7 +126,7 @@ describe("OutdoorNavigationSteps", () => {
 
   it("renders placeholder when directions are missing", () => {
     const { getByText } = render(
-      <OutdoorNavigationSteps directions={undefined as unknown as OutdoorDirectionsModel} />,
+      <OutdoorNavigationSteps outdoorDirections={undefined as unknown as OutdoorDirectionsModel} />,
     );
 
     expect(getByText("No directions available")).toBeTruthy();

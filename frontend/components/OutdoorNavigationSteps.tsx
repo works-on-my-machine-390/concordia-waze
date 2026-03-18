@@ -25,7 +25,7 @@ import { useMemo } from "react";
 
 export type OutdoorNavigationStepsProps = {
   indoorDirectionBlocks?: IndoorDirectionsBlockModel[];
-  directions: OutdoorDirectionsModel;
+  outdoorDirections: OutdoorDirectionsModel;
   outdoorDirectionSequenceNumber?: number;
 };
 

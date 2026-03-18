@@ -1,6 +1,10 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { NavigableLocation, useNavigationStore } from "./useNavigationStore";
-import { Building } from "./queries/buildingQueries";
+import {
+  Building,
+  fetchBuildingDetails,
+  getBuildingDetailsQueryKey,
+} from "./queries/buildingQueries";
 import { useMapStore } from "./useMapStore";
 import { getAddressFromLocation } from "@/app/utils/mapUtils";
 
@@ -19,10 +23,9 @@ export default function useStartLocation() {
    * @param endLocation - The end location for navigation. If provided, we can check if the user is already in the same building and set the start location accordingly.
    */
   const findAndSetStartLocation = async (endLocation?: NavigableLocation) => {
-    const currentLocationDetails = queryClient.getQueryData<Building>([
-      "buildingDetails",
-      currentBuildingCode,
-    ]);
+    const currentLocationDetails = queryClient.getQueryData<Building>(
+      getBuildingDetailsQueryKey(currentBuildingCode),
+    );
 
     const isUserInSameBuildingAsEndLocation =
       endLocation &&
@@ -71,12 +74,13 @@ export default function useStartLocation() {
    * Given a building code, looks up the information using queryClient and sets the start location accordingly.
    * @param buildingCode the code of the building to set as the start location.
    */
-  const setStartLocationAutocomplete = (buildingCode: string) => {
-    const buildingDetails = queryClient.getQueryData<Building>([
-      "buildingDetails",
-      buildingCode,
-    ]);
-    if (buildingDetails) {
+  const setStartLocationAutocomplete = async (buildingCode: string) => {
+    try {
+      const buildingDetails = await queryClient.ensureQueryData<Building>({
+        queryKey: getBuildingDetailsQueryKey(buildingCode),
+        queryFn: () => fetchBuildingDetails(buildingCode),
+      });
+
       setStartLocationManually({
         name: buildingDetails.long_name,
         latitude: buildingDetails.latitude,
@@ -84,6 +88,10 @@ export default function useStartLocation() {
         code: buildingDetails.code,
         address: buildingDetails.address,
       });
+    } catch {
+      // If lookup fails, keep manual start selection flow active.
+      setStartLocation(null);
+      setModifyingField("start");
     }
   };
 
