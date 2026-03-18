@@ -2,6 +2,7 @@ import {
 	formatDuration,
 	getDistanceDisplayText,
 	getSimplifiedAddress,
+	parseDirectionsDurationToSeconds,
 	stripHtmlTags,
 } from "../app/utils/stringUtils";
 
@@ -43,6 +44,20 @@ describe("stringUtils", () => {
 
 		it("should format seconds mode with hour and minute breakdown", () => {
 			expect(formatDuration(6340, "seconds")).toBe("1 hr 45 min 40 sec");
+		});
+	});
+
+	describe("parseDirectionsDurationToSeconds", () => {
+		it("should parse minute-only values", () => {
+			expect(parseDirectionsDurationToSeconds("2 min")).toBe(120);
+		});
+
+		it("should parse mixed hour and minute values", () => {
+			expect(parseDirectionsDurationToSeconds("1 hour 5 mins")).toBe(3900);
+		});
+
+		it("should parse day, hour, minute and second values", () => {
+			expect(parseDirectionsDurationToSeconds("1 day 2 hours 3 min 4 sec")).toBe(93784);
 		});
 	});
 });

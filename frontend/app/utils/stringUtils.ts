@@ -253,8 +253,58 @@ export const formatDuration = (
   const minutes = Math.floor((roundedTotalSeconds % 3600) / 60);
   const seconds = roundedTotalSeconds % 60;
   const hoursPrefix = hours > 0 ? `${hours} hr ` : "";
-  const minutesPrefix =
-    roundedTotalSeconds >= 60 ? `${minutes} min ` : "";
+  const minutesPrefix = roundedTotalSeconds >= 60 ? `${minutes} min ` : "";
 
   return `${hoursPrefix}${minutesPrefix}${seconds} sec`;
+};
+
+/**
+ * Parses a Google Directions duration text (e.g. "2 min", "1 hour 5 mins") into total seconds.
+ * This utility was generated using GitHub Copilot.
+ *
+ * @author eplxy/Steven with assistance from GitHub Copilot
+ * @param durationText duration text from Google Directions API
+ * @returns total duration in seconds as an integer
+ */
+export const parseDirectionsDurationToSeconds = (
+  durationText: string,
+): number => {
+  const normalizedDurationText = durationText.trim().toLowerCase();
+  const unitRegex =
+    /(\d+)\s*(day|days|hour|hours|hr|hrs|h|minute|minutes|min|mins|second|seconds|sec|secs|s)\b/g;
+
+  let totalSeconds = 0;
+
+  for (const match of normalizedDurationText.matchAll(unitRegex)) {
+    const value = Number.parseInt(match[1], 10);
+    const unit = match[2];
+
+    if (Number.isNaN(value)) {
+      continue;
+    }
+
+    if (unit.startsWith("day")) {
+      totalSeconds += value * 86400;
+      continue;
+    }
+
+    if (
+      unit.startsWith("hour") ||
+      unit === "hr" ||
+      unit === "hrs" ||
+      unit === "h"
+    ) {
+      totalSeconds += value * 3600;
+      continue;
+    }
+
+    if (unit.startsWith("min")) {
+      totalSeconds += value * 60;
+      continue;
+    }
+
+    totalSeconds += value;
+  }
+
+  return totalSeconds;
 };
