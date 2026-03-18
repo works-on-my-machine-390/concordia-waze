@@ -18,7 +18,8 @@ import { CourseItem } from "../../hooks/firebase/useFirestore";
 import { getGuestCourses } from "../../hooks/guestStorage";
 import { COLORS } from "../constants";
 import { AddIcon } from "../icons";
-
+import SyncCalendarButton
+ from "@/components/SyncGoogleCalendarButton";
 export default function Schedule() {
   const router = useRouter();
   const [courses, setCourses] = useState<CourseItem[]>([]);
@@ -48,6 +49,7 @@ export default function Schedule() {
           <AddIcon size={45} color={COLORS.maroon} />
         </TouchableOpacity>
       </View>
+      <SyncCalendarButton onPress={() => router.push("/googleCalendarSync")} />
       <ScrollView contentContainerStyle={styles.content}>
         {courses.map((course) =>
           course.classes.map((classItem, index) => (

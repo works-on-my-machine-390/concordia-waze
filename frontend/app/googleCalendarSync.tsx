@@ -35,15 +35,6 @@ export default function GoogleSyncPage() {
       <Text style={styles.syncText}>Syncing Google Calendar</Text>
 
       {/* Progress bar */}
-      <Progress.Bar
-        progress={progress}
-        width={250}
-        color={COLORS.maroon}
-        unfilledColor="#e0e0e0"
-        borderWidth={0}
-        height={6}
-        style={styles.progress}
-      />
 
       <TouchableOpacity style={styles.cancelButton} onPress={cancelSync}>
         <Text style={styles.cancelText}>Cancel Sync</Text>
