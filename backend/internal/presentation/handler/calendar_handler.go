@@ -34,6 +34,12 @@ type SyncResponse struct {
 	Errors []string            `json:"errors,omitempty"`
 }
 
+// NextClassResponse is the response body for GetNextClass.
+type NextClassResponse struct {
+	ClassName string           `json:"className"`
+	Item      *domain.ClassItem `json:"item"`
+}
+
 type createCourseRequest struct {
 	Name string `json:"name" binding:"required"`
 }
@@ -283,6 +289,32 @@ func (h *CalendarHandler) AddClassItem(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"message": "class added", "classID": classID})
+}
+
+// GetNextClass godoc
+// @Summary Get the user's next upcoming class
+// @Description Returns the next class session based on the authenticated user's schedule and the current time
+// @Tags class
+// @Produce json
+// @Success 200 {object} NextClassResponse
+// @Failure 404 {object} map[string]string "No upcoming class found"
+// @Failure 500 {object} map[string]string
+// @Security BearerAuth
+// @Router /courses/next [get]
+func (h *CalendarHandler) GetNextClass(c *gin.Context) {
+	userID := c.GetString(contextUserIDKey)
+
+	className, item, err := h.firebaseService.GetNextClass(userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if item == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "no upcoming class found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, NextClassResponse{ClassName: className, Item: item})
 }
 
 // UpdateClassItem godoc

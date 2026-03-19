@@ -51,8 +51,11 @@ type mockFirebaseService struct {
 	updateClassItemErr  error
 	getAllClassItemsErr error
 
-	classTitles []string
-	classItems  []*domain.ClassItem
+	classTitles   []string
+	classItems    []*domain.ClassItem
+	nextClassName string
+	nextClassItem *domain.ClassItem
+	nextClassErr  error
 }
 
 func (m *mockFirebaseService) CreateClass(ctx context.Context, userID, title string) error {
@@ -90,11 +93,19 @@ func (m *mockFirebaseService) DeleteClassItem(ctx context.Context, userID, title
 	return m.deleteClassItemErr
 }
 
+func (m *mockFirebaseService) GetNextClass(userID string) (string, *domain.ClassItem, error) {
+	return m.nextClassName, m.nextClassItem, m.nextClassErr
+}
+
 func setupCalendarTestRouter(h *CalendarHandler) *gin.Engine {
 	r := gin.New()
 	r.GET("/courses/sync", func(c *gin.Context) {
 		c.Set("userID", "u1")
 		h.SyncCalendarEvents(c)
+	})
+	r.GET("/courses/next", func(c *gin.Context) {
+		c.Set("userID", "u1")
+		h.GetNextClass(c)
 	})
 	r.POST("/courses", func(c *gin.Context) {
 		c.Set("userID", "u1")
@@ -478,5 +489,52 @@ func TestCalendarHandler_ErrorBranches(t *testing.T) {
 
 		require.Equal(t, http.StatusInternalServerError, w.Code)
 		assert.Contains(t, w.Body.String(), "update fail")
+	})
+}
+
+func TestGetNextClass(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	t.Run("returns next class -> 200", func(t *testing.T) {
+		item := &domain.ClassItem{Type: "lec", Day: "Monday", StartTime: "14:00", EndTime: "15:30"}
+		fs := &mockFirebaseService{nextClassName: "COMP 202", nextClassItem: item}
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs)
+		r := setupCalendarTestRouter(h)
+
+		req := httptest.NewRequest(http.MethodGet, "/courses/next", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusOK, w.Code)
+		var resp NextClassResponse
+		require.NoError(t, json.NewDecoder(w.Body).Decode(&resp))
+		assert.Equal(t, "COMP 202", resp.ClassName)
+		assert.Equal(t, "lec", resp.Item.Type)
+	})
+
+	t.Run("no class found -> 404", func(t *testing.T) {
+		fs := &mockFirebaseService{nextClassItem: nil}
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs)
+		r := setupCalendarTestRouter(h)
+
+		req := httptest.NewRequest(http.MethodGet, "/courses/next", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusNotFound, w.Code)
+		assert.Contains(t, w.Body.String(), "no upcoming class found")
+	})
+
+	t.Run("service error -> 500", func(t *testing.T) {
+		fs := &mockFirebaseService{nextClassErr: errors.New("db error")}
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs)
+		r := setupCalendarTestRouter(h)
+
+		req := httptest.NewRequest(http.MethodGet, "/courses/next", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusInternalServerError, w.Code)
+		assert.Contains(t, w.Body.String(), "db error")
 	})
 }

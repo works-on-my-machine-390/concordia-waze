@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 	"sort"
+	"strconv"
+	"strings"
 	"time"
 
 	"cloud.google.com/go/firestore"
@@ -33,6 +35,7 @@ type FirebaseClassService interface {
 	GetAllClassItems(userID string) (map[string][]*domain.ClassItem, error)
 	UpdateClassItem(ctx context.Context, userID, title, classID string, updates map[string]interface{}) error
 	DeleteClassItem(ctx context.Context, userID, title, classID string) error
+	GetNextClass(userID string) (string, *domain.ClassItem, error)
 }
 
 // NewFirebaseService creates a new Firebase service.
@@ -466,6 +469,100 @@ func (fs *FirebaseService) DeleteClassItem(ctx context.Context, userID, title, c
 	}
 
 	return nil
+}
+
+// GetNextClass returns the class name and item for the user's next upcoming class
+// based on the current local time (America/Toronto). Returns ("", nil, nil) when
+// no scheduled class is found.
+func (fs *FirebaseService) GetNextClass(userID string) (string, *domain.ClassItem, error) {
+	allItems, err := fs.GetAllClassItems(userID)
+	if err != nil {
+		return "", nil, err
+	}
+
+	loc, err := time.LoadLocation("America/Toronto")
+	if err != nil {
+		loc = time.UTC
+	}
+	now := time.Now().In(loc)
+
+	bestMinutes := -1
+	var bestClassName string
+	var bestItem *domain.ClassItem
+
+	for className, items := range allItems {
+		for _, item := range items {
+			mins, ok := MinutesUntilItem(item, now)
+			if !ok {
+				continue
+			}
+			if bestMinutes < 0 || mins < bestMinutes {
+				bestMinutes = mins
+				bestItem = item
+				bestClassName = className
+			}
+		}
+	}
+
+	return bestClassName, bestItem, nil
+}
+
+// ParseWeekday parses a weekday name (full or 3-letter abbreviation, case-insensitive).
+func ParseWeekday(s string) (time.Weekday, bool) {
+	switch strings.ToLower(strings.TrimSpace(s)) {
+	case "sunday", "sun":
+		return time.Sunday, true
+	case "monday", "mon":
+		return time.Monday, true
+	case "tuesday", "tue":
+		return time.Tuesday, true
+	case "wednesday", "wed":
+		return time.Wednesday, true
+	case "thursday", "thu":
+		return time.Thursday, true
+	case "friday", "fri":
+		return time.Friday, true
+	case "saturday", "sat":
+		return time.Saturday, true
+	}
+	return time.Sunday, false
+}
+
+// ParseTimeToMinutes converts an "HH:MM" string to minutes since midnight.
+func ParseTimeToMinutes(s string) (int, bool) {
+	parts := strings.SplitN(s, ":", 2)
+	if len(parts) != 2 {
+		return 0, false
+	}
+	h, err1 := strconv.Atoi(parts[0])
+	m, err2 := strconv.Atoi(parts[1])
+	if err1 != nil || err2 != nil {
+		return 0, false
+	}
+	return h*60 + m, true
+}
+
+// MinutesUntilItem returns how many minutes from now until the next occurrence of item.
+// Returns (0, false) when the item's Day or StartTime cannot be parsed.
+func MinutesUntilItem(item *domain.ClassItem, now time.Time) (int, bool) {
+	day, ok := ParseWeekday(item.Day)
+	if !ok {
+		return 0, false
+	}
+	startMinutes, ok := ParseTimeToMinutes(item.StartTime)
+	if !ok {
+		return 0, false
+	}
+
+	nowMinutes := now.Hour()*60 + now.Minute()
+	daysUntil := int(day) - int(now.Weekday())
+	if daysUntil < 0 {
+		daysUntil += 7
+	} else if daysUntil == 0 && startMinutes <= nowMinutes {
+		daysUntil = 7
+	}
+
+	return daysUntil*24*60 + startMinutes - nowMinutes, true
 }
 
 // ===== Saved Addresses =====

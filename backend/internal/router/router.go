@@ -180,6 +180,7 @@ func SetupRouter() *gin.Engine {
 	calendarGroup.Use(middleware.RequireAuth())
 	{
 		calendarGroup.GET("/sync", calendarHandler.SyncCalendarEvents)
+		calendarGroup.GET("/next", calendarHandler.GetNextClass)
 		calendarGroup.GET("", calendarHandler.GetCourses)
 		calendarGroup.POST("", calendarHandler.AddCourse)
 		calendarGroup.DELETE("/:title", calendarHandler.DeleteCourse)
