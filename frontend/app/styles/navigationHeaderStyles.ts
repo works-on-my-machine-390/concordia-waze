@@ -100,3 +100,62 @@ export const navigationHeaderStyles = StyleSheet.create({
     color: COLORS.textPrimary,
   },
 });
+
+
+
+export const activeNavigationHeaderStyles = StyleSheet.create({
+  container: {
+    display: "flex",
+    backgroundColor: COLORS.darkBgOverlay,
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 1000,
+  },
+  lightTextColor: {
+    color: COLORS.border,
+  },
+  instructionText: {
+    fontSize: 18,
+    lineHeight: 24,
+  },
+  distanceText: {
+    color: COLORS.surface,
+    fontWeight: "600",
+    fontSize: 18,
+  },
+  instructionContainer: {
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 16,
+  },
+  stepperContainer: {
+    flexDirection: "row",
+    gap: 8,
+    paddingHorizontal: 24,
+    marginBottom: 16,
+  },
+  previousButton: {
+    flex: 1,
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 8,
+    backgroundColor: COLORS.bgDark,
+    borderRadius: 16,
+  },
+  nextButton: {
+    flex: 11,
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 8,
+    backgroundColor: COLORS.bgDark,
+    borderRadius: 16,
+    flexDirection: "row",
+    gap: 10,
+  },
+});

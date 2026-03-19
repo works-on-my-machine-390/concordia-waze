@@ -10,7 +10,11 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useRouter } from "expo-router";
 import { StyleSheet, Text, TouchableOpacity } from "react-native";
 
-export default function StartNavigationButton() {
+type Props = {
+  disabled?: boolean;
+};
+
+export default function StartNavigationButton(props: Props) {
   const navigationState = useNavigationStore();
   const router = useRouter();
 
@@ -29,7 +33,7 @@ export default function StartNavigationButton() {
     if (!isNavigationReady) return;
 
     navigationState.setNavigationPhase(NavigationPhase.ACTIVE);
-    navigationState.setCurrentStepIndex(0);
+    navigationState.setCurrentOutdoorStepIndex(0);
     navigationState.setStartDateTime(new Date()); // set start time to now
 
     const startLocation = navigationState.startLocation;
@@ -61,7 +65,7 @@ export default function StartNavigationButton() {
   return (
     <TouchableOpacity
       onPress={handleStartNavigation}
-      disabled={!isNavigationReady}
+      disabled={!isNavigationReady || props.disabled} // prop override
       style={[styles.button, !isNavigationReady && styles.disabledButton]}
     >
       <Text style={[styles.text, !isNavigationReady && styles.disabledText]}>

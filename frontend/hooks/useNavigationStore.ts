@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { Coordinates } from "./queries/indoorDirectionsQueries";
-import { DirectionsModel, TransitMode } from "./queries/navigationQueries";
+import { DirectionsModel, DirectionsResponseBlockModel, DirectionsResponseBlockType, TransitMode } from "./queries/navigationQueries";
 
 /**
  * Zustand store for managing states during navigation.
@@ -49,8 +49,8 @@ interface NavigationState {
   currentDirections?: DirectionsModel;
   setCurrentDirections?: (directions: DirectionsModel) => void;
 
-  currentStepIndex?: number;
-  setCurrentStepIndex?: (index: number) => void;
+  currentOutdoorStepIndex?: number;
+  setCurrentOutdoorStepIndex?: (index: number) => void;
 
   startDateTime?: Date;
   setStartDateTime?: (dateTime: Date) => void;
@@ -80,8 +80,8 @@ export const useNavigationStore = create<NavigationState>()((set) => ({
   setCurrentDirections: (directions: DirectionsModel) =>
     set({ currentDirections: directions }),
 
-  currentStepIndex: 0,
-  setCurrentStepIndex: (index: number) => set({ currentStepIndex: index }),
+  currentOutdoorStepIndex: 0,
+  setCurrentOutdoorStepIndex: (index: number) => set({ currentOutdoorStepIndex: index }),
 
   startDateTime: undefined,
   setStartDateTime: (dateTime: Date) => set({ startDateTime: dateTime }),
@@ -100,9 +100,26 @@ export const useNavigationStore = create<NavigationState>()((set) => ({
       endLocation: undefined,
       transitMode: undefined,
       currentDirections: undefined,
-      currentStepIndex: undefined,
+      currentOutdoorStepIndex: undefined,
       startDateTime: undefined,
       modifyingField: null,
       navigationPhase: undefined,
     }),
 }));
+
+
+/**
+ * utility function for parsing over an ordered list of direction blocks (should already be assigned sequenceNumbers)
+ * and returning a mapping of sequenceNumber to "indoor" vs "outdoor" for use in determining what kind of multi-segment directions we may have.
+ */
+export function getDirectionsSequence(directionBlocks: DirectionsResponseBlockModel[]): Record<number, "outdoor" | "indoor"> {
+  let sequence: Record<number, "outdoor" | "indoor"> = {};
+  directionBlocks.forEach((block, index) => {
+    // this shouldn't happen with its planned usage, but it's for type safety.
+    if (block.type === DirectionsResponseBlockType.DURATION) {
+      return; // skip duration blocks as they aren't relevant for determining the sequence of indoor vs outdoor steps.
+    }
+    sequence[index] = block.type;
+  });
+  return sequence;
+}

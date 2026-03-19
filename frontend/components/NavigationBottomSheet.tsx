@@ -213,7 +213,7 @@ export default function NavigationBottomSheet(
                 gap: 10,
               }}
             >
-              <StartNavigationButton />
+              <StartNavigationButton disabled={isError || isLoading} />
               <TouchableOpacity
                 onPress={handleCloseSheet}
                 style={NavigationBottomSheetStyles.closeIcon}
@@ -314,7 +314,7 @@ export default function NavigationBottomSheet(
           ]}
           nestedScrollEnabled
         >
-          {!!navigationState.currentDirections && (
+          {!!navigationState.currentDirections && !isError && (
             <OutdoorNavigationSteps
               indoorDirectionBlocks={navigationState.currentDirections?.directionBlocks.filter(
                 (block) => block.type === DirectionsResponseBlockType.INDOOR,

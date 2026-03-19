@@ -13,6 +13,7 @@ import {
 } from "@/hooks/useNavigationStore";
 import NavigationBottomSheet from "../NavigationBottomSheet";
 import { MapMode, useMapStore } from "@/hooks/useMapStore";
+import ActiveNavigationBottomSheet from "../activeNavigation/ActiveNavigationBottomSheet";
 
 export type IndoorBottomSheetSectionProps = {
   floor: Floor | undefined;
@@ -100,6 +101,11 @@ export default function IndoorBottomSheetSection(
       {navigationState.navigationPhase === NavigationPhase.PREPARATION && (
         <NavigationBottomSheet />
       )}
+
+      {navigationState.navigationPhase === NavigationPhase.ACTIVE && (
+        <ActiveNavigationBottomSheet />
+      )}
+
     </View>
   );
 }

@@ -7,9 +7,13 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { MenuIcon } from "../../app/icons";
 import AccessibilityToggle from "./AccessibilityToggle";
 import { MapMode, useMapStore } from "@/hooks/useMapStore";
-import { NavigationPhase, useNavigationStore } from "@/hooks/useNavigationStore";
+import {
+  NavigationPhase,
+  useNavigationStore,
+} from "@/hooks/useNavigationStore";
 import { IndoorMapPageParams } from "@/app/(drawer)/indoor-map";
 import IndoorItineraryHeader from "./IndoorItineraryHeader";
+import ActiveNavigationHeader from "../activeNavigation/ActiveNavigationHeader";
 
 type Props = {
   onSearchPress: () => void;
@@ -33,12 +37,19 @@ export default function IndoorMapHeader({
   const currentMapMode = useMapStore((state) => state.currentMode);
   const navigationPhase = useNavigationStore((state) => state.navigationPhase);
 
-  if (currentMapMode === MapMode.NAVIGATION && navigationPhase === NavigationPhase.PREPARATION) {
-    return (
-      <IndoorItineraryHeader />
-    )
+  if (
+    currentMapMode === MapMode.NAVIGATION &&
+    navigationPhase === NavigationPhase.PREPARATION
+  ) {
+    return <IndoorItineraryHeader />;
   }
 
+  if (
+    currentMapMode === MapMode.NAVIGATION &&
+    navigationPhase === NavigationPhase.ACTIVE
+  ) {
+    return <ActiveNavigationHeader />;
+  }
 
   return (
     <View style={styles.wrapper} pointerEvents="box-none">

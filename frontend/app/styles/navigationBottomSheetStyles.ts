@@ -126,6 +126,12 @@ const NavigationBottomSheetStyles = StyleSheet.create({
     color: COLORS.conuRed,
     textAlign: "center",
   },
+  toOutdoorButton: {
+    position: "absolute",
+    top: -80,
+    left: 10,
+    zIndex: 10,
+  },
 });
 
 export default NavigationBottomSheetStyles;
