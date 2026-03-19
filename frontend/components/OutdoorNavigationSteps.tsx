@@ -1,5 +1,8 @@
+import { IndoorMapPageParams } from "@/app/(drawer)/indoor-map";
+import { MapQueryParamsModel } from "@/app/(drawer)/map";
 import { COLORS } from "@/app/constants";
 import { directionStepsStyles } from "@/app/styles/directionStyles";
+import { isFloorPlanAvailable } from "@/app/utils/indoorMapUtils";
 import { stripHtmlTags } from "@/app/utils/stringUtils";
 import {
   DirectionsResponseBlockType,
@@ -8,21 +11,17 @@ import {
   StepModel,
   TransitMode,
 } from "@/hooks/queries/navigationQueries";
-import { Image, Pressable, Text, View } from "react-native";
-import DirectionIcon from "./DirectionIcon";
-import OutdoorNavigationTransitSteps from "./OutdoorNavigationTransitSteps";
-import { MultiFloorPathResult } from "@/hooks/queries/indoorDirectionsQueries";
-const concordiaLogo = require("../assets/images/concordia_logo.png");
-import Ionicons from "@expo/vector-icons/Ionicons";
 import {
   IndoorNavigableLocation,
   useNavigationStore,
 } from "@/hooks/useNavigationStore";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { router, useLocalSearchParams } from "expo-router";
-import { IndoorMapPageParams } from "@/app/(drawer)/indoor-map";
-import { MapQueryParamsModel } from "@/app/(drawer)/map";
 import { useMemo } from "react";
-import { isFloorPlanAvailable } from "@/app/utils/indoorMapUtils";
+import { Image, Pressable, Text, View } from "react-native";
+import DirectionIcon from "./DirectionIcon";
+import OutdoorNavigationTransitSteps from "./OutdoorNavigationTransitSteps";
+const concordiaLogo = require("../assets/images/concordia_logo.png");
 
 export type OutdoorNavigationStepsProps = {
   indoorDirectionBlocks?: IndoorDirectionsBlockModel[];
@@ -42,9 +41,9 @@ export default function OutdoorNavigationSteps(
 
   const outdoorDirections = useMemo(() => {
     if (props.outdoorDirections) return props.outdoorDirections;
-    return currentDirections?.directionBlocks
-      ?.find((block) => block.type === DirectionsResponseBlockType.OUTDOOR)
-      ?.directionsByMode?.[selectedTransitMode || ""];
+    return currentDirections?.directionBlocks?.find(
+      (block) => block.type === DirectionsResponseBlockType.OUTDOOR,
+    )?.directionsByMode?.[selectedTransitMode || ""];
   }, [props.outdoorDirections, currentDirections, selectedTransitMode]);
 
   const params = useLocalSearchParams<

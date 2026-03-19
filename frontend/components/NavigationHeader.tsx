@@ -1,12 +1,12 @@
+import { navigationHeaderStyles as styles } from "@/app/styles/navigationHeaderStyles";
 import {
   NavigationPhase,
   useNavigationStore,
 } from "@/hooks/useNavigationStore";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { COLORS } from "../app/constants";
 import { CircleIcon, LocationIcon } from "../app/icons";
 import ActiveNavigationHeader from "./activeNavigation/ActiveNavigationHeader";
-import { navigationHeaderStyles as styles } from "@/app/styles/navigationHeaderStyles";
 
 type NavigationHeaderProps = {
   onStartLocationPress?: () => void;

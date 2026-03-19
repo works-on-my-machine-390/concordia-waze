@@ -14,7 +14,7 @@ type Props = {
   disabled?: boolean;
 };
 
-export default function StartNavigationButton(props: Props) {
+export default function StartNavigationButton(props: Readonly<Props>) {
   const navigationState = useNavigationStore();
   const router = useRouter();
 

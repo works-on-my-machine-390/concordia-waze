@@ -87,7 +87,6 @@ export default function IndoorSearchPage() {
       }
       navigationState.setModifyingField(null);
 
-      // TODO: route correctly
       router.push({
         pathname: "/map",
 
@@ -164,7 +163,6 @@ export default function IndoorSearchPage() {
         }
         navigationState.setModifyingField(null);
 
-        //TODO route correctly
         router.push({
           pathname: "/map",
           params: {

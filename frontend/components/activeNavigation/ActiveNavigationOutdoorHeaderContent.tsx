@@ -9,12 +9,11 @@ import {
 import { useMapStore } from "@/hooks/useMapStore";
 import {
   getDirectionsSequence,
-  IndoorNavigableLocation,
   useNavigationStore,
 } from "@/hooks/useNavigationStore";
+import { useRouter } from "expo-router";
 import { Text, TouchableOpacity, View } from "react-native";
 import DirectionIcon from "../DirectionIcon";
-import { useRouter } from "expo-router";
 
 export default function ActiveNavigationOutdoorHeaderContent() {
   const router = useRouter();
@@ -24,7 +23,7 @@ export default function ActiveNavigationOutdoorHeaderContent() {
   const outdoorDirectionsBlock: OutdoorDirectionsBlockModel =
     navigationState.currentDirections?.directionBlocks.find(
       (block) => block.type === DirectionsResponseBlockType.OUTDOOR,
-    ) as OutdoorDirectionsBlockModel;
+    );
 
   const outdoorDirections =
     outdoorDirectionsBlock?.directionsByMode?.[navigationState.transitMode];

@@ -1,20 +1,19 @@
-import { CloseIcon, LogoutIcon } from "@/app/icons";
+import { CloseIcon } from "@/app/icons";
 import NavigationBottomSheetStyles from "@/app/styles/navigationBottomSheetStyles";
+import { formatDuration } from "@/app/utils/stringUtils";
+import { Point } from "@/hooks/queries/buildingQueries";
 import { DirectionsResponseBlockType } from "@/hooks/queries/navigationQueries";
 import {
   NavigationPhase,
   useNavigationStore,
 } from "@/hooks/useNavigationStore";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import { useLocalSearchParams, usePathname } from "expo-router";
 import { Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BottomSheetStyles } from "../BuildingBottomSheet";
 import OutdoorNavigationSteps from "../OutdoorNavigationSteps";
-import { formatDuration } from "@/app/utils/stringUtils";
-import { COLORS } from "@/app/constants";
 import ReturnOutdoorButton from "./ReturnOutdoorButton";
-import { useLocalSearchParams, usePathname } from "expo-router";
-import { Point } from "@/hooks/queries/buildingQueries";
 
 export default function ActiveNavigationBottomSheet() {
   const snapPoints = ["15%", "70%"];

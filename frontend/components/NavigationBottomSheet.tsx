@@ -1,4 +1,6 @@
+import NavigationBottomSheetStyles from "@/app/styles/navigationBottomSheetStyles";
 import { getIsCrossCampus } from "@/app/utils/mapUtils";
+import { formatDuration } from "@/app/utils/stringUtils";
 import {
   DirectionsResponseBlockType,
   TransitMode,
@@ -14,8 +16,6 @@ import { useEffect, useMemo } from "react";
 import {
   ActivityIndicator,
   Image,
-  Pressable,
-  StyleSheet,
   Text,
   TouchableOpacity,
   View,
@@ -31,8 +31,6 @@ import {
   WalkingIcon,
 } from "../app/icons";
 import OutdoorNavigationSteps from "./OutdoorNavigationSteps";
-import { formatDuration } from "@/app/utils/stringUtils";
-import NavigationBottomSheetStyles from "@/app/styles/navigationBottomSheetStyles";
 import StartNavigationButton from "./StartNavigationButton";
 
 const concordiaLogo = require("../assets/images/concordia_logo.png");
@@ -272,10 +270,7 @@ export default function NavigationBottomSheet(
                       disabled={disabled}
                     >
                       {Icon ? (
-                        <Icon
-                          size={18}
-                          color={iconColor}
-                        />
+                        <Icon size={18} color={iconColor} />
                       ) : (
                         <View style={disabled ? { opacity: 0.5 } : {}}>
                           <Image

@@ -1,19 +1,18 @@
 import { colors, SHADOW } from "@/app/styles/theme";
 import SearchPill from "@/components/shared/SearchPill";
-import { Ionicons } from "@expo/vector-icons";
-import { DrawerActions } from "@react-navigation/native";
-import { useLocalSearchParams, useNavigation } from "expo-router";
-import { Pressable, StyleSheet, View } from "react-native";
-import { MenuIcon } from "../../app/icons";
-import AccessibilityToggle from "./AccessibilityToggle";
 import { MapMode, useMapStore } from "@/hooks/useMapStore";
 import {
   NavigationPhase,
   useNavigationStore,
 } from "@/hooks/useNavigationStore";
-import { IndoorMapPageParams } from "@/app/(drawer)/indoor-map";
-import IndoorItineraryHeader from "./IndoorItineraryHeader";
+import { Ionicons } from "@expo/vector-icons";
+import { DrawerActions } from "@react-navigation/native";
+import { useNavigation } from "expo-router";
+import { Pressable, StyleSheet, View } from "react-native";
+import { MenuIcon } from "../../app/icons";
 import ActiveNavigationHeader from "../activeNavigation/ActiveNavigationHeader";
+import AccessibilityToggle from "./AccessibilityToggle";
+import IndoorItineraryHeader from "./IndoorItineraryHeader";
 
 type Props = {
   onSearchPress: () => void;

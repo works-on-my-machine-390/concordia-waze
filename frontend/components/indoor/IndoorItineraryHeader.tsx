@@ -1,6 +1,5 @@
 import { COLORS } from "@/app/constants";
 import { CircleIcon, LocationIcon } from "@/app/icons";
-import { MapMode, useMapStore } from "@/hooks/useMapStore";
 import { useNavigationStore } from "@/hooks/useNavigationStore";
 import { Ionicons } from "@expo/vector-icons";
 import { DrawerActions } from "@react-navigation/native";
@@ -16,7 +15,6 @@ export default function IndoorItineraryHeader({}: Readonly<Props>) {
   const router = useRouter();
 
   const navigationState = useNavigationStore();
-  const mapState = useMapStore();
 
   const handleBack = () => {
     router.replace("/map");
