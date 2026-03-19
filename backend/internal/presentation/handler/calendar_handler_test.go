@@ -541,21 +541,21 @@ func TestGetNextClass(t *testing.T) {
 
 // ===== GetNextClass enrichment mocks =====
 
-type mockBuildingLookup struct {
+type mockBuildingGetter struct {
 	building *domain.Building
 	err      error
 }
 
-func (m *mockBuildingLookup) GetBuilding(code string) (*domain.Building, error) {
+func (m *mockBuildingGetter) GetBuilding(code string) (*domain.Building, error) {
 	return m.building, m.err
 }
 
-type mockRoomLookup struct {
+type mockRoomGetter struct {
 	rooms []domain.IndoorRoom
 	err   error
 }
 
-func (m *mockRoomLookup) GetByBuilding(buildingCode string) ([]domain.IndoorRoom, error) {
+func (m *mockRoomGetter) GetByBuilding(buildingCode string) ([]domain.IndoorRoom, error) {
 	return m.rooms, m.err
 }
 
@@ -569,7 +569,7 @@ func TestGetNextClass_Enrichment(t *testing.T) {
 
 	t.Run("building coords populated when lookup succeeds", func(t *testing.T) {
 		fs := &mockFirebaseService{nextClassName: "SOEN384", nextClassItem: baseItem}
-		bl := &mockBuildingLookup{building: &domain.Building{Latitude: 45.497, Longitude: -73.578}}
+		bl := &mockBuildingGetter{building: &domain.Building{Latitude: 45.497, Longitude: -73.578}}
 		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs, bl, nil)
 		r := setupCalendarTestRouter(h)
 
@@ -586,7 +586,7 @@ func TestGetNextClass_Enrichment(t *testing.T) {
 
 	t.Run("building coords omitted when lookup fails", func(t *testing.T) {
 		fs := &mockFirebaseService{nextClassName: "SOEN384", nextClassItem: baseItem}
-		bl := &mockBuildingLookup{err: errors.New("not found")}
+		bl := &mockBuildingGetter{err: errors.New("not found")}
 		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs, bl, nil)
 		r := setupCalendarTestRouter(h)
 
@@ -603,7 +603,7 @@ func TestGetNextClass_Enrichment(t *testing.T) {
 
 	t.Run("floor and room coords populated when room matched", func(t *testing.T) {
 		fs := &mockFirebaseService{nextClassName: "SOEN384", nextClassItem: baseItem}
-		rl := &mockRoomLookup{rooms: []domain.IndoorRoom{
+		rl := &mockRoomGetter{rooms: []domain.IndoorRoom{
 			{Room: "H-937", Floor: 9, Centroid: domain.IndoorPosition{X: 1.1, Y: 2.2}},
 		}}
 		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs, nil, rl)
@@ -626,7 +626,7 @@ func TestGetNextClass_Enrichment(t *testing.T) {
 
 	t.Run("floor and room coords omitted when room not in list", func(t *testing.T) {
 		fs := &mockFirebaseService{nextClassName: "SOEN384", nextClassItem: baseItem}
-		rl := &mockRoomLookup{rooms: []domain.IndoorRoom{
+		rl := &mockRoomGetter{rooms: []domain.IndoorRoom{
 			{Room: "H-100", Floor: 1, Centroid: domain.IndoorPosition{X: 0, Y: 0}},
 		}}
 		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs, nil, rl)
@@ -646,7 +646,7 @@ func TestGetNextClass_Enrichment(t *testing.T) {
 
 	t.Run("floor and room coords omitted when room lookup fails", func(t *testing.T) {
 		fs := &mockFirebaseService{nextClassName: "SOEN384", nextClassItem: baseItem}
-		rl := &mockRoomLookup{err: errors.New("lookup error")}
+		rl := &mockRoomGetter{err: errors.New("lookup error")}
 		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs, nil, rl)
 		r := setupCalendarTestRouter(h)
 
@@ -663,8 +663,8 @@ func TestGetNextClass_Enrichment(t *testing.T) {
 	t.Run("no enrichment when item has no building code", func(t *testing.T) {
 		itemNoBldg := &domain.ClassItem{Type: "lec", Day: "Monday", StartTime: "14:00"}
 		fs := &mockFirebaseService{nextClassName: "SOEN384", nextClassItem: itemNoBldg}
-		bl := &mockBuildingLookup{building: &domain.Building{Latitude: 45.497, Longitude: -73.578}}
-		rl := &mockRoomLookup{rooms: []domain.IndoorRoom{{Room: "H-937", Floor: 9}}}
+		bl := &mockBuildingGetter{building: &domain.Building{Latitude: 45.497, Longitude: -73.578}}
+		rl := &mockRoomGetter{rooms: []domain.IndoorRoom{{Room: "H-937", Floor: 9}}}
 		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs, bl, rl)
 		r := setupCalendarTestRouter(h)
 

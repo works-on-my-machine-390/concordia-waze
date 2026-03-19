@@ -11,11 +11,11 @@ import (
 	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
 )
 
-type BuildingLookup interface {
+type BuildingGetter interface {
 	GetBuilding(code string) (*domain.Building, error)
 }
 
-type RoomLookup interface {
+type RoomGetter interface {
 	GetByBuilding(buildingCode string) ([]domain.IndoorRoom, error)
 }
 
@@ -23,17 +23,17 @@ type CalendarHandler struct {
 	tokenStore      GoogleTokenStore
 	calendarSyncer  application.CalendarSyncer
 	firebaseService application.FirebaseClassService
-	buildingLookup  BuildingLookup
-	roomLookup      RoomLookup
+	buildingGetter  BuildingGetter
+	roomGetter      RoomGetter
 }
 
-func NewCalendarHandler(tokenStore GoogleTokenStore, calendarSyncer application.CalendarSyncer, firebaseService application.FirebaseClassService, buildingLookup BuildingLookup, roomLookup RoomLookup) *CalendarHandler {
+func NewCalendarHandler(tokenStore GoogleTokenStore, calendarSyncer application.CalendarSyncer, firebaseService application.FirebaseClassService, buildingGetter BuildingGetter, roomGetter RoomGetter) *CalendarHandler {
 	return &CalendarHandler{
 		tokenStore:      tokenStore,
 		calendarSyncer:  calendarSyncer,
 		firebaseService: firebaseService,
-		buildingLookup:  buildingLookup,
-		roomLookup:      roomLookup,
+		buildingGetter:  buildingGetter,
+		roomGetter:      roomGetter,
 	}
 }
 
@@ -332,31 +332,40 @@ func (h *CalendarHandler) GetNextClass(c *gin.Context) {
 	}
 
 	resp := NextClassResponse{ClassName: className, Item: item}
-
-	if item.BuildingCode != "" && h.buildingLookup != nil {
-		if building, err := h.buildingLookup.GetBuilding(item.BuildingCode); err == nil {
-			resp.BuildingLatitude = building.Latitude
-			resp.BuildingLongitude = building.Longitude
-		}
-	}
-
-	if item.BuildingCode != "" && item.Room != "" && h.roomLookup != nil {
-		if rooms, err := h.roomLookup.GetByBuilding(item.BuildingCode); err == nil {
-			for _, r := range rooms {
-				if strings.EqualFold(r.Room, item.Room) {
-					floor := r.Floor
-					x := r.Centroid.X
-					y := r.Centroid.Y
-					resp.FloorNumber = &floor
-					resp.RoomX = &x
-					resp.RoomY = &y
-					break
-				}
-			}
-		}
-	}
-
+	h.enrichBuildingCoords(&resp, item)
+	h.enrichRoomInfo(&resp, item)
 	c.JSON(http.StatusOK, resp)
+}
+
+func (h *CalendarHandler) enrichBuildingCoords(resp *NextClassResponse, item *domain.ClassItem) {
+	if item.BuildingCode == "" || h.buildingGetter == nil {
+		return
+	}
+	building, err := h.buildingGetter.GetBuilding(item.BuildingCode)
+	if err != nil {
+		return
+	}
+	resp.BuildingLatitude = building.Latitude
+	resp.BuildingLongitude = building.Longitude
+}
+
+func (h *CalendarHandler) enrichRoomInfo(resp *NextClassResponse, item *domain.ClassItem) {
+	if item.BuildingCode == "" || item.Room == "" || h.roomGetter == nil {
+		return
+	}
+	rooms, err := h.roomGetter.GetByBuilding(item.BuildingCode)
+	if err != nil {
+		return
+	}
+	for _, r := range rooms {
+		if strings.EqualFold(r.Room, item.Room) {
+			floor, x, y := r.Floor, r.Centroid.X, r.Centroid.Y
+			resp.FloorNumber = &floor
+			resp.RoomX = &x
+			resp.RoomY = &y
+			return
+		}
+	}
 }
 
 // UpdateClassItem godoc
