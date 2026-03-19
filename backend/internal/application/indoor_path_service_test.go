@@ -215,6 +215,39 @@ func TestMultiFloorShortestPath_DifferentFloors_PreferElevator(t *testing.T) {
 	assert.Equal(t, TransitionElevator, result.TransitionType)
 }
 
+func TestMultiFloorShortestPath_DifferentFloors_UnlinkedStairs_UsesGeometricFallback(t *testing.T) {
+	floor1 := createSimpleFloor(1, "VLFloor1", []domain.PointOfInterest{
+		{Name: "stairs_a", Type: "stairs", Position: domain.Coordinates{X: 0.5, Y: 0.5}},
+	})
+	floor2 := createSimpleFloor(2, "VLFloor2", []domain.PointOfInterest{
+		{Name: "stairs_b", Type: "stairs", Position: domain.Coordinates{X: 0.5, Y: 0.5}},
+	})
+
+	floorRepo := &mockFloorRepoForPath{
+		floors: map[string][]domain.Floor{
+			"VL": {floor1, floor2},
+		},
+	}
+	roomRepo := &mockIndoorRoomRepoForPath{rooms: map[string][]domain.IndoorRoom{}}
+
+	svc := NewIndoorPathService(floorRepo, roomRepo)
+
+	start := domain.Coordinates{X: 0, Y: 0}
+	end := domain.Coordinates{X: 1, Y: 1}
+
+	result, err := svc.MultiFloorShortestPath(MultiFloorPathRequest{
+		BuildingCode: "VL",
+		StartFloor:   1,
+		EndFloor:     2,
+		StartCoord:   &start,
+		EndCoord:     &end,
+	})
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, TransitionStairs, result.TransitionType)
+}
+
 func TestMultiFloorShortestPath_FallbackToStairs_WhenNoElevator(t *testing.T) {
 	floorRepo := &mockFloorRepoForPath{
 		floors: map[string][]domain.Floor{
