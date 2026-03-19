@@ -1,5 +1,6 @@
 import { COLORS } from "@/app/constants";
 import { CircleIcon, LocationIcon } from "@/app/icons";
+import { navigationHeaderStyles } from "@/app/styles/navigationHeaderStyles";
 import {
   ModifyingFieldOptions,
   useNavigationStore,
@@ -52,10 +53,10 @@ export default function IndoorItineraryHeader({}: Readonly<Props>) {
           </Pressable>
         </View>
 
-        <View style={styles.card} pointerEvents="auto">
-          <View style={styles.locationsContainer}>
+        <View style={navigationHeaderStyles.card} pointerEvents="auto">
+          <View style={navigationHeaderStyles.locationsContainer}>
             <Pressable
-              style={styles.locationRow}
+              style={navigationHeaderStyles.locationRow}
               onPress={() => {
                 navigationState.setModifyingField(ModifyingFieldOptions.start);
                 router.push({
@@ -63,13 +64,13 @@ export default function IndoorItineraryHeader({}: Readonly<Props>) {
                 });
               }}
             >
-              <View style={styles.iconContainer}>
+              <View style={navigationHeaderStyles.iconContainer}>
                 <CircleIcon size={16} />
               </View>
-              <View style={styles.locationTextContainer}>
-                <Text style={styles.locationLabel}>From</Text>
+              <View style={navigationHeaderStyles.locationTextContainer}>
+                <Text style={navigationHeaderStyles.locationLabel}>From</Text>
                 <Text
-                  style={styles.locationText}
+                  style={navigationHeaderStyles.locationText}
                   numberOfLines={1}
                   ellipsizeMode="tail"
                 >
@@ -78,17 +79,17 @@ export default function IndoorItineraryHeader({}: Readonly<Props>) {
               </View>
             </Pressable>
 
-            <View style={styles.dividerRow}>
-              <View style={styles.dotsConnector}>
-                <View style={styles.dot} />
-                <View style={styles.dot} />
-                <View style={styles.dot} />
+            <View style={navigationHeaderStyles.dividerRow}>
+              <View style={navigationHeaderStyles.dotsConnector}>
+                <View style={navigationHeaderStyles.dot} />
+                <View style={navigationHeaderStyles.dot} />
+                <View style={navigationHeaderStyles.dot} />
               </View>
-              <View style={styles.dividerLine} />
+              <View style={navigationHeaderStyles.dividerLine} />
             </View>
 
             <Pressable
-              style={styles.locationRow}
+              style={navigationHeaderStyles.locationRow}
               onPress={() => {
                 navigationState.setModifyingField(ModifyingFieldOptions.end);
                 router.push({
@@ -96,7 +97,7 @@ export default function IndoorItineraryHeader({}: Readonly<Props>) {
                 });
               }}
             >
-              <View style={styles.iconContainer}>
+              <View style={navigationHeaderStyles.iconContainer}>
                 <LocationIcon size={20} color={COLORS.maroon} />
               </View>
               <View style={styles.locationTextContainer}>
@@ -152,60 +153,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 5,
-  },
-
-  card: {
-    flex: 1,
-    backgroundColor: "white",
-    borderRadius: 12,
-    padding: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-
-  locationsContainer: {
-    paddingVertical: 4,
-  },
-
-  locationRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-
-  iconContainer: {
-    width: 28,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  dividerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 4,
-  },
-
-  dotsConnector: {
-    width: 28,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 2,
-  },
-
-  dot: {
-    width: 3,
-    height: 3,
-    borderRadius: 1.5,
-    backgroundColor: "#CCCCCC",
-  },
-
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: "#CCCCCC",
-    marginLeft: 12,
   },
 
   locationTextContainer: {
