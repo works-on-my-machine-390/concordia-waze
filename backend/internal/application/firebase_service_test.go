@@ -1146,6 +1146,199 @@ func TestAddFavoriteRepositoryError(t *testing.T) {
 	}
 }
 
+// ===== GetNextClass helpers (pure unit tests, no Firestore needed) =====
+
+func TestParseWeekday_FullNames(t *testing.T) {
+	cases := []struct {
+		input    string
+		expected time.Weekday
+	}{
+		{"Sunday", time.Sunday},
+		{"Monday", time.Monday},
+		{"Tuesday", time.Tuesday},
+		{"Wednesday", time.Wednesday},
+		{"Thursday", time.Thursday},
+		{"Friday", time.Friday},
+		{"Saturday", time.Saturday},
+	}
+	for _, tc := range cases {
+		day, ok := application.ParseWeekday(tc.input)
+		require.True(t, ok, "expected ok for %q", tc.input)
+		assert.Equal(t, tc.expected, day)
+	}
+}
+
+func TestParseWeekday_Abbreviations(t *testing.T) {
+	cases := []struct {
+		input    string
+		expected time.Weekday
+	}{
+		{"sun", time.Sunday},
+		{"mon", time.Monday},
+		{"tue", time.Tuesday},
+		{"wed", time.Wednesday},
+		{"thu", time.Thursday},
+		{"fri", time.Friday},
+		{"sat", time.Saturday},
+	}
+	for _, tc := range cases {
+		day, ok := application.ParseWeekday(tc.input)
+		require.True(t, ok, "expected ok for %q", tc.input)
+		assert.Equal(t, tc.expected, day)
+	}
+}
+
+func TestParseWeekday_CaseInsensitive(t *testing.T) {
+	day, ok := application.ParseWeekday("MONDAY")
+	require.True(t, ok)
+	assert.Equal(t, time.Monday, day)
+
+	day, ok = application.ParseWeekday("FRI")
+	require.True(t, ok)
+	assert.Equal(t, time.Friday, day)
+}
+
+func TestParseWeekday_Invalid(t *testing.T) {
+	_, ok := application.ParseWeekday("Funday")
+	assert.False(t, ok)
+
+	_, ok = application.ParseWeekday("")
+	assert.False(t, ok)
+}
+
+func TestParseTimeToMinutes_Valid(t *testing.T) {
+	cases := []struct {
+		input    string
+		expected int
+	}{
+		{"00:00", 0},
+		{"09:00", 540},
+		{"14:30", 870},
+		{"23:59", 1439},
+	}
+	for _, tc := range cases {
+		mins, ok := application.ParseTimeToMinutes(tc.input)
+		require.True(t, ok, "expected ok for %q", tc.input)
+		assert.Equal(t, tc.expected, mins)
+	}
+}
+
+func TestParseTimeToMinutes_Invalid(t *testing.T) {
+	for _, input := range []string{"", "1430", "ab:cd", "14:", ":30"} {
+		_, ok := application.ParseTimeToMinutes(input)
+		assert.False(t, ok, "expected not ok for %q", input)
+	}
+}
+
+func TestMinutesUntilItem_SameDayFuture(t *testing.T) {
+	// Monday 10:00, class Monday 14:00 → 240 min
+	now := time.Date(2026, 3, 23, 10, 0, 0, 0, time.UTC)
+	item := &domain.ClassItem{Day: "Monday", StartTime: "14:00"}
+	mins, ok := application.MinutesUntilItem(item, now)
+	require.True(t, ok)
+	assert.Equal(t, 240, mins)
+}
+
+func TestMinutesUntilItem_SameDayAlreadyStarted(t *testing.T) {
+	// Monday 15:00, class Monday 14:00 (already past) → wraps to next week
+	now := time.Date(2026, 3, 23, 15, 0, 0, 0, time.UTC)
+	item := &domain.ClassItem{Day: "Monday", StartTime: "14:00"}
+	mins, ok := application.MinutesUntilItem(item, now)
+	require.True(t, ok)
+	assert.Equal(t, 7*24*60-60, mins)
+}
+
+func TestMinutesUntilItem_SameDayExactTime(t *testing.T) {
+	// Monday 14:00 exactly → treated as already started, wraps
+	now := time.Date(2026, 3, 23, 14, 0, 0, 0, time.UTC)
+	item := &domain.ClassItem{Day: "Monday", StartTime: "14:00"}
+	mins, ok := application.MinutesUntilItem(item, now)
+	require.True(t, ok)
+	assert.Equal(t, 7*24*60, mins)
+}
+
+func TestMinutesUntilItem_NextDay(t *testing.T) {
+	// Monday 10:00, class Tuesday 09:00 → 1380 min
+	now := time.Date(2026, 3, 23, 10, 0, 0, 0, time.UTC)
+	item := &domain.ClassItem{Day: "Tuesday", StartTime: "09:00"}
+	mins, ok := application.MinutesUntilItem(item, now)
+	require.True(t, ok)
+	assert.Equal(t, 1*24*60-60, mins)
+}
+
+func TestMinutesUntilItem_WrapAroundWeek(t *testing.T) {
+	// Friday 10:00, class Monday 09:00 → wraps over weekend
+	now := time.Date(2026, 3, 27, 10, 0, 0, 0, time.UTC)
+	item := &domain.ClassItem{Day: "Monday", StartTime: "09:00"}
+	mins, ok := application.MinutesUntilItem(item, now)
+	require.True(t, ok)
+	assert.Equal(t, 3*24*60-60, mins)
+}
+
+func TestMinutesUntilItem_InvalidDay(t *testing.T) {
+	item := &domain.ClassItem{Day: "Caturday", StartTime: "10:00"}
+	_, ok := application.MinutesUntilItem(item, time.Now())
+	assert.False(t, ok)
+}
+
+func TestMinutesUntilItem_InvalidTime(t *testing.T) {
+	item := &domain.ClassItem{Day: "Monday", StartTime: "bad"}
+	_, ok := application.MinutesUntilItem(item, time.Now())
+	assert.False(t, ok)
+}
+
+// ===== GetNextClass Firestore integration tests =====
+
+func TestGetNextClass_Firestore(t *testing.T) {
+	service := setupTestService(t)
+	ctx := context.Background()
+	userID := "test-user-next-class-" + time.Now().Format("20060102150405")
+
+	profile := domain.User{
+		Email:    "nextclass@example.com",
+		Name:     "Next Class User",
+		Password: "password",
+	}
+	require.NoError(t, service.CreateUserProfile(ctx, userID, profile))
+
+	// Add a class for today at 23:59 so it is always upcoming.
+	today := time.Now().Weekday().String()
+	title := "COMP-202"
+	require.NoError(t, service.CreateClass(ctx, userID, title))
+	_, err := service.AddClassItem(ctx, userID, title, domain.ClassItem{
+		Type:      "lec",
+		Section:   "A",
+		Day:       today,
+		StartTime: "23:59",
+		EndTime:   "23:59",
+	})
+	require.NoError(t, err)
+
+	className, item, err := service.GetNextClass(userID)
+	require.NoError(t, err)
+	require.NotNil(t, item, "expected a next class to be found today")
+	assert.Equal(t, title, className)
+	assert.Equal(t, "23:59", item.StartTime)
+}
+
+func TestGetNextClass_NoClasses_Firestore(t *testing.T) {
+	service := setupTestService(t)
+	ctx := context.Background()
+	userID := "test-user-no-classes-" + time.Now().Format("20060102150405")
+
+	profile := domain.User{
+		Email:    "noclasses@example.com",
+		Name:     "No Classes User",
+		Password: "password",
+	}
+	require.NoError(t, service.CreateUserProfile(ctx, userID, profile))
+
+	className, item, err := service.GetNextClass(userID)
+	require.NoError(t, err)
+	assert.Empty(t, className)
+	assert.Nil(t, item)
+}
+
 func TestGetAllClassItems(t *testing.T) {
 	service := setupTestService(t)
 	ctx := context.Background()

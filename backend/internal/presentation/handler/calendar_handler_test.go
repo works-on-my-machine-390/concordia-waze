@@ -51,8 +51,11 @@ type mockFirebaseService struct {
 	updateClassItemErr  error
 	getAllClassItemsErr error
 
-	classTitles []string
-	classItems  []*domain.ClassItem
+	classTitles   []string
+	classItems    []*domain.ClassItem
+	nextClassName string
+	nextClassItem *domain.ClassItem
+	nextClassErr  error
 }
 
 func (m *mockFirebaseService) CreateClass(ctx context.Context, userID, title string) error {
@@ -90,11 +93,19 @@ func (m *mockFirebaseService) DeleteClassItem(ctx context.Context, userID, title
 	return m.deleteClassItemErr
 }
 
+func (m *mockFirebaseService) GetNextClass(userID string) (string, *domain.ClassItem, error) {
+	return m.nextClassName, m.nextClassItem, m.nextClassErr
+}
+
 func setupCalendarTestRouter(h *CalendarHandler) *gin.Engine {
 	r := gin.New()
 	r.GET("/courses/sync", func(c *gin.Context) {
 		c.Set("userID", "u1")
 		h.SyncCalendarEvents(c)
+	})
+	r.GET("/courses/next", func(c *gin.Context) {
+		c.Set("userID", "u1")
+		h.GetNextClass(c)
 	})
 	r.POST("/courses", func(c *gin.Context) {
 		c.Set("userID", "u1")
@@ -140,7 +151,7 @@ func TestCalendarHandler_SyncCalendarEvents(t *testing.T) {
 			},
 		}
 		fs := &mockFirebaseService{}
-		h := NewCalendarHandler(ts, cs, fs)
+		h := NewCalendarHandler(ts, cs, fs, nil, nil)
 		r := setupCalendarTestRouter(h)
 
 		req := httptest.NewRequest(http.MethodGet, "/courses/sync?since=2024-01-01", nil)
@@ -153,7 +164,7 @@ func TestCalendarHandler_SyncCalendarEvents(t *testing.T) {
 
 	t.Run("token missing", func(t *testing.T) {
 		ts := &mockTokenStore{found: false}
-		h := NewCalendarHandler(ts, &mockCalendarService{}, &mockFirebaseService{})
+		h := NewCalendarHandler(ts, &mockCalendarService{}, &mockFirebaseService{}, nil, nil)
 		r := setupCalendarTestRouter(h)
 
 		req := httptest.NewRequest(http.MethodGet, "/courses/sync?since=2024-01-01", nil)
@@ -166,7 +177,7 @@ func TestCalendarHandler_SyncCalendarEvents(t *testing.T) {
 
 	t.Run("invalid date", func(t *testing.T) {
 		ts := &mockTokenStore{token: &oauth2.Token{}, found: true}
-		h := NewCalendarHandler(ts, &mockCalendarService{}, &mockFirebaseService{})
+		h := NewCalendarHandler(ts, &mockCalendarService{}, &mockFirebaseService{}, nil, nil)
 		r := setupCalendarTestRouter(h)
 
 		req := httptest.NewRequest(http.MethodGet, "/courses/sync?since=bad", nil)
@@ -179,7 +190,7 @@ func TestCalendarHandler_SyncCalendarEvents(t *testing.T) {
 	t.Run("sync service failure", func(t *testing.T) {
 		ts := &mockTokenStore{token: &oauth2.Token{}, found: true}
 		cs := &mockCalendarService{err: errors.New("sync failed")}
-		h := NewCalendarHandler(ts, cs, &mockFirebaseService{})
+		h := NewCalendarHandler(ts, cs, &mockFirebaseService{}, nil, nil)
 		r := setupCalendarTestRouter(h)
 
 		req := httptest.NewRequest(http.MethodGet, "/courses/sync?since=2024-01-01", nil)
@@ -195,7 +206,7 @@ func TestCalendarHandler_CourseEndpoints(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 
 	t.Run("add course success", func(t *testing.T) {
-		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, &mockFirebaseService{})
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, &mockFirebaseService{}, nil, nil)
 		r := setupCalendarTestRouter(h)
 
 		req := httptest.NewRequest(http.MethodPost, "/courses", bytes.NewBufferString(`{"name":"SOEN 384"}`))
@@ -208,7 +219,7 @@ func TestCalendarHandler_CourseEndpoints(t *testing.T) {
 	})
 
 	t.Run("add course bad request", func(t *testing.T) {
-		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, &mockFirebaseService{})
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, &mockFirebaseService{}, nil, nil)
 		r := setupCalendarTestRouter(h)
 
 		req := httptest.NewRequest(http.MethodPost, "/courses", bytes.NewBufferString(`{"name":}`))
@@ -230,7 +241,7 @@ func TestCalendarHandler_CourseEndpoints(t *testing.T) {
 				EndTime:   "12:00",
 			}},
 		}
-		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs)
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs, nil, nil)
 		r := setupCalendarTestRouter(h)
 
 		req := httptest.NewRequest(http.MethodGet, "/courses", nil)
@@ -246,7 +257,7 @@ func TestCalendarHandler_CourseEndpoints(t *testing.T) {
 
 	t.Run("delete course not found", func(t *testing.T) {
 		fs := &mockFirebaseService{deleteClassErr: domain.ErrCourseNotFound}
-		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs)
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs, nil, nil)
 		r := setupCalendarTestRouter(h)
 
 		req := httptest.NewRequest(http.MethodDelete, "/courses/SOEN%20384", nil)
@@ -262,7 +273,7 @@ func TestCalendarHandler_ClassItemEndpoints(t *testing.T) {
 
 	t.Run("get class items success", func(t *testing.T) {
 		fs := &mockFirebaseService{classItems: []*domain.ClassItem{{ClassID: "item123", Type: "Lecture"}}}
-		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs)
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs, nil, nil)
 		r := setupCalendarTestRouter(h)
 
 		req := httptest.NewRequest(http.MethodGet, "/courses/SOEN%20384/items", nil)
@@ -274,7 +285,7 @@ func TestCalendarHandler_ClassItemEndpoints(t *testing.T) {
 	})
 
 	t.Run("add class item success", func(t *testing.T) {
-		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, &mockFirebaseService{})
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, &mockFirebaseService{}, nil, nil)
 		r := setupCalendarTestRouter(h)
 
 		payload := `{"type":"Lecture","section":"N","day":"MON","startTime":"10:00","endTime":"12:00"}`
@@ -288,7 +299,7 @@ func TestCalendarHandler_ClassItemEndpoints(t *testing.T) {
 	})
 
 	t.Run("update class item success", func(t *testing.T) {
-		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, &mockFirebaseService{})
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, &mockFirebaseService{}, nil, nil)
 		r := setupCalendarTestRouter(h)
 
 		req := httptest.NewRequest(http.MethodPatch, "/courses/SOEN%20384/items/item123", bytes.NewBufferString(`{"room":"H-110"}`))
@@ -302,7 +313,7 @@ func TestCalendarHandler_ClassItemEndpoints(t *testing.T) {
 
 	t.Run("delete class item not found", func(t *testing.T) {
 		fs := &mockFirebaseService{deleteClassItemErr: domain.ErrCourseNotFound}
-		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs)
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs, nil, nil)
 		r := setupCalendarTestRouter(h)
 
 		req := httptest.NewRequest(http.MethodDelete, "/courses/SOEN%20384/items/item123", nil)
@@ -318,7 +329,7 @@ func TestCalendarHandler_ErrorBranches(t *testing.T) {
 
 	t.Run("sync token store error -> 500", func(t *testing.T) {
 		ts := &mockTokenStore{getErr: errors.New("store failure")}
-		h := NewCalendarHandler(ts, &mockCalendarService{}, &mockFirebaseService{})
+		h := NewCalendarHandler(ts, &mockCalendarService{}, &mockFirebaseService{}, nil, nil)
 		r := setupCalendarTestRouter(h)
 
 		req := httptest.NewRequest(http.MethodGet, "/courses/sync?since=2024-01-01", nil)
@@ -331,7 +342,7 @@ func TestCalendarHandler_ErrorBranches(t *testing.T) {
 
 	t.Run("get courses GetUserClasses error -> 500", func(t *testing.T) {
 		fs := &mockFirebaseService{getClassesErr: errors.New("list failure")}
-		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs)
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs, nil, nil)
 		r := setupCalendarTestRouter(h)
 
 		req := httptest.NewRequest(http.MethodGet, "/courses", nil)
@@ -347,7 +358,7 @@ func TestCalendarHandler_ErrorBranches(t *testing.T) {
 			classTitles:      []string{"SOEN 384"},
 			getClassItemsErr: errors.New("items failure"),
 		}
-		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs)
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs, nil, nil)
 		r := setupCalendarTestRouter(h)
 
 		req := httptest.NewRequest(http.MethodGet, "/courses", nil)
@@ -360,7 +371,7 @@ func TestCalendarHandler_ErrorBranches(t *testing.T) {
 
 	t.Run("delete course internal error -> 500", func(t *testing.T) {
 		fs := &mockFirebaseService{deleteClassErr: errors.New("delete failure")}
-		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs)
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs, nil, nil)
 		r := setupCalendarTestRouter(h)
 
 		req := httptest.NewRequest(http.MethodDelete, "/courses/SOEN%20384", nil)
@@ -373,7 +384,7 @@ func TestCalendarHandler_ErrorBranches(t *testing.T) {
 
 	t.Run("delete class item internal error -> 500", func(t *testing.T) {
 		fs := &mockFirebaseService{deleteClassItemErr: errors.New("delete item fail")}
-		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs)
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs, nil, nil)
 		r := setupCalendarTestRouter(h)
 
 		req := httptest.NewRequest(http.MethodDelete, "/courses/SOEN%20384/items/item123", nil)
@@ -386,7 +397,7 @@ func TestCalendarHandler_ErrorBranches(t *testing.T) {
 
 	t.Run("get class items missing title -> 400", func(t *testing.T) {
 		// Request path with empty title segment. Gin will set param to empty string.
-		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, &mockFirebaseService{})
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, &mockFirebaseService{}, nil, nil)
 		r := setupCalendarTestRouter(h)
 
 		req := httptest.NewRequest(http.MethodGet, "/courses//items", nil)
@@ -399,7 +410,7 @@ func TestCalendarHandler_ErrorBranches(t *testing.T) {
 	})
 
 	t.Run("add class item bad JSON -> 400", func(t *testing.T) {
-		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, &mockFirebaseService{})
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, &mockFirebaseService{}, nil, nil)
 		r := setupCalendarTestRouter(h)
 
 		req := httptest.NewRequest(http.MethodPost, "/courses/SOEN%20384/items", bytes.NewBufferString(`{"type":`))
@@ -413,7 +424,7 @@ func TestCalendarHandler_ErrorBranches(t *testing.T) {
 
 	t.Run("add class item course not found -> 404", func(t *testing.T) {
 		fs := &mockFirebaseService{addClassItemErr: domain.ErrCourseNotFound}
-		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs)
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs, nil, nil)
 		r := setupCalendarTestRouter(h)
 
 		payload := `{"type":"Lecture","section":"N","day":"MON","startTime":"10:00","endTime":"12:00"}`
@@ -427,7 +438,7 @@ func TestCalendarHandler_ErrorBranches(t *testing.T) {
 
 	t.Run("add class item internal error -> 500", func(t *testing.T) {
 		fs := &mockFirebaseService{addClassItemErr: errors.New("add internal")}
-		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs)
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs, nil, nil)
 		r := setupCalendarTestRouter(h)
 
 		payload := `{"type":"Lecture","section":"N","day":"MON","startTime":"10:00","endTime":"12:00"}`
@@ -441,7 +452,7 @@ func TestCalendarHandler_ErrorBranches(t *testing.T) {
 	})
 
 	t.Run("update class item bad JSON -> 400", func(t *testing.T) {
-		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, &mockFirebaseService{})
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, &mockFirebaseService{}, nil, nil)
 		r := setupCalendarTestRouter(h)
 
 		req := httptest.NewRequest(http.MethodPatch, "/courses/SOEN%20384/items/item123", bytes.NewBufferString(`{bad`))
@@ -455,7 +466,7 @@ func TestCalendarHandler_ErrorBranches(t *testing.T) {
 
 	t.Run("update class item not found -> 404", func(t *testing.T) {
 		fs := &mockFirebaseService{updateClassItemErr: domain.ErrCourseNotFound}
-		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs)
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs, nil, nil)
 		r := setupCalendarTestRouter(h)
 
 		req := httptest.NewRequest(http.MethodPatch, "/courses/SOEN%20384/items/item123", bytes.NewBufferString(`{"room":"R-1"}`))
@@ -468,7 +479,7 @@ func TestCalendarHandler_ErrorBranches(t *testing.T) {
 
 	t.Run("update class item internal error -> 500", func(t *testing.T) {
 		fs := &mockFirebaseService{updateClassItemErr: errors.New("update fail")}
-		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs)
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs, nil, nil)
 		r := setupCalendarTestRouter(h)
 
 		req := httptest.NewRequest(http.MethodPatch, "/courses/SOEN%20384/items/item123", bytes.NewBufferString(`{"room":"R-1"}`))
@@ -478,5 +489,193 @@ func TestCalendarHandler_ErrorBranches(t *testing.T) {
 
 		require.Equal(t, http.StatusInternalServerError, w.Code)
 		assert.Contains(t, w.Body.String(), "update fail")
+	})
+}
+
+func TestGetNextClass(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	t.Run("returns next class -> 200", func(t *testing.T) {
+		item := &domain.ClassItem{Type: "lec", Day: "Monday", StartTime: "14:00", EndTime: "15:30"}
+		fs := &mockFirebaseService{nextClassName: "COMP 202", nextClassItem: item}
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs, nil, nil)
+		r := setupCalendarTestRouter(h)
+
+		req := httptest.NewRequest(http.MethodGet, "/courses/next", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusOK, w.Code)
+		var resp NextClassResponse
+		require.NoError(t, json.NewDecoder(w.Body).Decode(&resp))
+		assert.Equal(t, "COMP 202", resp.ClassName)
+		assert.Equal(t, "lec", resp.Item.Type)
+	})
+
+	t.Run("no class today -> 200 with message", func(t *testing.T) {
+		fs := &mockFirebaseService{nextClassItem: nil}
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs, nil, nil)
+		r := setupCalendarTestRouter(h)
+
+		req := httptest.NewRequest(http.MethodGet, "/courses/next", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusOK, w.Code)
+		assert.Contains(t, w.Body.String(), "no more classes today")
+	})
+
+	t.Run("service error -> 500", func(t *testing.T) {
+		fs := &mockFirebaseService{nextClassErr: errors.New("db error")}
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs, nil, nil)
+		r := setupCalendarTestRouter(h)
+
+		req := httptest.NewRequest(http.MethodGet, "/courses/next", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusInternalServerError, w.Code)
+		assert.Contains(t, w.Body.String(), "db error")
+	})
+}
+
+// ===== GetNextClass enrichment mocks =====
+
+type mockBuildingGetter struct {
+	building *domain.Building
+	err      error
+}
+
+func (m *mockBuildingGetter) GetBuilding(code string) (*domain.Building, error) {
+	return m.building, m.err
+}
+
+type mockRoomGetter struct {
+	rooms []domain.IndoorRoom
+	err   error
+}
+
+func (m *mockRoomGetter) GetByBuilding(buildingCode string) ([]domain.IndoorRoom, error) {
+	return m.rooms, m.err
+}
+
+func TestGetNextClass_Enrichment(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	baseItem := &domain.ClassItem{
+		Type: "lec", Day: "Monday", StartTime: "14:00", EndTime: "15:30",
+		BuildingCode: "H", Room: "H-937",
+	}
+
+	t.Run("building coords populated when lookup succeeds", func(t *testing.T) {
+		fs := &mockFirebaseService{nextClassName: "SOEN384", nextClassItem: baseItem}
+		bl := &mockBuildingGetter{building: &domain.Building{Latitude: 45.497, Longitude: -73.578}}
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs, bl, nil)
+		r := setupCalendarTestRouter(h)
+
+		req := httptest.NewRequest(http.MethodGet, "/courses/next", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusOK, w.Code)
+		var resp NextClassResponse
+		require.NoError(t, json.NewDecoder(w.Body).Decode(&resp))
+		assert.InDelta(t, 45.497, resp.BuildingLatitude, 0.001)
+		assert.InDelta(t, -73.578, resp.BuildingLongitude, 0.001)
+	})
+
+	t.Run("building coords omitted when lookup fails", func(t *testing.T) {
+		fs := &mockFirebaseService{nextClassName: "SOEN384", nextClassItem: baseItem}
+		bl := &mockBuildingGetter{err: errors.New("not found")}
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs, bl, nil)
+		r := setupCalendarTestRouter(h)
+
+		req := httptest.NewRequest(http.MethodGet, "/courses/next", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusOK, w.Code)
+		var resp NextClassResponse
+		require.NoError(t, json.NewDecoder(w.Body).Decode(&resp))
+		assert.Zero(t, resp.BuildingLatitude)
+		assert.Zero(t, resp.BuildingLongitude)
+	})
+
+	t.Run("floor and room coords populated when room matched", func(t *testing.T) {
+		fs := &mockFirebaseService{nextClassName: "SOEN384", nextClassItem: baseItem}
+		rl := &mockRoomGetter{rooms: []domain.IndoorRoom{
+			{Room: "H-937", Floor: 9, Centroid: domain.IndoorPosition{X: 1.1, Y: 2.2}},
+		}}
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs, nil, rl)
+		r := setupCalendarTestRouter(h)
+
+		req := httptest.NewRequest(http.MethodGet, "/courses/next", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusOK, w.Code)
+		var resp NextClassResponse
+		require.NoError(t, json.NewDecoder(w.Body).Decode(&resp))
+		require.NotNil(t, resp.FloorNumber)
+		assert.Equal(t, 9, *resp.FloorNumber)
+		require.NotNil(t, resp.RoomX)
+		assert.InDelta(t, 1.1, *resp.RoomX, 0.001)
+		require.NotNil(t, resp.RoomY)
+		assert.InDelta(t, 2.2, *resp.RoomY, 0.001)
+	})
+
+	t.Run("floor and room coords omitted when room not in list", func(t *testing.T) {
+		fs := &mockFirebaseService{nextClassName: "SOEN384", nextClassItem: baseItem}
+		rl := &mockRoomGetter{rooms: []domain.IndoorRoom{
+			{Room: "H-100", Floor: 1, Centroid: domain.IndoorPosition{X: 0, Y: 0}},
+		}}
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs, nil, rl)
+		r := setupCalendarTestRouter(h)
+
+		req := httptest.NewRequest(http.MethodGet, "/courses/next", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusOK, w.Code)
+		var resp NextClassResponse
+		require.NoError(t, json.NewDecoder(w.Body).Decode(&resp))
+		assert.Nil(t, resp.FloorNumber)
+		assert.Nil(t, resp.RoomX)
+		assert.Nil(t, resp.RoomY)
+	})
+
+	t.Run("floor and room coords omitted when room lookup fails", func(t *testing.T) {
+		fs := &mockFirebaseService{nextClassName: "SOEN384", nextClassItem: baseItem}
+		rl := &mockRoomGetter{err: errors.New("lookup error")}
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs, nil, rl)
+		r := setupCalendarTestRouter(h)
+
+		req := httptest.NewRequest(http.MethodGet, "/courses/next", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusOK, w.Code)
+		var resp NextClassResponse
+		require.NoError(t, json.NewDecoder(w.Body).Decode(&resp))
+		assert.Nil(t, resp.FloorNumber)
+	})
+
+	t.Run("no enrichment when item has no building code", func(t *testing.T) {
+		itemNoBldg := &domain.ClassItem{Type: "lec", Day: "Monday", StartTime: "14:00"}
+		fs := &mockFirebaseService{nextClassName: "SOEN384", nextClassItem: itemNoBldg}
+		bl := &mockBuildingGetter{building: &domain.Building{Latitude: 45.497, Longitude: -73.578}}
+		rl := &mockRoomGetter{rooms: []domain.IndoorRoom{{Room: "H-937", Floor: 9}}}
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs, bl, rl)
+		r := setupCalendarTestRouter(h)
+
+		req := httptest.NewRequest(http.MethodGet, "/courses/next", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusOK, w.Code)
+		var resp NextClassResponse
+		require.NoError(t, json.NewDecoder(w.Body).Decode(&resp))
+		assert.Zero(t, resp.BuildingLatitude)
+		assert.Nil(t, resp.FloorNumber)
 	})
 }
