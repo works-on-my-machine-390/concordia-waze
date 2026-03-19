@@ -2,6 +2,9 @@ import { IndoorMapPageParams } from "@/app/(drawer)/indoor-map";
 import { DIRECTION_COLORS } from "@/app/constants";
 import {
   createDottedPathPoints,
+  getClosestPointIndex,
+  getSafeStepIndex,
+  getSegmentIndexFromStepId,
   orthogonalizePath,
   simplifyOrthogonalPath,
 } from "@/app/utils/pathUtils";
@@ -47,9 +50,15 @@ export default function IndoorPathOverlay(props: Readonly<Props>) {
 
     if (!currentIndoorBlock) return undefined;
 
-    return currentIndoorBlock.directions.segments.find(
+    const segmentIndex = currentIndoorBlock.directions.segments.findIndex(
       (segment) => segment.floorNumber === floorNumber,
     );
+    if (segmentIndex < 0) return undefined;
+
+    return {
+      segmentIndex,
+      segment: currentIndoorBlock.directions.segments[segmentIndex],
+    };
   }, [
     navigationState.currentDirections?.directionBlocks,
     navigationState.endLocation?.code,
@@ -58,21 +67,62 @@ export default function IndoorPathOverlay(props: Readonly<Props>) {
     params.selectedFloor,
   ]);
 
+  const indoorSteps = navigationState.indoorNavigationSteps ?? [];
+  const currentStepIndex = getSafeStepIndex(
+    navigationState.currentIndoorStepIndex,
+    indoorSteps.length,
+  );
+  const lastCompletedStep =
+    currentStepIndex > 0 ? indoorSteps[currentStepIndex - 1] : undefined;
+  const completedSegmentIndex = getSegmentIndexFromStepId(lastCompletedStep?.id);
+
   const pathColor = props.color ?? DIRECTION_COLORS.walking;
   const dotRadius = 2.5;
 
   const orthogonalPath = useMemo(() => {
-    if (!currentFloorSegment || currentFloorSegment.path.length < 2) {
+    if (!currentFloorSegment || currentFloorSegment.segment.path.length < 2) {
       return [];
     }
 
-    const scaledPath = currentFloorSegment.path.map((point) => ({
+    if (
+      completedSegmentIndex !== undefined &&
+      completedSegmentIndex > currentFloorSegment.segmentIndex
+    ) {
+      // entire segment is already completed so we hide it.
+      return [];
+    }
+
+    let visiblePath = currentFloorSegment.segment.path;
+
+    if (
+      completedSegmentIndex !== undefined &&
+      completedSegmentIndex === currentFloorSegment.segmentIndex &&
+      lastCompletedStep?.floorNumber === currentFloorSegment.segment.floorNumber
+    ) {
+      const closestPointIndex = getClosestPointIndex(
+        visiblePath,
+        lastCompletedStep.targetPoint,
+      );
+      visiblePath = visiblePath.slice(closestPointIndex);
+    }
+
+    if (visiblePath.length < 2) {
+      return [];
+    }
+
+    const scaledPath = visiblePath.map((point) => ({
       x: point.x * props.width,
       y: point.y * props.height,
     }));
 
     return simplifyOrthogonalPath(orthogonalizePath(scaledPath));
-  }, [currentFloorSegment, props.height, props.width]);
+  }, [
+    currentFloorSegment,
+    completedSegmentIndex,
+    lastCompletedStep,
+    props.height,
+    props.width,
+  ]);
 
   const dottedPoints = useMemo(
     () => createDottedPathPoints(orthogonalPath),

@@ -122,3 +122,63 @@ export function createDottedPathPoints(
 
   return dottedPoints;
 }
+
+/**
+ * Used in IndoorPathOverlay.tsx.
+ * Ensures that the step index is always within the bounds of the available steps to prevent crashes due to out-of-bounds access.
+ * Matches the one in ActiveNavigationIndoorHeaderContent.tsx to ensure consistency in how indoor step indices are handled across the app.
+ * @param requestedIndex The step index that is being requested, which may be out of bounds or undefined.
+ * @param totalSteps The total number of steps available in the current navigation context, used to determine the valid range for the step index.
+ * @returns A safe step index that is guaranteed to be within the bounds of 0 and totalSteps - 1, ensuring that any access to steps using this index will not result in out-of-bounds errors.
+ */
+export function getSafeStepIndex(
+  requestedIndex: number | undefined,
+  totalSteps: number,
+) {
+  if (totalSteps <= 0) {
+    return 0;
+  }
+
+  const normalizedRequested = requestedIndex ?? 0;
+  return Math.min(Math.max(normalizedRequested, 0), totalSteps - 1);
+}
+
+/**
+ * Used in IndoorPathOverlay.tsx to determine the current segment index based on the step ID format.
+ */
+export function getSegmentIndexFromStepId(stepId?: string) {
+  if (!stepId) return undefined;
+
+  const match = /^[^-]+-(\d+)/.exec(stepId);
+  if (!match) return undefined;
+
+  return Number(match[1]);
+}
+
+/**
+ * Utility function for finding the index of the closest point in a path to a given target point.
+ * Used in IndoorPathOverlay.tsx to determine how much of the path has been completed based on the user's current position.
+ */
+export function getClosestPointIndex(
+  path: { x: number; y: number }[],
+  target: {
+    x: number;
+    y: number;
+  },
+) {
+  let closestIndex = 0;
+  let closestDistance = Number.POSITIVE_INFINITY;
+
+  for (let i = 0; i < path.length; i++) {
+    const dx = path[i].x - target.x;
+    const dy = path[i].y - target.y;
+    const distance = dx * dx + dy * dy;
+
+    if (distance < closestDistance) {
+      closestDistance = distance;
+      closestIndex = i;
+    }
+  }
+
+  return closestIndex;
+}

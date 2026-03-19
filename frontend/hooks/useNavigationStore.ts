@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import type { IndoorNavigationStep } from "@/app/utils/indoorNavigationSteps";
 import { Coordinates } from "./queries/indoorDirectionsQueries";
 import { DirectionsModel, DirectionsResponseBlockModel, DirectionsResponseBlockType, TransitMode } from "./queries/navigationQueries";
 
@@ -52,6 +53,12 @@ interface NavigationState {
   currentOutdoorStepIndex?: number;
   setCurrentOutdoorStepIndex?: (index: number) => void;
 
+  currentIndoorStepIndex?: number;
+  setCurrentIndoorStepIndex?: (index: number) => void;
+
+  indoorNavigationSteps?: IndoorNavigationStep[];
+  setIndoorNavigationSteps?: (steps: IndoorNavigationStep[]) => void;
+
   startDateTime?: Date;
   setStartDateTime?: (dateTime: Date) => void;
 
@@ -83,6 +90,13 @@ export const useNavigationStore = create<NavigationState>()((set) => ({
   currentOutdoorStepIndex: 0,
   setCurrentOutdoorStepIndex: (index: number) => set({ currentOutdoorStepIndex: index }),
 
+  currentIndoorStepIndex: 0,
+  setCurrentIndoorStepIndex: (index: number) => set({ currentIndoorStepIndex: index }),
+
+  indoorNavigationSteps: [],
+  setIndoorNavigationSteps: (steps: IndoorNavigationStep[]) =>
+    set({ indoorNavigationSteps: steps }),
+
   startDateTime: undefined,
   setStartDateTime: (dateTime: Date) => set({ startDateTime: dateTime }),
 
@@ -101,6 +115,8 @@ export const useNavigationStore = create<NavigationState>()((set) => ({
       transitMode: undefined,
       currentDirections: undefined,
       currentOutdoorStepIndex: undefined,
+      currentIndoorStepIndex: undefined,
+      indoorNavigationSteps: [],
       startDateTime: undefined,
       modifyingField: null,
       navigationPhase: undefined,

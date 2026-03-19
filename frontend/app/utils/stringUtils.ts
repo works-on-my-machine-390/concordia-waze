@@ -308,3 +308,30 @@ export const parseDirectionsDurationToSeconds = (
 
   return totalSeconds;
 };
+
+
+/**
+ * util for indoor directions for determining the instruction text to display for an arrival step
+ * given that the step can be before an outdoor navigation segment, or at the very end of the route.
+ * @returns 
+ */
+export function getArrivalInstruction(
+  step: { kind: string; instruction: string },
+  isLastStep: boolean,
+  willBeFollowedByOutdoorNavigation: boolean,
+  isFinalDestination: boolean,
+): string {
+  if (step.kind !== "arrival") {
+    return step.instruction;
+  }
+
+  if (isLastStep && willBeFollowedByOutdoorNavigation) {
+    return "Exit building";
+  }
+
+  if (isLastStep && isFinalDestination) {
+    return "You have arrived";
+  }
+
+  return step.instruction;
+}

@@ -58,8 +58,14 @@ export default function StartNavigationButton(props: Props) {
           pathname: "/indoor-map",
           params: upcomingQueryParams,
         });
+        return;
       }
     }
+
+    // Otherwise, push the outdoor map.
+    router.push({
+      pathname: "/map",
+    });
   };
 
   return (
