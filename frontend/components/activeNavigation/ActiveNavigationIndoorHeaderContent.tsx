@@ -1,5 +1,4 @@
 import { IndoorMapPageParams } from "@/app/(drawer)/indoor-map";
-import { BackIcon, ForwardIcon } from "@/app/icons";
 import { activeNavigationHeaderStyles } from "@/app/styles/navigationHeaderStyles";
 import {
   buildIndoorNavigationSteps,
@@ -18,9 +17,8 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Text, TouchableOpacity, View } from "react-native";
-
-
+import { Text, View } from "react-native";
+import ActiveNavigationHeaderStepper from "./ActiveNavigationHeaderStepper";
 
 export default function ActiveNavigationIndoorHeaderContent() {
   const navigationState = useNavigationStore();
@@ -198,31 +196,13 @@ export default function ActiveNavigationIndoorHeaderContent() {
           )}
         </View>
       </View>
-      <View style={[activeNavigationHeaderStyles.stepperContainer]}>
-        {currentStepIndex !== 0 && (
-          <TouchableOpacity
-            style={[activeNavigationHeaderStyles.previousButton]}
-            onPress={handlePreviousStepPress}
-          >
-            <View
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <BackIcon size={20} />
-            </View>
-          </TouchableOpacity>
-        )}
-        <TouchableOpacity
-          style={activeNavigationHeaderStyles.nextButton}
-          onPress={handleMainActionPress}
-        >
-          <Text style={{ fontSize: 16 }}>{getStepperButtonText()}</Text>
-          {!isLastStep && <ForwardIcon size={20} />}
-        </TouchableOpacity>
-      </View>
+      <ActiveNavigationHeaderStepper
+        currentStepIndex={currentStepIndex || 0}
+        totalSteps={indoorDirectionsSteps.length || 0}
+        onPreviousStep={handlePreviousStepPress}
+        mainActionPress={handleMainActionPress}
+        mainActionText={getStepperButtonText}
+      />
     </>
   );
 }

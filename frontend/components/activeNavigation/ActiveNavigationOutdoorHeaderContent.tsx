@@ -1,5 +1,5 @@
 import { COLORS } from "@/app/constants";
-import { BackIcon, ForwardIcon, LoginIcon } from "@/app/icons";
+import { LoginIcon } from "@/app/icons";
 import { activeNavigationHeaderStyles } from "@/app/styles/navigationHeaderStyles";
 import { stripHtmlTags } from "@/app/utils/stringUtils";
 import {
@@ -12,8 +12,9 @@ import {
   useNavigationStore,
 } from "@/hooks/useNavigationStore";
 import { useRouter } from "expo-router";
-import { Text, TouchableOpacity, View } from "react-native";
+import { Text, View } from "react-native";
 import DirectionIcon from "../DirectionIcon";
+import ActiveNavigationHeaderStepper from "./ActiveNavigationHeaderStepper";
 
 export default function ActiveNavigationOutdoorHeaderContent() {
   const router = useRouter();
@@ -150,31 +151,13 @@ export default function ActiveNavigationOutdoorHeaderContent() {
           )}
         </View>
       </View>
-      <View style={[activeNavigationHeaderStyles.stepperContainer]}>
-        {navigationState.currentOutdoorStepIndex !== 0 && (
-          <TouchableOpacity
-            style={[activeNavigationHeaderStyles.previousButton]}
-            onPress={handlePreviousStepPress}
-          >
-            <View
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <BackIcon size={20} />
-            </View>
-          </TouchableOpacity>
-        )}
-        <TouchableOpacity
-          style={activeNavigationHeaderStyles.nextButton}
-          onPress={handleMainActionPress}
-        >
-          <Text style={{ fontSize: 16 }}>{getStepperButtonText()}</Text>
-          {!isLastStep && <ForwardIcon size={20} />}
-        </TouchableOpacity>
-      </View>
+      <ActiveNavigationHeaderStepper
+        currentStepIndex={currentStepIndex || 0}
+        totalSteps={outdoorDirections?.steps.length || 0}
+        onPreviousStep={handlePreviousStepPress}
+        mainActionPress={handleMainActionPress}
+        mainActionText={getStepperButtonText}
+      />
     </>
   );
 }
