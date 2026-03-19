@@ -367,15 +367,12 @@ func (s *IndoorPathService) findBestTransitions(
 	return TransitionNone, nil, nil
 }
 
-// findClosestLinkedTransitionPair finds the best linked transition pair across floors for a type.
-// A pair is considered linked when both floors contain a transition POI with the same normalized name.
 func (s *IndoorPathService) findClosestLinkedTransitionPair(
 	startFloor, endFloor *domain.Floor,
 	transType TransitionType,
 	startRef, endRef domain.Coordinates,
 ) (*domain.Coordinates, *domain.Coordinates) {
-	typeStr := transType.String()
-	if typeStr == "none" {
+	if transType.String() == "none" {
 		return nil, nil
 	}
 
@@ -385,46 +382,92 @@ func (s *IndoorPathService) findClosestLinkedTransitionPair(
 		return nil, nil
 	}
 
-	endByKey := make(map[string][]domain.PointOfInterest)
-	for _, poi := range endTransitions {
-		k := normalizeTransitionKey(poi.Name)
-		if k == "" {
-			continue
-		}
-		endByKey[k] = append(endByKey[k], poi)
-	}
-
-	minCost := math.MaxFloat64
-	var bestStart, bestEnd *domain.Coordinates
-
-	for _, startPOI := range startTransitions {
-		k := normalizeTransitionKey(startPOI.Name)
-		if k == "" {
-			continue
-		}
-
-		candidates, ok := endByKey[k]
-		if !ok {
-			continue
-		}
-
-		for _, endPOI := range candidates {
-			cost := euclid(startPOI.Position, startRef) + euclid(endPOI.Position, endRef)
-			if cost < minCost {
-				minCost = cost
-				s := startPOI.Position
-				e := endPOI.Position
-				bestStart = &s
-				bestEnd = &e
-			}
-		}
-	}
-
+	endByKey := groupTransitionsByNormalizedKey(endTransitions)
+	bestStart, bestEnd := findBestLinkedTransitionPair(startTransitions, endByKey, startRef, endRef)
 	if bestStart != nil && bestEnd != nil {
 		return bestStart, bestEnd
 	}
 
 	return s.findClosestGeometricTransitionPair(startTransitions, endTransitions, startRef, endRef)
+}
+
+func groupTransitionsByNormalizedKey(transitions []domain.PointOfInterest) map[string][]domain.PointOfInterest {
+	grouped := make(map[string][]domain.PointOfInterest)
+
+	for _, poi := range transitions {
+		key := normalizeTransitionKey(poi.Name)
+		if key == "" {
+			continue
+		}
+		grouped[key] = append(grouped[key], poi)
+	}
+
+	return grouped
+}
+
+func findBestLinkedTransitionPair(
+	startTransitions []domain.PointOfInterest,
+	endByKey map[string][]domain.PointOfInterest,
+	startRef, endRef domain.Coordinates,
+) (*domain.Coordinates, *domain.Coordinates) {
+	minCost := math.MaxFloat64
+	var bestStart, bestEnd *domain.Coordinates
+
+	for _, startPOI := range startTransitions {
+		candidates := matchingTransitionCandidates(startPOI, endByKey)
+		if len(candidates) == 0 {
+			continue
+		}
+
+		bestStart, bestEnd, minCost = updateBestTransitionPair(
+			startPOI,
+			candidates,
+			startRef,
+			endRef,
+			bestStart,
+			bestEnd,
+			minCost,
+		)
+	}
+
+	return bestStart, bestEnd
+}
+
+func matchingTransitionCandidates(
+	startPOI domain.PointOfInterest,
+	endByKey map[string][]domain.PointOfInterest,
+) []domain.PointOfInterest {
+	key := normalizeTransitionKey(startPOI.Name)
+	if key == "" {
+		return nil
+	}
+
+	return endByKey[key]
+}
+
+func updateBestTransitionPair(
+	startPOI domain.PointOfInterest,
+	candidates []domain.PointOfInterest,
+	startRef, endRef domain.Coordinates,
+	currentBestStart, currentBestEnd *domain.Coordinates,
+	currentMinCost float64,
+) (*domain.Coordinates, *domain.Coordinates, float64) {
+	bestStart := currentBestStart
+	bestEnd := currentBestEnd
+	minCost := currentMinCost
+
+	for _, endPOI := range candidates {
+		cost := euclid(startPOI.Position, startRef) + euclid(endPOI.Position, endRef)
+		if cost < minCost {
+			minCost = cost
+			start := startPOI.Position
+			end := endPOI.Position
+			bestStart = &start
+			bestEnd = &end
+		}
+	}
+
+	return bestStart, bestEnd, minCost
 }
 
 func (s *IndoorPathService) findClosestGeometricTransitionPair(
