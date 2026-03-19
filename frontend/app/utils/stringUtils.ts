@@ -261,6 +261,7 @@ export const formatDuration = (
 /**
  * Parses a Google Directions duration text (e.g. "2 min", "1 hour 5 mins") into total seconds.
  * This utility was generated using GitHub Copilot.
+ * Will be used to update the remaining duration for a route in real-time as the user progresses along the route (not yet implemented)
  *
  * @author eplxy/Steven with assistance from GitHub Copilot
  * @param durationText duration text from Google Directions API
@@ -270,16 +271,58 @@ export const parseDirectionsDurationToSeconds = (
   durationText: string,
 ): number => {
   const normalizedDurationText = durationText.trim().toLowerCase();
-  const unitRegex =
-    /(\d+)\s*(day|days|hour|hours|hr|hrs|h|minute|minutes|min|mins|second|seconds|sec|secs|s)\b/g;
+  const isDigit = (char: string) => char >= "0" && char <= "9";
+  const isAsciiLetter = (char: string) =>
+    (char >= "a" && char <= "z") || (char >= "A" && char <= "Z");
+  const isWhitespace = (char: string) =>
+    char === " " || char === "\t" || char === "\n" || char === "\r";
 
   let totalSeconds = 0;
+  let index = 0;
 
-  for (const match of normalizedDurationText.matchAll(unitRegex)) {
-    const value = Number.parseInt(match[1], 10);
-    const unit = match[2];
+  while (index < normalizedDurationText.length) {
+    while (
+      index < normalizedDurationText.length &&
+      !isDigit(normalizedDurationText[index])
+    ) {
+      index++;
+    }
 
-    if (Number.isNaN(value)) {
+    if (index >= normalizedDurationText.length) {
+      break;
+    }
+
+    const valueStart = index;
+    while (
+      index < normalizedDurationText.length &&
+      isDigit(normalizedDurationText[index])
+    ) {
+      index++;
+    }
+
+    const value = Number.parseInt(
+      normalizedDurationText.slice(valueStart, index),
+      10,
+    );
+
+    while (
+      index < normalizedDurationText.length &&
+      isWhitespace(normalizedDurationText[index])
+    ) {
+      index++;
+    }
+
+    const unitStart = index;
+    while (
+      index < normalizedDurationText.length &&
+      isAsciiLetter(normalizedDurationText[index])
+    ) {
+      index++;
+    }
+
+    const unit = normalizedDurationText.slice(unitStart, index);
+
+    if (Number.isNaN(value) || unit.length === 0) {
       continue;
     }
 
@@ -303,7 +346,14 @@ export const parseDirectionsDurationToSeconds = (
       continue;
     }
 
-    totalSeconds += value;
+    if (
+      unit.startsWith("second") ||
+      unit === "sec" ||
+      unit === "secs" ||
+      unit === "s"
+    ) {
+      totalSeconds += value;
+    }
   }
 
   return totalSeconds;
