@@ -11,7 +11,10 @@ import {
 } from "@/hooks/queries/indoorMapQueries";
 import { RecentIndoorSearch, useIndoorSearch } from "@/hooks/useIndoorSearch";
 import { useIndoorSearchStore } from "@/hooks/useIndoorSearchStore";
-import { ModifyingFieldOptions, useNavigationStore } from "@/hooks/useNavigationStore";
+import {
+  ModifyingFieldOptions,
+  useNavigationStore,
+} from "@/hooks/useNavigationStore";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
@@ -63,38 +66,47 @@ export default function IndoorSearchPage() {
   const { results, recentSearches, addRecentSearch, clearRecentSearches } =
     useIndoorSearch(allFloors, query, buildingCode);
 
+  const updateNavigationModifyingField = (
+    poi: PointOfInterest,
+    displayName: string,
+  ) => {
+    if (!navigationState.modifyingField) return; // extra guard
+
+    const selectedLocation = {
+      name: displayName,
+      code: poi.building,
+      indoor_position: {
+        x: poi.position.x,
+        y: poi.position.y,
+      },
+      building: poi.building,
+      floor_number: poi.floor_number,
+      latitude: poi.latitude,
+      longitude: poi.longitude,
+    };
+
+    if (navigationState.modifyingField === ModifyingFieldOptions.start) {
+      navigationState.setStartLocation(selectedLocation);
+    } else if (navigationState.modifyingField === ModifyingFieldOptions.end) {
+      navigationState.setEndLocation(selectedLocation);
+    }
+    navigationState.setModifyingField(null);
+
+    router.push({
+      pathname: "/map",
+
+      params: {
+        camLat: poi.latitude,
+        camLng: poi.longitude,
+      },
+    });
+  };
+
   const handleResultSelect = (poi: PointOfInterest, displayName: string) => {
     if (!poi) return;
 
     if (navigationState.modifyingField) {
-      const selectedLocation = {
-        name: displayName,
-        code: poi.building,
-        indoor_position: {
-          x: poi.position.x,
-          y: poi.position.y,
-        },
-        building: poi.building,
-        floor_number: poi.floor_number,
-        latitude: poi.latitude,
-        longitude: poi.longitude,
-      };
-
-      if (navigationState.modifyingField === ModifyingFieldOptions.start) {
-        navigationState.setStartLocation(selectedLocation);
-      } else if (navigationState.modifyingField === ModifyingFieldOptions.end) {
-        navigationState.setEndLocation(selectedLocation);
-      }
-      navigationState.setModifyingField(null);
-
-      router.push({
-        pathname: "/map",
-
-        params: {
-          camLat: poi.latitude,
-          camLng: poi.longitude,
-        },
-      });
+      updateNavigationModifyingField(poi, displayName);
       return;
     } else {
       router.navigate({
@@ -143,33 +155,7 @@ export default function IndoorSearchPage() {
       addRecentSearch(search.displayName, poi.name, search.floor);
 
       if (navigationState.modifyingField) {
-        const selectedLocation = {
-          name: search.displayName,
-          code: poi.building,
-          indoor_position: {
-            x: poi.position.x,
-            y: poi.position.y,
-          },
-          building: poi.building,
-          floor_number: poi.floor_number,
-          latitude: poi.latitude,
-          longitude: poi.longitude,
-        };
-
-        if (navigationState.modifyingField === ModifyingFieldOptions.start) {
-          navigationState.setStartLocation(selectedLocation);
-        } else if (navigationState.modifyingField === ModifyingFieldOptions.end) {
-          navigationState.setEndLocation(selectedLocation);
-        }
-        navigationState.setModifyingField(null);
-
-        router.push({
-          pathname: "/map",
-          params: {
-            camLat: poi.latitude,
-            camLng: poi.longitude,
-          },
-        });
+        updateNavigationModifyingField(poi, search.displayName);
       } else {
         router.navigate({
           pathname: "/indoor-map",
