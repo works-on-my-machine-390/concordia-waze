@@ -36,7 +36,7 @@ type SyncResponse struct {
 
 // NextClassResponse is the response body for GetNextClass.
 type NextClassResponse struct {
-	ClassName string           `json:"className"`
+	ClassName string            `json:"className"`
 	Item      *domain.ClassItem `json:"item"`
 }
 
