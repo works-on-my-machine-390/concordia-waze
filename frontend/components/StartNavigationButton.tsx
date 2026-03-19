@@ -30,7 +30,7 @@ export default function StartNavigationButton(props: Props) {
 
   // start navigation logic centralized here
   const handleStartNavigation = () => {
-    if (!isNavigationReady) return;
+    if (!isNavigationReady || props.disabled) return;
 
     navigationState.setNavigationPhase(NavigationPhase.ACTIVE);
     navigationState.setCurrentOutdoorStepIndex(0);
