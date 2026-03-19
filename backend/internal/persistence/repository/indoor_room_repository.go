@@ -84,33 +84,45 @@ func (r *indoorRoomRepository) GetByBuilding(buildingCode string) ([]domain.Indo
 }
 
 func extractRoomLabel(props map[string]any, buildingCode string) string {
-	// Your real dataset uses "name": "S2.285"
-	if v, ok := props["name"]; ok {
-		if s, ok := v.(string); ok && strings.TrimSpace(s) != "" {
-			return strings.TrimSpace(s)
-		}
+	if s := stringProp(props, "name"); s != "" {
+		return s
 	}
-
-	// H building uses numeric "roomNbr": 937 → format as "H-937"
-	if v, ok := props["roomNbr"]; ok {
-		if n, ok := asInt(v); ok && n > 0 {
-			if buildingCode != "" {
-				return buildingCode + "-" + strconv.Itoa(n)
-			}
-			return strconv.Itoa(n)
-		}
+	if s := roomNbrLabel(props, buildingCode); s != "" {
+		return s
 	}
-
-	// Fallbacks if schema changes later
-	candidates := []string{"room", "room_number", "number", "label", "id"}
-	for _, k := range candidates {
-		if v, ok := props[k]; ok {
-			if s, ok := v.(string); ok && strings.TrimSpace(s) != "" {
-				return strings.TrimSpace(s)
-			}
+	for _, k := range []string{"room", "room_number", "number", "label", "id"} {
+		if s := stringProp(props, k); s != "" {
+			return s
 		}
 	}
 	return ""
+}
+
+func stringProp(props map[string]any, key string) string {
+	v, ok := props[key]
+	if !ok {
+		return ""
+	}
+	s, ok := v.(string)
+	if !ok {
+		return ""
+	}
+	return strings.TrimSpace(s)
+}
+
+func roomNbrLabel(props map[string]any, buildingCode string) string {
+	v, ok := props["roomNbr"]
+	if !ok {
+		return ""
+	}
+	n, ok := asInt(v)
+	if !ok || n <= 0 {
+		return ""
+	}
+	if buildingCode != "" {
+		return buildingCode + "-" + strconv.Itoa(n)
+	}
+	return strconv.Itoa(n)
 }
 
 func centroidFromGeometry(geomType string, coords json.RawMessage) (domain.IndoorPosition, string) {
