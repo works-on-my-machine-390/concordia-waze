@@ -29,14 +29,6 @@ jest.mock("@/app/constants", () => ({
   COLORS: { maroon: "#912338" },
 }));
 
-jest.mock("@/hooks/useIndoorNavigationStore", () => ({
-  useIndoorNavigationStore: jest.fn(),
-}));
-
-import { useIndoorNavigationStore } from "@/hooks/useIndoorNavigationStore";
-
-const mockedStore = useIndoorNavigationStore as unknown as jest.Mock;
-
 describe("IndoorItineraryBottomSheet", () => {
   beforeEach(() => {
     jest.clearAllMocks();

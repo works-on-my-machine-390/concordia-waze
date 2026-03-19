@@ -31,10 +31,6 @@ jest.mock("@/hooks/queries/buildingQueries", () => ({
   })),
 }));
 
-jest.mock("@/hooks/useIndoorNavigationStore", () => ({
-  useIndoorNavigationStore: jest.fn((selector) => selector(mockNavState)),
-}));
-
 jest.mock("@/hooks/useIndoorSearchStore", () => ({
   useIndoorSearchStore: jest.fn((selector) =>
     selector({

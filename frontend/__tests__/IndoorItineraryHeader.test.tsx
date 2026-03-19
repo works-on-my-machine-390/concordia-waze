@@ -49,10 +49,6 @@ jest.mock("@/app/icons", () => ({
   LocationIcon: () => null,
 }));
 
-jest.mock("@/hooks/useIndoorNavigationStore", () => ({
-  useIndoorNavigationStore: jest.fn(() => mockStore),
-}));
-
 describe("IndoorItineraryHeader", () => {
   beforeEach(() => {
     jest.clearAllMocks();

@@ -1,19 +1,18 @@
 import type { Floor } from "@/hooks/queries/indoorMapQueries";
 import { useGetBuildingFloors } from "@/hooks/queries/indoorMapQueries";
 import { useIndoorSearchStore } from "@/hooks/useIndoorSearchStore";
-import { useIndoorNavigationStore } from "@/hooks/useIndoorNavigationStore";
-import { useRouter } from "expo-router";
-import { StyleSheet, View } from "react-native";
-import IndoorFloorBottomSheet from "./IndoorFloorBottomSheet";
-import PoiFilterBottomSheet from "./PoiFilterBottomSheet";
-import IndoorRoomBottomSheet from "./IndoorRoomBottomSheet";
+import { MapMode, useMapStore } from "@/hooks/useMapStore";
 import {
   NavigationPhase,
   useNavigationStore,
 } from "@/hooks/useNavigationStore";
-import NavigationBottomSheet from "../NavigationBottomSheet";
-import { MapMode, useMapStore } from "@/hooks/useMapStore";
+import { useRouter } from "expo-router";
+import { StyleSheet, View } from "react-native";
 import ActiveNavigationBottomSheet from "../activeNavigation/ActiveNavigationBottomSheet";
+import NavigationBottomSheet from "../NavigationBottomSheet";
+import IndoorFloorBottomSheet from "./IndoorFloorBottomSheet";
+import IndoorRoomBottomSheet from "./IndoorRoomBottomSheet";
+import PoiFilterBottomSheet from "./PoiFilterBottomSheet";
 
 export type IndoorBottomSheetSectionProps = {
   floor: Floor | undefined;
@@ -105,7 +104,6 @@ export default function IndoorBottomSheetSection(
       {navigationState.navigationPhase === NavigationPhase.ACTIVE && (
         <ActiveNavigationBottomSheet />
       )}
-
     </View>
   );
 }
