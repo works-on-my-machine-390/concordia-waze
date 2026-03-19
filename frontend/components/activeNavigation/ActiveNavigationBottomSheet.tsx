@@ -60,6 +60,42 @@ export default function ActiveNavigationBottomSheet() {
     return null;
   };
 
+  const renderETABlock = () => {
+    if (eta) {
+      return (
+        <View>
+          <View style={{ flexDirection: "row", gap: 12, alignItems: "center" }}>
+            <Text style={NavigationBottomSheetStyles.transitModeTitle}>
+              Arriving at{" "}
+              {eta.toLocaleTimeString("en-us", { timeStyle: "short" })}
+            </Text>
+            <Text style={NavigationBottomSheetStyles.transitModeDuration}>
+              ({formatDuration(initialDuration)})
+            </Text>
+          </View>
+
+          <Text style={NavigationBottomSheetStyles.transitModeDuration}>
+            if departing at{" "}
+            {navigationState.startDateTime?.toLocaleTimeString("en-us", {
+              timeStyle: "short",
+            })}
+          </Text>
+        </View>
+      );
+    }
+
+    // fallback
+    return (
+      <View>
+        <View style={{ flexDirection: "row", gap: 12, alignItems: "center" }}>
+          <Text style={NavigationBottomSheetStyles.transitModeTitle}>
+            Route will take ({formatDuration(initialDuration)})
+          </Text>
+        </View>
+      </View>
+    );
+  };
+
   // reusing navigationBottomSheetStyles - naming may be off but styles are still relevant
   return (
     <BottomSheet
@@ -78,26 +114,7 @@ export default function ActiveNavigationBottomSheet() {
         </View>
         <View style={NavigationBottomSheetStyles.headerContainer}>
           <View style={NavigationBottomSheetStyles.navModeHeader}>
-            <View>
-              <View
-                style={{ flexDirection: "row", gap: 12, alignItems: "center" }}
-              >
-                <Text style={NavigationBottomSheetStyles.transitModeTitle}>
-                  Arriving at{" "}
-                  {eta.toLocaleTimeString("en-us", { timeStyle: "short" })}
-                </Text>
-                <Text style={NavigationBottomSheetStyles.transitModeDuration}>
-                  ({formatDuration(initialDuration)})
-                </Text>
-              </View>
-
-              <Text style={NavigationBottomSheetStyles.transitModeDuration}>
-                if departing at{" "}
-                {navigationState.startDateTime?.toLocaleTimeString("en-us", {
-                  timeStyle: "short",
-                })}
-              </Text>
-            </View>
+            {renderETABlock()}
             <View
               style={{
                 flexDirection: "row",

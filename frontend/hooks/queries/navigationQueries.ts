@@ -100,6 +100,10 @@ export function prepareDirectionsQuery(
       startLocation.name,
       endLocation.name,
       roundedStartTime,
+      startLocation.latitude,
+      startLocation.longitude,
+      endLocation.latitude,
+      endLocation.longitude,
     ],
     queryRequestBody,
   };
@@ -206,7 +210,7 @@ export const useGetDirections = (
 // structures the data in a way that's easier for the frontend to consume.
 const apiResponseToDirectionsModel = (response: any): DirectionsModel => {
   if (response.error) {
-    return null;
+    throw new Error(response.error);
   }
 
   let directionBlocks: DirectionsResponseBlockModel[] = [];
