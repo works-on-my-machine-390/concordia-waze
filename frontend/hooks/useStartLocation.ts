@@ -7,6 +7,7 @@ import {
 } from "./queries/buildingQueries";
 import { useMapStore } from "./useMapStore";
 import { getAddressFromLocation } from "@/app/utils/mapUtils";
+import { Toast } from "toastify-react-native";
 
 /**
  * Custom hook for logic related to getting the user's start location.
@@ -54,7 +55,7 @@ export default function useStartLocation() {
         currentLocationDetails?.latitude || userLocation?.coords.latitude,
       longitude:
         currentLocationDetails?.longitude || userLocation?.coords.longitude,
-      code: currentLocationDetails?.code,
+      code: currentLocationDetails?.code || "",
       address: currentLocationDetails?.address || startAddress,
     });
   };
@@ -85,11 +86,12 @@ export default function useStartLocation() {
         name: buildingDetails.long_name,
         latitude: buildingDetails.latitude,
         longitude: buildingDetails.longitude,
-        code: buildingDetails.code,
+        code: buildingCode,
         address: buildingDetails.address,
       });
     } catch {
       // If lookup fails, keep manual start selection flow active.
+      Toast.error("Failed to get information about the selected building, please try again.")
       setStartLocation(null);
       setModifyingField(ModifyingFieldOptions.start);
     }

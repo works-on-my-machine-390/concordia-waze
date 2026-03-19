@@ -1,7 +1,12 @@
 import { create } from "zustand";
 import type { IndoorNavigationStep } from "@/app/utils/indoorNavigationSteps";
 import { Coordinates } from "./queries/indoorDirectionsQueries";
-import { DirectionsModel, DirectionsResponseBlockModel, DirectionsResponseBlockType, TransitMode } from "./queries/navigationQueries";
+import {
+  DirectionsModel,
+  DirectionsResponseBlockModel,
+  DirectionsResponseBlockType,
+  TransitMode,
+} from "./queries/navigationQueries";
 
 /**
  * Zustand store for managing states during navigation.
@@ -15,15 +20,15 @@ type NavigableLocationBase = {
   latitude: number;
   longitude: number;
   name: string;
-  code: string; // duplicate of building if indoors
+  code?: string; // duplicate of building if indoors
 };
 
 export type OutdoorNavigableLocation = {
-  code?: string;
   address?: string;
 } & NavigableLocationBase;
 
 export type IndoorNavigableLocation = {
+  code: string;
   building: string;
   floor_number: number;
   indoor_position: Coordinates;
@@ -39,14 +44,15 @@ export const ModifyingFieldOptions = {
   end: "end",
 } as const;
 
-export type ModifyingField = (typeof ModifyingFieldOptions)[keyof typeof ModifyingFieldOptions];
+export type ModifyingField =
+  (typeof ModifyingFieldOptions)[keyof typeof ModifyingFieldOptions];
 
 export type NavigationPhase =
   (typeof NavigationPhase)[keyof typeof NavigationPhase];
 
 interface NavigationState {
-  startLocation?: NavigableLocation;
-  setStartLocation: (location: NavigableLocation) => void;
+  startLocation?: NavigableLocation | null; // null means user needs to set (or re-set) it themselves
+  setStartLocation: (location: NavigableLocation | null) => void;
 
   endLocation?: NavigableLocation;
   setEndLocation: (location: NavigableLocation) => void;
@@ -95,10 +101,12 @@ export const useNavigationStore = create<NavigationState>()((set) => ({
     set({ currentDirections: directions }),
 
   currentOutdoorStepIndex: 0,
-  setCurrentOutdoorStepIndex: (index: number) => set({ currentOutdoorStepIndex: index }),
+  setCurrentOutdoorStepIndex: (index: number) =>
+    set({ currentOutdoorStepIndex: index }),
 
   currentIndoorStepIndex: 0,
-  setCurrentIndoorStepIndex: (index: number) => set({ currentIndoorStepIndex: index }),
+  setCurrentIndoorStepIndex: (index: number) =>
+    set({ currentIndoorStepIndex: index }),
 
   indoorNavigationSteps: [],
   setIndoorNavigationSteps: (steps: IndoorNavigationStep[]) =>
@@ -130,12 +138,13 @@ export const useNavigationStore = create<NavigationState>()((set) => ({
     }),
 }));
 
-
 /**
  * utility function for parsing over an ordered list of direction blocks (should already be assigned sequenceNumbers)
  * and returning a mapping of sequenceNumber to "indoor" vs "outdoor" for use in determining what kind of multi-segment directions we may have.
  */
-export function getDirectionsSequence(directionBlocks: DirectionsResponseBlockModel[]): Record<number, "outdoor" | "indoor"> {
+export function getDirectionsSequence(
+  directionBlocks: DirectionsResponseBlockModel[],
+): Record<number, "outdoor" | "indoor"> {
   let sequence: Record<number, "outdoor" | "indoor"> = {};
   directionBlocks.forEach((block, index) => {
     // this shouldn't happen with its planned usage, but it's for type safety.
