@@ -115,7 +115,7 @@ func SetupRouter() *gin.Engine {
 	}
 	googleOAuthHandler := handler.NewGoogleOAuthHandler(firebaseSvc)
 
-	calendarHandler := handler.NewCalendarHandler(firebaseSvc, calendarService, firebaseSvc)
+	calendarHandler := handler.NewCalendarHandler(firebaseSvc, calendarService, firebaseSvc, buildingDataRepo, indoorRoomRepo)
 
 	authGroup := router.Group("/auth")
 	{
@@ -180,6 +180,7 @@ func SetupRouter() *gin.Engine {
 	calendarGroup.Use(middleware.RequireAuth())
 	{
 		calendarGroup.GET("/sync", calendarHandler.SyncCalendarEvents)
+		calendarGroup.GET("/next", calendarHandler.GetNextClass)
 		calendarGroup.GET("", calendarHandler.GetCourses)
 		calendarGroup.POST("", calendarHandler.AddCourse)
 		calendarGroup.DELETE("/:title", calendarHandler.DeleteCourse)
