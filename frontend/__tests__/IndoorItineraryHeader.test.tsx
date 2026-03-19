@@ -1,7 +1,10 @@
 import React from "react";
 import { fireEvent, render } from "@testing-library/react-native";
 import IndoorItineraryHeader from "@/components/indoor/IndoorItineraryHeader";
-import { useNavigationStore } from "@/hooks/useNavigationStore";
+import {
+  ModifyingFieldOptions,
+  useNavigationStore,
+} from "@/hooks/useNavigationStore";
 
 const mockDispatch = jest.fn();
 const mockPush = jest.fn();
@@ -58,6 +61,10 @@ jest.mock("@/hooks/useMapStore", () => ({
 }));
 
 jest.mock("@/hooks/useNavigationStore", () => ({
+  ModifyingFieldOptions: {
+    start: "start",
+    end: "end",
+  },
   useNavigationStore: jest.fn(),
 }));
 
@@ -115,7 +122,9 @@ describe("IndoorItineraryHeader", () => {
 
     fireEvent.press(getByText("Select start"));
 
-    expect(mockStore.setModifyingField).toHaveBeenCalledWith("start");
+    expect(mockStore.setModifyingField).toHaveBeenCalledWith(
+      ModifyingFieldOptions.start
+    );
     expect(mockPush).toHaveBeenCalledWith({
       pathname: "/indoor-search",
     });
@@ -126,7 +135,9 @@ describe("IndoorItineraryHeader", () => {
 
     fireEvent.press(getByText("Select destination"));
 
-    expect(mockStore.setModifyingField).toHaveBeenCalledWith("end");
+    expect(mockStore.setModifyingField).toHaveBeenCalledWith(
+      ModifyingFieldOptions.end
+    );
     expect(mockPush).toHaveBeenCalledWith({
       pathname: "/indoor-search",
     });
