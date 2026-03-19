@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Bar as ProgressBar } from "react-native-progress";
-import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { Toast } from "toastify-react-native";
 import { COLORS } from "../app/constants";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { syncCourses } from "../hooks/queries/googleCalendarQueries";
@@ -20,7 +18,7 @@ export default function GoogleSyncPage() {
     mutationFn: syncCourses,
     onSuccess: () => {
       setProgress(1);
-      queryClient.invalidateQueries({ queryKey: COURSE_QUERY_KEY }); 
+      queryClient.invalidateQueries({ queryKey: COURSE_QUERY_KEY });
     },
   });
 
@@ -35,9 +33,9 @@ export default function GoogleSyncPage() {
     if (syncMutation.isPending) {
       interval = setInterval(() => {
         setProgress((prev) => (prev < 0.9 ? prev + 0.02 : prev));
-      }, 200); 
+      }, 200);
     } else if (syncMutation.isSuccess) {
-      setProgress(1); 
+      setProgress(1);
     }
     return () => {
       if (interval) {
@@ -46,10 +44,8 @@ export default function GoogleSyncPage() {
     };
   }, [syncMutation.isPending, syncMutation.isSuccess]);
 
-  // Show success toast and redirect to schedule after sync completes
   useEffect(() => {
     if (syncMutation.isSuccess) {
-      Toast.success("Calendar synced successfully!");
       const timer = setTimeout(() => {
         router.push("/(drawer)/schedule");
       }, 1500);
@@ -65,10 +61,6 @@ export default function GoogleSyncPage() {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.menuButton}>
-        <MaterialIcons name="menu" size={24} color="black" />
-      </TouchableOpacity>
-
       <Text style={styles.title}>Schedule</Text>
 
       <Text style={styles.syncText}>
@@ -96,11 +88,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingTop: 60,
     backgroundColor: "#fff",
-  },
-  menuButton: {
-    position: "absolute",
-    top: 40,
-    left: 20,
   },
   title: {
     fontSize: 24,

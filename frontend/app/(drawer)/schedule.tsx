@@ -4,7 +4,7 @@
 // The trash button on the right of the class card doesn't work (since this was just for testing)
 
 // Post-calendar sync update: Included synced courses with guest courses being displayed to have an idea
-// of what information is being retrieved from the Google Calendar. 
+// of what information is being retrieved from the Google Calendar.
 
 import ClassInfoCard from "@/components/classes/ClassInfoCard";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -22,8 +22,7 @@ import { getGuestCourses } from "../../hooks/guestStorage";
 import { useCourses } from "../../hooks/queries/googleCalendarQueries";
 import { COLORS } from "../constants";
 import { AddIcon } from "../icons";
-import SyncCalendarButton
- from "@/components/SyncGoogleCalendarButton";
+import SyncCalendarButton from "@/components/SyncGoogleCalendarButton";
 export default function Schedule() {
   const router = useRouter();
   const [guestCourses, setGuestCourses] = useState<CourseItem[]>([]);

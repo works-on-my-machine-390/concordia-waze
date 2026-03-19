@@ -8,13 +8,20 @@ export type GoogleAuthStatus = GoogleAuthConnected | GoogleAuthRequired;
 export const isAuthRequired = (s: GoogleAuthStatus): s is GoogleAuthRequired =>
   "url" in s;
 
-export const getGoogleAuthStatus = async (userId?: string): Promise<GoogleAuthStatus> => {
+export const getGoogleAuthStatus = async (
+  userId?: string,
+): Promise<GoogleAuthStatus> => {
   const apiClient = await api();
-  const path = userId ? `/auth/google?userId=${encodeURIComponent(userId)}` : "/auth/google";
+  const path = userId
+    ? `/auth/google?userId=${encodeURIComponent(userId)}`
+    : "/auth/google";
   return apiClient.url(path).get().json<GoogleAuthStatus>();
 };
 
-export const useGoogleAuthStatus = (userId?: string, options?: { enabled?: boolean }) =>
+export const useGoogleAuthStatus = (
+  userId?: string,
+  options?: { enabled?: boolean },
+) =>
   useQuery<GoogleAuthStatus, Error>({
     queryKey: ["google", "auth", "status", userId ?? null],
     queryFn: () => getGoogleAuthStatus(userId),
