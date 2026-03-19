@@ -1,27 +1,66 @@
-// All placeholder code for now, will be replaced with actual syncing logic later on. 
-// This is just to have an idea of the progress bar and cancel button UI.
-
 import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import * as Progress from "react-native-progress";
+import { Bar as ProgressBar } from "react-native-progress";
 import { MaterialIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { Toast } from "toastify-react-native";
 import { COLORS } from "../app/constants";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
+import { syncCourses } from "../hooks/queries/googleCalendarQueries";
+
+const COURSE_QUERY_KEY = ["courses"] as const;
+const ProgressBarComponent = ProgressBar as unknown as React.ComponentType<any>;
 
 export default function GoogleSyncPage() {
   const [progress, setProgress] = useState(0);
+  const queryClient = useQueryClient();
+  const router = useRouter();
 
-  // Simulate syncing progress
+  const syncMutation = useMutation({
+    mutationFn: syncCourses,
+    onSuccess: () => {
+      setProgress(1);
+      queryClient.invalidateQueries({ queryKey: COURSE_QUERY_KEY }); 
+    },
+  });
+
   useEffect(() => {
-    const interval = setInterval(() => {
-      setProgress((prev) => (prev < 1 ? prev + 0.01 : prev));
-    }, 50); // updates every 50ms
+    if (!syncMutation.isPending && !syncMutation.isSuccess) {
+      syncMutation.mutate(undefined);
+    }
+  }, [syncMutation]);
 
-    return () => clearInterval(interval);
-  }, []);
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval> | undefined;
+    if (syncMutation.isPending) {
+      interval = setInterval(() => {
+        setProgress((prev) => (prev < 0.9 ? prev + 0.02 : prev));
+      }, 200); 
+    } else if (syncMutation.isSuccess) {
+      setProgress(1); 
+    }
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [syncMutation.isPending, syncMutation.isSuccess]);
+
+  // Show success toast and redirect to schedule after sync completes
+  useEffect(() => {
+    if (syncMutation.isSuccess) {
+      Toast.success("Calendar synced successfully!");
+      const timer = setTimeout(() => {
+        router.push("/(drawer)/schedule");
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [syncMutation.isSuccess, router]);
 
   const cancelSync = () => {
-    // Handle cancel logic
     setProgress(0);
+    syncMutation.reset();
+    router.back();
   };
 
   return (
@@ -32,9 +71,17 @@ export default function GoogleSyncPage() {
 
       <Text style={styles.title}>Schedule</Text>
 
-      <Text style={styles.syncText}>Syncing Google Calendar</Text>
+      <Text style={styles.syncText}>
+        {syncMutation.isSuccess ? "Sync Complete!" : "Syncing Google Calendar"}
+      </Text>
 
-      {/* Progress bar */}
+      <ProgressBarComponent
+        progress={progress}
+        width={300}
+        height={20}
+        color={COLORS.maroon}
+        style={styles.progress}
+      />
 
       <TouchableOpacity style={styles.cancelButton} onPress={cancelSync}>
         <Text style={styles.cancelText}>Cancel Sync</Text>

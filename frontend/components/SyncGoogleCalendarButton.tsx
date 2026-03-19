@@ -1,4 +1,4 @@
-import { getGoogleAuthStatus, isAuthRequired } from "@/hooks/queries/googleCalendarQueries";
+import { getGoogleAuthStatus, isAuthRequired } from "@/hooks/queries/googleAuthQueries";
 import * as WebBrowser from "expo-web-browser";
 import { useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity } from "react-native";
@@ -13,13 +13,13 @@ export default function SyncCalendarButton({ onPress }: Readonly<Props>) {
   const [loading, setLoading] = useState(false);
 
   const handlePress = async () => {
-    if (loading) {
+    if (loading) { 
       return;
     }
 
     setLoading(true);
     try {
-      const status = await getGoogleAuthStatus();
+      const status = await getGoogleAuthStatus(); 
 
       if (isAuthRequired(status)) {
         await WebBrowser.openBrowserAsync(status.url);
