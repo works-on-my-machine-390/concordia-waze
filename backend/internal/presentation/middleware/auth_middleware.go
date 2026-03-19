@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"net/http"
 	"strings"
 	"time"
 
@@ -57,6 +58,7 @@ func AuthMiddleware(jwtManager *application.JWTManager) gin.HandlerFunc {
 
 		// Set user and token expiration in context
 		c.Set("user", claims)
+		c.Set("userID", claims.ID)
 		c.Set("token_exp", expTime)
 		c.Next()
 	}
@@ -71,6 +73,15 @@ func RequireAuth() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
+
+		v, ok := c.Get("userID")
+		userID, isString := v.(string)
+
+		if !ok || !isString || userID == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "missing userId (from auth context)"})
+			return
+		}
+
 		c.Next()
 	}
 }

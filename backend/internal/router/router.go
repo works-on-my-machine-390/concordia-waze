@@ -52,6 +52,9 @@ func SetupRouter() *gin.Engine {
 	shuttleService := application.NewShuttleService(shuttleDataRepo)
 	pointOfInterestService := application.NewPointOfInterestService(placesClient)
 
+	calendarClient := google.NewCalendarClient(buildingDataRepo)
+	calendarService := application.NewCalendarService(calendarClient, firebaseSvc)
+
 	var favoriteRepo repository.FavoriteRepository
 	if firebaseSvc != nil {
 		favoriteRepo = application.NewHybridFavoriteRepository(firebaseSvc)
@@ -88,6 +91,12 @@ func SetupRouter() *gin.Engine {
 	imageHandler := handler.NewImageHandler(imageService)
 	firebaseHandler := handler.NewFirebaseHandler(firebaseHandlerService)
 	shuttleHandler := handler.NewShuttleHandler(shuttleService)
+
+	//var scheduleService handler.ScheduleService
+	//if firebaseSvc != nil {
+	//	scheduleService = firebaseSvc
+	//}
+	//scheduleHandler := handler.NewScheduleHandler(scheduleService)
 	pointOfInterestHandler := handler.NewPointOfInterestHandler(pointOfInterestService, indoorPOIService)
 	favoritesHandler := handler.NewFavoritesHandler(favoritesService)
 
@@ -105,6 +114,8 @@ func SetupRouter() *gin.Engine {
 		tokenStorePath = "data/google-token-store.json"
 	}
 	googleOAuthHandler := handler.NewGoogleOAuthHandler(firebaseSvc)
+
+	calendarHandler := handler.NewCalendarHandler(firebaseSvc, calendarService, firebaseSvc)
 
 	authGroup := router.Group("/auth")
 	{
@@ -164,6 +175,21 @@ func SetupRouter() *gin.Engine {
 		userFavGroup.DELETE("/:id", favoritesHandler.DeleteFavorite)
 	}
 
+	// Calendar
+	calendarGroup := router.Group("/courses")
+	calendarGroup.Use(middleware.RequireAuth())
+	{
+		calendarGroup.GET("/sync", calendarHandler.SyncCalendarEvents)
+		calendarGroup.GET("", calendarHandler.GetCourses)
+		calendarGroup.POST("", calendarHandler.AddCourse)
+		calendarGroup.DELETE("/:title", calendarHandler.DeleteCourse)
+
+		calendarGroup.GET("/:title/items", calendarHandler.GetClassItems)
+		calendarGroup.POST("/:title/items", calendarHandler.AddClassItem)
+		calendarGroup.DELETE("/:title/items/:classID", calendarHandler.DeleteClassItem)
+		calendarGroup.PATCH("/:title/items/:classID", calendarHandler.UpdateClassItem)
+	}
+
 	// =========================
 	// PROTECTED ROUTES (auth)
 	// =========================
@@ -182,6 +208,7 @@ func SetupRouter() *gin.Engine {
 		usersGroup.POST("/:userId/history", firebaseHandler.AddDestinationHistory)
 		usersGroup.GET("/:userId/history", firebaseHandler.GetDestinationHistory)
 		usersGroup.DELETE("/:userId/history", firebaseHandler.ClearDestinationHistory)
+
 	}
 
 	return router

@@ -8,6 +8,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect } from "react";
 import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { trackEvent } from "@/lib/telemetry";
 
 const BROWSE_SHEET_HEIGHT = 160;
 
@@ -41,10 +42,9 @@ export default function IndoorMapPage() {
 
   const isAccessibilityMode = mapSettings.preferAccessibleRoutes;
   const handleToggleAccessibilityMode = () => {
-    updateSetting(
-      MapSettings.preferAccessibleRoutes,
-      !mapSettings.preferAccessibleRoutes,
-    );
+    const newValue = !mapSettings.preferAccessibleRoutes;
+    updateSetting(MapSettings.preferAccessibleRoutes, newValue);
+    void trackEvent("accessibility_toggled", { enabled: newValue });
   };
 
   const handleSearchPress = () => {

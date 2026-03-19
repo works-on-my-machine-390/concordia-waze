@@ -27,4 +27,5 @@ var (
 	ErrInvalidFavoriteType  = errors.New("type must be 'outdoor' or 'indoor'")
 	ErrOutdoorMissingCoords = errors.New("outdoor favorites require latitude and longitude")
 	ErrIndoorMissingFields  = errors.New("indoor favorites require buildingCode, floorNumber, x, and y")
+	ErrCourseNotFound       = errors.New("course not found")
 )
