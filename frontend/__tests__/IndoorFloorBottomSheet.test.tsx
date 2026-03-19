@@ -58,8 +58,26 @@ describe("IndoorFloorBottomSheet", () => {
   test("renders accessibility icons for elevators and ramps", () => {
     const floor = createFloor({
       pois: [
-        { name: "alt_1", type: "elevator", position: { x: 0.5, y: 0.5 }, polygon: [] },
-        { name: "alt_2", type: "ramp", position: { x: 0.6, y: 0.6 }, polygon: [] },
+        {
+          name: "alt_1",
+          type: "elevator",
+          position: { x: 0.5, y: 0.5 },
+          polygon: [],
+          floor_number: 1,
+          latitude: 45.497,
+          longitude: -73.579,
+          building: "CC",
+        },
+        {
+          name: "alt_2",
+          type: "ramp",
+          position: { x: 0.6, y: 0.6 },
+          polygon: [],
+          floor_number: 1,
+          latitude: 45.497,
+          longitude: -73.579,
+          building: "CC",
+        },
       ],
     });
 

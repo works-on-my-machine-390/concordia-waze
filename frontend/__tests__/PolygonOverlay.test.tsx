@@ -28,6 +28,10 @@ const createPoiWithPolygon = (
     x: i * 0.1,
     y: i * 0.1,
   })),
+  floor_number: 1,
+  latitude: 45.497,
+  longitude: -73.579,
+  building: "CC",
 });
 
 const createPoiWithoutPolygon = (name: string): PointOfInterest => ({
@@ -35,6 +39,10 @@ const createPoiWithoutPolygon = (name: string): PointOfInterest => ({
   type: "room",
   position: { x: 0.5, y: 0.5 },
   polygon: [],
+  floor_number: 1,
+  latitude: 45.497,
+  longitude: -73.579,
+  building: "CC",
 });
 
 describe("PolygonOverlay", () => {

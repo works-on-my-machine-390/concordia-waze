@@ -6,6 +6,7 @@ describe("RoomPolygon", () => {
   const defaultProps = {
     width: 1000,
     height: 1000,
+    onPress: jest.fn(),
   };
 
   test("returns null when polygon has fewer than 3 points", () => {
@@ -78,7 +79,7 @@ describe("RoomPolygon", () => {
     ];
 
     const { getByLabelText } = renderWithProviders(
-      <RoomPolygon polygon={polygon} width={1000} height={800} />,
+      <RoomPolygon polygon={polygon} width={1000} height={800} onPress={jest.fn()} />,
     );
 
     expect(getByLabelText("polygon-0,0 1000,0 500,800")).toBeTruthy();
@@ -92,7 +93,7 @@ describe("RoomPolygon", () => {
     ];
 
     const { getByLabelText } = renderWithProviders(
-      <RoomPolygon polygon={polygon} width={500} height={600} />,
+      <RoomPolygon polygon={polygon} width={500} height={600} onPress={jest.fn()} />,
     );
 
     expect(getByLabelText("polygon-50,60 100,120 150,180")).toBeTruthy();

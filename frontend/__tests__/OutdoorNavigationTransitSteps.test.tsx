@@ -115,11 +115,13 @@ describe("OutdoorNavigationTransitSteps", () => {
 				name: "H - Hall Building",
 				latitude: 45.497,
 				longitude: -73.579,
+				code: "H",
 			},
 			endLocation: {
 				name: "Loyola Campus",
 				latitude: 45.458,
 				longitude: -73.64,
+				code: "LOY",
 			},
 		});
 

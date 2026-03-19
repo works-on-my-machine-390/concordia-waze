@@ -103,6 +103,10 @@ const mockFloor: Floor = {
         { x: 0.6, y: 0.4 },
         { x: 0.6, y: 0.6 },
       ],
+      floor_number: 1,
+      latitude: 45.497,
+      longitude: -73.579,
+      building: "CC",
     },
   ],
 };
