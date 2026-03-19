@@ -97,8 +97,6 @@ describe("Favorites screen", () => {
         buildingCode: "MB",
         selectedRoom: "Room 210",
         selectedFloor: "2",
-        selectedX: "0.31",
-        selectedY: "0.44",
       },
     });
   });

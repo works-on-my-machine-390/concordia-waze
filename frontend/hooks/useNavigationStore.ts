@@ -81,8 +81,6 @@ interface NavigationState {
   navigationPhase?: NavigationPhase;
   setNavigationPhase?: (phase: NavigationPhase) => void;
 
-  startNavigation?: () => void;
-
   clearState: () => void;
 }
 
