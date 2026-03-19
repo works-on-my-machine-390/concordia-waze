@@ -1,0 +1,31 @@
+appId: host.exp.Exponent
+---
+# 1) Continue as guest (enter the app without logging in)
+- tapOn: "Use without account"
+- waitForAnimationToEnd
+
+# 2) Assert the map is loaded and visible on SGW campus
+- assertVisible: "SGW"
+- waitForAnimationToEnd
+
+# 3) Tap the main search bar ("Where to...") to start a building search
+- tapOn:
+    text: ".*Where to.*"
+
+# 4) Type a query to find nearby hotels
+- inputText: "Hotel"
+
+# 5) Tap on search for nearby hotel
+- doubleTapOn: Search nearby for "Hotel"
+
+# 6) Expand the "Nearby results" bottom sheet to display the list of places
+- swipe:
+    from:
+      text: "Nearby results"
+    direction: UP
+    duration: 250
+
+# 7) Click on direction icon
+- doubleTapOn:
+    text: 
+    index: 1

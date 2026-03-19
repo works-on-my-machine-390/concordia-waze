@@ -1,0 +1,61 @@
+appId: host.exp.Exponent
+---
+
+# 1) Continue as guest
+- tapOn: "Use without account"
+- waitForAnimationToEnd
+
+# 2) Assert map loads
+- assertVisible: "SGW"
+- waitForAnimationToEnd
+
+# 3) Tap on Hall building on the map
+- tapOn:
+    point: "55%, 48%"
+- waitForAnimationToEnd
+
+# 4) Assert bottom sheet appears with building name
+- assertVisible: "Henry F. Hall Building (H)"
+- waitForAnimationToEnd
+
+# 5) Click on view indoor map
+- tapOn:
+    point: "21%, 75%"
+
+# 6) Select floors within the building
+- assertVisible: "Henry F. Hall Building (H) - 1st Floor"
+
+- tapOn:
+    text: "9"
+
+# 7) Tap on the accessible icon
+- tapOn: Enable accessibility mode
+
+# 8) Select a room
+- doubleTapOn:
+    point: 58%,45%
+
+# 9) Click on navigation icon
+- tapOn:
+    point: "86%, 84%"
+
+# 10) Select a different floor
+- doubleTapOn:
+    point: 5%,66%
+
+# 11) Select the starting room
+- tapOn:
+    point: 85%,32%
+
+# 12) Get the accessible route
+- tapOn: GO
+- tapOn: NEXT
+- tapOn: NEXT
+- tapOn: NEXT
+- tapOn: NEXT
+- tapOn: NEXT
+- tapOn: NEXT
+- tapOn: NEXT
+- tapOn: NEXT
+- tapOn: NEXT
+- tapOn: FINISH
