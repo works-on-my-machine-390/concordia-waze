@@ -32,7 +32,7 @@ export default function SyncCalendarButton({ onPress }: Readonly<Props>) {
       if (isAuthRequired(status)) {
         await WebBrowser.openBrowserAsync(status.url);
         Toast.info(
-          "Finish Google authorization in browser, then tap sync again.",
+          "Finish Google authentication in browser, then tap sync again.",
         );
         return;
       }
