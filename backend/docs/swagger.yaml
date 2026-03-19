@@ -429,6 +429,23 @@ definitions:
     - email
     - password
     type: object
+  handler.NextClassResponse:
+    properties:
+      buildingLatitude:
+        type: number
+      buildingLongitude:
+        type: number
+      className:
+        type: string
+      floorNumber:
+        type: integer
+      item:
+        $ref: '#/definitions/domain.ClassItem'
+      roomX:
+        type: number
+      roomY:
+        type: number
+    type: object
   handler.SignUpRequest:
     properties:
       email:
@@ -1133,6 +1150,28 @@ paths:
       security:
       - BearerAuth: []
       summary: Update a class item (partial)
+      tags:
+      - class
+  /courses/next:
+    get:
+      description: Returns the next class session based on the authenticated user's
+        schedule and the current time
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Next class found, or message when no more classes today
+          schema:
+            $ref: '#/definitions/handler.NextClassResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get the user's next upcoming class
       tags:
       - class
   /courses/sync:
