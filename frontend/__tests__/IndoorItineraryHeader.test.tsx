@@ -118,9 +118,6 @@ describe("IndoorItineraryHeader", () => {
     expect(mockStore.setModifyingField).toHaveBeenCalledWith("start");
     expect(mockPush).toHaveBeenCalledWith({
       pathname: "/indoor-search",
-      params: {
-        itineraryField: "start",
-      },
     });
   });
 
@@ -132,9 +129,6 @@ describe("IndoorItineraryHeader", () => {
     expect(mockStore.setModifyingField).toHaveBeenCalledWith("end");
     expect(mockPush).toHaveBeenCalledWith({
       pathname: "/indoor-search",
-      params: {
-        itineraryField: "end",
-      },
     });
   });
 });

@@ -9,7 +9,7 @@ import {
 } from "@/hooks/queries/buildingQueries";
 import { TextSearchRankPreferenceType } from "@/hooks/queries/poiQueries";
 import { MapMode, useMapStore } from "@/hooks/useMapStore";
-import { useNavigationStore } from "@/hooks/useNavigationStore";
+import { ModifyingFieldOptions, useNavigationStore } from "@/hooks/useNavigationStore";
 import * as Location from "expo-location";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -381,7 +381,7 @@ export default function MainMap() {
   }, []);
 
   const handleStartLocationPress = () => {
-    navigationState.setModifyingField("start");
+    navigationState.setModifyingField(ModifyingFieldOptions.start);
 
     router.push({
       pathname: "/search",
@@ -396,7 +396,7 @@ export default function MainMap() {
   };
 
   const handleEndLocationPress = () => {
-    navigationState.setModifyingField("end");
+    navigationState.setModifyingField(ModifyingFieldOptions.end);
     router.push({
       pathname: "/search",
       params: {

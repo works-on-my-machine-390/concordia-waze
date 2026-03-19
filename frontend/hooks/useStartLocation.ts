@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { NavigableLocation, useNavigationStore } from "./useNavigationStore";
+import { ModifyingFieldOptions, NavigableLocation, useNavigationStore } from "./useNavigationStore";
 import {
   Building,
   fetchBuildingDetails,
@@ -39,7 +39,7 @@ export default function useStartLocation() {
       isUserInSameBuildingAsEndLocation
     ) {
       setStartLocation(null); // prompt the user to set it themselves
-      setModifyingField("start"); // let the user's next click on a building or indoor POI set the start location.
+      setModifyingField(ModifyingFieldOptions.start); // let the user's next click on a building or indoor POI set the start location.
       return;
     }
 
@@ -64,7 +64,7 @@ export default function useStartLocation() {
    * guarded to only update if the user is currently trying to modify the start location.
    */
   const setStartLocationManually = (location: NavigableLocation) => {
-    if (modifyingField === "start") {
+    if (modifyingField === ModifyingFieldOptions.start) {
       setStartLocation(location);
       setModifyingField(null);
     }
@@ -91,7 +91,7 @@ export default function useStartLocation() {
     } catch {
       // If lookup fails, keep manual start selection flow active.
       setStartLocation(null);
-      setModifyingField("start");
+      setModifyingField(ModifyingFieldOptions.start);
     }
   };
 

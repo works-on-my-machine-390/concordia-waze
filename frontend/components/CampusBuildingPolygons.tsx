@@ -2,7 +2,7 @@ import { SELECTED_BUILDING_STYLE } from "@/app/styles/buildingPolygons/selectedB
 import { CampusBuilding } from "@/hooks/queries/buildingQueries";
 import useMapSettings from "@/hooks/useMapSettings";
 import { MapMode, useMapStore } from "@/hooks/useMapStore";
-import { useNavigationStore } from "@/hooks/useNavigationStore";
+import { ModifyingFieldOptions, useNavigationStore } from "@/hooks/useNavigationStore";
 import useStartLocation from "@/hooks/useStartLocation";
 import { Polygon } from "react-native-maps";
 import { CAMPUS_BUILDING_STYLE } from "../app/styles/buildingPolygons/campusBuildingStyle";
@@ -30,7 +30,7 @@ export default function CampusBuildingPolygons({
   const handlePolygonPress = (buildingCode: string) => {
     if (
       !navigationState.startLocation &&
-      navigationState.modifyingField === "start"
+      navigationState.modifyingField === ModifyingFieldOptions.start
     ) {
       setStartLocationAutocomplete(buildingCode);
       return; // don't change map mode if we're just setting the start location

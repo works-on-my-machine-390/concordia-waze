@@ -17,7 +17,7 @@ import IndoorBottomSheetSection from "./IndoorBottomSheetSection";
 import IndoorPathOverlay from "./IndoorPathOverlay";
 import PoiMarker from "./PoiMarker";
 import PolygonOverlay from "./PolygonOverlay";
-import { useNavigationStore } from "@/hooks/useNavigationStore";
+import { ModifyingFieldOptions, useNavigationStore } from "@/hooks/useNavigationStore";
 import useStartLocation from "@/hooks/useStartLocation";
 
 /** Standard indoor route */
@@ -87,7 +87,7 @@ export default function FloorPlanViewer({
 
     if (
       !navigationState.startLocation &&
-      navigationState.modifyingField === "start"
+      navigationState.modifyingField === ModifyingFieldOptions.start
     ) {
       setStartLocationManually({
         name: poi.name,

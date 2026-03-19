@@ -1,6 +1,9 @@
 import { COLORS } from "@/app/constants";
 import { CircleIcon, LocationIcon } from "@/app/icons";
-import { useNavigationStore } from "@/hooks/useNavigationStore";
+import {
+  ModifyingFieldOptions,
+  useNavigationStore,
+} from "@/hooks/useNavigationStore";
 import { Ionicons } from "@expo/vector-icons";
 import { DrawerActions } from "@react-navigation/native";
 import { useNavigation, useRouter } from "expo-router";
@@ -54,12 +57,9 @@ export default function IndoorItineraryHeader({}: Readonly<Props>) {
             <Pressable
               style={styles.locationRow}
               onPress={() => {
-                navigationState.setModifyingField("start");
+                navigationState.setModifyingField(ModifyingFieldOptions.start);
                 router.push({
                   pathname: "/indoor-search",
-                  params: {
-                    itineraryField: "start",
-                  },
                 });
               }}
             >
@@ -90,12 +90,9 @@ export default function IndoorItineraryHeader({}: Readonly<Props>) {
             <Pressable
               style={styles.locationRow}
               onPress={() => {
-                navigationState.setModifyingField("end");
+                navigationState.setModifyingField(ModifyingFieldOptions.end);
                 router.push({
                   pathname: "/indoor-search",
-                  params: {
-                    itineraryField: "end",
-                  },
                 });
               }}
             >

@@ -34,6 +34,13 @@ export const NavigationPhase = {
   ACTIVE: "ACTIVE",
 } as const;
 
+export const ModifyingFieldOptions = {
+  start: "start",
+  end: "end",
+} as const;
+
+export type ModifyingField = (typeof ModifyingFieldOptions)[keyof typeof ModifyingFieldOptions];
+
 export type NavigationPhase =
   (typeof NavigationPhase)[keyof typeof NavigationPhase];
 
@@ -62,8 +69,8 @@ interface NavigationState {
   startDateTime?: Date;
   setStartDateTime?: (dateTime: Date) => void;
 
-  modifyingField?: "start" | "end" | null;
-  setModifyingField?: (field: "start" | "end" | null) => void;
+  modifyingField?: ModifyingField | null;
+  setModifyingField?: (field: ModifyingField | null) => void;
 
   navigationPhase?: NavigationPhase;
   setNavigationPhase?: (phase: NavigationPhase) => void;
@@ -101,7 +108,7 @@ export const useNavigationStore = create<NavigationState>()((set) => ({
   setStartDateTime: (dateTime: Date) => set({ startDateTime: dateTime }),
 
   modifyingField: null,
-  setModifyingField: (field: "start" | "end" | null) =>
+  setModifyingField: (field: ModifyingField | null) =>
     set({ modifyingField: field }),
 
   navigationPhase: undefined,

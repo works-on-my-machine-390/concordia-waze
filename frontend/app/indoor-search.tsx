@@ -11,7 +11,7 @@ import {
 } from "@/hooks/queries/indoorMapQueries";
 import { RecentIndoorSearch, useIndoorSearch } from "@/hooks/useIndoorSearch";
 import { useIndoorSearchStore } from "@/hooks/useIndoorSearchStore";
-import { useNavigationStore } from "@/hooks/useNavigationStore";
+import { ModifyingFieldOptions, useNavigationStore } from "@/hooks/useNavigationStore";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
@@ -80,9 +80,9 @@ export default function IndoorSearchPage() {
         longitude: poi.longitude,
       };
 
-      if (navigationState.modifyingField === "start") {
+      if (navigationState.modifyingField === ModifyingFieldOptions.start) {
         navigationState.setStartLocation(selectedLocation);
-      } else if (navigationState.modifyingField === "end") {
+      } else if (navigationState.modifyingField === ModifyingFieldOptions.end) {
         navigationState.setEndLocation(selectedLocation);
       }
       navigationState.setModifyingField(null);
@@ -156,9 +156,9 @@ export default function IndoorSearchPage() {
           longitude: poi.longitude,
         };
 
-        if (navigationState.modifyingField === "start") {
+        if (navigationState.modifyingField === ModifyingFieldOptions.start) {
           navigationState.setStartLocation(selectedLocation);
-        } else if (navigationState.modifyingField === "end") {
+        } else if (navigationState.modifyingField === ModifyingFieldOptions.end) {
           navigationState.setEndLocation(selectedLocation);
         }
         navigationState.setModifyingField(null);
