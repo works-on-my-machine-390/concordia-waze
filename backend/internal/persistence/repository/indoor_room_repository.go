@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
@@ -65,7 +66,7 @@ func (r *indoorRoomRepository) GetByBuilding(buildingCode string) ([]domain.Indo
 
 	out := make([]domain.IndoorRoom, 0, len(fc.Features))
 	for _, f := range fc.Features {
-		room := extractRoomLabel(f.Properties)
+		room := extractRoomLabel(f.Properties, b)
 		floor, _ := asInt(f.Properties["floor"])
 
 		centroid, geomType := centroidFromGeometry(f.Geometry.Type, f.Geometry.Coordinates)
@@ -82,11 +83,21 @@ func (r *indoorRoomRepository) GetByBuilding(buildingCode string) ([]domain.Indo
 	return out, nil
 }
 
-func extractRoomLabel(props map[string]any) string {
+func extractRoomLabel(props map[string]any, buildingCode string) string {
 	// Your real dataset uses "name": "S2.285"
 	if v, ok := props["name"]; ok {
 		if s, ok := v.(string); ok && strings.TrimSpace(s) != "" {
 			return strings.TrimSpace(s)
+		}
+	}
+
+	// H building uses numeric "roomNbr": 937 → format as "H-937"
+	if v, ok := props["roomNbr"]; ok {
+		if n, ok := asInt(v); ok && n > 0 {
+			if buildingCode != "" {
+				return buildingCode + "-" + strconv.Itoa(n)
+			}
+			return strconv.Itoa(n)
 		}
 	}
 
