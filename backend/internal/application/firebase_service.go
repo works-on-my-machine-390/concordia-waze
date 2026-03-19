@@ -493,15 +493,10 @@ func (fs *FirebaseService) GetNextClass(userID string) (string, *domain.ClassIte
 
 	for className, items := range allItems {
 		for _, item := range items {
-			day, ok := ParseWeekday(item.Day)
-			if !ok || day != now.Weekday() {
-				continue // only consider today
+			mins, ok := minutesUntilTodayItem(item, now.Weekday(), nowMinutes)
+			if !ok {
+				continue
 			}
-			startMinutes, ok := ParseTimeToMinutes(item.StartTime)
-			if !ok || startMinutes <= nowMinutes {
-				continue // already started or past
-			}
-			mins := startMinutes - nowMinutes
 			if bestMinutes < 0 || mins < bestMinutes {
 				bestMinutes = mins
 				bestItem = item
@@ -511,6 +506,18 @@ func (fs *FirebaseService) GetNextClass(userID string) (string, *domain.ClassIte
 	}
 
 	return bestClassName, bestItem, nil
+}
+
+func minutesUntilTodayItem(item *domain.ClassItem, today time.Weekday, nowMinutes int) (int, bool) {
+	day, ok := ParseWeekday(item.Day)
+	if !ok || day != today {
+		return 0, false
+	}
+	startMinutes, ok := ParseTimeToMinutes(item.StartTime)
+	if !ok || startMinutes <= nowMinutes {
+		return 0, false
+	}
+	return startMinutes - nowMinutes, true
 }
 
 // ParseWeekday parses a weekday name (full or 3-letter abbreviation, case-insensitive).
