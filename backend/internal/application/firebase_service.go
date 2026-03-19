@@ -485,6 +485,7 @@ func (fs *FirebaseService) GetNextClass(userID string) (string, *domain.ClassIte
 		loc = time.UTC
 	}
 	now := time.Now().In(loc)
+	nowMinutes := now.Hour()*60 + now.Minute()
 
 	bestMinutes := -1
 	var bestClassName string
@@ -492,10 +493,15 @@ func (fs *FirebaseService) GetNextClass(userID string) (string, *domain.ClassIte
 
 	for className, items := range allItems {
 		for _, item := range items {
-			mins, ok := MinutesUntilItem(item, now)
-			if !ok {
-				continue
+			day, ok := ParseWeekday(item.Day)
+			if !ok || day != now.Weekday() {
+				continue // only consider today
 			}
+			startMinutes, ok := ParseTimeToMinutes(item.StartTime)
+			if !ok || startMinutes <= nowMinutes {
+				continue // already started or past
+			}
+			mins := startMinutes - nowMinutes
 			if bestMinutes < 0 || mins < bestMinutes {
 				bestMinutes = mins
 				bestItem = item

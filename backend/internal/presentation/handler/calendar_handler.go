@@ -296,8 +296,7 @@ func (h *CalendarHandler) AddClassItem(c *gin.Context) {
 // @Description Returns the next class session based on the authenticated user's schedule and the current time
 // @Tags class
 // @Produce json
-// @Success 200 {object} NextClassResponse
-// @Failure 404 {object} map[string]string "No upcoming class found"
+// @Success 200 {object} NextClassResponse "Next class found, or message when no more classes today"
 // @Failure 500 {object} map[string]string
 // @Security BearerAuth
 // @Router /courses/next [get]
@@ -310,7 +309,7 @@ func (h *CalendarHandler) GetNextClass(c *gin.Context) {
 		return
 	}
 	if item == nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "no upcoming class found"})
+		c.JSON(http.StatusOK, gin.H{"message": "no more classes today, enjoy your day!"})
 		return
 	}
 

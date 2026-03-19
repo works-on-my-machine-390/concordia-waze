@@ -512,7 +512,7 @@ func TestGetNextClass(t *testing.T) {
 		assert.Equal(t, "lec", resp.Item.Type)
 	})
 
-	t.Run("no class found -> 404", func(t *testing.T) {
+	t.Run("no class today -> 200 with message", func(t *testing.T) {
 		fs := &mockFirebaseService{nextClassItem: nil}
 		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs)
 		r := setupCalendarTestRouter(h)
@@ -521,8 +521,8 @@ func TestGetNextClass(t *testing.T) {
 		w := httptest.NewRecorder()
 		r.ServeHTTP(w, req)
 
-		require.Equal(t, http.StatusNotFound, w.Code)
-		assert.Contains(t, w.Body.String(), "no upcoming class found")
+		require.Equal(t, http.StatusOK, w.Code)
+		assert.Contains(t, w.Body.String(), "no more classes today")
 	})
 
 	t.Run("service error -> 500", func(t *testing.T) {

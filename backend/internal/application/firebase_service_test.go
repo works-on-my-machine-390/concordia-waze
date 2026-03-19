@@ -1301,26 +1301,24 @@ func TestGetNextClass_Firestore(t *testing.T) {
 	}
 	require.NoError(t, service.CreateUserProfile(ctx, userID, profile))
 
-	// Add a class item for every day of the week so GetNextClass always finds one.
-	days := []string{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"}
+	// Add a class for today at 23:59 so it is always upcoming.
+	today := time.Now().Weekday().String()
 	title := "COMP-202"
 	require.NoError(t, service.CreateClass(ctx, userID, title))
-	for _, day := range days {
-		_, err := service.AddClassItem(ctx, userID, title, domain.ClassItem{
-			Type:      "lec",
-			Section:   "A",
-			Day:       day,
-			StartTime: "14:00",
-			EndTime:   "15:30",
-		})
-		require.NoError(t, err)
-	}
+	_, err := service.AddClassItem(ctx, userID, title, domain.ClassItem{
+		Type:      "lec",
+		Section:   "A",
+		Day:       today,
+		StartTime: "23:59",
+		EndTime:   "23:59",
+	})
+	require.NoError(t, err)
 
 	className, item, err := service.GetNextClass(userID)
 	require.NoError(t, err)
-	require.NotNil(t, item, "expected a next class to be found")
+	require.NotNil(t, item, "expected a next class to be found today")
 	assert.Equal(t, title, className)
-	assert.Equal(t, "14:00", item.StartTime)
+	assert.Equal(t, "23:59", item.StartTime)
 }
 
 func TestGetNextClass_NoClasses_Firestore(t *testing.T) {
