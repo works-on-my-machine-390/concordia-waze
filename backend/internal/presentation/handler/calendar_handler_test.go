@@ -538,3 +538,144 @@ func TestGetNextClass(t *testing.T) {
 		assert.Contains(t, w.Body.String(), "db error")
 	})
 }
+
+// ===== GetNextClass enrichment mocks =====
+
+type mockBuildingLookup struct {
+	building *domain.Building
+	err      error
+}
+
+func (m *mockBuildingLookup) GetBuilding(code string) (*domain.Building, error) {
+	return m.building, m.err
+}
+
+type mockRoomLookup struct {
+	rooms []domain.IndoorRoom
+	err   error
+}
+
+func (m *mockRoomLookup) GetByBuilding(buildingCode string) ([]domain.IndoorRoom, error) {
+	return m.rooms, m.err
+}
+
+func TestGetNextClass_Enrichment(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	baseItem := &domain.ClassItem{
+		Type: "lec", Day: "Monday", StartTime: "14:00", EndTime: "15:30",
+		BuildingCode: "H", Room: "H-937",
+	}
+
+	t.Run("building coords populated when lookup succeeds", func(t *testing.T) {
+		fs := &mockFirebaseService{nextClassName: "SOEN384", nextClassItem: baseItem}
+		bl := &mockBuildingLookup{building: &domain.Building{Latitude: 45.497, Longitude: -73.578}}
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs, bl, nil)
+		r := setupCalendarTestRouter(h)
+
+		req := httptest.NewRequest(http.MethodGet, "/courses/next", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusOK, w.Code)
+		var resp NextClassResponse
+		require.NoError(t, json.NewDecoder(w.Body).Decode(&resp))
+		assert.InDelta(t, 45.497, resp.BuildingLatitude, 0.001)
+		assert.InDelta(t, -73.578, resp.BuildingLongitude, 0.001)
+	})
+
+	t.Run("building coords omitted when lookup fails", func(t *testing.T) {
+		fs := &mockFirebaseService{nextClassName: "SOEN384", nextClassItem: baseItem}
+		bl := &mockBuildingLookup{err: errors.New("not found")}
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs, bl, nil)
+		r := setupCalendarTestRouter(h)
+
+		req := httptest.NewRequest(http.MethodGet, "/courses/next", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusOK, w.Code)
+		var resp NextClassResponse
+		require.NoError(t, json.NewDecoder(w.Body).Decode(&resp))
+		assert.Zero(t, resp.BuildingLatitude)
+		assert.Zero(t, resp.BuildingLongitude)
+	})
+
+	t.Run("floor and room coords populated when room matched", func(t *testing.T) {
+		fs := &mockFirebaseService{nextClassName: "SOEN384", nextClassItem: baseItem}
+		rl := &mockRoomLookup{rooms: []domain.IndoorRoom{
+			{Room: "H-937", Floor: 9, Centroid: domain.IndoorPosition{X: 1.1, Y: 2.2}},
+		}}
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs, nil, rl)
+		r := setupCalendarTestRouter(h)
+
+		req := httptest.NewRequest(http.MethodGet, "/courses/next", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusOK, w.Code)
+		var resp NextClassResponse
+		require.NoError(t, json.NewDecoder(w.Body).Decode(&resp))
+		require.NotNil(t, resp.FloorNumber)
+		assert.Equal(t, 9, *resp.FloorNumber)
+		require.NotNil(t, resp.RoomX)
+		assert.InDelta(t, 1.1, *resp.RoomX, 0.001)
+		require.NotNil(t, resp.RoomY)
+		assert.InDelta(t, 2.2, *resp.RoomY, 0.001)
+	})
+
+	t.Run("floor and room coords omitted when room not in list", func(t *testing.T) {
+		fs := &mockFirebaseService{nextClassName: "SOEN384", nextClassItem: baseItem}
+		rl := &mockRoomLookup{rooms: []domain.IndoorRoom{
+			{Room: "H-100", Floor: 1, Centroid: domain.IndoorPosition{X: 0, Y: 0}},
+		}}
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs, nil, rl)
+		r := setupCalendarTestRouter(h)
+
+		req := httptest.NewRequest(http.MethodGet, "/courses/next", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusOK, w.Code)
+		var resp NextClassResponse
+		require.NoError(t, json.NewDecoder(w.Body).Decode(&resp))
+		assert.Nil(t, resp.FloorNumber)
+		assert.Nil(t, resp.RoomX)
+		assert.Nil(t, resp.RoomY)
+	})
+
+	t.Run("floor and room coords omitted when room lookup fails", func(t *testing.T) {
+		fs := &mockFirebaseService{nextClassName: "SOEN384", nextClassItem: baseItem}
+		rl := &mockRoomLookup{err: errors.New("lookup error")}
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs, nil, rl)
+		r := setupCalendarTestRouter(h)
+
+		req := httptest.NewRequest(http.MethodGet, "/courses/next", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusOK, w.Code)
+		var resp NextClassResponse
+		require.NoError(t, json.NewDecoder(w.Body).Decode(&resp))
+		assert.Nil(t, resp.FloorNumber)
+	})
+
+	t.Run("no enrichment when item has no building code", func(t *testing.T) {
+		itemNoBldg := &domain.ClassItem{Type: "lec", Day: "Monday", StartTime: "14:00"}
+		fs := &mockFirebaseService{nextClassName: "SOEN384", nextClassItem: itemNoBldg}
+		bl := &mockBuildingLookup{building: &domain.Building{Latitude: 45.497, Longitude: -73.578}}
+		rl := &mockRoomLookup{rooms: []domain.IndoorRoom{{Room: "H-937", Floor: 9}}}
+		h := NewCalendarHandler(&mockTokenStore{}, &mockCalendarService{}, fs, bl, rl)
+		r := setupCalendarTestRouter(h)
+
+		req := httptest.NewRequest(http.MethodGet, "/courses/next", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusOK, w.Code)
+		var resp NextClassResponse
+		require.NoError(t, json.NewDecoder(w.Body).Decode(&resp))
+		assert.Zero(t, resp.BuildingLatitude)
+		assert.Nil(t, resp.FloorNumber)
+	})
+}
