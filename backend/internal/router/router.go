@@ -115,7 +115,7 @@ func SetupRouter() *gin.Engine {
 	}
 	googleOAuthHandler := handler.NewGoogleOAuthHandler(firebaseSvc)
 
-	calendarHandler := handler.NewCalendarHandler(firebaseSvc, calendarService, firebaseSvc)
+	calendarHandler := handler.NewCalendarHandler(firebaseSvc, calendarService, firebaseSvc, buildingDataRepo, indoorRoomRepo)
 
 	authGroup := router.Group("/auth")
 	{

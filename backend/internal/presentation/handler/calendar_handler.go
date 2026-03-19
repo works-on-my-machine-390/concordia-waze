@@ -3,6 +3,7 @@ package handler
 import (
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -10,17 +11,29 @@ import (
 	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
 )
 
+type BuildingLookup interface {
+	GetBuilding(code string) (*domain.Building, error)
+}
+
+type RoomLookup interface {
+	GetByBuilding(buildingCode string) ([]domain.IndoorRoom, error)
+}
+
 type CalendarHandler struct {
 	tokenStore      GoogleTokenStore
 	calendarSyncer  application.CalendarSyncer
 	firebaseService application.FirebaseClassService
+	buildingLookup  BuildingLookup
+	roomLookup      RoomLookup
 }
 
-func NewCalendarHandler(tokenStore GoogleTokenStore, calendarSyncer application.CalendarSyncer, firebaseService application.FirebaseClassService) *CalendarHandler {
+func NewCalendarHandler(tokenStore GoogleTokenStore, calendarSyncer application.CalendarSyncer, firebaseService application.FirebaseClassService, buildingLookup BuildingLookup, roomLookup RoomLookup) *CalendarHandler {
 	return &CalendarHandler{
 		tokenStore:      tokenStore,
 		calendarSyncer:  calendarSyncer,
 		firebaseService: firebaseService,
+		buildingLookup:  buildingLookup,
+		roomLookup:      roomLookup,
 	}
 }
 
@@ -36,8 +49,13 @@ type SyncResponse struct {
 
 // NextClassResponse is the response body for GetNextClass.
 type NextClassResponse struct {
-	ClassName string            `json:"className"`
-	Item      *domain.ClassItem `json:"item"`
+	ClassName         string            `json:"className"`
+	Item              *domain.ClassItem `json:"item"`
+	BuildingLatitude  float64           `json:"buildingLatitude,omitempty"`
+	BuildingLongitude float64           `json:"buildingLongitude,omitempty"`
+	FloorNumber       *int              `json:"floorNumber,omitempty"`
+	RoomX             *float64          `json:"roomX,omitempty"`
+	RoomY             *float64          `json:"roomY,omitempty"`
 }
 
 type createCourseRequest struct {
@@ -313,7 +331,32 @@ func (h *CalendarHandler) GetNextClass(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, NextClassResponse{ClassName: className, Item: item})
+	resp := NextClassResponse{ClassName: className, Item: item}
+
+	if item.BuildingCode != "" && h.buildingLookup != nil {
+		if building, err := h.buildingLookup.GetBuilding(item.BuildingCode); err == nil {
+			resp.BuildingLatitude = building.Latitude
+			resp.BuildingLongitude = building.Longitude
+		}
+	}
+
+	if item.BuildingCode != "" && item.Room != "" && h.roomLookup != nil {
+		if rooms, err := h.roomLookup.GetByBuilding(item.BuildingCode); err == nil {
+			for _, r := range rooms {
+				if strings.EqualFold(r.Room, item.Room) {
+					floor := r.Floor
+					x := r.Centroid.X
+					y := r.Centroid.Y
+					resp.FloorNumber = &floor
+					resp.RoomX = &x
+					resp.RoomY = &y
+					break
+				}
+			}
+		}
+	}
+
+	c.JSON(http.StatusOK, resp)
 }
 
 // UpdateClassItem godoc
