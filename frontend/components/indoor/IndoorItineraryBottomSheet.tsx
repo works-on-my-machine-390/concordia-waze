@@ -6,6 +6,7 @@ import { COLORS } from "@/app/constants";
 import { useIndoorNavigationStore } from "@/hooks/useIndoorNavigationStore";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import { trackEvent } from "@/lib/telemetry";
 
 export const ITINERARY_SHEET_HEIGHT = 165;
 
@@ -35,6 +36,14 @@ export default function IndoorItineraryBottomSheet({
   const handleGo = () => {
     if (!canGo) return;
 
+    void trackEvent("indoor_navigation_started", {
+      building: buildingCode,
+      from_room: nav.start?.label ?? null,
+      to_room: nav.end?.label ?? null,
+      from_floor: nav.start?.floor ?? null,
+      to_floor: nav.end?.floor ?? null,
+    });
+
     router.push({
       pathname: "/indoor-navigation",
       params: { buildingCode },
@@ -42,7 +51,7 @@ export default function IndoorItineraryBottomSheet({
   };
 
   const distanceLabel =
-  nav.totalDistance == null ? "" : `(${nav.totalDistance.toFixed(1)} m)`;
+    nav.totalDistance == null ? "" : `(${nav.totalDistance.toFixed(1)} m)`;
 
   const startFloor = nav.start?.floor ?? null;
   const endFloor = nav.end?.floor ?? null;

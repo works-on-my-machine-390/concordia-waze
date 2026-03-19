@@ -15,6 +15,7 @@ import ShuttleSchedule from "../app/(drawer)/shuttle";
 
 const mockStartTaskTimer = jest.fn();
 const mockEndTaskTimer = jest.fn();
+const mockTrackEvent = jest.fn();
 
 // ── Navigation mock
 const mockDispatch = jest.fn();
@@ -33,6 +34,7 @@ jest.mock("@/hooks/queries/shuttleQueries", () => ({
 jest.mock("@/lib/telemetry", () => ({
   startTaskTimer: (...args: any[]) => mockStartTaskTimer(...args),
   endTaskTimer: (...args: any[]) => mockEndTaskTimer(...args),
+  trackEvent: (...args: any[]) => mockTrackEvent(...args),
 }));
 
 // ── Types
@@ -78,6 +80,7 @@ const mockError = (msg = "HTTP 500") =>
 describe("ShuttleSchedule screen", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockTrackEvent.mockResolvedValue(undefined);
     mockEndTaskTimer.mockResolvedValue(1000);
   });
   afterEach(() => cleanup());

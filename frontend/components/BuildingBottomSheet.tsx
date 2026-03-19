@@ -1,5 +1,10 @@
 import type { Building } from "@/hooks/queries/buildingQueries";
 import { useGetBuildingDetails } from "@/hooks/queries/buildingQueries";
+import {
+  useCreateFavorite,
+  useDeleteFavorite,
+  useGetUserFavorites,
+} from "@/hooks/queries/favoritesQueries";
 import { useSaveToHistory } from "@/hooks/queries/userHistoryQueries";
 import { useGetProfile } from "@/hooks/queries/userQueries";
 import { MapMode, useMapStore } from "@/hooks/useMapStore";
@@ -20,6 +25,7 @@ import {
   CloseIcon,
   ElevatorIcon,
   FavoriteEmptyIcon,
+  FavoriteFilledIcon,
   GetDirectionsIcon,
   SlopeUpIcon,
   WheelchairIcon,
@@ -31,6 +37,8 @@ import OpeningHours from "./OpeningHours";
 import ViewIndoorMapButton from "./ViewIndoorMapButton";
 
 export type BuildingBottomSheetProps = {};
+
+const DEFAULT_GUEST_USER_ID = "guest";
 
 type BottomSheetBuildingModel = {
   accessibilityMapping: {
@@ -65,6 +73,10 @@ export default function BuildingBottomSheet(
   const { findAndSetStartLocation } = useStartLocation();
 
   const userProfileQuery = useGetProfile();
+  const favoriteUserId = userProfileQuery.data?.id || DEFAULT_GUEST_USER_ID;
+  const createFavorite = useCreateFavorite(favoriteUserId);
+  const deleteFavorite = useDeleteFavorite(favoriteUserId);
+  const favoritesQuery = useGetUserFavorites(favoriteUserId, true);
 
   const saveToHistory = useSaveToHistory(userProfileQuery.data?.id || "");
 
@@ -126,6 +138,20 @@ export default function BuildingBottomSheet(
     hasBuildingData &&
     BUILDINGS_WITH_INDOOR_MAPS.includes(building.code as any);
 
+  const existingFavorite = useMemo(() => {
+    if (!building) return undefined;
+
+    return (favoritesQuery.data || []).find((favorite) => {
+      const matchesName = favorite.name === building.long_name;
+      const matchesCoords =
+        favorite.type === "outdoor" &&
+        favorite.latitude === building.latitude &&
+        favorite.longitude === building.longitude;
+
+      return matchesName || matchesCoords;
+    });
+  }, [building, favoritesQuery.data]);
+
   const navigationState = useNavigationStore();
   const handleStartNavigation = async () => {
     navigationState.setEndLocation({
@@ -149,6 +175,22 @@ export default function BuildingBottomSheet(
     }
 
     findAndSetStartLocation();
+  };
+
+  const handleAddFavorite = () => {
+    if (!building) return;
+
+    if (existingFavorite) {
+      deleteFavorite.mutate(existingFavorite.id);
+      return;
+    }
+
+    createFavorite.mutate({
+      type: "outdoor",
+      name: building.long_name,
+      latitude: building.latitude,
+      longitude: building.longitude,
+    });
   };
 
   return (
@@ -207,7 +249,16 @@ export default function BuildingBottomSheet(
                 {accessibilityIcons}
               </View>
               <View style={BottomSheetStyles.accessibilityIconsContainer}>
-                <FavoriteEmptyIcon color={COLORS.maroon} />
+                <TouchableOpacity
+                  onPress={handleAddFavorite}
+                  testID="building-favorite-button"
+                >
+                  {existingFavorite ? (
+                    <FavoriteFilledIcon color={COLORS.maroon} />
+                  ) : (
+                    <FavoriteEmptyIcon color={COLORS.textSecondary} />
+                  )}
+                </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => {
                     mapState.setSelectedBuildingCode(null);
