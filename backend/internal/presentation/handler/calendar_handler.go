@@ -3,6 +3,7 @@ package handler
 import (
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -10,17 +11,29 @@ import (
 	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
 )
 
+type BuildingGetter interface {
+	GetBuilding(code string) (*domain.Building, error)
+}
+
+type RoomGetter interface {
+	GetByBuilding(buildingCode string) ([]domain.IndoorRoom, error)
+}
+
 type CalendarHandler struct {
 	tokenStore      GoogleTokenStore
 	calendarSyncer  application.CalendarSyncer
 	firebaseService application.FirebaseClassService
+	buildingGetter  BuildingGetter
+	roomGetter      RoomGetter
 }
 
-func NewCalendarHandler(tokenStore GoogleTokenStore, calendarSyncer application.CalendarSyncer, firebaseService application.FirebaseClassService) *CalendarHandler {
+func NewCalendarHandler(tokenStore GoogleTokenStore, calendarSyncer application.CalendarSyncer, firebaseService application.FirebaseClassService, buildingGetter BuildingGetter, roomGetter RoomGetter) *CalendarHandler {
 	return &CalendarHandler{
 		tokenStore:      tokenStore,
 		calendarSyncer:  calendarSyncer,
 		firebaseService: firebaseService,
+		buildingGetter:  buildingGetter,
+		roomGetter:      roomGetter,
 	}
 }
 
@@ -32,6 +45,17 @@ type query struct {
 type SyncResponse struct {
 	Events []domain.CourseItem `json:"events"`
 	Errors []string            `json:"errors,omitempty"`
+}
+
+// NextClassResponse is the response body for GetNextClass.
+type NextClassResponse struct {
+	ClassName         string            `json:"className"`
+	Item              *domain.ClassItem `json:"item"`
+	BuildingLatitude  float64           `json:"buildingLatitude,omitempty"`
+	BuildingLongitude float64           `json:"buildingLongitude,omitempty"`
+	FloorNumber       *int              `json:"floorNumber,omitempty"`
+	RoomX             *float64          `json:"roomX,omitempty"`
+	RoomY             *float64          `json:"roomY,omitempty"`
 }
 
 type createCourseRequest struct {
@@ -283,6 +307,65 @@ func (h *CalendarHandler) AddClassItem(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"message": "class added", "classID": classID})
+}
+
+// GetNextClass godoc
+// @Summary Get the user's next upcoming class
+// @Description Returns the next class session based on the authenticated user's schedule and the current time
+// @Tags class
+// @Produce json
+// @Success 200 {object} NextClassResponse "Next class found, or message when no more classes today"
+// @Failure 500 {object} map[string]string
+// @Security BearerAuth
+// @Router /courses/next [get]
+func (h *CalendarHandler) GetNextClass(c *gin.Context) {
+	userID := c.GetString(contextUserIDKey)
+
+	className, item, err := h.firebaseService.GetNextClass(userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if item == nil {
+		c.JSON(http.StatusOK, gin.H{"message": "no more classes today, enjoy your day!"})
+		return
+	}
+
+	resp := NextClassResponse{ClassName: className, Item: item}
+	h.enrichBuildingCoords(&resp, item)
+	h.enrichRoomInfo(&resp, item)
+	c.JSON(http.StatusOK, resp)
+}
+
+func (h *CalendarHandler) enrichBuildingCoords(resp *NextClassResponse, item *domain.ClassItem) {
+	if item.BuildingCode == "" || h.buildingGetter == nil {
+		return
+	}
+	building, err := h.buildingGetter.GetBuilding(item.BuildingCode)
+	if err != nil {
+		return
+	}
+	resp.BuildingLatitude = building.Latitude
+	resp.BuildingLongitude = building.Longitude
+}
+
+func (h *CalendarHandler) enrichRoomInfo(resp *NextClassResponse, item *domain.ClassItem) {
+	if item.BuildingCode == "" || item.Room == "" || h.roomGetter == nil {
+		return
+	}
+	rooms, err := h.roomGetter.GetByBuilding(item.BuildingCode)
+	if err != nil {
+		return
+	}
+	for _, r := range rooms {
+		if strings.EqualFold(r.Room, item.Room) {
+			floor, x, y := r.Floor, r.Centroid.X, r.Centroid.Y
+			resp.FloorNumber = &floor
+			resp.RoomX = &x
+			resp.RoomY = &y
+			return
+		}
+	}
 }
 
 // UpdateClassItem godoc

@@ -643,6 +643,40 @@ const docTemplate = `{
                 }
             }
         },
+        "/courses/next": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns the next class session based on the authenticated user's schedule and the current time",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "class"
+                ],
+                "summary": "Get the user's next upcoming class",
+                "responses": {
+                    "200": {
+                        "description": "Next class found, or message when no more classes today",
+                        "schema": {
+                            "$ref": "#/definitions/handler.NextClassResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/courses/sync": {
             "get": {
                 "security": [
@@ -3105,6 +3139,32 @@ const docTemplate = `{
                 },
                 "password": {
                     "type": "string"
+                }
+            }
+        },
+        "handler.NextClassResponse": {
+            "type": "object",
+            "properties": {
+                "buildingLatitude": {
+                    "type": "number"
+                },
+                "buildingLongitude": {
+                    "type": "number"
+                },
+                "className": {
+                    "type": "string"
+                },
+                "floorNumber": {
+                    "type": "integer"
+                },
+                "item": {
+                    "$ref": "#/definitions/domain.ClassItem"
+                },
+                "roomX": {
+                    "type": "number"
+                },
+                "roomY": {
+                    "type": "number"
                 }
             }
         },

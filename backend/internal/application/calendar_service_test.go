@@ -85,6 +85,10 @@ func (f *fakeFirebase) DeleteClassItem(ctx context.Context, userID, title, class
 	return nil
 }
 
+func (f *fakeFirebase) GetNextClass(userID string) (string, *domain.ClassItem, error) {
+	return "", nil, nil
+}
+
 // --- tests ---
 
 func TestSyncCalendarEvents_AddsNewItemsAndReturnsEventsAndErrors(t *testing.T) {
