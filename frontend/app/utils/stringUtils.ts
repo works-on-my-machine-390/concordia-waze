@@ -271,89 +271,87 @@ export const parseDirectionsDurationToSeconds = (
   durationText: string,
 ): number => {
   const normalizedDurationText = durationText.trim().toLowerCase();
+
   const isDigit = (char: string) => char >= "0" && char <= "9";
-  const isAsciiLetter = (char: string) =>
-    (char >= "a" && char <= "z") || (char >= "A" && char <= "Z");
+  const isAsciiLetter = (char: string) => char >= "a" && char <= "z";
   const isWhitespace = (char: string) =>
     char === " " || char === "\t" || char === "\n" || char === "\r";
+
+  const skipWhile = (
+    text: string,
+    startIndex: number,
+    predicate: (char: string) => boolean,
+  ) => {
+    let nextIndex = startIndex;
+    while (nextIndex < text.length && predicate(text[nextIndex])) {
+      nextIndex++;
+    }
+
+    return nextIndex;
+  };
+
+  const readDigits = (text: string, startIndex: number) => {
+    const endIndex = skipWhile(text, startIndex, isDigit);
+    return {
+      value: Number.parseInt(text.slice(startIndex, endIndex), 10),
+      nextIndex: endIndex,
+    };
+  };
+
+  const readLetters = (text: string, startIndex: number) => {
+    const endIndex = skipWhile(text, startIndex, isAsciiLetter);
+    return {
+      value: text.slice(startIndex, endIndex),
+      nextIndex: endIndex,
+    };
+  };
+
+  const getUnitMultiplier = (unit: string) => {
+    if (unit.startsWith("day")) {
+      return 86400;
+    }
+
+    if (unit.startsWith("hour") || unit === "hr" || unit === "hrs" || unit === "h") {
+      return 3600;
+    }
+
+    if (unit.startsWith("min")) {
+      return 60;
+    }
+
+    if (unit.startsWith("second") || unit === "sec" || unit === "secs" || unit === "s") {
+      return 1;
+    }
+
+    return 0;
+  };
 
   let totalSeconds = 0;
   let index = 0;
 
   while (index < normalizedDurationText.length) {
-    while (
-      index < normalizedDurationText.length &&
-      !isDigit(normalizedDurationText[index])
-    ) {
-      index++;
-    }
-
+    index = skipWhile(normalizedDurationText, index, (char) => !isDigit(char));
     if (index >= normalizedDurationText.length) {
       break;
     }
 
-    const valueStart = index;
-    while (
-      index < normalizedDurationText.length &&
-      isDigit(normalizedDurationText[index])
-    ) {
-      index++;
-    }
-
-    const value = Number.parseInt(
-      normalizedDurationText.slice(valueStart, index),
-      10,
+    const { value, nextIndex: numberEndIndex } = readDigits(
+      normalizedDurationText,
+      index,
     );
+    index = skipWhile(normalizedDurationText, numberEndIndex, isWhitespace);
 
-    while (
-      index < normalizedDurationText.length &&
-      isWhitespace(normalizedDurationText[index])
-    ) {
-      index++;
-    }
-
-    const unitStart = index;
-    while (
-      index < normalizedDurationText.length &&
-      isAsciiLetter(normalizedDurationText[index])
-    ) {
-      index++;
-    }
-
-    const unit = normalizedDurationText.slice(unitStart, index);
+    const { value: unit, nextIndex: unitEndIndex } = readLetters(
+      normalizedDurationText,
+      index,
+    );
+    index = unitEndIndex;
 
     if (Number.isNaN(value) || unit.length === 0) {
       continue;
     }
 
-    if (unit.startsWith("day")) {
-      totalSeconds += value * 86400;
-      continue;
-    }
-
-    if (
-      unit.startsWith("hour") ||
-      unit === "hr" ||
-      unit === "hrs" ||
-      unit === "h"
-    ) {
-      totalSeconds += value * 3600;
-      continue;
-    }
-
-    if (unit.startsWith("min")) {
-      totalSeconds += value * 60;
-      continue;
-    }
-
-    if (
-      unit.startsWith("second") ||
-      unit === "sec" ||
-      unit === "secs" ||
-      unit === "s"
-    ) {
-      totalSeconds += value;
-    }
+    totalSeconds += value * getUnitMultiplier(unit);
   }
 
   return totalSeconds;
