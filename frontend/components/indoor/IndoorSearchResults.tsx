@@ -28,10 +28,11 @@ export default function IndoorSearchResults({
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
       renderItem={({ item }) => {
+        const poiBuildingCode = item.poi.building ?? buildingCode;
         const displayName = formatIndoorPoiName(
           item.poi.name,
           item.poi.type,
-          item.poi.building
+          poiBuildingCode,
         );
 
         return (
@@ -43,7 +44,7 @@ export default function IndoorSearchResults({
           >
             <Text style={styles.resultTitle}>{displayName}</Text>
             <Text style={styles.resultSubtitle}>
-              {`${item.poi.building} - Floor ${item.floor.number}`}
+              {`${poiBuildingCode} - Floor ${item.floor.number}`}
             </Text>
           </Pressable>
         );

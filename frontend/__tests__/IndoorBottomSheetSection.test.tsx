@@ -3,12 +3,12 @@ import { fireEvent, render } from "@testing-library/react-native";
 import IndoorBottomSheetSection from "../components/indoor/IndoorBottomSheetSection";
 import { useGetBuildingFloors } from "@/hooks/queries/indoorMapQueries";
 import { useIndoorSearchStore } from "@/hooks/useIndoorSearchStore";
-import { useIndoorNavigationStore } from "@/hooks/useIndoorNavigationStore";
+import { MapMode, useMapStore } from "@/hooks/useMapStore";
+import { useNavigationStore } from "@/hooks/useNavigationStore";
 import { useRouter } from "expo-router";
 
 jest.mock("@/hooks/queries/indoorMapQueries");
 jest.mock("@/hooks/useIndoorSearchStore");
-jest.mock("@/hooks/useIndoorNavigationStore");
 jest.mock("expo-router", () => ({
   useRouter: jest.fn(),
 }));
@@ -55,13 +55,9 @@ jest.mock("../components/indoor/IndoorRoomBottomSheet", () => {
   return function MockIndoorRoomBottomSheet(props: any) {
     return (
       <View testID="indoor-room-bottom-sheet">
-        <Text>{props.roomCode}</Text>
-        <Text>{String(props.directionsDisabled)}</Text>
+        <Text>{props.selectedPoi?.name}</Text>
         <Pressable testID="room-close" onPress={props.onClose}>
           <Text>close</Text>
-        </Pressable>
-        <Pressable testID="room-directions" onPress={props.onDirectionsPress}>
-          <Text>directions</Text>
         </Pressable>
       </View>
     );
@@ -71,14 +67,10 @@ jest.mock("../components/indoor/IndoorRoomBottomSheet", () => {
 const mockedUseIndoorSearchStore =
   useIndoorSearchStore as unknown as jest.Mock;
 
-const mockedUseIndoorNavigationStore =
-  useIndoorNavigationStore as unknown as jest.Mock;
-
 describe("IndoorBottomSheetSection", () => {
   const mockPush = jest.fn();
   const mockClearSelectedPoiFilter = jest.fn();
   const mockOnClearSelectedPoi = jest.fn();
-  const mockOnDirectionsPress = jest.fn();
 
   const mockFloor = {
     number: 1,
@@ -104,6 +96,8 @@ describe("IndoorBottomSheetSection", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    useMapStore.setState({ currentMode: MapMode.NONE });
+    useNavigationStore.setState({ navigationPhase: undefined });
 
     (useRouter as jest.Mock).mockReturnValue({
       push: mockPush,
@@ -116,25 +110,15 @@ describe("IndoorBottomSheetSection", () => {
     });
 
     mockedUseIndoorSearchStore.mockImplementation((selector: any) =>
-  selector({
-    selectedPoiFilter: null,
-    clearSelectedPoiFilter: mockClearSelectedPoiFilter,
-  }),
-);
-
-    mockedUseIndoorNavigationStore.mockImplementation((selector: any) =>
-  selector({
-    mode: "BROWSE",
-  }),
-);
-  });
-
-  it("returns null in itinerary mode", () => {
-    mockedUseIndoorNavigationStore.mockImplementation((selector: any) =>
       selector({
-        mode: "ITINERARY",
+        selectedPoiFilter: null,
+        clearSelectedPoiFilter: mockClearSelectedPoiFilter,
       }),
     );
+  });
+
+  it("hides indoor sheets in navigation mode", () => {
+    useMapStore.setState({ currentMode: MapMode.NAVIGATION });
 
     const { queryByTestId } = render(
       <IndoorBottomSheetSection
@@ -173,8 +157,6 @@ describe("IndoorBottomSheetSection", () => {
         buildingName="Hall"
         selectedPoiName="Room 101"
         onClearSelectedPoi={mockOnClearSelectedPoi}
-        onDirectionsPress={mockOnDirectionsPress}
-        directionsDisabled={true}
       />,
     );
 
@@ -254,7 +236,7 @@ describe("IndoorBottomSheetSection", () => {
   });
 
   it("clears poi filter when filter sheet closes", () => {
-     mockedUseIndoorSearchStore.mockImplementation((selector: any) =>
+    mockedUseIndoorSearchStore.mockImplementation((selector: any) =>
       selector({
         selectedPoiFilter: { type: "bathroom", label: "Bathrooms" },
         clearSelectedPoiFilter: mockClearSelectedPoiFilter,
@@ -273,4 +255,5 @@ describe("IndoorBottomSheetSection", () => {
     fireEvent.press(getByTestId("poi-filter-close"));
     expect(mockClearSelectedPoiFilter).toHaveBeenCalled();
   });
+
 });

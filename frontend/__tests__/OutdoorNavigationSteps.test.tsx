@@ -52,7 +52,7 @@ describe("OutdoorNavigationSteps", () => {
   const createDirections = (
     overrides?: Partial<OutdoorDirectionsModel>,
   ): OutdoorDirectionsModel => ({
-    mode: TransitMode.WALKING,
+    mode: TransitMode.walking,
     duration: "12 min",
     distance: "1.4 km",
     departure_message: "Depart now",
@@ -108,7 +108,7 @@ describe("OutdoorNavigationSteps", () => {
 
   it("renders transit-specific component when mode is transit", () => {
     const directions = createDirections({
-      mode: TransitMode.TRANSIT,
+      mode: TransitMode.transit,
       steps: [createStep({ instruction: "This should not render", polyline: "polyline-3" })],
     });
 

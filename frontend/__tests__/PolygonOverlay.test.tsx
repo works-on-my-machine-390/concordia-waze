@@ -145,7 +145,7 @@ describe("PolygonOverlay", () => {
     expect(queryAllByTestId("room-polygon")).toHaveLength(0);
   });
 
-  test("calls onSelectPoi with poi name when polygon is pressed", () => {
+  test("calls onSelectPoi with poi object when polygon is pressed", () => {
     const pois = [
       createPoiWithPolygon("Room 101", 4),
       createPoiWithPolygon("Room 102", 5),
@@ -165,12 +165,16 @@ describe("PolygonOverlay", () => {
 
     // Press the first polygon
     fireEvent.press(polygons[0]);
-    expect(mockOnSelectPoi).toHaveBeenCalledWith("Room 101");
+    expect(mockOnSelectPoi).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "Room 101" }),
+    );
     expect(mockOnSelectPoi).toHaveBeenCalledTimes(1);
 
     // Press the second polygon
     fireEvent.press(polygons[1]);
-    expect(mockOnSelectPoi).toHaveBeenCalledWith("Room 102");
+    expect(mockOnSelectPoi).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "Room 102" }),
+    );
     expect(mockOnSelectPoi).toHaveBeenCalledTimes(2);
   });
 

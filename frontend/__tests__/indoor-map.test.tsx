@@ -4,29 +4,19 @@ import IndoorMapPage from "@/app/(drawer)/indoor-map";
 
 const mockPush = jest.fn();
 const mockReplace = jest.fn();
+const mockSetParams = jest.fn();
 const mockToggleAccessibilityMode = jest.fn();
-
-const mockNavState = {
-  mode: "BROWSE",
-  currentFloor: 2,
-  exitItinerary: jest.fn(),
-  setSelectedRoom: jest.fn(),
-  setPickMode: jest.fn(),
-  setStart: jest.fn(),
-  setEnd: jest.fn(),
-  clearRoute: jest.fn(),
-  setCurrentFloor: jest.fn(),
-};
 
 jest.mock("expo-router", () => ({
   useRouter: () => ({
     push: mockPush,
     replace: mockReplace,
+    setParams: mockSetParams,
   }),
   useLocalSearchParams: () => ({
     buildingCode: "VL",
-    selectedRoom: "H-820",
     selectedFloor: "8",
+    selectedPoiName: "H-820",
   }),
 }));
 
@@ -34,13 +24,9 @@ jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ bottom: 0 }),
 }));
 
-jest.mock("@/hooks/useIndoorNavigationStore", () => ({
-  useIndoorNavigationStore: jest.fn(() => mockNavState),
-}));
-
-jest.mock("@/hooks/useIndoorItineraryController", () => ({
-  useIndoorItineraryController: jest.fn(() => ({
-    routeSegments: [{ floorNumber: 2, distance: 10, path: [] }],
+jest.mock("@/hooks/queries/indoorMapQueries", () => ({
+  useGetBuildingFloors: jest.fn(() => ({
+    data: { floors: [{ number: 8 }, { number: 9 }] },
   })),
 }));
 
@@ -63,6 +49,10 @@ jest.mock("@/hooks/useMapSettings", () => ({
   })),
 }));
 
+jest.mock("@/lib/telemetry", () => ({
+  trackEvent: jest.fn(() => Promise.resolve()),
+}));
+
 jest.mock("@/components/indoor/IndoorMapContainer", () => {
   const React = require("react");
   const { Text } = require("react-native");
@@ -71,10 +61,6 @@ jest.mock("@/components/indoor/IndoorMapContainer", () => {
       <Text testID="indoor-map-container">
         {JSON.stringify({
           buildingCode: props.buildingCode,
-          preferredFloorNumber: props.preferredFloorNumber,
-          floorSelectorBottomOffset: props.floorSelectorBottomOffset,
-          selectedRoomFromSearch: props.selectedRoomFromSearch,
-          selectedFloorFromSearch: props.selectedFloorFromSearch,
           requireAccessible: props.requireAccessible,
         })}
       </Text>
@@ -106,46 +92,17 @@ jest.mock("@/components/indoor/IndoorMapHeader", () => {
   };
 });
 
-jest.mock("@/components/indoor/IndoorItineraryHeader", () => {
-  const React = require("react");
-  const { Text } = require("react-native");
-  return function MockIndoorItineraryHeader() {
-    return <Text testID="itinerary-header">IndoorItineraryHeader</Text>;
-  };
-});
-
-jest.mock("@/components/indoor/IndoorItineraryBottomSheet", () => {
-  const React = require("react");
-  const { Text } = require("react-native");
-  const Mock = ({ buildingCode }: any) => (
-    <Text testID="itinerary-bottom-sheet">{buildingCode}</Text>
-  );
-  Mock.ITINERARY_SHEET_HEIGHT = 165;
-  return {
-    __esModule: true,
-    default: Mock,
-    ITINERARY_SHEET_HEIGHT: 165,
-  };
-});
-
 describe("IndoorMapPage", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockNavState.mode = "BROWSE";
-    mockNavState.currentFloor = 2;
   });
 
-  it("renders browse mode with map header and passes props to map container", () => {
-    const { getByTestId, queryByTestId } = render(<IndoorMapPage />);
+  it("renders map header and passes props to map container", () => {
+    const { getByTestId } = render(<IndoorMapPage />);
 
     expect(getByTestId("indoor-map-header")).toBeTruthy();
-    expect(queryByTestId("itinerary-header")).toBeNull();
-
     const container = getByTestId("indoor-map-container");
     expect(container.props.children).toContain('"buildingCode":"VL"');
-    expect(container.props.children).toContain('"preferredFloorNumber":2');
-    expect(container.props.children).toContain('"selectedRoomFromSearch":"H-820"');
-    expect(container.props.children).toContain('"selectedFloorFromSearch":8');
     expect(container.props.children).toContain('"requireAccessible":true');
   });
 
@@ -163,34 +120,19 @@ describe("IndoorMapPage", () => {
     });
   });
 
-  it("calls accessibility toggle", () => {
+  it("toggles accessibility mode", () => {
     const { getByTestId } = render(<IndoorMapPage />);
+
     fireEvent.press(getByTestId("accessibility-btn"));
+
     expect(mockToggleAccessibilityMode).toHaveBeenCalled();
   });
 
-  it("resets and goes back to outdoor map", () => {
+  it("returns to outdoor map on back", () => {
     const { getByTestId } = render(<IndoorMapPage />);
 
     fireEvent.press(getByTestId("back-btn"));
 
-    expect(mockNavState.exitItinerary).toHaveBeenCalled();
-    expect(mockNavState.setSelectedRoom).toHaveBeenCalledWith(null);
-    expect(mockNavState.setPickMode).toHaveBeenCalledWith("start");
-    expect(mockNavState.setStart).toHaveBeenCalledWith(null);
-    expect(mockNavState.setEnd).toHaveBeenCalledWith(null);
-    expect(mockNavState.clearRoute).toHaveBeenCalled();
-    expect(mockNavState.setCurrentFloor).toHaveBeenCalledWith(null);
     expect(mockReplace).toHaveBeenCalledWith("/map");
-  });
-
-  it("renders itinerary mode with itinerary header and bottom sheet", () => {
-    mockNavState.mode = "ITINERARY";
-
-    const { getByTestId, queryByTestId } = render(<IndoorMapPage />);
-
-    expect(getByTestId("itinerary-header")).toBeTruthy();
-    expect(getByTestId("itinerary-bottom-sheet")).toBeTruthy();
-    expect(queryByTestId("indoor-map-header")).toBeNull();
   });
 });

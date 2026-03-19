@@ -1,4 +1,5 @@
 import { MapMode, useMapStore } from "@/hooks/useMapStore";
+import { NavigationPhase, useNavigationStore } from "@/hooks/useNavigationStore";
 import { fireEvent, render } from "@testing-library/react-native";
 import MapBottomSection from "../components/MapBottomSection";
 
@@ -40,6 +41,13 @@ jest.mock("../components/NavigationBottomSheet", () => {
   };
 });
 
+jest.mock("../components/activeNavigation/ActiveNavigationBottomSheet", () => {
+  const { View } = require("react-native");
+  return function MockActiveNavigationBottomSheet() {
+    return <View testID="active-navigation-bottom-sheet" />;
+  };
+});
+
 jest.mock("../components/MapSettingsBottomSheet", () => {
   const { View } = require("react-native");
   return function MockMapSettingsBottomSheet() {
@@ -61,6 +69,9 @@ function resetMapStore() {
     selectedBuildingCode: undefined,
     currentBuildingCode: undefined,
     currentMode: MapMode.NONE,
+  });
+  useNavigationStore.setState({
+    navigationPhase: undefined,
   });
 }
 
@@ -124,6 +135,7 @@ describe("MapBottomSection", () => {
 
   test("renders NavigationBottomSheet in NAVIGATION mode", () => {
     useMapStore.getState().setCurrentMode(MapMode.NAVIGATION);
+    useNavigationStore.setState({ navigationPhase: NavigationPhase.PREPARATION });
 
     const { getByTestId, queryByTestId } = render(
       <MapBottomSection goToMyLocation={jest.fn()} />,

@@ -157,9 +157,15 @@ export const useIndoorSearch = (
     const matches: Array<IndoorSearchResult & { score: number }> = [];
 
     const relevantFloors = buildingCode
-      ? floors.filter(
-          (f) => !!f && f.name.toLowerCase().includes(buildingCodeLower),
-        )
+      ? floors.filter((f) => {
+          if (!f) return false;
+          const floorName = f.name?.toLowerCase();
+          const floorBuilding = f.building?.toLowerCase();
+          return (
+            floorName?.includes(buildingCodeLower) ||
+            floorBuilding === buildingCodeLower
+          );
+        })
       : floors;
 
     for (const floor of relevantFloors) {

@@ -1,5 +1,8 @@
 import { getIsCrossCampus } from "@/app/utils/mapUtils";
-import { useGetAllModesDirections } from "@/hooks/queries/navigationQueries";
+import {
+  TransitMode,
+  useGetDirections,
+} from "@/hooks/queries/navigationQueries";
 import { MapMode, useMapStore } from "@/hooks/useMapStore";
 import { useNavigationStore } from "@/hooks/useNavigationStore";
 import { fireEvent, render, waitFor } from "@testing-library/react-native";
@@ -11,13 +14,18 @@ jest.mock("@/app/utils/mapUtils", () => ({
 
 jest.mock("@/hooks/queries/navigationQueries", () => ({
   TransitMode: {
-    DRIVING: "DRIVING",
-    TRANSIT: "TRANSIT",
-    WALKING: "WALKING",
-    BICYCLING: "BICYCLING",
-    SHUTTLE: "SHUTTLE",
+    driving: "driving",
+    transit: "transit",
+    walking: "walking",
+    bicycling: "bicycling",
+    shuttle: "shuttle",
   },
-  useGetAllModesDirections: jest.fn(),
+  DirectionsResponseBlockType: {
+    OUTDOOR: "outdoor",
+    INDOOR: "indoor",
+    DURATION: "duration",
+  },
+  useGetDirections: jest.fn(),
 }));
 
 jest.mock("react-native-safe-area-context", () => ({
@@ -58,7 +66,16 @@ jest.mock("../app/icons", () => {
 
 describe("NavigationBottomSheet", () => {
   const mockedGetIsCrossCampus = getIsCrossCampus as jest.Mock;
-  const mockedUseGetAllModesDirections = useGetAllModesDirections as jest.Mock;
+  const mockedUseGetDirections = useGetDirections as jest.Mock;
+
+  const buildOutdoorDirections = (mode: string) => ({
+    mode,
+    duration: "5 min",
+    distance: "1 km",
+    departure_message: "depart",
+    polyline: "abc",
+    steps: [],
+  });
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -78,13 +95,35 @@ describe("NavigationBottomSheet", () => {
     });
 
     mockedGetIsCrossCampus.mockReturnValue(false);
-    mockedUseGetAllModesDirections.mockReturnValue([
-      { data: { mode: "DRIVING", duration: "5 min" } },
-      { data: { mode: "TRANSIT", duration: "8 min" } },
-      { data: { mode: "WALKING", duration: "12 min" } },
-      { data: { mode: "BICYCLING", duration: "4 min" } },
-      { data: { mode: "SHUTTLE", duration: "20 min" } },
-    ]);
+    mockedUseGetDirections.mockReturnValue({
+      data: {
+        durationBlock: {
+          type: "duration",
+          durations: {
+            driving: 300,
+            transit: 480,
+            walking: 720,
+            bicycling: 240,
+            shuttle: 1200,
+          },
+        },
+        directionBlocks: [
+          {
+            type: "outdoor",
+            directionsByMode: {
+              driving: buildOutdoorDirections("driving"),
+              transit: buildOutdoorDirections("transit"),
+              walking: buildOutdoorDirections("walking"),
+              bicycling: buildOutdoorDirections("bicycling"),
+              shuttle: buildOutdoorDirections("shuttle"),
+            },
+          },
+        ],
+      },
+      isLoading: false,
+      isRefetching: false,
+      isError: false,
+    });
   });
 
   test("shows prompt when start location is not selected", () => {
@@ -112,17 +151,24 @@ describe("NavigationBottomSheet", () => {
       latitude: 45.497,
       longitude: -73.579,
       name: "Start",
+      code: "SGW",
     });
     useNavigationStore.getState().setEndLocation({
       latitude: 45.501,
       longitude: -73.577,
       name: "End",
+      code: "SGW",
     });
 
-    const { getByText } = render(<NavigationBottomSheet />);
+    render(<NavigationBottomSheet />);
 
     await waitFor(() => {
-      expect(getByText("Drive")).toBeTruthy();
+      expect([
+        TransitMode.driving,
+        TransitMode.transit,
+        TransitMode.walking,
+        TransitMode.bicycling,
+      ]).toContain(useNavigationStore.getState().transitMode);
     });
 
     expect(mockedGetIsCrossCampus).toHaveBeenCalled();
@@ -135,17 +181,21 @@ describe("NavigationBottomSheet", () => {
       latitude: 45.497,
       longitude: -73.579,
       name: "Start",
+      code: "SGW",
     });
     useNavigationStore.getState().setEndLocation({
       latitude: 45.46,
       longitude: -73.64,
       name: "End",
+      code: "LOY",
     });
 
     const { getByText } = render(<NavigationBottomSheet />);
 
     await waitFor(() => {
-      expect(getByText("Shuttle")).toBeTruthy();
+      expect(useNavigationStore.getState().transitMode).toBe(
+        TransitMode.shuttle,
+      );
     });
   });
 
@@ -154,19 +204,23 @@ describe("NavigationBottomSheet", () => {
       latitude: 45.497,
       longitude: -73.579,
       name: "Start",
+      code: "SGW",
     });
     useNavigationStore.getState().setEndLocation({
       latitude: 45.501,
       longitude: -73.577,
       name: "End",
+      code: "SGW",
     });
 
     const { getByText } = render(<NavigationBottomSheet />);
 
-    fireEvent.press(getByText("4 min"));
+    fireEvent.press(getByText("12 min"));
 
     await waitFor(() => {
-      expect(getByText("Bike")).toBeTruthy();
+      expect(useNavigationStore.getState().transitMode).toBe(
+        TransitMode.walking,
+      );
     });
   });
 });

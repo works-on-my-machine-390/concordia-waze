@@ -12,6 +12,8 @@ import { MapMode, useMapStore } from "../hooks/useMapStore";
 import { useNavigationStore } from "../hooks/useNavigationStore";
 import { renderWithProviders } from "../test_utils/renderUtils";
 
+const mockFindAndSetStartLocation = jest.fn();
+
 jest.mock("react-native-gesture-handler", () => {
   return {
     GestureHandlerRootView: ({ children }: any) => <>{children}</>,
@@ -43,6 +45,15 @@ jest.mock("@/hooks/queries/favoritesQueries", () => ({
   useCreateFavorite: jest.fn(),
   useDeleteFavorite: jest.fn(),
   useGetUserFavorites: jest.fn(),
+}));
+
+jest.mock("@/hooks/useStartLocation", () => ({
+  __esModule: true,
+  default: () => ({
+    findAndSetStartLocation: mockFindAndSetStartLocation,
+    setStartLocationAutocomplete: jest.fn(),
+    setStartLocationManually: jest.fn(),
+  }),
 }));
 
 jest.mock("@/app/utils/mapUtils", () => ({

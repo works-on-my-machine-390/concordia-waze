@@ -41,10 +41,11 @@ export default function OutdoorNavigationSteps(
   const selectedTransitMode = useNavigationStore((state) => state.transitMode);
 
   const outdoorDirections = useMemo(() => {
-    return currentDirections.directionBlocks.find(
-      (block) => block.type === DirectionsResponseBlockType.OUTDOOR,
-    )?.directionsByMode[selectedTransitMode || ""];
-  }, [currentDirections, selectedTransitMode]);
+    if (props.outdoorDirections) return props.outdoorDirections;
+    return currentDirections?.directionBlocks
+      ?.find((block) => block.type === DirectionsResponseBlockType.OUTDOOR)
+      ?.directionsByMode?.[selectedTransitMode || ""];
+  }, [props.outdoorDirections, currentDirections, selectedTransitMode]);
 
   const params = useLocalSearchParams<
     IndoorMapPageParams | MapQueryParamsModel
@@ -239,7 +240,7 @@ export default function OutdoorNavigationSteps(
         {!outdoorDirections &&
           !props.indoorDirectionBlocks &&
           renderNoDirectionsMessage()}
-        {currentDirections && <View>{renderSteps()}</View>}
+        <View>{renderSteps()}</View>
       </View>
     </View>
   );

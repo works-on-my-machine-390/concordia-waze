@@ -207,7 +207,7 @@ describe("PoiMarker", () => {
   test("changes icon color when selected", () => {
     const poi = createPoi("elevator");
     const { getByLabelText } = renderWithProviders(
-      <PoiMarker poi={poi} {...defaultProps} isSelected={true} />,
+      <PoiMarker poi={poi} {...defaultProps} highlighted={true} />,
     );
 
     expect(getByLabelText("elevator-20-#4180c0")).toBeTruthy();
