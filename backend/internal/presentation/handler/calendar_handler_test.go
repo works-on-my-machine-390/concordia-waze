@@ -13,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/works-on-my-machine-390/concordia-waze/internal/application"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
 	"golang.org/x/oauth2"
 )
@@ -198,8 +199,56 @@ func TestCalendarHandler_SyncCalendarEvents(t *testing.T) {
 		r.ServeHTTP(w, req)
 
 		require.Equal(t, http.StatusInternalServerError, w.Code)
-		assert.Contains(t, w.Body.String(), "failed to fetch events")
+		assert.Contains(t, w.Body.String(), "failed to sync calendar events")
+		assert.Contains(t, w.Body.String(), "CALENDAR_SYNC_FAILED")
+		assert.Contains(t, w.Body.String(), "sync failed")
 	})
+
+	t.Run("google auth required -> 401", func(t *testing.T) {
+		ts := &mockTokenStore{token: &oauth2.Token{}, found: true}
+		cs := &mockCalendarService{err: application.ErrGoogleCalendarAuthRequired}
+		h := NewCalendarHandler(ts, cs, &mockFirebaseService{}, nil, nil)
+		r := setupCalendarTestRouter(h)
+
+		req := httptest.NewRequest(http.MethodGet, "/courses/sync?since=2024-01-01", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusUnauthorized, w.Code)
+		assert.Contains(t, w.Body.String(), "GOOGLE_AUTH_REQUIRED")
+		assert.Contains(t, w.Body.String(), "google calendar session expired or is invalid")
+	})
+
+	t.Run("google permission denied -> 403", func(t *testing.T) {
+		ts := &mockTokenStore{token: &oauth2.Token{}, found: true}
+		cs := &mockCalendarService{err: application.ErrGoogleCalendarPermissionDenied}
+		h := NewCalendarHandler(ts, cs, &mockFirebaseService{}, nil, nil)
+		r := setupCalendarTestRouter(h)
+
+		req := httptest.NewRequest(http.MethodGet, "/courses/sync?since=2024-01-01", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusForbidden, w.Code)
+		assert.Contains(t, w.Body.String(), "GOOGLE_PERMISSION_DENIED")
+		assert.Contains(t, w.Body.String(), "google calendar permission denied")
+	})
+
+	t.Run("google calendar unavailable -> 503", func(t *testing.T) {
+		ts := &mockTokenStore{token: &oauth2.Token{}, found: true}
+		cs := &mockCalendarService{err: application.ErrGoogleCalendarUnavailable}
+		h := NewCalendarHandler(ts, cs, &mockFirebaseService{}, nil, nil)
+		r := setupCalendarTestRouter(h)
+
+		req := httptest.NewRequest(http.MethodGet, "/courses/sync?since=2024-01-01", nil)
+		w := httptest.NewRecorder()
+		r.ServeHTTP(w, req)
+
+		require.Equal(t, http.StatusServiceUnavailable, w.Code)
+		assert.Contains(t, w.Body.String(), "GOOGLE_CALENDAR_UNAVAILABLE")
+		assert.Contains(t, w.Body.String(), "google calendar service unavailable")
+	})
+
 }
 
 func TestCalendarHandler_CourseEndpoints(t *testing.T) {
