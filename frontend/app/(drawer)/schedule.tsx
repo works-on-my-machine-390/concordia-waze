@@ -3,6 +3,9 @@
 // Whoever works on the schedule page can just delete all of it and start from scratch
 // The trash button on the right of the class card doesn't work (since this was just for testing)
 
+// Post-calendar sync update: Included synced courses with guest courses being displayed to have an idea
+// of what information is being retrieved from the Google Calendar.
+
 import ClassInfoCard from "@/components/classes/ClassInfoCard";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
@@ -16,22 +19,26 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { CourseItem } from "../../hooks/firebase/useFirestore";
 import { getGuestCourses } from "../../hooks/guestStorage";
+import { useCourses } from "../../hooks/queries/googleCalendarQueries";
 import { COLORS } from "../constants";
 import { AddIcon } from "../icons";
-
+import SyncCalendarButton from "@/components/SyncGoogleCalendarButton";
 export default function Schedule() {
   const router = useRouter();
-  const [courses, setCourses] = useState<CourseItem[]>([]);
+  const [guestCourses, setGuestCourses] = useState<CourseItem[]>([]);
+  const { data: syncedCourses = [] } = useCourses();
 
   useFocusEffect(
     useCallback(() => {
       const load = async () => {
         const stored = await getGuestCourses();
-        setCourses(stored);
+        setGuestCourses(stored);
       };
       load();
     }, []),
   );
+
+  const allCourses = [...guestCourses, ...syncedCourses];
 
   return (
     <SafeAreaView style={styles.container}>
@@ -48,8 +55,9 @@ export default function Schedule() {
           <AddIcon size={45} color={COLORS.maroon} />
         </TouchableOpacity>
       </View>
+      <SyncCalendarButton onPress={() => router.push("/googleCalendarSync")} />
       <ScrollView contentContainerStyle={styles.content}>
-        {courses.map((course) =>
+        {allCourses.map((course) =>
           course.classes.map((classItem, index) => (
             <ClassInfoCard
               key={`${course.name}-${index}`}
