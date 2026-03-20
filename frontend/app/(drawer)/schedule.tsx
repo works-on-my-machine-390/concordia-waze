@@ -1,11 +1,3 @@
-// The code here is for testing (and showing to PR reviewer) that guest storage works
-// I just reused the class cards im using in the "Add course" page to show the classes here
-// Whoever works on the schedule page can just delete all of it and start from scratch
-// The trash button on the right of the class card doesn't work (since this was just for testing)
-
-// Post-calendar sync update: Included synced courses with guest courses being displayed to have an idea
-// of what information is being retrieved from the Google Calendar.
-
 import ClassInfoCard from "@/components/classes/ClassInfoCard";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
@@ -22,22 +14,29 @@ import { getGuestCourses } from "../../hooks/guestStorage";
 import { useCourses } from "../../hooks/queries/googleCalendarQueries";
 import { COLORS } from "../constants";
 import { AddIcon } from "../icons";
-import ScheduleListView from "@/components/schedule/ScheduleListView";
 import SyncCalendarButton from "@/components/SyncGoogleCalendarButton";
-        
+import ScheduleListView from "@/components/schedule/ScheduleListView";
+import WeeklyScheduleView from "@/components/schedule/WeeklyScheduleView";
+
 export default function Schedule() {
   const router = useRouter();
   const [guestCourses, setGuestCourses] = useState<CourseItem[]>([]);
   const { data: syncedCourses = [] } = useCourses();
-
+  
   useFocusEffect(
     useCallback(() => {
       const load = async () => {
         const stored = await getGuestCourses();
         setGuestCourses(stored);
+  
+        console.log("GUEST COURSES:");
+        console.log(JSON.stringify(stored, null, 2));
+  
+        console.log("SYNCED COURSES:");
+        console.log(JSON.stringify(syncedCourses, null, 2));
       };
       load();
-    }, []),
+    }, [syncedCourses]),
   );
 
   const allCourses = [...guestCourses, ...syncedCourses];
@@ -57,7 +56,10 @@ export default function Schedule() {
           <AddIcon size={45} color={COLORS.maroon} />
         </TouchableOpacity>
       </View>
-      <SyncCalendarButton onPress={() => router.push("/googleCalendarSync")} />
+      <View style={{ marginBottom: 16 }}>
+        <SyncCalendarButton onPress={() => router.push("/googleCalendarSync")} />
+      </View>
+      <WeeklyScheduleView courses={allCourses} />
       <ScheduleListView courses={allCourses} />
     </SafeAreaView>
   );

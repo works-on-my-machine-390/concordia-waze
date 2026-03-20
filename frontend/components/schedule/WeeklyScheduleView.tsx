@@ -1,0 +1,275 @@
+import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { COLORS } from "../../app/constants";
+import { CourseItem } from "../../hooks/firebase/useFirestore";
+
+type Props = {
+  courses: CourseItem[];
+};
+
+type WeekDay = "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN";
+
+type CalendarClass = {
+  courseName: string;
+  type: string;
+  section: string;
+  day: WeekDay;
+  startTime: string;
+  endTime: string;
+  buildingCode: string;
+  room: string;
+};
+
+const DAYS: WeekDay[] = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
+
+const DAY_MAP: Record<string, WeekDay> = {
+  Monday: "MON",
+  Tuesday: "TUE",
+  Wednesday: "WED",
+  Thursday: "THU",
+  Friday: "FRI",
+  Saturday: "SAT",
+  Sunday: "SUN",
+  MON: "MON",
+  TUE: "TUE",
+  WED: "WED",
+  THU: "THU",
+  FRI: "FRI",
+  SAT: "SAT",
+  SUN: "SUN",
+};
+
+const TYPE_MAP: Record<string, string> = {
+  lec: "Lecture",
+  lab: "Lab",
+  tutorial: "Tutorial",
+};
+
+const START_HOUR = 8;
+const END_HOUR = 22;
+const HOUR_HEIGHT = 72;
+const TIME_COL_WIDTH = 56;
+const DAY_COL_WIDTH = 120;
+
+function timeToMinutes(time: string): number {
+  const [hour, minute] = time.split(":").map(Number);
+  return hour * 60 + minute;
+}
+
+function formatHour(hour24: number): string {
+  const suffix = hour24 >= 12 ? "PM" : "AM";
+  const hour12 = hour24 % 12 === 0 ? 12 : hour24 % 12;
+  return `${hour12} ${suffix}`;
+}
+
+function flattenCourses(courses: CourseItem[]): CalendarClass[] {
+  return courses.flatMap((course) =>
+    course.classes.map((classItem) => ({
+      courseName: course.name,
+      type: TYPE_MAP[classItem.type?.toLowerCase() ?? "lec"] ?? "Lecture",
+      section: classItem.section ?? "",
+      day: DAY_MAP[classItem.day] ?? "MON",
+      startTime: classItem.startTime ?? "",
+      endTime: classItem.endTime ?? "",
+      buildingCode: classItem.buildingCode ?? "",
+      room: classItem.room ?? "",
+    })),
+  );
+}
+
+export default function WeeklyScheduleView({ courses }: Readonly<Props>) {
+  const classes = flattenCourses(courses);
+  const totalHeight = (END_HOUR - START_HOUR) * HOUR_HEIGHT;
+
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+      <View>
+        <View style={styles.headerRow}>
+          <View style={styles.timeHeaderCell} />
+          {DAYS.map((day) => (
+            <View key={day} style={[styles.dayHeaderCell, { width: DAY_COL_WIDTH }]}>
+              <Text style={styles.dayHeaderText}>{day}</Text>
+            </View>
+          ))}
+        </View>
+
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <View style={{ flexDirection: "row" }}>
+            <View style={{ width: TIME_COL_WIDTH }}>
+              {Array.from({ length: END_HOUR - START_HOUR }).map((_, i) => {
+                const hour = START_HOUR + i;
+                return (
+                  <View key={hour} style={[styles.timeCell, { height: HOUR_HEIGHT }]}>
+                    <Text style={styles.timeText}>{formatHour(hour)}</Text>
+                  </View>
+                );
+              })}
+            </View>
+
+            <View
+              style={{
+                width: DAY_COL_WIDTH * DAYS.length,
+                height: totalHeight,
+                position: "relative",
+              }}
+            >
+              {DAYS.map((day, dayIndex) => (
+                <View
+                  key={day}
+                  style={[
+                    styles.dayColumn,
+                    {
+                      left: dayIndex * DAY_COL_WIDTH,
+                      width: DAY_COL_WIDTH,
+                      height: totalHeight,
+                    },
+                  ]}
+                >
+                  {Array.from({ length: END_HOUR - START_HOUR }).map((_, i) => (
+                    <View
+                      key={`${day}-${START_HOUR + i}`}
+                      style={[styles.hourLine, { top: i * HOUR_HEIGHT, height: HOUR_HEIGHT }]}
+                    />
+                  ))}
+                </View>
+              ))}
+
+              {classes.map((item, index) => {
+                const dayIndex = DAYS.indexOf(item.day);
+                if (dayIndex === -1) {
+                  return null;
+                }
+
+                const startMinutes = timeToMinutes(item.startTime);
+                const endMinutes = timeToMinutes(item.endTime);
+                const minutesFromStart = startMinutes - START_HOUR * 60;
+                const durationMinutes = endMinutes - startMinutes;
+
+                if (minutesFromStart < 0 || durationMinutes <= 0) {
+                  return null;
+                }
+
+                const top = (minutesFromStart / 60) * HOUR_HEIGHT;
+                const height = (durationMinutes / 60) * HOUR_HEIGHT;
+
+                const backgroundColor = index % 2 === 0 ? COLORS.maroon : "#4180C0";
+
+                return (
+                  <View
+                    key={`${item.courseName}-${item.section}-${item.day}-${item.startTime}-${index}`}
+                    style={[
+                      styles.classBlock,
+                      {
+                        left: dayIndex * DAY_COL_WIDTH + 6,
+                        top,
+                        width: DAY_COL_WIDTH - 12,
+                        height,
+                        backgroundColor,
+                      },
+                    ]}
+                  >
+                    <Text style={styles.classTitle} numberOfLines={1}>
+                      {item.courseName}
+                    </Text>
+                    <Text style={styles.classSubtitle} numberOfLines={1}>
+                      {item.type}
+                    </Text>
+                    <Text style={styles.classText} numberOfLines={1}>
+                      {item.startTime} - {item.endTime}
+                    </Text>
+                    <Text style={styles.classText} numberOfLines={1}>
+                      {item.buildingCode} {item.room}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        </ScrollView>
+      </View>
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  headerRow: {
+    flexDirection: "row",
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E5E5",
+  },
+  timeHeaderCell: {
+    width: TIME_COL_WIDTH,
+    height: 48,
+    borderRightWidth: 1,
+    borderRightColor: "#E5E5E5",
+    backgroundColor: "#fff",
+  },
+  dayHeaderCell: {
+    height: 48,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRightWidth: 1,
+    borderRightColor: "#E5E5E5",
+    backgroundColor: "#fff",
+  },
+  dayHeaderText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: COLORS.textPrimary,
+  },
+  timeCell: {
+    justifyContent: "flex-start",
+    alignItems: "center",
+    paddingTop: 4,
+    borderRightWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: "#E5E5E5",
+    backgroundColor: "#FAFAFA",
+  },
+  timeText: {
+    fontSize: 11,
+    color: "#666",
+    fontWeight: "600",
+  },
+  dayColumn: {
+    position: "absolute",
+    top: 0,
+    borderRightWidth: 1,
+    borderRightColor: "#E5E5E5",
+    backgroundColor: "#fff",
+  },
+  hourLine: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: "#EAEAEA",
+  },
+  classBlock: {
+    position: "absolute",
+    borderRadius: 10,
+    padding: 8,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  classTitle: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  classSubtitle: {
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: "600",
+    marginTop: 2,
+  },
+  classText: {
+    color: "#fff",
+    fontSize: 10,
+    marginTop: 2,
+  },
+});
