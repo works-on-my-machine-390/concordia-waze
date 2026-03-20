@@ -121,7 +121,6 @@ func mapCalendarSyncError(err error) error {
 
 	errMsg := strings.ToLower(err.Error())
 
-	// Erreurs OAuth / token
 	if strings.Contains(errMsg, "oauth2: token expired") ||
 		strings.Contains(errMsg, "token is expired") ||
 		strings.Contains(errMsg, "invalid_grant") ||
@@ -130,13 +129,11 @@ func mapCalendarSyncError(err error) error {
 		return ErrGoogleCalendarAuthRequired
 	}
 
-	// Erreurs permission
 	if strings.Contains(errMsg, "permission denied") ||
 		strings.Contains(errMsg, "insufficient permissions") {
 		return ErrGoogleCalendarPermissionDenied
 	}
 
-	// Erreurs service Google Calendar
 	if strings.Contains(errMsg, "service unavailable") ||
 		strings.Contains(errMsg, "connection refused") ||
 		strings.Contains(errMsg, "timeout") ||
