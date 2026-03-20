@@ -156,6 +156,16 @@ export default function SearchPage() {
     loyBuildingsQuery.data?.buildings,
   ]);
 
+  const allBuildingsData = useMemo(() => {
+    if (allBuildingsQuery.isLoading || !allBuildingsQuery.data) {
+      return [];
+    }
+    return [
+      ...allBuildingsQuery.data.buildings.SGW,
+      ...allBuildingsQuery.data.buildings.LOY,
+    ];
+  }, [allBuildingsQuery.data]);
+
   const results: BuildingListItem[] = useMemo(() => {
     if (allBuildingsQuery.isLoading) {
       return [];
@@ -248,20 +258,20 @@ export default function SearchPage() {
       if (editMode === "start") {
         navigationState.setStartLocation({
           name: label ?? code,
-          latitude: results.find((r) => r.code === code)?.latitude || 0,
-          longitude: results.find((r) => r.code === code)?.longitude || 0,
+          latitude: allBuildingsData.find((r) => r.code === code)?.latitude || 0,
+          longitude: allBuildingsData.find((r) => r.code === code)?.longitude || 0,
           code,
           address:
-            address || results.find((r) => r.code === code)?.address || "",
+            address || allBuildingsData.find((r) => r.code === code)?.address || "",
         });
       } else if (editMode === "end") {
         navigationState.setEndLocation({
           name: label ?? code,
-          latitude: results.find((r) => r.code === code)?.latitude || 0,
-          longitude: results.find((r) => r.code === code)?.longitude || 0,
+          latitude: allBuildingsData.find((r) => r.code === code)?.latitude || 0,
+          longitude: allBuildingsData.find((r) => r.code === code)?.longitude || 0,
           code,
           address:
-            address || results.find((r) => r.code === code)?.address || "",
+            address || allBuildingsData.find((r) => r.code === code)?.address || "",
         });
       }
 
