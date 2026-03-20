@@ -53,7 +53,7 @@ export default function IndoorItineraryHeader({}: Readonly<Props>) {
           </Pressable>
         </View>
 
-        <View style={navigationHeaderStyles.card} pointerEvents="auto">
+        <View style={[navigationHeaderStyles.card, { flex: 1 }]} pointerEvents="auto">
           <View style={navigationHeaderStyles.locationsContainer}>
             <Pressable
               style={navigationHeaderStyles.locationRow}
