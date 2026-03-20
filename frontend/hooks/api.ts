@@ -17,11 +17,11 @@ const getBaseUrl = () => {
   }
 
   if (__DEV__ && debuggerHost) {
-    return `http://${debuggerHost}:8080`;
+    return `https://untapestried-katia-unmurmuringly.ngrok-free.dev`;
   }
 
   if (__DEV__) {
-    return "http://localhost:8080";
+    return "https://untapestried-katia-unmurmuringly.ngrok-free.dev";
   }
 
   return FALLBACK_PRODUCTION_API_URL;
