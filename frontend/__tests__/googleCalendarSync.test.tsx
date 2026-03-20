@@ -45,14 +45,13 @@ jest.mock("@/hooks/queries/googleCalendarQueries", () => ({
 }));
 
 jest.mock("react-native-progress", () => {
-  const React = require("react");
   const { View } = require("react-native");
   return {
     Bar: ({ progress }: { progress: number }) => (
       <View testID="progress" accessibilityLabel={`progress-${progress}`} />
     ),
   };
-});
+}, { virtual: true });
 
 describe("GoogleSyncPage", () => {
   beforeEach(() => {
