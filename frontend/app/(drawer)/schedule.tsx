@@ -18,6 +18,7 @@ import { CourseItem } from "../../hooks/firebase/useFirestore";
 import { getGuestCourses } from "../../hooks/guestStorage";
 import { COLORS } from "../constants";
 import { AddIcon } from "../icons";
+import ScheduleListView from "@/components/schedule/ScheduleListView";
 
 export default function Schedule() {
   const router = useRouter();
@@ -48,26 +49,7 @@ export default function Schedule() {
           <AddIcon size={45} color={COLORS.maroon} />
         </TouchableOpacity>
       </View>
-      <ScrollView contentContainerStyle={styles.content}>
-        {courses.map((course) =>
-          course.classes.map((classItem, index) => (
-            <ClassInfoCard
-              key={`${course.name}-${index}`}
-              courseName={course.name}
-              classInfo={{
-                type: classItem.type,
-                section: classItem.section,
-                day: classItem.day,
-                startTime: classItem.startTime,
-                endTime: classItem.endTime,
-                buildingCode: classItem.buildingCode ?? "",
-                room: classItem.room ?? "",
-              }}
-              onDelete={() => {}}
-            />
-          )),
-        )}
-      </ScrollView>
+      <ScheduleListView courses={courses} />
     </SafeAreaView>
   );
 }
