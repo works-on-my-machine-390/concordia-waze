@@ -2,6 +2,7 @@ import {
   getGoogleAuthStatus,
   isAuthRequired,
 } from "@/hooks/queries/googleAuthQueries";
+import { useAuth } from "@/hooks/useAuth";
 import * as WebBrowser from "expo-web-browser";
 import { useState } from "react";
 import {
@@ -19,6 +20,7 @@ type Props = {
 
 export default function SyncCalendarButton({ onPress }: Readonly<Props>) {
   const [loading, setLoading] = useState(false);
+  const { checkToken } = useAuth();
 
   const handlePress = async () => {
     if (loading) {
@@ -27,6 +29,12 @@ export default function SyncCalendarButton({ onPress }: Readonly<Props>) {
 
     setLoading(true);
     try {
+      const isLoggedIn = await checkToken();
+      if (!isLoggedIn) {
+        Toast.info("You must login to sync calendar.");
+        return;
+      }
+
       const status = await getGoogleAuthStatus();
 
       if (isAuthRequired(status)) {
