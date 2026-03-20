@@ -95,7 +95,7 @@ describe("Favorites screen", () => {
       pathname: "/indoor-map",
       params: {
         buildingCode: "MB",
-        selectedRoom: "Room 210",
+        selectedPoiName: "Room 210",
         selectedFloor: "2",
       },
     });
