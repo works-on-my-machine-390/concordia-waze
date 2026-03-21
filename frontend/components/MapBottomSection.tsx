@@ -19,7 +19,7 @@ export type MapBottomSectionProps = {
 };
 
 /**
- * Collection of all bottom sheets used on the map page + bottom buttons.
+ * Collection of all bottom sheets used on the map page + bottom buttons + next class drawer.
  */
 export default function MapBottomSection(
   props: Readonly<MapBottomSectionProps>,
