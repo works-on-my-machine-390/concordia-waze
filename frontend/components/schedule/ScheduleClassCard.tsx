@@ -15,7 +15,7 @@ export default function ScheduleClassCard({
   textColor,
 }: Readonly<Props>) {
   const formattedSection = classInfo.section
-    ? classInfo.section.replace(/-/g, " ").toUpperCase()
+    ? classInfo.section.replaceAll(/-/g, " ").toUpperCase()
     : "";
 
   const formattedLocation = [classInfo.buildingCode, classInfo.room]
