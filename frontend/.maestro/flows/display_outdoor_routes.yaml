@@ -1,0 +1,21 @@
+appId: host.exp.Exponent
+---
+# 1) Continue as guest (enter the app without logging in)
+- tapOn: "Use without account"
+- waitForAnimationToEnd
+
+# 2) Assert the map is loaded and visible on SGW campus
+- assertVisible: "SGW"
+- waitForAnimationToEnd
+
+# 3) Click on the Fabourg building
+- tapOn:
+    point: "83%, 84%"
+
+# 4) Click on the directions icon
+- tapOn: 
+
+# 5) Select different transport modes\
+- tapOn: , 5 mins
+- tapOn: , 5 mins
+- tapOn: , 2 mins
