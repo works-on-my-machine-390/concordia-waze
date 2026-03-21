@@ -2,6 +2,10 @@ import WeeklyScheduleView from "@/components/schedule/WeeklyScheduleView";
 import { render } from "@testing-library/react-native";
 import type { NormalizedScheduleCourse } from "@/app/utils/schedule/types";
 
+jest.mock("expo-router", () => ({
+  useFocusEffect: (callback: () => void) => callback(),
+}));
+
 describe("WeeklyScheduleView", () => {
   test("renders weekday headers and class content", () => {
     const courses: NormalizedScheduleCourse[] = [

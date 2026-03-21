@@ -23,6 +23,25 @@ jest.mock("@react-navigation/native", () => ({
   },
 }));
 
+jest.mock("@gorhom/bottom-sheet", () => {
+  const React = require("react");
+  const { View, ScrollView } = require("react-native");
+
+  const MockBottomSheet = React.forwardRef(({ children }: any, ref: any) => (
+    <View ref={ref} testID="bottom-sheet">
+      {children}
+    </View>
+  ));
+
+  return {
+    __esModule: true,
+    default: MockBottomSheet,
+    BottomSheetScrollView: ({ children, ...props }: any) => (
+      <ScrollView {...props}>{children}</ScrollView>
+    ),
+  };
+});
+
 jest.mock("@/hooks/queries/googleCalendarQueries", () => ({
   useCourses: () => mockUseCourses(),
 }));
@@ -150,5 +169,15 @@ describe("Schedule screen", () => {
     fireEvent.press(getByTestId("sync-button"));
 
     expect(mockRouterPush).toHaveBeenCalledWith("/googleCalendarSync");
+  });
+
+  test("renders bottom sheet container", async () => {
+    const { getByTestId } = renderWithProviders(<Schedule />);
+
+    await waitFor(() => {
+      expect(mockGetGuestCourses).toHaveBeenCalled();
+    });
+
+    expect(getByTestId("bottom-sheet")).toBeTruthy();
   });
 });

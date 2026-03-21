@@ -2,6 +2,17 @@ import ScheduleListView from "@/components/schedule/ScheduleListView";
 import { render } from "@testing-library/react-native";
 import type { NormalizedScheduleCourse } from "@/app/utils/schedule/types";
 
+jest.mock("@gorhom/bottom-sheet", () => {
+  const React = require("react");
+  const { ScrollView } = require("react-native");
+
+  return {
+    BottomSheetScrollView: ({ children, ...props }: any) => (
+      <ScrollView {...props}>{children}</ScrollView>
+    ),
+  };
+});
+
 describe("ScheduleListView", () => {
   test("renders upcoming classes title and all class cards", () => {
     const courses: NormalizedScheduleCourse[] = [
