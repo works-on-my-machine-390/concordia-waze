@@ -21,7 +21,7 @@ export default function ScheduleListView({ courses }: Readonly<Props>) {
 
       <View style={styles.list}>
         {allClasses.map(({ courseName, classItem }, index) => {
-          const backgroundColor = index % 2 === 0 ? COLORS.maroon : "#4180C0";
+          const backgroundColor = index % 2 === 0 ? COLORS.maroon : COLORS.selectionBlue;
 
           return (
             <ScheduleClassCard
