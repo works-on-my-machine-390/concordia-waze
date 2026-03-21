@@ -8,10 +8,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { getGuestCourses } from "../../hooks/guestStorage";
 import { useCourses, type CourseItem } from "../../hooks/queries/googleCalendarQueries";
 import { COLORS } from "../constants";
-import { AddIcon } from "../icons";
+import { AddIcon, MenuIcon } from "../icons";
 import { normalizeScheduleCourses } from "../utils/schedule/normalizeScheduleCourses";
+import { DrawerActions, useNavigation } from "@react-navigation/native";
 
 export default function Schedule() {
+  const nav = useNavigation();
   const router = useRouter();
   const [guestCourses, setGuestCourses] = useState<CourseItem[]>([]);
   const { data: syncedCourses = [] } = useCourses();
@@ -35,6 +37,12 @@ export default function Schedule() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
+        <MenuIcon
+          size={24}
+          color={COLORS.maroon}
+          onPress={() => nav.dispatch(DrawerActions.openDrawer())}
+          testID="schedule-menu-button"
+        />
         <Text style={styles.title}>Schedule</Text>
 
         <TouchableOpacity

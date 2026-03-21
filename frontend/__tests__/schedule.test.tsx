@@ -5,12 +5,22 @@ import { renderWithProviders } from "@/test_utils/renderUtils";
 const mockRouterPush = jest.fn();
 const mockUseCourses = jest.fn();
 const mockGetGuestCourses = jest.fn();
+const mockDispatch = jest.fn();
 
 jest.mock("expo-router", () => ({
   useRouter: () => ({
     push: mockRouterPush,
   }),
   useFocusEffect: (callback: () => void) => callback(),
+}));
+
+jest.mock("@react-navigation/native", () => ({
+  useNavigation: () => ({
+    dispatch: mockDispatch,
+  }),
+  DrawerActions: {
+    openDrawer: () => ({ type: "OPEN_DRAWER" }),
+  },
 }));
 
 jest.mock("@/hooks/queries/googleCalendarQueries", () => ({
@@ -101,6 +111,18 @@ describe("Schedule screen", () => {
       expect(getByText("COMP 346-Lab")).toBeTruthy();
       expect(getByText("SOEN 341-Lecture")).toBeTruthy();
     });
+  });
+
+  test("opens drawer when menu button is pressed", async () => {
+    const { getByTestId } = renderWithProviders(<Schedule />);
+
+    await waitFor(() => {
+      expect(mockGetGuestCourses).toHaveBeenCalled();
+    });
+
+    fireEvent.press(getByTestId("schedule-menu-button"));
+
+    expect(mockDispatch).toHaveBeenCalledWith({ type: "OPEN_DRAWER" });
   });
 
   test("navigates to add-class when add button is pressed", async () => {
