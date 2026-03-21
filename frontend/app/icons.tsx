@@ -1,5 +1,6 @@
 import AntDesign from "@expo/vector-icons/AntDesign";
 import Entypo from "@expo/vector-icons/Entypo";
+import Feather from "@expo/vector-icons/Feather";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -9,7 +10,6 @@ import Octicons from "@expo/vector-icons/Octicons";
 import React from "react";
 import { Pressable, StyleSheet } from "react-native";
 import { COLORS } from "./constants";
-import Feather from '@expo/vector-icons/Feather';
 
 // Standard defaults
 const DEFAULT_ICON_SIZE = 35;
@@ -282,3 +282,25 @@ export const AddIcon: React.FC<IconProps> = ({
   size = DEFAULT_ICON_SIZE,
   color = DEFAULT_ICON_COLOR,
 }) => <MaterialIcons name="add-box" size={size} color={color} />;
+
+// Time icon
+export const TimeIcon: React.FC<IconProps> = ({
+  size = DEFAULT_ICON_SIZE,
+  color = DEFAULT_ICON_COLOR,
+}) => <Ionicons name="time-outline" size={size} color={color} />;
+
+// Double arrow right
+export const DrawerOpenIcon: React.FC<IconProps> = ({
+  size = DEFAULT_ICON_SIZE,
+  color = DEFAULT_ICON_COLOR,
+}) => (
+  <MaterialIcons name="keyboard-double-arrow-right" size={size} color={color} />
+);
+
+// Double arrow left
+export const DrawerCloseIcon: React.FC<IconProps> = ({
+  size = DEFAULT_ICON_SIZE,
+  color = DEFAULT_ICON_COLOR,
+}) => (
+  <MaterialIcons name="keyboard-double-arrow-left" size={size} color={color} />
+);
