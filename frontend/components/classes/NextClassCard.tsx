@@ -2,6 +2,7 @@ import { COLORS } from "@/app/constants";
 import { GetDirectionsIcon, TimeIcon } from "@/app/icons";
 import { toMinutes } from "@/app/utils/dateUtils";
 import { NextClassResponse } from "@/hooks/queries/classQueries";
+import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 type Props = {
@@ -27,7 +28,26 @@ export default function NextClassCard({
   onNavigatePress,
 }: Readonly<Props>) {
   const { className, item } = nextClass;
-  const minutesUntil = getMinutesUntil(item.startTime);
+  const [minutesUntil, setMinutesUntil] = useState(() =>
+    getMinutesUntil(item.startTime),
+  );
+  useEffect(() => {
+    const now = new Date();
+    const msUntilNextMinute = //im getting the next minute just to make sure that the time left is accurate (and that we dont start calculating one minute from whenever it was rendered)
+      (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
+
+    const timeout = setTimeout(() => {
+      setMinutesUntil(getMinutesUntil(item.startTime));
+
+      const interval = setInterval(() => {
+        setMinutesUntil(getMinutesUntil(item.startTime));
+      }, 60000);
+
+      return () => clearInterval(interval);
+    }, msUntilNextMinute);
+
+    return () => clearTimeout(timeout);
+  }, [item.startTime]);
   const hasStarted = minutesUntil <= 0;
   const location = `${item.buildingCode.toUpperCase()} ${item.room}`;
 
@@ -52,10 +72,7 @@ export default function NextClassCard({
           <Text style={styles.classNameText}>{className.toUpperCase()}</Text>
           <Text style={styles.locationText}>{location}</Text>
         </View>
-        <Pressable
-          style={styles.navigateButton}
-          onPress={onNavigatePress}
-        >
+        <Pressable style={styles.navigateButton} onPress={onNavigatePress}>
           <GetDirectionsIcon size={30} color={COLORS.conuRed} />
         </Pressable>
       </View>
