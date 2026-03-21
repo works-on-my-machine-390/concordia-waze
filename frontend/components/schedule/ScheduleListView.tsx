@@ -1,4 +1,5 @@
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import { StyleSheet, Text, View } from "react-native";
 import { COLORS } from "../../app/constants";
 import type { NormalizedScheduleCourse } from "../../app/utils/schedule/types";
 import ScheduleClassCard from "./ScheduleClassCard";
@@ -16,12 +17,13 @@ export default function ScheduleListView({ courses }: Readonly<Props>) {
   );
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <BottomSheetScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Upcoming Classes</Text>
 
       <View style={styles.list}>
         {allClasses.map(({ courseName, classItem }, index) => {
-          const backgroundColor = index % 2 === 0 ? COLORS.maroon : COLORS.selectionBlue;
+          const backgroundColor =
+            index % 2 === 0 ? COLORS.maroon : COLORS.selectionBlue;
 
           return (
             <ScheduleClassCard
@@ -29,18 +31,19 @@ export default function ScheduleListView({ courses }: Readonly<Props>) {
               courseName={courseName}
               classInfo={classItem}
               backgroundColor={backgroundColor}
-              textColor="#FFFFFF"
+              textColor={COLORS.white}
             />
           );
         })}
       </View>
-    </ScrollView>
+    </BottomSheetScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     padding: 20,
+    paddingBottom: 40,
   },
   title: {
     fontSize: 20,

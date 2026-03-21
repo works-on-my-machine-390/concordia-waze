@@ -1,3 +1,5 @@
+import { useFocusEffect } from "expo-router";
+import { useCallback, useMemo, useRef } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { COLORS } from "../../app/constants";
 import type {
@@ -10,6 +12,15 @@ type Props = {
 };
 
 const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"] as const;
+const JS_DAY_TO_SCHEDULE_DAY = [
+  "SUN",
+  "MON",
+  "TUE",
+  "WED",
+  "THU",
+  "FRI",
+  "SAT",
+] as const;
 
 const START_HOUR = 8;
 const END_HOUR = 22;
@@ -40,23 +51,69 @@ function flattenCourses(courses: NormalizedScheduleCourse[]): Array<
 }
 
 export default function WeeklyScheduleView({ courses }: Readonly<Props>) {
-  const classes = flattenCourses(courses);
+  const horizontalScrollRef = useRef<ScrollView>(null);
+
+  const classes = useMemo(() => flattenCourses(courses), [courses]);
   const totalHeight = (END_HOUR - START_HOUR) * HOUR_HEIGHT;
 
+  const today = JS_DAY_TO_SCHEDULE_DAY[new Date().getDay()];
+  const todayIndex = DAYS.indexOf(today as (typeof DAYS)[number]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (todayIndex === -1) {
+        return;
+      }
+
+      const xOffset = Math.max(
+        0,
+        todayIndex * DAY_COLUMN_WIDTH - DAY_COLUMN_WIDTH,
+      );
+
+      const timeout = setTimeout(() => {
+        horizontalScrollRef.current?.scrollTo({
+          x: xOffset,
+          animated: true,
+        });
+      }, 100);
+
+      return () => clearTimeout(timeout);
+    }, [todayIndex]),
+  );
+
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+    <ScrollView
+      ref={horizontalScrollRef}
+      horizontal
+      showsHorizontalScrollIndicator={false}
+    >
       <View>
         <View style={styles.headerRow}>
           <View style={styles.timeHeaderCell} />
 
-          {DAYS.map((day) => (
-            <View
-              key={day}
-              style={[styles.dayHeaderCell, { width: DAY_COLUMN_WIDTH }]}
-            >
-              <Text style={styles.dayHeaderText}>{day}</Text>
-            </View>
-          ))}
+          {DAYS.map((day) => {
+            const isToday = day === today;
+
+            return (
+              <View
+                key={day}
+                style={[
+                  styles.dayHeaderCell,
+                  { width: DAY_COLUMN_WIDTH },
+                  isToday && styles.todayHeaderCell,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.dayHeaderText,
+                    isToday && styles.todayHeaderText,
+                  ]}
+                >
+                  {day}
+                </Text>
+              </View>
+            );
+          })}
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false}>
@@ -83,29 +140,36 @@ export default function WeeklyScheduleView({ courses }: Readonly<Props>) {
                 position: "relative",
               }}
             >
-              {DAYS.map((day, dayIndex) => (
-                <View
-                  key={day}
-                  style={[
-                    styles.dayColumn,
-                    {
-                      left: dayIndex * DAY_COLUMN_WIDTH,
-                      width: DAY_COLUMN_WIDTH,
-                      height: totalHeight,
-                    },
-                  ]}
-                >
-                  {Array.from({ length: END_HOUR - START_HOUR }).map((_, index) => (
-                    <View
-                      key={`${day}-${START_HOUR + index}`}
-                      style={[
-                        styles.hourLine,
-                        { top: index * HOUR_HEIGHT, height: HOUR_HEIGHT },
-                      ]}
-                    />
-                  ))}
-                </View>
-              ))}
+              {DAYS.map((day, dayIndex) => {
+                const isToday = day === today;
+
+                return (
+                  <View
+                    key={day}
+                    style={[
+                      styles.dayColumn,
+                      {
+                        left: dayIndex * DAY_COLUMN_WIDTH,
+                        width: DAY_COLUMN_WIDTH,
+                        height: totalHeight,
+                      },
+                      isToday && styles.todayColumn,
+                    ]}
+                  >
+                    {Array.from({ length: END_HOUR - START_HOUR }).map(
+                      (_, index) => (
+                        <View
+                          key={`${day}-${START_HOUR + index}`}
+                          style={[
+                            styles.hourLine,
+                            { top: index * HOUR_HEIGHT, height: HOUR_HEIGHT },
+                          ]}
+                        />
+                      ),
+                    )}
+                  </View>
+                );
+              })}
 
               {classes.map((item, index) => {
                 const dayIndex = DAYS.indexOf(item.day);
@@ -124,8 +188,11 @@ export default function WeeklyScheduleView({ courses }: Readonly<Props>) {
 
                 const top = (minutesFromStart / 60) * HOUR_HEIGHT;
                 const height = (durationMinutes / 60) * HOUR_HEIGHT;
-                const backgroundColor = index % 2 === 0 ? COLORS.maroon : "#4180C0";
-                const location = [item.buildingCode, item.room].filter(Boolean).join(" ");
+                const backgroundColor =
+                  index % 2 === 0 ? COLORS.maroon : COLORS.selectionBlue;
+                const location = [item.buildingCode, item.room]
+                  .filter(Boolean)
+                  .join(" ");
 
                 return (
                   <View
@@ -189,10 +256,16 @@ const styles = StyleSheet.create({
     borderRightColor: "#E5E5E5",
     backgroundColor: "#fff",
   },
+  todayHeaderCell: {
+    backgroundColor: "#F4E8EE",
+  },
   dayHeaderText: {
     fontSize: 13,
     fontWeight: "700",
     color: COLORS.textPrimary,
+  },
+  todayHeaderText: {
+    color: COLORS.maroon,
   },
   scheduleRow: {
     flexDirection: "row",
@@ -217,6 +290,9 @@ const styles = StyleSheet.create({
     borderRightWidth: 1,
     borderRightColor: "#E5E5E5",
     backgroundColor: "#fff",
+  },
+  todayColumn: {
+    backgroundColor: "#FCF7F9",
   },
   hourLine: {
     position: "absolute",
