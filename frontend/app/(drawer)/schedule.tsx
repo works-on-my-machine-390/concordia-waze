@@ -38,6 +38,7 @@ export default function Schedule() {
         <Text style={styles.title}>Schedule</Text>
 
         <TouchableOpacity
+          testID="add-class-button"
           onPress={() =>
             router.push({
               pathname: "/add-class",

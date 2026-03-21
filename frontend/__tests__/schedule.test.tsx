@@ -21,8 +21,14 @@ jest.mock("@/hooks/guestStorage", () => ({
   getGuestCourses: () => mockGetGuestCourses(),
 }));
 
-jest.mock("@/components/classes/ClassInfoCard", () => {
-  return ({ courseName, classInfo }: { courseName: string; classInfo: { type: string } }) => {
+jest.mock("@/components/schedule/ScheduleClassCard", () => {
+  return ({
+    courseName,
+    classInfo,
+  }: {
+    courseName: string;
+    classInfo: { type: string };
+  }) => {
     const { Text, View } = require("react-native");
     return (
       <View>
@@ -43,9 +49,14 @@ jest.mock("@/components/SyncGoogleCalendarButton", () => {
   };
 });
 
+jest.mock("@/components/schedule/WeeklyScheduleView", () => {
+  return () => null;
+});
+
 describe("Schedule screen", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+
     mockUseCourses.mockReturnValue({
       data: [
         {
@@ -87,19 +98,19 @@ describe("Schedule screen", () => {
     const { getByText } = renderWithProviders(<Schedule />);
 
     await waitFor(() => {
-      expect(getByText("COMP 346-LAB")).toBeTruthy();
-      expect(getByText("SOEN 341-LEC")).toBeTruthy();
+      expect(getByText("COMP 346-Lab")).toBeTruthy();
+      expect(getByText("SOEN 341-Lecture")).toBeTruthy();
     });
   });
 
-  test("navigates to add-class when add icon is pressed", async () => {
-    const { getByText } = renderWithProviders(<Schedule />);
+  test("navigates to add-class when add button is pressed", async () => {
+    const { getByTestId } = renderWithProviders(<Schedule />);
 
     await waitFor(() => {
       expect(mockGetGuestCourses).toHaveBeenCalled();
     });
 
-    fireEvent.press(getByText(""));
+    fireEvent.press(getByTestId("add-class-button"));
 
     expect(mockRouterPush).toHaveBeenCalledWith({
       pathname: "/add-class",
