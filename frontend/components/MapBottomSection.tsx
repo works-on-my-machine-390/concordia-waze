@@ -1,6 +1,8 @@
 import { MapMode, useMapStore } from "@/hooks/useMapStore";
+import { useNextClass } from "@/hooks/useNextClass";
 import { StyleSheet, View } from "react-native";
 import BuildingBottomSheet from "./BuildingBottomSheet";
+import NextClassDrawer from "./classes/NextClassDrawer";
 import LocationButton from "./LocationButton";
 import MapSettingsBottomSheet from "./MapSettingsBottomSheet";
 import MapSettingsButton from "./MapSettingsButton";
@@ -23,6 +25,7 @@ export default function MapBottomSection(
   props: Readonly<MapBottomSectionProps>,
 ) {
   const state = useMapStore();
+  const { nextClass } = useNextClass();
 
   const renderButtons = () => {
     return (
@@ -42,13 +45,16 @@ export default function MapBottomSection(
     );
   };
 
+  const renderNextClassDrawer = () => {
+    if (!nextClass) return null;
+    return <NextClassDrawer nextClass={nextClass} />;
+  };
+
   const renderSheets = () => {
     return (
       <>
         {state.currentMode === MapMode.POI && (
-          <PoiSearchBottomSheet
-            moveCamera={props.moveCamera}
-          />
+          <PoiSearchBottomSheet moveCamera={props.moveCamera} />
         )}
 
         {state.currentMode === MapMode.BUILDING && <BuildingBottomSheet />}
@@ -63,6 +69,7 @@ export default function MapBottomSection(
   return (
     <View style={mapBottomSheetStyles.bottomSheetContainer}>
       {renderButtons()}
+      {renderNextClassDrawer()}
       {renderSheets()}
     </View>
   );
