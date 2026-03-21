@@ -46,7 +46,10 @@ export default function NextClassDrawer({ nextClass }: Readonly<Props>) {
       style={[styles.wrapper, { transform: [{ translateX }] }]}
     >
       <Pressable onPress={toggle}>
-        <NextClassCard nextClass={nextClass} onNavigatePress={() => {}} />
+        <NextClassCard 
+            nextClass={nextClass} 
+            onNavigatePress={() => {}}  // TODO: implement navigation to the next class when user clicks on this button
+        />
         <View style={styles.tab}>
           {isOpen ? (
             <DrawerCloseIcon size={35} color="white" />
