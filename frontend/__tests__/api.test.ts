@@ -26,15 +26,14 @@ describe("api", () => {
     (globalThis as any).__DEV__ = originalDev;
   });
 
-  test("API_URL defaults to localhost:8080", () => {
-    // When REACT_APP_API_BASE is not set
-    expect(API_URL).toBe("http://localhost:8080");
+  test("API_URL defaults to the module base URL when not configured", () => {
+    expect(API_URL).toBe("https://untapestried-katia-unmurmuringly.ngrok-free.dev");
   });
 
   test("api() without token calls wretch with no auth header", async () => {
     const wretch = require("wretch");
     await api();
-    expect(wretch).toHaveBeenCalledWith("http://localhost:8080");
+    expect(wretch).toHaveBeenCalledWith(API_URL);
   });
 
   test("api() with token includes Authorization header", async () => {
@@ -45,7 +44,7 @@ describe("api", () => {
     const validToken = "eyJhbGciOiJIUzI1NiJ9.eyJleHAiOjk5OTk5OTk5OTl9.fake";
     await api(validToken);
 
-    expect(wretch).toHaveBeenCalledWith("http://localhost:8080");
+    expect(wretch).toHaveBeenCalledWith(API_URL);
     expect(mockHeadersFn).toHaveBeenCalledWith({
       Authorization: `Bearer ${validToken}`,
     });
@@ -54,19 +53,19 @@ describe("api", () => {
   test("api() with empty token string calls wretch without auth header", async () => {
     const wretch = require("wretch");
     await api("");
-    expect(wretch).toHaveBeenCalledWith("http://localhost:8080");
+    expect(wretch).toHaveBeenCalledWith(API_URL);
   });
 
   test("api() with null token calls without auth header", async () => {
     const wretch = require("wretch");
     await api(null as any);
-    expect(wretch).toHaveBeenCalledWith("http://localhost:8080");
+    expect(wretch).toHaveBeenCalledWith(API_URL);
   });
 
   test("api() with undefined token calls without auth header", async () => {
     const wretch = require("wretch");
     await api();
-    expect(wretch).toHaveBeenCalledWith("http://localhost:8080");
+    expect(wretch).toHaveBeenCalledWith(API_URL);
   });
 
   test("api() with long token string includes full Authorization header", async () => {
@@ -96,7 +95,7 @@ describe("api", () => {
 
     expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith("accessToken");
     expect(emitSpy).toHaveBeenCalledWith(AUTH_EXPIRED_EVENT);
-    expect(wretch).toHaveBeenCalledWith("http://localhost:8080");
+    expect(wretch).toHaveBeenCalledWith(API_URL);
   });
 
   test("isTokenExpired() returns true for malformed token payload", () => {

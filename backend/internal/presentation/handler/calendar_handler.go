@@ -3,6 +3,7 @@ package handler
 import (
 	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -10,17 +11,29 @@ import (
 	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
 )
 
+type BuildingGetter interface {
+	GetBuilding(code string) (*domain.Building, error)
+}
+
+type RoomGetter interface {
+	GetByBuilding(buildingCode string) ([]domain.IndoorRoom, error)
+}
+
 type CalendarHandler struct {
 	tokenStore      GoogleTokenStore
 	calendarSyncer  application.CalendarSyncer
 	firebaseService application.FirebaseClassService
+	buildingGetter  BuildingGetter
+	roomGetter      RoomGetter
 }
 
-func NewCalendarHandler(tokenStore GoogleTokenStore, calendarSyncer application.CalendarSyncer, firebaseService application.FirebaseClassService) *CalendarHandler {
+func NewCalendarHandler(tokenStore GoogleTokenStore, calendarSyncer application.CalendarSyncer, firebaseService application.FirebaseClassService, buildingGetter BuildingGetter, roomGetter RoomGetter) *CalendarHandler {
 	return &CalendarHandler{
 		tokenStore:      tokenStore,
 		calendarSyncer:  calendarSyncer,
 		firebaseService: firebaseService,
+		buildingGetter:  buildingGetter,
+		roomGetter:      roomGetter,
 	}
 }
 
@@ -32,6 +45,17 @@ type query struct {
 type SyncResponse struct {
 	Events []domain.CourseItem `json:"events"`
 	Errors []string            `json:"errors,omitempty"`
+}
+
+// NextClassResponse is the response body for GetNextClass.
+type NextClassResponse struct {
+	ClassName         string            `json:"className"`
+	Item              *domain.ClassItem `json:"item"`
+	BuildingLatitude  float64           `json:"buildingLatitude,omitempty"`
+	BuildingLongitude float64           `json:"buildingLongitude,omitempty"`
+	FloorNumber       *int              `json:"floorNumber,omitempty"`
+	RoomX             *float64          `json:"roomX,omitempty"`
+	RoomY             *float64          `json:"roomY,omitempty"`
 }
 
 type createCourseRequest struct {
@@ -52,7 +76,9 @@ const (
 // @Success 200 {string} string "Events synced successfully"
 // @Failure 400 {object} map[string]string "Invalid date"
 // @Failure 401 {object} map[string]string "Google auth required"
-// @Failure 500 {object} map[string]string "Failed to fetch events or token"
+// @Failure 403 {object} map[string]string "Google Calendar permission denied"
+// @Failure 503 {object} map[string]string "Google Calendar service unavailable"
+// @Failure 500 {object} map[string]string "Unexpected sync failure"
 // @Security    BearerAuth
 // @Router /courses/sync [get]
 func (h *CalendarHandler) SyncCalendarEvents(c *gin.Context) {
@@ -83,8 +109,40 @@ func (h *CalendarHandler) SyncCalendarEvents(c *gin.Context) {
 
 	events, syncErrors, err := h.calendarSyncer.SyncCalendarEvents(token, userID, q.Since, q.CalendarID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch events", "details": err.Error()})
-		return
+		switch {
+		case errors.Is(err, application.ErrGoogleCalendarAuthRequired):
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error":   "google calendar session expired or is invalid",
+				"code":    "GOOGLE_AUTH_REQUIRED",
+				"message": "Please reconnect your Google account and try again.",
+			})
+			return
+
+		case errors.Is(err, application.ErrGoogleCalendarPermissionDenied):
+			c.JSON(http.StatusForbidden, gin.H{
+				"error":   "google calendar permission denied",
+				"code":    "GOOGLE_PERMISSION_DENIED",
+				"message": "Calendar access was denied. Please grant calendar permission and try again.",
+			})
+			return
+
+		case errors.Is(err, application.ErrGoogleCalendarUnavailable):
+			c.JSON(http.StatusServiceUnavailable, gin.H{
+				"error":   "google calendar service unavailable",
+				"code":    "GOOGLE_CALENDAR_UNAVAILABLE",
+				"message": "Google Calendar is currently unavailable. Please try again later.",
+			})
+			return
+
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error":   "failed to sync calendar events",
+				"code":    "CALENDAR_SYNC_FAILED",
+				"message": "An unexpected error occurred while syncing calendar events.",
+				"details": err.Error(),
+			})
+			return
+		}
 	}
 
 	courses := make([]domain.CourseItem, 0, len(events))
@@ -283,6 +341,65 @@ func (h *CalendarHandler) AddClassItem(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"message": "class added", "classID": classID})
+}
+
+// GetNextClass godoc
+// @Summary Get the user's next upcoming class
+// @Description Returns the next class session based on the authenticated user's schedule and the current time
+// @Tags class
+// @Produce json
+// @Success 200 {object} NextClassResponse "Next class found, or message when no more classes today"
+// @Failure 500 {object} map[string]string
+// @Security BearerAuth
+// @Router /courses/next [get]
+func (h *CalendarHandler) GetNextClass(c *gin.Context) {
+	userID := c.GetString(contextUserIDKey)
+
+	className, item, err := h.firebaseService.GetNextClass(userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if item == nil {
+		c.JSON(http.StatusOK, gin.H{"message": "no more classes today, enjoy your day!"})
+		return
+	}
+
+	resp := NextClassResponse{ClassName: className, Item: item}
+	h.enrichBuildingCoords(&resp, item)
+	h.enrichRoomInfo(&resp, item)
+	c.JSON(http.StatusOK, resp)
+}
+
+func (h *CalendarHandler) enrichBuildingCoords(resp *NextClassResponse, item *domain.ClassItem) {
+	if item.BuildingCode == "" || h.buildingGetter == nil {
+		return
+	}
+	building, err := h.buildingGetter.GetBuilding(item.BuildingCode)
+	if err != nil {
+		return
+	}
+	resp.BuildingLatitude = building.Latitude
+	resp.BuildingLongitude = building.Longitude
+}
+
+func (h *CalendarHandler) enrichRoomInfo(resp *NextClassResponse, item *domain.ClassItem) {
+	if item.BuildingCode == "" || item.Room == "" || h.roomGetter == nil {
+		return
+	}
+	rooms, err := h.roomGetter.GetByBuilding(item.BuildingCode)
+	if err != nil {
+		return
+	}
+	for _, r := range rooms {
+		if strings.EqualFold(r.Room, item.Room) {
+			floor, x, y := r.Floor, r.Centroid.X, r.Centroid.Y
+			resp.FloorNumber = &floor
+			resp.RoomX = &x
+			resp.RoomY = &y
+			return
+		}
+	}
 }
 
 // UpdateClassItem godoc

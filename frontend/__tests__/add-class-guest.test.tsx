@@ -1,5 +1,5 @@
 import AddClassScreen from "@/app/add-class";
-import { fireEvent, render } from "@testing-library/react-native";
+import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
 
 jest.mock("@/hooks/queries/userQueries", () => ({
   useGetProfile: () => ({ data: null }),
@@ -14,7 +14,7 @@ jest.mock("expo-router", () => ({
 jest.mock("@/components/BackHeader", () => () => null);
 jest.mock("@/components/classes/AddClassInfoForm", () => {
   const { forwardRef } = require("react");
-  return forwardRef(({ onAdd, onCancel }: any) => {
+  return forwardRef(({ onAdd, onCancel }: any, _ref) => {
     const { View, TouchableOpacity, Text } = require("react-native");
     return (
       <View>
@@ -57,29 +57,54 @@ describe("AddClassScreen (guest)", () => {
   test("loads stored courses on focus", async () => {
     const { getGuestCourses } = require("@/hooks/guestStorage");
     render(<AddClassScreen />);
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(getGuestCourses).toHaveBeenCalled();
+    await waitFor(() => expect(getGuestCourses).toHaveBeenCalled());
   });
 
   test("shows duplicate course name error", async () => {
     const { getByText, getByPlaceholderText } = render(<AddClassScreen />);
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    fireEvent.changeText(getByPlaceholderText("e.g. SOEN 384"), "COMP 352");
-    fireEvent.press(getByText("Add a lecture, lab or tutorial for this course"));
-    getByText(/A course named COMP 352 already exists/);
+    await waitFor(() => {
+      expect(getByPlaceholderText("e.g. SOEN 384")).toBeTruthy();
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    await act(async () => {
+      fireEvent.changeText(getByPlaceholderText("e.g. SOEN 384"), "COMP 352");
+    });
+    await act(async () => {
+      fireEvent.press(getByText("Add a lecture, lab or tutorial for this course"));
+    });
+    await waitFor(() => {
+      expect(getByText(/A course named COMP 352 already exists/)).toBeTruthy();
+    });
   });
 
   test("saves course to guest storage and navigates when save is pressed", async () => {
     const { addGuestCourse } = require("@/hooks/guestStorage");
     const { router } = require("expo-router");
     const { getByText, getByPlaceholderText, getByTestId } = render(<AddClassScreen />);
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    fireEvent.changeText(getByPlaceholderText("e.g. SOEN 384"), "SOEN 384");
-    fireEvent.press(getByText("Add a lecture, lab or tutorial for this course"));
-    fireEvent.press(getByTestId("mock-add"));
-    fireEvent.press(getByText("Save Class"));
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(addGuestCourse).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(getByPlaceholderText("e.g. SOEN 384")).toBeTruthy();
+    });
+    await act(async () => {
+      fireEvent.changeText(getByPlaceholderText("e.g. SOEN 384"), "SOEN 384");
+    });
+    await act(async () => {
+      fireEvent.press(getByText("Add a lecture, lab or tutorial for this course"));
+    });
+    await waitFor(() => {
+      expect(getByTestId("mock-add")).toBeTruthy();
+    });
+    await act(async () => {
+      fireEvent.press(getByTestId("mock-add"));
+    });
+    await waitFor(() => {
+      expect(getByText("Save Class")).toBeTruthy();
+    });
+    await act(async () => {
+      fireEvent.press(getByText("Save Class"));
+    });
+    await waitFor(() => expect(addGuestCourse).toHaveBeenCalled());
     expect(router.push).toHaveBeenCalledWith("/schedule");
   });
 
@@ -87,11 +112,27 @@ describe("AddClassScreen (guest)", () => {
     const { addGuestCourse } = require("@/hooks/guestStorage");
     addGuestCourse.mockRejectedValueOnce(new Error("Storage error"));
     const { getByText, getByPlaceholderText, getByTestId, findByText } = render(<AddClassScreen />);
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    fireEvent.changeText(getByPlaceholderText("e.g. SOEN 384"), "SOEN 384");
-    fireEvent.press(getByText("Add a lecture, lab or tutorial for this course"));
-    fireEvent.press(getByTestId("mock-add"));
-    fireEvent.press(getByText("Save Class"));
+    await waitFor(() => {
+      expect(getByPlaceholderText("e.g. SOEN 384")).toBeTruthy();
+    });
+    await act(async () => {
+      fireEvent.changeText(getByPlaceholderText("e.g. SOEN 384"), "SOEN 384");
+    });
+    await act(async () => {
+      fireEvent.press(getByText("Add a lecture, lab or tutorial for this course"));
+    });
+    await waitFor(() => {
+      expect(getByTestId("mock-add")).toBeTruthy();
+    });
+    await act(async () => {
+      fireEvent.press(getByTestId("mock-add"));
+    });
+    await waitFor(() => {
+      expect(getByText("Save Class")).toBeTruthy();
+    });
+    await act(async () => {
+      fireEvent.press(getByText("Save Class"));
+    });
     await findByText("Saving failed. Please try again.");
   });
 });

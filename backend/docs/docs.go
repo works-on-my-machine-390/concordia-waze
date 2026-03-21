@@ -643,6 +643,40 @@ const docTemplate = `{
                 }
             }
         },
+        "/courses/next": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns the next class session based on the authenticated user's schedule and the current time",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "class"
+                ],
+                "summary": "Get the user's next upcoming class",
+                "responses": {
+                    "200": {
+                        "description": "Next class found, or message when no more classes today",
+                        "schema": {
+                            "$ref": "#/definitions/handler.NextClassResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/courses/sync": {
             "get": {
                 "security": [
@@ -695,8 +729,26 @@ const docTemplate = `{
                             }
                         }
                     },
+                    "403": {
+                        "description": "Google Calendar permission denied",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
                     "500": {
-                        "description": "Failed to fetch events or token",
+                        "description": "Unexpected sync failure",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Google Calendar service unavailable",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -3105,6 +3157,32 @@ const docTemplate = `{
                 },
                 "password": {
                     "type": "string"
+                }
+            }
+        },
+        "handler.NextClassResponse": {
+            "type": "object",
+            "properties": {
+                "buildingLatitude": {
+                    "type": "number"
+                },
+                "buildingLongitude": {
+                    "type": "number"
+                },
+                "className": {
+                    "type": "string"
+                },
+                "floorNumber": {
+                    "type": "integer"
+                },
+                "item": {
+                    "$ref": "#/definitions/domain.ClassItem"
+                },
+                "roomX": {
+                    "type": "number"
+                },
+                "roomY": {
+                    "type": "number"
                 }
             }
         },
