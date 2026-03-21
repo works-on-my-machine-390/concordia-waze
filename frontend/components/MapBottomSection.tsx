@@ -1,5 +1,5 @@
+import { NextClassResponse } from "@/hooks/queries/classQueries";
 import { MapMode, useMapStore } from "@/hooks/useMapStore";
-import { useNextClass } from "@/hooks/useNextClass";
 import { StyleSheet, View } from "react-native";
 import BuildingBottomSheet from "./BuildingBottomSheet";
 import NextClassDrawer from "./classes/NextClassDrawer";
@@ -16,6 +16,7 @@ export type MapBottomSectionProps = {
     latitude: number;
     longitude: number;
   };
+  nextClass?: NextClassResponse | null;
 };
 
 /**
@@ -25,7 +26,6 @@ export default function MapBottomSection(
   props: Readonly<MapBottomSectionProps>,
 ) {
   const state = useMapStore();
-  const { nextClass } = useNextClass();
 
   const renderButtons = () => {
     return (
@@ -46,8 +46,8 @@ export default function MapBottomSection(
   };
 
   const renderNextClassDrawer = () => {
-    if (!nextClass) return null;
-    return <NextClassDrawer nextClass={nextClass} />;
+    if (!props.nextClass) return null;
+    return <NextClassDrawer nextClass={props.nextClass} />;
   };
 
   const renderSheets = () => {
