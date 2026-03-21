@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
 	"golang.org/x/oauth2"
+	"google.golang.org/api/googleapi"
 )
 
 type fakeCalGetter struct {
@@ -207,4 +208,104 @@ func TestSyncCalendarEvents_AddClassItemErrorPropagates(t *testing.T) {
 
 	_, _, err := svc.SyncCalendarEvents(nil, "u4", time.Now(), "primary")
 	require.ErrorIs(t, err, want)
+}
+func TestSyncCalendarEvents_MapsGoogleAPI401ToAuthRequired(t *testing.T) {
+	calGetter := &fakeCalGetter{
+		err: &googleapi.Error{Code: 401, Message: "unauthorized"},
+	}
+
+	fb := &fakeFirebase{
+		existing: map[string][]*domain.ClassItem{},
+	}
+
+	svc := NewCalendarService(calGetter, fb)
+
+	_, _, err := svc.SyncCalendarEvents(nil, "u-auth", time.Now(), "primary")
+	require.ErrorIs(t, err, ErrGoogleCalendarAuthRequired)
+}
+
+func TestSyncCalendarEvents_MapsGoogleAPI403ToPermissionDenied(t *testing.T) {
+	calGetter := &fakeCalGetter{
+		err: &googleapi.Error{Code: 403, Message: "permission denied"},
+	}
+
+	fb := &fakeFirebase{
+		existing: map[string][]*domain.ClassItem{},
+	}
+
+	svc := NewCalendarService(calGetter, fb)
+
+	_, _, err := svc.SyncCalendarEvents(nil, "u-perm", time.Now(), "primary")
+	require.ErrorIs(t, err, ErrGoogleCalendarPermissionDenied)
+}
+
+func TestSyncCalendarEvents_MapsGoogleAPI503ToUnavailable(t *testing.T) {
+	calGetter := &fakeCalGetter{
+		err: &googleapi.Error{Code: 503, Message: "service unavailable"},
+	}
+
+	fb := &fakeFirebase{
+		existing: map[string][]*domain.ClassItem{},
+	}
+
+	svc := NewCalendarService(calGetter, fb)
+
+	_, _, err := svc.SyncCalendarEvents(nil, "u-unavail", time.Now(), "primary")
+	require.ErrorIs(t, err, ErrGoogleCalendarUnavailable)
+}
+
+func TestMapCalendarSyncError_MapsTokenExpiredMessageToAuthRequired(t *testing.T) {
+	err := mapCalendarSyncError(errors.New("oauth2: token expired"))
+
+	require.ErrorIs(t, err, ErrGoogleCalendarAuthRequired)
+}
+
+func TestMapCalendarSyncError_MapsInvalidGrantMessageToAuthRequired(t *testing.T) {
+	err := mapCalendarSyncError(errors.New("invalid_grant"))
+
+	require.ErrorIs(t, err, ErrGoogleCalendarAuthRequired)
+}
+
+func TestMapCalendarSyncError_MapsPermissionDeniedMessageToPermissionDenied(t *testing.T) {
+	err := mapCalendarSyncError(errors.New("permission denied"))
+
+	require.ErrorIs(t, err, ErrGoogleCalendarPermissionDenied)
+}
+
+func TestMapCalendarSyncError_MapsInsufficientPermissionsMessageToPermissionDenied(t *testing.T) {
+	err := mapCalendarSyncError(errors.New("insufficient permissions"))
+
+	require.ErrorIs(t, err, ErrGoogleCalendarPermissionDenied)
+}
+
+func TestMapCalendarSyncError_MapsServiceUnavailableMessageToUnavailable(t *testing.T) {
+	err := mapCalendarSyncError(errors.New("service unavailable"))
+
+	require.ErrorIs(t, err, ErrGoogleCalendarUnavailable)
+}
+
+func TestMapCalendarSyncError_MapsTimeoutMessageToUnavailable(t *testing.T) {
+	err := mapCalendarSyncError(errors.New("request timeout"))
+
+	require.ErrorIs(t, err, ErrGoogleCalendarUnavailable)
+}
+
+func TestMapCalendarSyncError_MapsCalendarDisabledMessageToUnavailable(t *testing.T) {
+	err := mapCalendarSyncError(errors.New("calendar api disabled"))
+
+	require.ErrorIs(t, err, ErrGoogleCalendarUnavailable)
+}
+
+func TestMapCalendarSyncError_ReturnsNilForNilError(t *testing.T) {
+	err := mapCalendarSyncError(nil)
+
+	require.NoError(t, err)
+}
+
+func TestMapCalendarSyncError_ReturnsOriginalErrorWhenNoMappingMatches(t *testing.T) {
+	original := errors.New("some unexpected error")
+
+	err := mapCalendarSyncError(original)
+
+	require.ErrorIs(t, err, original)
 }

@@ -1205,8 +1205,20 @@ paths:
             additionalProperties:
               type: string
             type: object
+        "403":
+          description: Google Calendar permission denied
+          schema:
+            additionalProperties:
+              type: string
+            type: object
         "500":
-          description: Failed to fetch events or token
+          description: Unexpected sync failure
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "503":
+          description: Google Calendar service unavailable
           schema:
             additionalProperties:
               type: string

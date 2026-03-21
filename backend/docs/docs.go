@@ -729,8 +729,26 @@ const docTemplate = `{
                             }
                         }
                     },
+                    "403": {
+                        "description": "Google Calendar permission denied",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
                     "500": {
-                        "description": "Failed to fetch events or token",
+                        "description": "Unexpected sync failure",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Google Calendar service unavailable",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
