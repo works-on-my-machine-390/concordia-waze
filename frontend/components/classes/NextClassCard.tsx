@@ -55,7 +55,6 @@ export default function NextClassCard({
         <Pressable
           style={styles.navigateButton}
           onPress={onNavigatePress}
-          accessibilityLabel="Navigate to class"
         >
           <GetDirectionsIcon size={30} color={COLORS.conuRed} />
         </Pressable>
