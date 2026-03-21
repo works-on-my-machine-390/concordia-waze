@@ -1,9 +1,9 @@
 import { StyleSheet, Text, View } from "react-native";
-import { ClassInfoFormData } from "../classes/AddClassInfoForm";
+import type { NormalizedScheduleClass } from "../../app/utils/schedule/types";
 
 type Props = {
   courseName: string;
-  classInfo: ClassInfoFormData;
+  classInfo: NormalizedScheduleClass;
   backgroundColor: string;
   textColor: string;
 };
@@ -14,14 +14,24 @@ export default function ScheduleClassCard({
   backgroundColor,
   textColor,
 }: Readonly<Props>) {
+  const formattedSection = classInfo.section
+    ? classInfo.section.replace(/-/g, " ").toUpperCase()
+    : "";
+
+  const formattedLocation = [classInfo.buildingCode, classInfo.room]
+    .filter(Boolean)
+    .map((value) => value.toUpperCase())
+    .join(" ");
+
   return (
     <View style={[styles.card, { backgroundColor }]}>
       <View style={styles.content}>
         <View style={styles.top}>
           <Text style={[styles.name, { color: textColor }]}>
-            {courseName.toUpperCase()} -{" "}
-            {classInfo.section.replace(/-/g, " ").toUpperCase()}
+            {courseName.toUpperCase()}
+            {formattedSection ? ` - ${formattedSection}` : ""}
           </Text>
+
           <Text style={[styles.type, { color: textColor }]}>
             {classInfo.type}
           </Text>
@@ -31,9 +41,9 @@ export default function ScheduleClassCard({
           <Text style={[styles.text, { color: textColor }]}>
             {classInfo.day} {classInfo.startTime} - {classInfo.endTime}
           </Text>
+
           <Text style={[styles.text, { color: textColor }]}>
-            {classInfo.buildingCode.toUpperCase()}{" "}
-            {classInfo.room.toUpperCase()}
+            {formattedLocation}
           </Text>
         </View>
       </View>
@@ -65,6 +75,8 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 13,
     fontWeight: "600",
+    flex: 1,
+    marginRight: 8,
   },
   type: {
     fontSize: 13,

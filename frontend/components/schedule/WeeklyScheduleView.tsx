@@ -1,54 +1,21 @@
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { COLORS } from "../../app/constants";
-import { CourseItem } from "../../hooks/firebase/useFirestore";
+import type {
+  NormalizedScheduleClass,
+  NormalizedScheduleCourse,
+} from "../../app/utils/schedule/types";
 
 type Props = {
-  courses: CourseItem[];
+  courses: NormalizedScheduleCourse[];
 };
 
-type WeekDay = "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN";
-
-type CalendarClass = {
-  courseName: string;
-  type: string;
-  section: string;
-  day: WeekDay;
-  startTime: string;
-  endTime: string;
-  buildingCode: string;
-  room: string;
-};
-
-const DAYS: WeekDay[] = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
-
-const DAY_MAP: Record<string, WeekDay> = {
-  Monday: "MON",
-  Tuesday: "TUE",
-  Wednesday: "WED",
-  Thursday: "THU",
-  Friday: "FRI",
-  Saturday: "SAT",
-  Sunday: "SUN",
-  MON: "MON",
-  TUE: "TUE",
-  WED: "WED",
-  THU: "THU",
-  FRI: "FRI",
-  SAT: "SAT",
-  SUN: "SUN",
-};
-
-const TYPE_MAP: Record<string, string> = {
-  lec: "Lecture",
-  lab: "Lab",
-  tutorial: "Tutorial",
-};
+const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"] as const;
 
 const START_HOUR = 8;
 const END_HOUR = 22;
 const HOUR_HEIGHT = 72;
-const TIME_COL_WIDTH = 56;
-const DAY_COL_WIDTH = 120;
+const TIME_COLUMN_WIDTH = 56;
+const DAY_COLUMN_WIDTH = 120;
 
 function timeToMinutes(time: string): number {
   const [hour, minute] = time.split(":").map(Number);
@@ -61,17 +28,13 @@ function formatHour(hour24: number): string {
   return `${hour12} ${suffix}`;
 }
 
-function flattenCourses(courses: CourseItem[]): CalendarClass[] {
+function flattenCourses(courses: NormalizedScheduleCourse[]): Array<
+  NormalizedScheduleClass & { courseName: string }
+> {
   return courses.flatMap((course) =>
     course.classes.map((classItem) => ({
       courseName: course.name,
-      type: TYPE_MAP[classItem.type?.toLowerCase() ?? "lec"] ?? "Lecture",
-      section: classItem.section ?? "",
-      day: DAY_MAP[classItem.day] ?? "MON",
-      startTime: classItem.startTime ?? "",
-      endTime: classItem.endTime ?? "",
-      buildingCode: classItem.buildingCode ?? "",
-      room: classItem.room ?? "",
+      ...classItem,
     })),
   );
 }
@@ -85,20 +48,28 @@ export default function WeeklyScheduleView({ courses }: Readonly<Props>) {
       <View>
         <View style={styles.headerRow}>
           <View style={styles.timeHeaderCell} />
+
           {DAYS.map((day) => (
-            <View key={day} style={[styles.dayHeaderCell, { width: DAY_COL_WIDTH }]}>
+            <View
+              key={day}
+              style={[styles.dayHeaderCell, { width: DAY_COLUMN_WIDTH }]}
+            >
               <Text style={styles.dayHeaderText}>{day}</Text>
             </View>
           ))}
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false}>
-          <View style={{ flexDirection: "row" }}>
-            <View style={{ width: TIME_COL_WIDTH }}>
-              {Array.from({ length: END_HOUR - START_HOUR }).map((_, i) => {
-                const hour = START_HOUR + i;
+          <View style={styles.scheduleRow}>
+            <View style={{ width: TIME_COLUMN_WIDTH }}>
+              {Array.from({ length: END_HOUR - START_HOUR }).map((_, index) => {
+                const hour = START_HOUR + index;
+
                 return (
-                  <View key={hour} style={[styles.timeCell, { height: HOUR_HEIGHT }]}>
+                  <View
+                    key={hour}
+                    style={[styles.timeCell, { height: HOUR_HEIGHT }]}
+                  >
                     <Text style={styles.timeText}>{formatHour(hour)}</Text>
                   </View>
                 );
@@ -107,7 +78,7 @@ export default function WeeklyScheduleView({ courses }: Readonly<Props>) {
 
             <View
               style={{
-                width: DAY_COL_WIDTH * DAYS.length,
+                width: DAY_COLUMN_WIDTH * DAYS.length,
                 height: totalHeight,
                 position: "relative",
               }}
@@ -118,16 +89,19 @@ export default function WeeklyScheduleView({ courses }: Readonly<Props>) {
                   style={[
                     styles.dayColumn,
                     {
-                      left: dayIndex * DAY_COL_WIDTH,
-                      width: DAY_COL_WIDTH,
+                      left: dayIndex * DAY_COLUMN_WIDTH,
+                      width: DAY_COLUMN_WIDTH,
                       height: totalHeight,
                     },
                   ]}
                 >
-                  {Array.from({ length: END_HOUR - START_HOUR }).map((_, i) => (
+                  {Array.from({ length: END_HOUR - START_HOUR }).map((_, index) => (
                     <View
-                      key={`${day}-${START_HOUR + i}`}
-                      style={[styles.hourLine, { top: i * HOUR_HEIGHT, height: HOUR_HEIGHT }]}
+                      key={`${day}-${START_HOUR + index}`}
+                      style={[
+                        styles.hourLine,
+                        { top: index * HOUR_HEIGHT, height: HOUR_HEIGHT },
+                      ]}
                     />
                   ))}
                 </View>
@@ -150,18 +124,18 @@ export default function WeeklyScheduleView({ courses }: Readonly<Props>) {
 
                 const top = (minutesFromStart / 60) * HOUR_HEIGHT;
                 const height = (durationMinutes / 60) * HOUR_HEIGHT;
-
                 const backgroundColor = index % 2 === 0 ? COLORS.maroon : "#4180C0";
+                const location = [item.buildingCode, item.room].filter(Boolean).join(" ");
 
                 return (
                   <View
-                    key={`${item.courseName}-${item.section}-${item.day}-${item.startTime}-${index}`}
+                    key={`${item.courseName}-${item.day}-${item.startTime}-${index}`}
                     style={[
                       styles.classBlock,
                       {
-                        left: dayIndex * DAY_COL_WIDTH + 6,
+                        left: dayIndex * DAY_COLUMN_WIDTH + 6,
                         top,
-                        width: DAY_COL_WIDTH - 12,
+                        width: DAY_COLUMN_WIDTH - 12,
                         height,
                         backgroundColor,
                       },
@@ -170,14 +144,17 @@ export default function WeeklyScheduleView({ courses }: Readonly<Props>) {
                     <Text style={styles.classTitle} numberOfLines={1}>
                       {item.courseName}
                     </Text>
+
                     <Text style={styles.classSubtitle} numberOfLines={1}>
                       {item.type}
                     </Text>
+
                     <Text style={styles.classText} numberOfLines={1}>
                       {item.startTime} - {item.endTime}
                     </Text>
+
                     <Text style={styles.classText} numberOfLines={1}>
-                      {item.buildingCode} {item.room}
+                      {location}
                     </Text>
                   </View>
                 );
@@ -198,7 +175,7 @@ const styles = StyleSheet.create({
     borderBottomColor: "#E5E5E5",
   },
   timeHeaderCell: {
-    width: TIME_COL_WIDTH,
+    width: TIME_COLUMN_WIDTH,
     height: 48,
     borderRightWidth: 1,
     borderRightColor: "#E5E5E5",
@@ -216,6 +193,9 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "700",
     color: COLORS.textPrimary,
+  },
+  scheduleRow: {
+    flexDirection: "row",
   },
   timeCell: {
     justifyContent: "flex-start",
