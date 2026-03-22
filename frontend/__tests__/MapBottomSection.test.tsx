@@ -55,6 +55,13 @@ jest.mock("../components/poi/PoiSearchBottomSheet", () => {
   };
 });
 
+jest.mock("../components/classes/NextClassDrawer", () => {
+  const { View } = require("react-native");
+  return function MockNextClassDrawer() {
+    return <View testID="next-class-drawer" />;
+  };
+});
+
 function resetMapStore() {
   useMapStore.setState({
     userLocation: undefined,
@@ -144,5 +151,40 @@ describe("MapBottomSection", () => {
     expect(getByTestId("map-settings-bottom-sheet")).toBeTruthy();
     expect(queryByTestId("building-bottom-sheet")).toBeNull();
     expect(queryByTestId("navigation-bottom-sheet")).toBeNull();
+  });
+
+  test("renders NextClassDrawer when nextClass is provided", () => {
+    const nextClass = {
+      className: "SOEN 363",
+      buildingLatitude: 0,
+      buildingLongitude: 0,
+      floorNumber: 0,
+      roomX: 0,
+      roomY: 0,
+      item: {
+        type: "Lecture" as const, 
+        section: "WW",
+        day: "FRI",
+        startTime: "16:00",
+        endTime: "17:15",
+        buildingCode: "MB",
+        room: "S2.210",
+        origin: "manual" as const,
+      },
+    };
+
+    const { getByTestId } = render(
+      <MapBottomSection goToMyLocation={jest.fn()} nextClass={nextClass} />,
+    );
+
+    expect(getByTestId("next-class-drawer")).toBeTruthy();
+  });
+
+  test("does not render NextClassDrawer when nextClass is null", () => {
+    const { queryByTestId } = render(
+      <MapBottomSection goToMyLocation={jest.fn()} nextClass={null} />,
+    );
+
+    expect(queryByTestId("next-class-drawer")).toBeNull();
   });
 });

@@ -88,3 +88,8 @@ export const getOpenStatusColor = (status: OpenStatusType) => {
       return COLORS.warning;
   }
 };
+
+export const toMinutes = (time: string): number => {
+  const [h, m] = time.split(":").map(Number);
+  return h * 60 + m;
+};
