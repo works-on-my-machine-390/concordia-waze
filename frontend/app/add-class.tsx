@@ -94,9 +94,8 @@ export default function AddClassScreen() {
     try {
       const course = buildCourseItem(courseName, classInfo);
 
-      if (!userProfile?.id) {
-        await addGuestCourse(course);
-      } else {
+      if (userProfile?.id) {
+        // Logged in → backend persistence
         try {
           await addCourse({ name: course.name });
         } catch {
@@ -114,10 +113,13 @@ export default function AddClassScreen() {
             room: classItem.room,
             origin: classItem.origin ?? "manual",
           });
-        }
+  }
 
-        await queryClient.invalidateQueries({ queryKey: ["courses"] });
-      }
+  await queryClient.invalidateQueries({ queryKey: ["courses"] });
+} else {
+  // Guest → local storage
+  await addGuestCourse(course);
+}
 
       router.push("/schedule");
     } catch {
