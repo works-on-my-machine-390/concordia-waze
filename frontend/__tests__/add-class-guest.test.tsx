@@ -1,6 +1,7 @@
 import AddClassScreen from "@/app/add-class";
 import { useQueryClient } from "@tanstack/react-query";
 import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
+import { useCourses } from "@/hooks/queries/googleCalendarQueries";
 
 jest.mock("@tanstack/react-query", () => ({
   useQueryClient: jest.fn(),
@@ -65,6 +66,10 @@ jest.mock("@/hooks/guestStorage", () => ({
   addGuestCourse: jest.fn().mockResolvedValue(undefined),
 }));
 
+jest.mock("@/hooks/queries/googleCalendarQueries", () => ({
+  useCourses: jest.fn(),
+}));
+
 jest.mock("@/app/utils/courseUtils", () => ({
   buildCourseItem: jest.fn().mockReturnValue({ name: "SOEN 384", classes: [] }),
 }));
@@ -76,6 +81,9 @@ describe("AddClassScreen (guest)", () => {
     jest.clearAllMocks();
     (useQueryClient as jest.Mock).mockReturnValue({
       invalidateQueries,
+    });
+    (useCourses as jest.Mock).mockReturnValue({
+      data: [],
     });
   });
 

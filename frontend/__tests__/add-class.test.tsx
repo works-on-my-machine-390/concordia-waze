@@ -12,15 +12,22 @@ jest.mock("@/hooks/queries/userQueries", () => ({
 
 jest.mock("expo-router", () => ({
   router: { push: jest.fn() },
-  useFocusEffect: (cb: () => void) => cb(),
+  useFocusEffect: (cb: () => void | (() => void)) => {
+    const React = require("react");
+    React.useEffect(() => {
+      const cleanup = cb();
+      return typeof cleanup === "function" ? cleanup : undefined;
+    }, []);
+  },
 }));
 
 jest.mock("@/components/BackHeader", () => () => null);
 
 jest.mock("@/components/classes/AddClassInfoForm", () => {
-  const { forwardRef } = require("react");
-  return forwardRef(({ onAdd, onCancel }: any, _ref) => {
-    const { View, TouchableOpacity, Text } = require("react-native");
+  const React = require("react");
+  const { View, TouchableOpacity, Text } = require("react-native");
+
+  return React.forwardRef(({ onAdd, onCancel }: any, _ref) => {
     return (
       <View>
         <TouchableOpacity
@@ -64,30 +71,37 @@ jest.mock("@/hooks/guestStorage", () => ({
 }));
 
 jest.mock("@/hooks/queries/googleCalendarQueries", () => ({
+  useCourses: jest.fn(() => ({ data: [] })),
   addCourse: jest.fn().mockResolvedValue({}),
   addClassItem: jest.fn().mockResolvedValue({}),
 }));
 
 jest.mock("@/app/utils/courseUtils", () => ({
-  buildCourseItem: jest.fn().mockImplementation((_courseName: string, classInfo: any[]) => ({
-    name: "SOEN 384",
-    classes: classInfo.map((item) => ({
-      type: item.type,
-      section: item.section,
-      day: item.day,
-      startTime: item.startTime,
-      endTime: item.endTime,
-      buildingCode: item.buildingCode,
-      room: item.room,
-    })),
-  })),
+  buildCourseItem: jest.fn().mockImplementation(
+    (_courseName: string, classInfo: any[]) => ({
+      name: "SOEN 384",
+      classes: classInfo.map((item) => ({
+        type: item.type,
+        section: item.section,
+        day: item.day,
+        startTime: item.startTime,
+        endTime: item.endTime,
+        buildingCode: item.buildingCode,
+        room: item.room,
+        origin: "manual",
+      })),
+    }),
+  ),
 }));
 
 describe("AddClassScreen", () => {
-  const invalidateQueries = jest.fn();
+  const invalidateQueries = jest.fn().mockResolvedValue(undefined);
 
   beforeEach(() => {
     jest.clearAllMocks();
+
+    invalidateQueries.mockResolvedValue(undefined);
+
     (useQueryClient as jest.Mock).mockReturnValue({
       invalidateQueries,
     });
@@ -200,7 +214,9 @@ describe("AddClassScreen", () => {
       getByText("Add a lecture, lab or tutorial for this course"),
     );
     fireEvent.press(getByTestId("mock-add"));
-    fireEvent.press(getByText("Save Class"));
+    await act(async () => {
+      fireEvent.press(getByText("Save Class"));
+    });
 
     await waitFor(() => {
       expect(addCourse).toHaveBeenCalledWith({ name: "SOEN 384" });
@@ -221,6 +237,11 @@ describe("AddClassScreen", () => {
       expect(invalidateQueries).toHaveBeenCalledWith({
         queryKey: ["courses"],
       });
+
+      expect(invalidateQueries).toHaveBeenCalledWith({
+        queryKey: ["nextClass"],
+      });
+
       expect(router.push).toHaveBeenCalledWith("/schedule");
     });
   });

@@ -387,4 +387,4 @@ describe("useAuth", () => {
 
     expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith("accessToken");
   });
-}); 
+});
