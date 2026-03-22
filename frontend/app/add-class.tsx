@@ -1,3 +1,8 @@
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  addClassItem,
+  addCourse,
+} from "@/hooks/queries/googleCalendarQueries";
 import BackHeader from "@/components/BackHeader";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
@@ -39,6 +44,7 @@ export default function AddClassScreen() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [storedCourses, setStoredCourses] = useState<CourseItem[]>([]);
   const { data: userProfile } = useGetProfile();
+  const queryClient = useQueryClient();
 
   useFocusEffect(
     useCallback(() => {
@@ -84,11 +90,35 @@ export default function AddClassScreen() {
 
   const handleSave = async () => {
     if (!validateCourseNameInput()) return;
+
     try {
       const course = buildCourseItem(courseName, classInfo);
+
       if (!userProfile?.id) {
         await addGuestCourse(course);
+      } else {
+        try {
+          await addCourse({ name: course.name });
+        } catch {
+          // Course may already exist
+        }
+
+        for (const classItem of course.classes ?? []) {
+          await addClassItem(course.name, {
+            type: classItem.type,
+            section: classItem.section,
+            day: classItem.day,
+            startTime: classItem.startTime,
+            endTime: classItem.endTime,
+            buildingCode: classItem.buildingCode,
+            room: classItem.room,
+            origin: classItem.origin ?? "manual",
+          });
+        }
+
+        await queryClient.invalidateQueries({ queryKey: ["courses"] });
       }
+
       router.push("/schedule");
     } catch {
       setSaveError("Saving failed. Please try again.");

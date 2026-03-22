@@ -1,17 +1,25 @@
 import AddClassScreen from "@/app/add-class";
-import { fireEvent, render } from "@testing-library/react-native";
+import { useQueryClient } from "@tanstack/react-query";
+import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
+
+jest.mock("@tanstack/react-query", () => ({
+  useQueryClient: jest.fn(),
+}));
 
 jest.mock("@/hooks/queries/userQueries", () => ({
   useGetProfile: () => ({ data: { id: "user-123" } }),
 }));
+
 jest.mock("expo-router", () => ({
   router: { push: jest.fn() },
-  useFocusEffect: jest.fn(),
+  useFocusEffect: (cb: () => void) => cb(),
 }));
+
 jest.mock("@/components/BackHeader", () => () => null);
+
 jest.mock("@/components/classes/AddClassInfoForm", () => {
   const { forwardRef } = require("react");
-  return forwardRef(({ onAdd, onCancel }: any, ref: any) => {
+  return forwardRef(({ onAdd, onCancel }: any, _ref) => {
     const { View, TouchableOpacity, Text } = require("react-native");
     return (
       <View>
@@ -38,6 +46,7 @@ jest.mock("@/components/classes/AddClassInfoForm", () => {
     );
   });
 });
+
 jest.mock("@/components/classes/ClassInfoCard", () => {
   return ({ onDelete }: any) => {
     const { TouchableOpacity, Text } = require("react-native");
@@ -48,16 +57,42 @@ jest.mock("@/components/classes/ClassInfoCard", () => {
     );
   };
 });
+
 jest.mock("@/hooks/guestStorage", () => ({
   getGuestCourses: jest.fn().mockResolvedValue([]),
   addGuestCourse: jest.fn().mockResolvedValue(undefined),
 }));
 
+jest.mock("@/hooks/queries/googleCalendarQueries", () => ({
+  addCourse: jest.fn().mockResolvedValue({}),
+  addClassItem: jest.fn().mockResolvedValue({}),
+}));
+
 jest.mock("@/app/utils/courseUtils", () => ({
-  buildCourseItem: jest.fn().mockReturnValue({ name: "SOEN 384", classes: [] }),
+  buildCourseItem: jest.fn().mockImplementation((_courseName: string, classInfo: any[]) => ({
+    name: "SOEN 384",
+    classes: classInfo.map((item) => ({
+      type: item.type,
+      section: item.section,
+      day: item.day,
+      startTime: item.startTime,
+      endTime: item.endTime,
+      buildingCode: item.buildingCode,
+      room: item.room,
+    })),
+  })),
 }));
 
 describe("AddClassScreen", () => {
+  const invalidateQueries = jest.fn();
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (useQueryClient as jest.Mock).mockReturnValue({
+      invalidateQueries,
+    });
+  });
+
   test("renders title", () => {
     const { getByText } = render(<AddClassScreen />);
     getByText("Add a Course");
@@ -148,20 +183,45 @@ describe("AddClassScreen", () => {
     expect(queryByText("Save Class")).toBeNull();
   });
 
-  test("does not save to guest storage when user is logged in", async () => {
+  test("saves to backend and not guest storage when user is logged in", async () => {
     const { addGuestCourse } = require("@/hooks/guestStorage");
+    const {
+      addCourse,
+      addClassItem,
+    } = require("@/hooks/queries/googleCalendarQueries");
     const { router } = require("expo-router");
+
     const { getByText, getByPlaceholderText, getByTestId } = render(
       <AddClassScreen />,
     );
+
     fireEvent.changeText(getByPlaceholderText("e.g. SOEN 384"), "SOEN 384");
     fireEvent.press(
       getByText("Add a lecture, lab or tutorial for this course"),
     );
     fireEvent.press(getByTestId("mock-add"));
     fireEvent.press(getByText("Save Class"));
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(addGuestCourse).not.toHaveBeenCalled();
-    expect(router.push).toHaveBeenCalledWith("/schedule");
+
+    await waitFor(() => {
+      expect(addCourse).toHaveBeenCalledWith({ name: "SOEN 384" });
+      expect(addClassItem).toHaveBeenCalledWith(
+        "SOEN 384",
+        expect.objectContaining({
+          type: "Lecture",
+          section: "N",
+          day: "MON",
+          startTime: "10:00",
+          endTime: "12:00",
+          buildingCode: "H",
+          room: "110",
+          origin: "manual",
+        }),
+      );
+      expect(addGuestCourse).not.toHaveBeenCalled();
+      expect(invalidateQueries).toHaveBeenCalledWith({
+        queryKey: ["courses"],
+      });
+      expect(router.push).toHaveBeenCalledWith("/schedule");
+    });
   });
 });
