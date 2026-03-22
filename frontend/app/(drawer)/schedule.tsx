@@ -1,50 +1,56 @@
-// The code here is for testing (and showing to PR reviewer) that guest storage works
-// I just reused the class cards im using in the "Add course" page to show the classes here
-// Whoever works on the schedule page can just delete all of it and start from scratch
-// The trash button on the right of the class card doesn't work (since this was just for testing)
-
-// Post-calendar sync update: Included synced courses with guest courses being displayed to have an idea
-// of what information is being retrieved from the Google Calendar.
-
-import ClassInfoCard from "@/components/classes/ClassInfoCard";
-import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useState } from "react";
-import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { CourseItem } from "../../hooks/firebase/useFirestore";
-import { getGuestCourses } from "../../hooks/guestStorage";
-import { useCourses } from "../../hooks/queries/googleCalendarQueries";
-import { COLORS } from "../constants";
-import { AddIcon } from "../icons";
 import SyncCalendarButton from "@/components/SyncGoogleCalendarButton";
+import ScheduleListView from "@/components/schedule/ScheduleListView";
+import WeeklyScheduleView from "@/components/schedule/WeeklyScheduleView";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useMemo, useState, useRef } from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { getGuestCourses } from "../../hooks/guestStorage";
+import { useCourses, type CourseItem } from "../../hooks/queries/googleCalendarQueries";
+import { COLORS } from "../constants";
+import { AddIcon, MenuIcon } from "../icons";
+import { normalizeScheduleCourses } from "../utils/schedule/normalizeScheduleCourses";
+import { DrawerActions, useNavigation } from "@react-navigation/native";
+import BottomSheet from "@gorhom/bottom-sheet";
+
+
 export default function Schedule() {
+  const nav = useNavigation();
   const router = useRouter();
   const [guestCourses, setGuestCourses] = useState<CourseItem[]>([]);
   const { data: syncedCourses = [] } = useCourses();
+  const bottomSheetRef = useRef<BottomSheet>(null);
+  const snapPoints = useMemo(() => ["20%", "45%", "80%"], []);
 
   useFocusEffect(
     useCallback(() => {
-      const load = async () => {
-        const stored = await getGuestCourses();
-        setGuestCourses(stored);
+      const loadGuestCourses = async () => {
+        const storedCourses = await getGuestCourses();
+        setGuestCourses(storedCourses);
       };
-      load();
+
+      loadGuestCourses();
     }, []),
   );
 
-  const allCourses = [...guestCourses, ...syncedCourses];
+  const allCourses = useMemo(
+    () => normalizeScheduleCourses([...guestCourses, ...syncedCourses]),
+    [guestCourses, syncedCourses],
+  );
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
+        <MenuIcon
+          size={24}
+          color={COLORS.maroon}
+          onPress={() => nav.dispatch(DrawerActions.openDrawer())}
+          testID="schedule-menu-button"
+        />
         <Text style={styles.title}>Schedule</Text>
+
         <TouchableOpacity
+          testID="add-class-button"
           onPress={() =>
             router.push({
               pathname: "/add-class",
@@ -55,27 +61,22 @@ export default function Schedule() {
           <AddIcon size={45} color={COLORS.maroon} />
         </TouchableOpacity>
       </View>
-      <SyncCalendarButton onPress={() => router.push("/googleCalendarSync")} />
-      <ScrollView contentContainerStyle={styles.content}>
-        {allCourses.map((course) =>
-          course.classes.map((classItem, index) => (
-            <ClassInfoCard
-              key={`${course.name}-${index}`}
-              courseName={course.name}
-              classInfo={{
-                type: classItem.type,
-                section: classItem.section,
-                day: classItem.day,
-                startTime: classItem.startTime,
-                endTime: classItem.endTime,
-                buildingCode: classItem.buildingCode ?? "",
-                room: classItem.room ?? "",
-              }}
-              onDelete={() => {}}
-            />
-          )),
-        )}
-      </ScrollView>
+
+      <View style={styles.syncButtonContainer}>
+        <SyncCalendarButton onPress={() => router.push("/googleCalendarSync")} />
+      </View>
+
+      <WeeklyScheduleView courses={allCourses} />
+      <BottomSheet
+      ref={bottomSheetRef}
+      index={1}
+      snapPoints={snapPoints}
+      enablePanDownToClose={false}
+      >
+        <View style={styles.bottomSheetContent}>
+          <ScheduleListView courses={allCourses} />
+          </View>
+      </BottomSheet>
     </SafeAreaView>
   );
 }
@@ -97,8 +98,10 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: COLORS.textPrimary,
   },
-  content: {
-    padding: 20,
-    gap: 8,
+  syncButtonContainer: {
+    marginBottom: 16,
   },
+  bottomSheetContent: {
+  flex: 1,
+},
 });

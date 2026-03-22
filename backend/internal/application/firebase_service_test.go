@@ -1302,7 +1302,9 @@ func TestGetNextClass_Firestore(t *testing.T) {
 	require.NoError(t, service.CreateUserProfile(ctx, userID, profile))
 
 	// Add a class for today at 23:59 so it is always upcoming.
-	today := time.Now().Weekday().String()
+	// Must use America/Toronto timezone to match GetNextClass internals.
+	torontoLoc, _ := time.LoadLocation("America/Toronto")
+	today := time.Now().In(torontoLoc).Weekday().String()
 	title := "COMP-202"
 	require.NoError(t, service.CreateClass(ctx, userID, title))
 	_, err := service.AddClassItem(ctx, userID, title, domain.ClassItem{
