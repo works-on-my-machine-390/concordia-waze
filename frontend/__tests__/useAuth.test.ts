@@ -1,12 +1,7 @@
-import { useQueryClient } from "@tanstack/react-query";
 import { act, render } from "@testing-library/react-native";
 import * as SecureStore from "expo-secure-store";
 import React from "react";
 import { useAuth } from "../hooks/useAuth";
-
-jest.mock("@tanstack/react-query", () => ({
-  useQueryClient: jest.fn(),
-}));
 
 // Helper component to expose hook functions to the test scope
 let loginFn: any;
@@ -32,18 +27,13 @@ declare global {
 }
 
 describe("useAuth", () => {
-  const removeQueries = jest.fn();
-
   beforeEach(() => {
+    // Reset mocks and exported function refs
     loginFn = undefined;
     registerFn = undefined;
     logoutFn = undefined;
     (globalThis as any).fetch = jest.fn();
     jest.clearAllMocks();
-
-    (useQueryClient as jest.Mock).mockReturnValue({
-      removeQueries,
-    });
   });
 
   test("login success returns token and user", async () => {
@@ -305,8 +295,8 @@ describe("useAuth", () => {
 
   test("logout calls backend with token and clears storage", async () => {
     (SecureStore.getItemAsync as jest.Mock)
-      .mockResolvedValueOnce("mock-token")
-      .mockResolvedValueOnce("mock-token");
+      .mockResolvedValueOnce("mock-token") // for useEffect
+      .mockResolvedValueOnce("mock-token"); // for logout
     (globalThis as any).fetch.mockResolvedValueOnce({ ok: true });
 
     render(React.createElement(HookProxy));
@@ -329,7 +319,6 @@ describe("useAuth", () => {
     );
 
     expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith("accessToken");
-    expect(removeQueries).toHaveBeenCalledWith({ queryKey: ["courses"] });
   });
 
   test("logout without token does not call backend but clears storage", async () => {
@@ -343,7 +332,6 @@ describe("useAuth", () => {
 
     expect((globalThis as any).fetch).not.toHaveBeenCalled();
     expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith("accessToken");
-    expect(removeQueries).toHaveBeenCalledWith({ queryKey: ["courses"] });
   });
 
   test("logout clears storage even if backend request fails", async () => {
@@ -357,7 +345,6 @@ describe("useAuth", () => {
     });
 
     expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith("accessToken");
-    expect(removeQueries).toHaveBeenCalledWith({ queryKey: ["courses"] });
   });
 
   test("checkToken returns false and clears storage when token is expired", async () => {

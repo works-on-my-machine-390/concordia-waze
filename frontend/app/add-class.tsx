@@ -116,6 +116,7 @@ export default function AddClassScreen() {
   }
 
   await queryClient.invalidateQueries({ queryKey: ["courses"] });
+  await queryClient.invalidateQueries({ queryKey: ["nextClass"] });
 } else {
   // Guest → local storage
   await addGuestCourse(course);

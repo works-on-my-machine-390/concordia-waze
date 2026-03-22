@@ -2,7 +2,6 @@
 React hook managing authentication state and API interactions: providing login and register functions 
 After need to change all API calls with real backend
 */
-import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
@@ -20,8 +19,6 @@ const REQUEST_TIMEOUT_MS = 6000;
 export function useAuth() {
   const [loading, setLoading] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
-  const queryClient = useQueryClient();
-  const router = useRouter();
 
   const checkToken = async () => {
     const token = await SecureStore.getItemAsync("accessToken");
@@ -33,6 +30,8 @@ export function useAuth() {
     setLoggedIn(false);
     return false;
   };
+
+  const router = useRouter();
 
   useEffect(() => {
     checkToken();
@@ -110,26 +109,25 @@ export function useAuth() {
   }
 
   async function logout() {
-  try {
-    const token = await SecureStore.getItemAsync("accessToken");
+    try {
+      const token = await SecureStore.getItemAsync("accessToken");
 
-    if (token) {
-      await fetch(`${API_BASE}/auth/logout`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
+      if (token) {
+        await fetch(`${API_BASE}/auth/logout`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+      }
+    } catch (err) {
+      console.warn("Logout request failed:", err);
+    } finally {
+      await SecureStore.deleteItemAsync("accessToken");
+      setLoggedIn(false);
     }
-  } catch (err) {
-    console.warn("Logout request failed:", err);
-  } finally {
-    await SecureStore.deleteItemAsync("accessToken");
-    setLoggedIn(false);
-    queryClient.removeQueries({ queryKey: ["courses"] });
   }
-}
 
   return {
     login,
