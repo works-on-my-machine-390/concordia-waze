@@ -48,12 +48,15 @@ export type DirectionsRequestModel = {
   preferences: RoutePreferences;
 };
 
+/**
+ * many of these aren't used currently, but they're here for future extension
+ */
 export type RoutePreferences = {
   mode?: TransitMode;
   day?: string; // e.g. "Monday"
   time?: string; // e.g. "14:30"
-  preferElevator?: boolean;
-  requireAccessible?: boolean;
+  prefer_elevator?: boolean;
+  require_accessible?: boolean;
 };
 
 // returns the query key and params
@@ -61,6 +64,7 @@ export function prepareDirectionsQuery(
   startLocation: NavigableLocation,
   endLocation: NavigableLocation,
   startDateTime: Date,
+  requireAccessible: boolean = false,
 ): { queryKey: any[]; queryRequestBody: DirectionsRequestModel | null } {
   if (!startLocation || !endLocation || !startDateTime) {
     return {
@@ -90,7 +94,9 @@ export function prepareDirectionsQuery(
   const queryRequestBody: DirectionsRequestModel = {
     start: finalStartLocation,
     end: finalEndLocation,
-    preferences: {},
+    preferences: {
+      prefer_elevator: requireAccessible, // using prefer_elevator because we still want to display routes with stairs if there are no fully accessible options
+    },
   };
 
   // it would be nice if locations had IDs, but i'm hoping that we won't have clashing names.
@@ -104,6 +110,7 @@ export function prepareDirectionsQuery(
       startLocation.longitude,
       endLocation.latitude,
       endLocation.longitude,
+      requireAccessible,
     ],
     queryRequestBody,
   };
@@ -175,11 +182,13 @@ export const useGetDirections = (
   startLocation: NavigableLocation,
   endLocation: NavigableLocation,
   startDateTime: Date,
+  requireAccessible: boolean = false,
 ) => {
   const { queryRequestBody, queryKey } = prepareDirectionsQuery(
     startLocation,
     endLocation,
     startDateTime,
+    requireAccessible,
   );
   const query = useQuery<DirectionsModel>({
     queryKey,

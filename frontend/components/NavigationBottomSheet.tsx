@@ -6,6 +6,7 @@ import {
   TransitMode,
   useGetDirections,
 } from "@/hooks/queries/navigationQueries";
+import useMapSettings, { MapSettings } from "@/hooks/useMapSettings";
 import { useMapStore } from "@/hooks/useMapStore";
 import {
   OutdoorNavigableLocation,
@@ -30,6 +31,7 @@ import {
   TrainIcon,
   WalkingIcon,
 } from "../app/icons";
+import AccessibilityToggle from "./indoor/AccessibilityToggle";
 import OutdoorNavigationSteps from "./OutdoorNavigationSteps";
 import StartNavigationButton from "./StartNavigationButton";
 
@@ -40,6 +42,7 @@ export type NavigationBottomSheetProps = {};
 export default function NavigationBottomSheet(
   props: Readonly<NavigationBottomSheetProps>,
 ) {
+  const { mapSettings, updateSetting } = useMapSettings();
   const navigationState = useNavigationStore();
 
   const insets = useSafeAreaInsets();
@@ -48,6 +51,7 @@ export default function NavigationBottomSheet(
     navigationState.startLocation,
     navigationState.endLocation,
     new Date(),
+    mapSettings.preferAccessibleRoutes,
   );
 
   const isLoading = query.isLoading || query.isRefetching;
@@ -69,6 +73,12 @@ export default function NavigationBottomSheet(
   const handleCloseSheet = () => {
     navigationState.clearState();
     closeSheet();
+  };
+  const handleToggleAccessibility = () => {
+    updateSetting(
+      MapSettings.preferAccessibleRoutes,
+      !mapSettings.preferAccessibleRoutes,
+    );
   };
 
   const isCrossCampus = useMemo(() => {
@@ -174,6 +184,11 @@ export default function NavigationBottomSheet(
     return ["20%", "70%"];
   }, [navigationState.startLocation]);
 
+  const areIndoorStepsPresent =
+    navigationState.currentDirections?.directionBlocks.some(
+      (block) => block.type === DirectionsResponseBlockType.INDOOR,
+    );
+
   return (
     <BottomSheet
       handleComponent={null}
@@ -211,6 +226,13 @@ export default function NavigationBottomSheet(
                 gap: 10,
               }}
             >
+              {areIndoorStepsPresent && (
+                <AccessibilityToggle
+                  isActive={mapSettings.preferAccessibleRoutes}
+                  onToggle={handleToggleAccessibility}
+                  isNavigationBottomSheet
+                />
+              )}
               <StartNavigationButton disabled={isError || isLoading} />
               <TouchableOpacity
                 onPress={handleCloseSheet}
