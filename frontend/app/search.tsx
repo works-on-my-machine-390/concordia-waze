@@ -21,8 +21,11 @@ import {
   useSaveToHistory,
 } from "@/hooks/queries/userHistoryQueries";
 import { useGetProfile } from "@/hooks/queries/userQueries";
-import { useNavigationStore } from "@/hooks/useNavigationStore";
-import { Ionicons } from "@expo/vector-icons";
+import {
+  ModifyingFieldOptions,
+  useNavigationStore,
+} from "@/hooks/useNavigationStore";
+import { FontAwesome6, Ionicons } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
@@ -37,7 +40,8 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { colors, SHADOW } from "./styles/theme";
 import { filterBuildingsByQuery } from "./utils/searchUtils";
-import SearchForRoomsButton from "@/components/SearchForRoomsButton";
+import SearchForTypeButton from "@/components/SearchForTypeButton";
+import { COLORS } from "./constants";
 
 export type SearchQueryParamsModel = {
   campus?: string;
@@ -255,25 +259,40 @@ export default function SearchPage() {
 
     // if user in edit mode, pass the edit info back to map
     if (editMode) {
-      if (editMode === "start") {
+      if (
+        editMode === "start" ||
+        navigationState.modifyingField === ModifyingFieldOptions.start
+      ) {
         navigationState.setStartLocation({
           name: label ?? code,
-          latitude: allBuildingsData.find((r) => r.code === code)?.latitude || 0,
-          longitude: allBuildingsData.find((r) => r.code === code)?.longitude || 0,
+          latitude:
+            allBuildingsData.find((r) => r.code === code)?.latitude || 0,
+          longitude:
+            allBuildingsData.find((r) => r.code === code)?.longitude || 0,
           code,
           address:
-            address || allBuildingsData.find((r) => r.code === code)?.address || "",
+            address ||
+            allBuildingsData.find((r) => r.code === code)?.address ||
+            "",
         });
-      } else if (editMode === "end") {
+      } else if (
+        editMode === "end" ||
+        navigationState.modifyingField === ModifyingFieldOptions.end
+      ) {
         navigationState.setEndLocation({
           name: label ?? code,
-          latitude: allBuildingsData.find((r) => r.code === code)?.latitude || 0,
-          longitude: allBuildingsData.find((r) => r.code === code)?.longitude || 0,
+          latitude:
+            allBuildingsData.find((r) => r.code === code)?.latitude || 0,
+          longitude:
+            allBuildingsData.find((r) => r.code === code)?.longitude || 0,
           code,
           address:
-            address || allBuildingsData.find((r) => r.code === code)?.address || "",
+            address ||
+            allBuildingsData.find((r) => r.code === code)?.address ||
+            "",
         });
       }
+      navigationState.setModifyingField(null);
 
       router.replace({
         pathname: "/map",
@@ -399,7 +418,7 @@ export default function SearchPage() {
   };
 
   const handleSearchForRoomsPress = () => {
-    router.push({
+    router.replace({
       pathname: "/indoor-search",
       params: {},
     });
@@ -459,9 +478,15 @@ export default function SearchPage() {
   };
 
   const getSearchPlaceholderText = () => {
-    if (params.editMode === "start") {
+    if (
+      params.editMode === "start" ||
+      navigationState.modifyingField === ModifyingFieldOptions.start
+    ) {
       return "Search for start location";
-    } else if (params.editMode === "end") {
+    } else if (
+      params.editMode === "end" ||
+      navigationState.modifyingField === ModifyingFieldOptions.end
+    ) {
       return "Search for destination";
     }
     return "Where to…";
@@ -474,7 +499,8 @@ export default function SearchPage() {
           <View style={styles.header}>
             <Pressable
               style={styles.iconButton}
-              onPress={() => {router.back()
+              onPress={() => {
+                router.back();
                 navigationState.setModifyingField(null);
               }}
               testID="back-button"
@@ -498,11 +524,22 @@ export default function SearchPage() {
               )}
             </View>
           </View>
-          {editMode !== "start" && (
-            <SearchNearbySuggestions onClick={handleSearchNearbyPressed} />
-          )}
+          {!(
+            editMode === "start" ||
+            navigationState.modifyingField === ModifyingFieldOptions.start
+          ) && <SearchNearbySuggestions onClick={handleSearchNearbyPressed} />}
           {query.length === 0 && (
-            <SearchForRoomsButton onPress={handleSearchForRoomsPress} />
+            <SearchForTypeButton
+              onPress={handleSearchForRoomsPress}
+              label={"Looking for rooms?"}
+              icon={
+                <FontAwesome6
+                  name="door-open"
+                  size={24}
+                  color={COLORS.textMuted}
+                />
+              }
+            />
           )}
         </View>
 
@@ -556,6 +593,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
     paddingHorizontal: 16,
+    paddingVertical: 6,
   },
   iconButton: {
     width: 44,

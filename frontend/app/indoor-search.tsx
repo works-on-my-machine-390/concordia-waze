@@ -3,6 +3,7 @@ import { formatIndoorPoiName } from "@/app/utils/indoorNameFormattingUtils";
 import IndoorPoiFilters from "@/components/indoor/IndoorPoiFilters";
 import IndoorRecentSearches from "@/components/indoor/IndoorRecentSearches";
 import IndoorSearchResults from "@/components/indoor/IndoorSearchResults";
+import SearchForTypeButton from "@/components/SearchForTypeButton";
 import SearchPill from "@/components/shared/SearchPill";
 import { useGetAllBuildings } from "@/hooks/queries/buildingQueries";
 import {
@@ -15,7 +16,7 @@ import {
   ModifyingFieldOptions,
   useNavigationStore,
 } from "@/hooks/useNavigationStore";
-import { Ionicons } from "@expo/vector-icons";
+import { FontAwesome6, Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import {
@@ -28,6 +29,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { COLORS } from "./constants";
 
 type SearchParams = {
   buildingCode: string;
@@ -38,7 +40,7 @@ type SearchParams = {
 export default function IndoorSearchPage() {
   const router = useRouter();
   const params = useLocalSearchParams<SearchParams>();
-  const { buildingCode, buildingName, previouslySelectedFloor } = params;
+  const { buildingCode, buildingName } = params;
   const navigationState = useNavigationStore();
 
   const [query, setQuery] = useState("");
@@ -192,6 +194,11 @@ export default function IndoorSearchPage() {
 
     return `Search in ${buildingName}...`;
   })();
+
+  const getEditModeParam = () => {
+    return navigationState.modifyingField || undefined;
+  };
+
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
       <KeyboardAvoidingView
@@ -222,6 +229,26 @@ export default function IndoorSearchPage() {
 
           {query.trim().length === 0 && !navigationState.modifyingField && (
             <IndoorPoiFilters onFilterPress={handleFilterPress} />
+          )}
+          {query.trim().length === 0 && !params.buildingCode && (
+            <SearchForTypeButton
+              label="Looking for a building?"
+              onPress={() => {
+                router.replace({
+                  pathname: "/search",
+                  params: {
+                    editMode: getEditModeParam(),
+                  },
+                });
+              }}
+              icon={
+                <FontAwesome6
+                  name="building"
+                  size={20}
+                  color={COLORS.textMuted}
+                />
+              }
+            />
           )}
 
           {isLoading ? (
@@ -267,7 +294,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
   },

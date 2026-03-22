@@ -1,11 +1,12 @@
 import { COLORS } from "@/app/constants";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 
 type Props = {
+  label?: string;
+  icon?: React.ReactNode;
   onPress?: () => void;
 };
-export default function SearchForRoomsButton(props: Readonly<Props>) {
+export default function SearchForTypeButton(props: Readonly<Props>) {
   const handlePress = () => {
     if (props.onPress) {
       props.onPress();
@@ -15,8 +16,8 @@ export default function SearchForRoomsButton(props: Readonly<Props>) {
   return (
     <View style={{ margin: 16 }}>
       <Pressable style={styles.button} onPress={handlePress}>
-        <Text>Looking for rooms?</Text>
-        <FontAwesome6 name="door-open" size={24} color={COLORS.textMuted} />
+        <Text>{props.label}</Text>
+        {props.icon}
       </Pressable>
     </View>
   );
