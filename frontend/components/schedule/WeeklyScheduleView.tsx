@@ -57,7 +57,7 @@ export default function WeeklyScheduleView({ courses }: Readonly<Props>) {
   const totalHeight = (END_HOUR - START_HOUR) * HOUR_HEIGHT;
 
   const today = JS_DAY_TO_SCHEDULE_DAY[new Date().getDay()];
-  const todayIndex = DAYS.indexOf(today as (typeof DAYS)[number]);
+  const todayIndex = DAYS.indexOf(today);
 
   useFocusEffect(
     useCallback(() => {
