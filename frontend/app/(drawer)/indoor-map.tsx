@@ -4,11 +4,11 @@ import IndoorMapHeader from "@/components/indoor/IndoorMapHeader";
 import { useGetBuildingDetails } from "@/hooks/queries/buildingQueries";
 import { useGetBuildingFloors } from "@/hooks/queries/indoorMapQueries";
 import useMapSettings, { MapSettings } from "@/hooks/useMapSettings";
+import { trackEvent } from "@/lib/telemetry";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect } from "react";
 import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { trackEvent } from "@/lib/telemetry";
 
 const BROWSE_SHEET_HEIGHT = 160;
 
@@ -53,6 +53,7 @@ export default function IndoorMapPage() {
       params: {
         buildingCode: params.buildingCode,
         buildingName: buildingData?.long_name || params.buildingCode,
+        previouslySelectedFloor: params.selectedFloor,
       },
     });
   };

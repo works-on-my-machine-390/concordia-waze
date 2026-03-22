@@ -32,12 +32,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 type SearchParams = {
   buildingCode: string;
   buildingName: string;
+  previouslySelectedFloor?: string; // if the user was previously viewing an indoor map, the floor they were looking at is saved here
 };
 
 export default function IndoorSearchPage() {
   const router = useRouter();
   const params = useLocalSearchParams<SearchParams>();
-  const { buildingCode, buildingName } = params;
+  const { buildingCode, buildingName, previouslySelectedFloor } = params;
   const navigationState = useNavigationStore();
 
   const [query, setQuery] = useState("");
@@ -175,7 +176,10 @@ export default function IndoorSearchPage() {
     useIndoorSearchStore.getState().setSelectedPoiFilter(type, label);
     router.navigate({
       pathname: "/indoor-map",
-      params: { buildingCode: params.buildingCode },
+      params: {
+        buildingCode: params.buildingCode,
+        selectedFloor: params.previouslySelectedFloor,
+      },
     });
   };
 

@@ -58,7 +58,7 @@ export default function IndoorBottomSheetSection(
       pathname: "/indoor-map",
       params: {
         buildingCode,
-        selectedRoom: roomCode,
+        selectedPoiName: roomCode,
         selectedFloor: floorNumber.toString(),
       },
     });

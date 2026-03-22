@@ -12,13 +12,17 @@ import {
 import { SvgXml } from "react-native-svg";
 
 import { IndoorMapPageParams } from "@/app/(drawer)/indoor-map";
+import { useIndoorSearchStore } from "@/hooks/useIndoorSearchStore";
+import {
+  ModifyingFieldOptions,
+  useNavigationStore,
+} from "@/hooks/useNavigationStore";
+import useStartLocation from "@/hooks/useStartLocation";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import IndoorBottomSheetSection from "./IndoorBottomSheetSection";
 import IndoorPathOverlay from "./IndoorPathOverlay";
 import PoiMarker from "./PoiMarker";
 import PolygonOverlay from "./PolygonOverlay";
-import { ModifyingFieldOptions, useNavigationStore } from "@/hooks/useNavigationStore";
-import useStartLocation from "@/hooks/useStartLocation";
 
 /** Standard indoor route */
 export const ROUTE_STYLE_STANDARD = {
@@ -76,6 +80,7 @@ export default function FloorPlanViewer({
   );
 
   const navigationState = useNavigationStore();
+  const indoorSearchState = useIndoorSearchStore();
   const { setStartLocationManually } = useStartLocation();
 
   // includes both POIs and rooms which count as POIs
@@ -84,6 +89,8 @@ export default function FloorPlanViewer({
       !!navigationState.navigationPhase && !!navigationState.startLocation;
 
     if (isDisabled) return;
+    if (indoorSearchState.selectedPoiFilter)
+      indoorSearchState.clearSelectedPoiFilter();
 
     if (
       !navigationState.startLocation &&
@@ -111,7 +118,11 @@ export default function FloorPlanViewer({
     const { floor, displayWidth, displayHeight } = parameters;
 
     return floor.pois.map((poi) => {
-      const highlighted = poi.name === params.selectedPoiName;
+      const highlightedByFilter =
+        indoorSearchState.selectedPoiFilter &&
+        indoorSearchState.filteredPois?.some((p) => p.name === poi.name);
+      const highlighted =
+        poi.name === params.selectedPoiName || highlightedByFilter;
       return (
         <PoiMarker
           key={`poi-${poi.name}-${poi.position.x}-${poi.position.y}`}
