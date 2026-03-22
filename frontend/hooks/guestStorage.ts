@@ -81,6 +81,83 @@ export const setGuestCourses = async (
   await writeList(buildKey("courses"), items);
 };
 
+export const updateGuestCourse = async (
+  courseName: string,
+  updates: Partial<CourseItem>,
+): Promise<void> => {
+  const items = await getGuestCourses();
+
+  const updatedItems = items.map((course) =>
+    course.name === courseName
+      ? {
+          ...course,
+          ...updates,
+          classes: updates.classes ?? course.classes,
+        }
+      : course,
+  );
+
+  await setGuestCourses(updatedItems);
+};
+
+export const updateGuestClass = async (
+  courseName: string,
+  classIndex: number,
+  updates: Partial<CourseItem["classes"][number]>,
+): Promise<void> => {
+  const items = await getGuestCourses();
+
+  const updatedItems = items.map((course) => {
+    if (course.name !== courseName) {
+      return course;
+    }
+
+    return {
+      ...course,
+      classes: course.classes.map((classItem, index) =>
+        index === classIndex
+          ? {
+              ...classItem,
+              ...updates,
+            }
+          : classItem,
+      ),
+    };
+  });
+
+  await setGuestCourses(updatedItems);
+};
+
+export const deleteGuestClass = async (
+  courseName: string,
+  classIndex: number,
+): Promise<void> => {
+  const items = await getGuestCourses();
+
+  const updatedItems = items
+    .map((course) => {
+      if (course.name !== courseName) {
+        return course;
+      }
+
+      return {
+        ...course,
+        classes: course.classes.filter((_, index) => index !== classIndex),
+      };
+    })
+    .filter(
+      (course) => course.name !== courseName || course.classes.length > 0,
+    );
+
+  await setGuestCourses(updatedItems);
+};
+
+export const deleteGuestCourse = async (courseName: string): Promise<void> => {
+  const items = await getGuestCourses();
+  const updatedItems = items.filter((course) => course.name !== courseName);
+  await setGuestCourses(updatedItems);
+};
+
 // === Address ==
 
 export const addGuestSavedAddress = async (
