@@ -2,11 +2,14 @@ package application
 
 import (
 	"context"
+	"errors"
+	"strings"
 	"time"
 
 	"github.com/works-on-my-machine-390/concordia-waze/internal/application/google"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
 	"golang.org/x/oauth2"
+	"google.golang.org/api/googleapi"
 )
 
 type CalendarSyncer interface {
@@ -29,10 +32,16 @@ type idSet map[string]struct{}
 type existingIDsMap map[string]idSet
 type eventsMap map[string][]*domain.ClassItem
 
+var (
+	ErrGoogleCalendarAuthRequired     = errors.New("google calendar auth required")
+	ErrGoogleCalendarPermissionDenied = errors.New("google calendar permission denied")
+	ErrGoogleCalendarUnavailable      = errors.New("google calendar unavailable")
+)
+
 func (s *calendarService) SyncCalendarEvents(token *oauth2.Token, userID string, day time.Time, calendarID string) (map[string][]*domain.ClassItem, []string, error) {
 	events, errs, err := s.calGetter.GetCalendarEvents(token, day, calendarID)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, mapCalendarSyncError(err)
 	}
 
 	existingClasses, err := s.firebase.GetAllClassItems(userID)
@@ -90,5 +99,47 @@ func (s *calendarService) addClassItemWithTimeout(userID, class string, item *do
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel() // safe: function scope ends quickly, no loop accumulation
 	_, err := s.firebase.AddClassItem(ctx, userID, class, *item)
+	return err
+}
+
+func mapCalendarSyncError(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	var gErr *googleapi.Error
+	if errors.As(err, &gErr) {
+		switch gErr.Code {
+		case 401:
+			return ErrGoogleCalendarAuthRequired
+		case 403:
+			return ErrGoogleCalendarPermissionDenied
+		case 500, 502, 503, 504:
+			return ErrGoogleCalendarUnavailable
+		}
+	}
+
+	errMsg := strings.ToLower(err.Error())
+
+	if strings.Contains(errMsg, "oauth2: token expired") ||
+		strings.Contains(errMsg, "token is expired") ||
+		strings.Contains(errMsg, "invalid_grant") ||
+		strings.Contains(errMsg, "invalid token") ||
+		strings.Contains(errMsg, "unauthorized") {
+		return ErrGoogleCalendarAuthRequired
+	}
+
+	if strings.Contains(errMsg, "permission denied") ||
+		strings.Contains(errMsg, "insufficient permissions") {
+		return ErrGoogleCalendarPermissionDenied
+	}
+
+	if strings.Contains(errMsg, "service unavailable") ||
+		strings.Contains(errMsg, "connection refused") ||
+		strings.Contains(errMsg, "timeout") ||
+		(strings.Contains(errMsg, "calendar") && strings.Contains(errMsg, "disabled")) {
+		return ErrGoogleCalendarUnavailable
+	}
+
 	return err
 }

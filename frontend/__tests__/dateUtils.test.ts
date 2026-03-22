@@ -6,6 +6,7 @@ import {
   getOpenStatusColor,
   OpenStatusTypes,
   SOON_THRESHOLD_IN_MINUTES,
+  toMinutes,
 } from "@/app/utils/dateUtils";
 import type { OpeningHoursModel } from "@/hooks/queries/buildingQueries";
 
@@ -267,4 +268,13 @@ describe("dateUtils", () => {
       );
     });
   });
+  describe("toMinutes", () => {
+  it("should convert HH:MM to minutes since midnight", () => {
+    expect(toMinutes("00:00")).toBe(0);
+    expect(toMinutes("01:00")).toBe(60);
+    expect(toMinutes("16:00")).toBe(960);
+    expect(toMinutes("17:15")).toBe(1035);
+    expect(toMinutes("23:59")).toBe(1439);
+  });
+});
 });

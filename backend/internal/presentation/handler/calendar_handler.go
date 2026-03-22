@@ -76,7 +76,9 @@ const (
 // @Success 200 {string} string "Events synced successfully"
 // @Failure 400 {object} map[string]string "Invalid date"
 // @Failure 401 {object} map[string]string "Google auth required"
-// @Failure 500 {object} map[string]string "Failed to fetch events or token"
+// @Failure 403 {object} map[string]string "Google Calendar permission denied"
+// @Failure 503 {object} map[string]string "Google Calendar service unavailable"
+// @Failure 500 {object} map[string]string "Unexpected sync failure"
 // @Security    BearerAuth
 // @Router /courses/sync [get]
 func (h *CalendarHandler) SyncCalendarEvents(c *gin.Context) {
@@ -107,8 +109,40 @@ func (h *CalendarHandler) SyncCalendarEvents(c *gin.Context) {
 
 	events, syncErrors, err := h.calendarSyncer.SyncCalendarEvents(token, userID, q.Since, q.CalendarID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to fetch events", "details": err.Error()})
-		return
+		switch {
+		case errors.Is(err, application.ErrGoogleCalendarAuthRequired):
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error":   "google calendar session expired or is invalid",
+				"code":    "GOOGLE_AUTH_REQUIRED",
+				"message": "Please reconnect your Google account and try again.",
+			})
+			return
+
+		case errors.Is(err, application.ErrGoogleCalendarPermissionDenied):
+			c.JSON(http.StatusForbidden, gin.H{
+				"error":   "google calendar permission denied",
+				"code":    "GOOGLE_PERMISSION_DENIED",
+				"message": "Calendar access was denied. Please grant calendar permission and try again.",
+			})
+			return
+
+		case errors.Is(err, application.ErrGoogleCalendarUnavailable):
+			c.JSON(http.StatusServiceUnavailable, gin.H{
+				"error":   "google calendar service unavailable",
+				"code":    "GOOGLE_CALENDAR_UNAVAILABLE",
+				"message": "Google Calendar is currently unavailable. Please try again later.",
+			})
+			return
+
+		default:
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error":   "failed to sync calendar events",
+				"code":    "CALENDAR_SYNC_FAILED",
+				"message": "An unexpected error occurred while syncing calendar events.",
+				"details": err.Error(),
+			})
+			return
+		}
 	}
 
 	courses := make([]domain.CourseItem, 0, len(events))
