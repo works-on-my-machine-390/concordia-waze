@@ -47,7 +47,7 @@ export default function GoogleSyncPage() {
   useEffect(() => {
     if (syncMutation.isSuccess) {
       const timer = setTimeout(() => {
-        router.push("/(drawer)/schedule");
+        router.push("/missingEventInfo");
       }, 1500);
       return () => clearTimeout(timer);
     }
