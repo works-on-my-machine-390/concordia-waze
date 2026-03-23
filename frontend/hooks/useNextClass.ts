@@ -2,7 +2,7 @@ import { DAYS, toMinutes } from "@/app/utils/dateUtils";
 import { useEffect, useState } from "react";
 import { getGuestCourses } from "./guestStorage";
 import { NextClassResponse, useGetNextClass } from "./queries/classQueries";
-import { useGetProfile } from "./queries/userQueries";
+import { useAuth } from "./useAuth";
 
 const findNextGuestClass = async (): Promise<NextClassResponse | null> => {
   const courses = await getGuestCourses();
@@ -49,18 +49,23 @@ export type UseNextClassResult = {
 };
 
 export const useNextClass = (): UseNextClassResult => {
-  const { data: userProfile } = useGetProfile();
-  const userId = userProfile?.userId || "";
-  const isAuthenticated = !!userId;
+  const { checkToken } = useAuth();
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null); 
+  // im putting null instead of false as default here because if it defaults to false, the hook might assume user is a guest before checkToken resolves
+  // (even though they might be logged in) and guest storage will be called
 
-  const { data, isLoading, isError } = useGetNextClass(isAuthenticated);
+  useEffect(() => {
+    checkToken().then(setIsAuthenticated);
+  }, []);
+
+  const { data, isLoading, isError } = useGetNextClass(isAuthenticated === true);
 
   const [guestNextClass, setGuestNextClass] =
     useState<NextClassResponse | null>(null);
   const [guestLoading, setGuestLoading] = useState(false);
 
   useEffect(() => {
-    if (isAuthenticated) return;
+    if (isAuthenticated !== false) return;
 
     setGuestLoading(true);
     findNextGuestClass()
@@ -68,7 +73,7 @@ export const useNextClass = (): UseNextClassResult => {
       .finally(() => setGuestLoading(false));
   }, [isAuthenticated]);
 
-  if (isAuthenticated) {
+  if (isAuthenticated !== false) {
     return {
       nextClass: data ?? null,
       isLoading,
