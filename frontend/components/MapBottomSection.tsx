@@ -8,7 +8,10 @@ import MapSettingsBottomSheet from "./MapSettingsBottomSheet";
 import MapSettingsButton from "./MapSettingsButton";
 import NavigationBottomSheet from "./NavigationBottomSheet";
 import PoiSearchBottomSheet from "./poi/PoiSearchBottomSheet";
-import { NavigationPhase, useNavigationStore } from "@/hooks/useNavigationStore";
+import {
+  NavigationPhase,
+  useNavigationStore,
+} from "@/hooks/useNavigationStore";
 import ActiveNavigationBottomSheet from "./activeNavigation/ActiveNavigationBottomSheet";
 
 export type MapBottomSectionProps = {
@@ -49,7 +52,7 @@ export default function MapBottomSection(
   };
 
   const renderNextClassDrawer = () => {
-    if (!props.nextClass) return null;
+    if (!props.nextClass?.item) return null;
     return <NextClassDrawer nextClass={props.nextClass} />;
   };
 
@@ -62,8 +65,14 @@ export default function MapBottomSection(
 
         {state.currentMode === MapMode.BUILDING && <BuildingBottomSheet />}
 
-        {state.currentMode === MapMode.NAVIGATION && navigationPhase === NavigationPhase.PREPARATION && <NavigationBottomSheet />}
-        {state.currentMode === MapMode.NAVIGATION && navigationPhase === NavigationPhase.ACTIVE && <ActiveNavigationBottomSheet />}
+        {state.currentMode === MapMode.NAVIGATION &&
+          navigationPhase === NavigationPhase.PREPARATION && (
+            <NavigationBottomSheet />
+          )}
+        {state.currentMode === MapMode.NAVIGATION &&
+          navigationPhase === NavigationPhase.ACTIVE && (
+            <ActiveNavigationBottomSheet />
+          )}
 
         {state.currentMode === MapMode.SETTINGS && <MapSettingsBottomSheet />}
       </>
