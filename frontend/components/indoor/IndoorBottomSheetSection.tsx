@@ -6,7 +6,6 @@ import {
   NavigationPhase,
   useNavigationStore,
 } from "@/hooks/useNavigationStore";
-import { useRouter } from "expo-router";
 import { StyleSheet, View } from "react-native";
 import ActiveNavigationBottomSheet from "../activeNavigation/ActiveNavigationBottomSheet";
 import NavigationBottomSheet from "../NavigationBottomSheet";
@@ -46,23 +45,10 @@ export default function IndoorBottomSheetSection(
 
   const { data } = useGetBuildingFloors(buildingCode);
   const floors = data?.floors || [];
-  const router = useRouter();
 
   const selectedPoi = selectedPoiName
     ? floor?.pois.find((poi) => poi.name === selectedPoiName)
     : undefined;
-
-  const handlePoiSelect = (roomCode: string, floorNumber: number) => {
-    clearSelectedPoiFilter();
-    router.push({
-      pathname: "/indoor-map",
-      params: {
-        buildingCode,
-        selectedPoiName: roomCode,
-        selectedFloor: floorNumber.toString(),
-      },
-    });
-  };
 
   return (
     <View style={indoorBottomSheetStyles.bottomSheetContainer}>
@@ -91,8 +77,6 @@ export default function IndoorBottomSheetSection(
           poiType={selectedPoiFilter.type}
           poiLabel={selectedPoiFilter.label}
           floors={floors}
-          buildingCode={buildingCode}
-          onPoiSelect={handlePoiSelect}
           onClose={clearSelectedPoiFilter}
         />
       )}

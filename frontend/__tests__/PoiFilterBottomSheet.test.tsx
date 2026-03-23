@@ -37,7 +37,6 @@ jest.mock("@/hooks/useIndoorSearchStore", () => ({
 }));
 
 describe("PoiFilterBottomSheet", () => {
-  const mockOnPoiSelect = jest.fn();
   const mockOnClose = jest.fn();
 
   const mockFloors: Floor[] = [
@@ -72,8 +71,6 @@ describe("PoiFilterBottomSheet", () => {
         poiType="bathroom"
         poiLabel="Bathrooms"
         floors={mockFloors}
-        buildingCode="MB"
-        onPoiSelect={mockOnPoiSelect}
         onClose={mockOnClose}
       />,
     );
@@ -87,8 +84,6 @@ describe("PoiFilterBottomSheet", () => {
         poiType="bathroom"
         poiLabel="Bathrooms"
         floors={mockFloors}
-        buildingCode="MB"
-        onPoiSelect={mockOnPoiSelect}
         onClose={mockOnClose}
       />,
     );
@@ -103,8 +98,6 @@ describe("PoiFilterBottomSheet", () => {
         poiType="bathroom"
         poiLabel="Bathrooms"
         floors={mockFloors}
-        buildingCode="MB"
-        onPoiSelect={mockOnPoiSelect}
         onClose={mockOnClose}
       />,
     );
@@ -121,8 +114,6 @@ describe("PoiFilterBottomSheet", () => {
         poiType="BATHROOM"
         poiLabel="Bathrooms"
         floors={mockFloors}
-        buildingCode="MB"
-        onPoiSelect={mockOnPoiSelect}
         onClose={mockOnClose}
       />,
     );
@@ -143,8 +134,6 @@ describe("PoiFilterBottomSheet", () => {
         poiType="bathroom"
         poiLabel="Bathrooms"
         floors={mockFloors}
-        buildingCode="MB"
-        onPoiSelect={mockOnPoiSelect}
         onClose={mockOnClose}
       />,
     );
@@ -164,8 +153,6 @@ describe("PoiFilterBottomSheet", () => {
         poiType="bathroom"
         poiLabel="Bathrooms"
         floors={mockFloors}
-        buildingCode="MB"
-        onPoiSelect={mockOnPoiSelect}
         onClose={mockOnClose}
       />,
     );
