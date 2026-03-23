@@ -6,6 +6,14 @@ const mockRouterPush = jest.fn();
 const mockUseCourses = jest.fn();
 const mockGetGuestCourses = jest.fn();
 const mockDispatch = jest.fn();
+const mockUseGetProfile = jest.fn();
+const mockCheckToken = jest.fn();
+
+jest.mock("@/hooks/useAuth", () => ({
+  useAuth: () => ({
+    checkToken: mockCheckToken,
+  }),
+}));
 
 jest.mock("expo-router", () => ({
   useRouter: () => ({
@@ -48,6 +56,10 @@ jest.mock("@/hooks/queries/googleCalendarQueries", () => ({
 
 jest.mock("@/hooks/guestStorage", () => ({
   getGuestCourses: () => mockGetGuestCourses(),
+}));
+
+jest.mock("@/hooks/queries/userQueries", () => ({
+  useGetProfile: () => mockUseGetProfile(),
 }));
 
 jest.mock("@/components/schedule/ScheduleClassCard", () => {
@@ -123,16 +135,35 @@ describe("Schedule screen", () => {
     ]);
   });
 
-  test("renders both guest and synced course cards", async () => {
-    const { getByText } = renderWithProviders(<Schedule />);
+  test("renders only synced course cards when user is logged in", async () => {
+    mockCheckToken.mockResolvedValue(true);
+
+    const { getByText, queryByText } = renderWithProviders(<Schedule />);
+
+    await waitFor(() => {
+      expect(getByText("SOEN 341-Lecture")).toBeTruthy();
+    });
+
+    expect(queryByText("COMP 346-Lab")).toBeNull();
+  });
+
+  test("renders only guest course cards when user is not logged in", async () => {
+    mockCheckToken.mockResolvedValue(false);
+
+    const { getByText, queryByText } = renderWithProviders(<Schedule />);
 
     await waitFor(() => {
       expect(getByText("COMP 346-Lab")).toBeTruthy();
-      expect(getByText("SOEN 341-Lecture")).toBeTruthy();
     });
+
+    expect(queryByText("SOEN 341-Lecture")).toBeNull();
   });
 
   test("opens drawer when menu button is pressed", async () => {
+    mockUseGetProfile.mockReturnValue({
+      data: null,
+    });
+
     const { getByTestId } = renderWithProviders(<Schedule />);
 
     await waitFor(() => {
@@ -145,6 +176,10 @@ describe("Schedule screen", () => {
   });
 
   test("navigates to add-class when add button is pressed", async () => {
+    mockUseGetProfile.mockReturnValue({
+      data: null,
+    });
+
     const { getByTestId } = renderWithProviders(<Schedule />);
 
     await waitFor(() => {
@@ -160,6 +195,10 @@ describe("Schedule screen", () => {
   });
 
   test("navigates to google sync page when sync button is pressed", async () => {
+    mockUseGetProfile.mockReturnValue({
+      data: null,
+    });
+
     const { getByTestId } = renderWithProviders(<Schedule />);
 
     await waitFor(() => {
@@ -172,6 +211,10 @@ describe("Schedule screen", () => {
   });
 
   test("renders bottom sheet container", async () => {
+    mockUseGetProfile.mockReturnValue({
+      data: null,
+    });
+
     const { getByTestId } = renderWithProviders(<Schedule />);
 
     await waitFor(() => {
