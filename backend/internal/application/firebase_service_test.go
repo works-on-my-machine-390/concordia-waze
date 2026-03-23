@@ -1118,6 +1118,59 @@ func TestDeleteFavoriteWrongUser(t *testing.T) {
 	}
 }
 
+func TestAddFavorite_DuplicateRejected(t *testing.T) {
+	repo := repository.NewInMemoryFavoriteRepository()
+	service := application.NewFavoritesService(repo)
+
+	userID := "dup-user-1"
+
+	// Outdoor: lat,lng define uniqueness
+	orig := &domain.Favorite{
+		UserID:    userID,
+		Type:      domain.FavoriteTypeOutdoor,
+		Name:      "Home",
+		Latitude:  45.0001,
+		Longitude: -73.0001,
+	}
+	_, err := service.AddFavorite(orig)
+	require.NoError(t, err)
+
+	duplicate := &domain.Favorite{
+		UserID:    userID,
+		Type:      domain.FavoriteTypeOutdoor,
+		Name:      "Duplicate Home",
+		Latitude:  45.0001,
+		Longitude: -73.0001,
+	}
+	_, err = service.AddFavorite(duplicate)
+	assert.ErrorIs(t, err, domain.ErrFavoriteAlreadyExists, "should reject duplicate outdoor favorite")
+
+	// Indoor: building+floor+x+y define uniqueness
+	indoorOrig := &domain.Favorite{
+		UserID:       userID,
+		Type:         domain.FavoriteTypeIndoor,
+		Name:         "Room1",
+		BuildingCode: "H",
+		FloorNumber:  3,
+		X:            1.234,
+		Y:            5.678,
+	}
+	_, err = service.AddFavorite(indoorOrig)
+	require.NoError(t, err)
+
+	indoorDup := &domain.Favorite{
+		UserID:       userID,
+		Type:         domain.FavoriteTypeIndoor,
+		Name:         "Room1-Duplicate",
+		BuildingCode: "H",
+		FloorNumber:  3,
+		X:            1.234,
+		Y:            5.678,
+	}
+	_, err = service.AddFavorite(indoorDup)
+	assert.ErrorIs(t, err, domain.ErrFavoriteAlreadyExists, "should reject duplicate indoor favorite")
+}
+
 // failRepo is a mock repository that always fails on Create.
 type failRepo struct{}
 

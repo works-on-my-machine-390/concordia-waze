@@ -32,6 +32,26 @@ func (r *InMemoryFavoriteRepository) Create(favorite *domain.Favorite) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
+	// Check for duplicate by user/location
+	for _, existing := range r.favorites {
+		if existing.UserID != favorite.UserID {
+			continue
+		}
+		if favorite.Type == domain.FavoriteTypeOutdoor && existing.Type == domain.FavoriteTypeOutdoor {
+			if existing.Latitude == favorite.Latitude && existing.Longitude == favorite.Longitude {
+				return domain.ErrFavoriteAlreadyExists
+			}
+		}
+		if favorite.Type == domain.FavoriteTypeIndoor && existing.Type == domain.FavoriteTypeIndoor {
+			if existing.BuildingCode == favorite.BuildingCode &&
+				existing.FloorNumber == favorite.FloorNumber &&
+				existing.X == favorite.X &&
+				existing.Y == favorite.Y {
+				return domain.ErrFavoriteAlreadyExists
+			}
+		}
+	}
+
 	if favorite.ID == "" {
 		favorite.ID = uuid.New().String()
 	}
