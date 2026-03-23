@@ -1,5 +1,6 @@
 import MissingEventInfoScreen from "@/app/missingEventInfo";
 import { fireEvent, render, waitFor } from "@testing-library/react-native";
+import { Linking } from "react-native";
 
 jest.mock("@/app/constants", () => ({
   COLORS: {
@@ -27,12 +28,6 @@ jest.mock("@/hooks/queries/buildingQueries", () => ({
   useGetAllBuildings: () => ({ isLoading: false, data: { buildings: { SGW: [], LOY: [] } } }),
 }));
 
-jest.mock("react-native", () => ({
-  ...jest.requireActual("react-native"),
-  Linking: { openURL: jest.fn() },
-}));
-
-const { Linking } = require("react-native");
 const { useCourses } = require("@/hooks/queries/googleCalendarQueries");
 
 describe("MissingEventInfoScreen", () => {
@@ -84,13 +79,15 @@ describe("MissingEventInfoScreen", () => {
 
   test("opens extension URL when promo is pressed", async () => {
     useCourses.mockReturnValue({ data: [] });
+    const openURLSpy = jest.spyOn(Linking, "openURL").mockResolvedValue(undefined);
     const { getByTestId } = render(<MissingEventInfoScreen />);
     fireEvent.press(getByTestId("extension-promo-button"));
     await waitFor(() =>
-      expect(Linking.openURL).toHaveBeenCalledWith(
+      expect(openURLSpy).toHaveBeenCalledWith(
         "https://chromewebstore.google.com/detail/visual-schedule-builder-e/nbapggbchldhdjckbhdhkhlodokjdoha",
       ),
     );
+    openURLSpy.mockRestore();
   });
 
   test("skips manual origin classes from missing entries", () => {

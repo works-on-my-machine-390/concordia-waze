@@ -85,7 +85,7 @@ function FieldLabel({ label }: Readonly<{ label: string }>) {
 function LocationModal({ entry, onClose }: Readonly<{ entry: MissingInfoEntry; onClose: () => void }>) {
   const [selectedBuilding, setSelectedBuilding] = useState<BuildingListItem | null>(null);
   const [room, setRoom] = useState("");
-  const [showList, setShowList] = useState(false);
+  const [showList, setShowList] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const { data, isLoading } = useGetAllBuildings();
