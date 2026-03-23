@@ -12,7 +12,6 @@ import {
   useCourses,
   type CourseItem,
 } from "../../hooks/queries/googleCalendarQueries";
-import { useGetProfile } from "../../hooks/queries/userQueries";
 import { COLORS } from "../constants";
 import { AddIcon, MenuIcon } from "../icons";
 import { normalizeScheduleCourses } from "../utils/schedule/normalizeScheduleCourses";

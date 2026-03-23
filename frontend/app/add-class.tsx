@@ -109,11 +109,13 @@ export default function AddClassScreen() {
   () => [
     ...storedCourses.flatMap((course) =>
       course.classes
-  .filter((classItem) => normalizeClassType(classItem.type) !== null)
   .map((classItem) => {
-    const session = toExistingSession(classItem)!;
+    const session = toExistingSession(classItem);
+    if (!session) return null;
+
     return { ...session, courseName: course.name };
-  }),
+  })
+  .filter(Boolean),
     ),
     ...classInfo,
   ],
