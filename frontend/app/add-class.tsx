@@ -1,6 +1,12 @@
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  addClassItem,
+  addCourse,
+  useCourses,
+} from "@/hooks/queries/googleCalendarQueries";
 import BackHeader from "@/components/BackHeader";
 import { router, useFocusEffect } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -21,13 +27,55 @@ import AddClassInfoForm, {
   ClassInfoFormData,
 } from "../components/classes/AddClassInfoForm";
 import ClassInfoCard from "../components/classes/ClassInfoCard";
-import { CourseItem } from "../hooks/firebase/useFirestore";
 import { addGuestCourse, getGuestCourses } from "../hooks/guestStorage";
 import { useGetProfile } from "../hooks/queries/userQueries";
 import { COLORS } from "./constants";
 
-const addCourseNameToClasses = (course: CourseItem) =>
-  course.classes.map((c) => ({ ...c, courseName: course.name }));
+type StoredCourse = {
+  name: string;
+  classes: Array<{
+    type: string;
+    section: string;
+    day: string;
+    startTime: string;
+    endTime: string;
+    buildingCode?: string;
+    room?: string;
+    origin?: "manual" | "google";
+  }>;
+};
+
+function normalizeClassType(
+  type: string,
+): ClassInfoFormData["type"] | null {
+  const normalized = type.trim().toLowerCase();
+
+  if (normalized === "lecture" || normalized === "lec") return "Lecture" as const ;
+  if (normalized === "lab") return "Lab" as const;
+  if (normalized === "tutorial" || normalized === "tut") return "Tutorial" as const;
+
+  return null;
+}
+
+function toExistingSession(
+  classItem: StoredCourse["classes"][number],
+): ClassInfoFormData | null {
+  const normalizedType = normalizeClassType(classItem.type);
+
+  if (!normalizedType) {
+    return null;
+  }
+
+  return {
+    type: normalizedType,
+    section: classItem.section ?? "",
+    day: classItem.day,
+    startTime: classItem.startTime,
+    endTime: classItem.endTime,
+    buildingCode: classItem.buildingCode ?? "",
+    room: classItem.room ?? "",
+  };
+}
 
 export default function AddClassScreen() {
   const [courseName, setCourseName] = useState("");
@@ -37,18 +85,42 @@ export default function AddClassScreen() {
     string | null
   >(null);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [storedCourses, setStoredCourses] = useState<CourseItem[]>([]);
+  const [storedCourses, setStoredCourses] = useState<StoredCourse[]>([]);
   const { data: userProfile } = useGetProfile();
+  const { data: syncedCourses = [] } = useCourses();
+  const queryClient = useQueryClient();
 
   useFocusEffect(
     useCallback(() => {
       const load = async () => {
+        if (userProfile?.id) {
+          setStoredCourses(syncedCourses as StoredCourse[]);
+          return;
+        }
+
         const courses = await getGuestCourses();
-        setStoredCourses(courses);
+        setStoredCourses(courses as StoredCourse[]);
       };
       load();
-    }, []),
+    }, [userProfile?.id, syncedCourses]),
   );
+
+  const existingSessions = useMemo(
+  () => [
+    ...storedCourses.flatMap((course) =>
+      course.classes
+  .map((classItem) => {
+    const session = toExistingSession(classItem);
+    if (!session) return null;
+
+    return { ...session, courseName: course.name };
+  })
+  .filter(Boolean),
+    ),
+    ...classInfo,
+  ],
+  [storedCourses, classInfo],
+);
 
   const handleAddCourseInfo = (data: ClassInfoFormData) => {
     setClassInfo((prev) => [...prev, data]);
@@ -84,11 +156,38 @@ export default function AddClassScreen() {
 
   const handleSave = async () => {
     if (!validateCourseNameInput()) return;
+
     try {
       const course = buildCourseItem(courseName, classInfo);
-      if (!userProfile?.id) {
+
+      if (userProfile?.id) {
+         // Logged in → backend persistence
+        try {
+          await addCourse({ name: course.name });
+        } catch {
+          // Course may already exist
+        }
+
+        for (const classItem of course.classes ?? []) {
+          await addClassItem(course.name, {
+            type: classItem.type,
+            section: classItem.section,
+            day: classItem.day,
+            startTime: classItem.startTime,
+            endTime: classItem.endTime,
+            buildingCode: classItem.buildingCode,
+            room: classItem.room,
+            origin: classItem.origin ?? "manual",
+          });
+        }
+
+        await queryClient.invalidateQueries({ queryKey: ["courses"] });
+        await queryClient.invalidateQueries({ queryKey: ["nextClass"] });
+      } else {
+        // Guest → local storage
         await addGuestCourse(course);
       }
+
       router.push("/schedule");
     } catch {
       setSaveError("Saving failed. Please try again.");
@@ -141,10 +240,7 @@ export default function AddClassScreen() {
             <AddClassInfoForm
               onAdd={handleAddCourseInfo}
               onCancel={() => setShowClassInfoForm(false)}
-              existingSessions={[
-                ...storedCourses.flatMap(addCourseNameToClasses),
-                ...classInfo,
-              ]}
+              existingSessions={existingSessions}
             />
           ) : (
             <TouchableOpacity
@@ -248,7 +344,7 @@ const styles = StyleSheet.create({
   errorText: {
     color: COLORS.error,
     fontSize: 13,
-    fontWeight: 700,
+    fontWeight: "700",
     marginTop: 4,
     marginBottom: 8,
   },
