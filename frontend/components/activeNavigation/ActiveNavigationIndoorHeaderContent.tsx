@@ -31,10 +31,6 @@ export default function ActiveNavigationIndoorHeaderContent() {
   const params = useLocalSearchParams<IndoorMapPageParams>();
   const floorsQuery = useGetBuildingFloors(params.buildingCode);
 
-  if (!navigationState.currentDirections) {
-    return null;
-  }
-  
   const sequence = getDirectionsSequence(
     navigationState.currentDirections.directionBlocks,
   );
