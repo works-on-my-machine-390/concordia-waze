@@ -1,7 +1,9 @@
 import { useState } from "react";
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -28,7 +30,11 @@ type ModalState =
   | { type: "location" | "time"; entry: MissingInfoEntry }
   | null;
 
-const isMissingLocation = (item: ClassItem) => !item.buildingCode?.trim() || !item.room?.trim();
+const isValidBuildingCode = (code?: string) => (code?.trim().length ?? 0) >= 2;
+
+const isMissingLocation = (item: ClassItem) =>
+  !isValidBuildingCode(item.buildingCode) || !item.room?.trim();
+
 const isMissingTime = (item: ClassItem) => !item.startTime?.trim() || !item.endTime?.trim();
 const getClassID = (item: MissingInfoEntry["classItem"]) => item.itemId ?? item.classId ?? item.eventId;
 const entryKey = (entry: MissingInfoEntry, i: number) => `${entry.courseName}-${getClassID(entry.classItem) ?? i}`;
@@ -52,9 +58,18 @@ function ModalSheet({
 }>) {
   return (
     <Modal transparent animationType="slide" onRequestClose={onClose}>
-      <View style={ms.overlay}>
-        <ScrollView contentContainerStyle={ms.sheetScroll} keyboardShouldPersistTaps="handled">
+      <KeyboardAvoidingView
+        style={ms.keyboardAvoid}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <TouchableOpacity style={ms.dismissArea} activeOpacity={1} onPress={onClose} />
+        <ScrollView
+          contentContainerStyle={ms.sheetScroll}
+          keyboardShouldPersistTaps="handled"
+          bounces={false}
+        >
           <View style={ms.sheet}>
+            <View style={ms.handle} />
             <Text style={ms.title}>{title}</Text>
             <Text style={ms.subtitle}>{subtitle}</Text>
             {children}
@@ -73,7 +88,7 @@ function ModalSheet({
             </View>
           </View>
         </ScrollView>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -361,18 +376,29 @@ const s = StyleSheet.create({
 });
 
 const ms = StyleSheet.create({
-  overlay: {
+  keyboardAvoid: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.45)",
     justifyContent: "flex-end",
   },
-  sheetScroll: { justifyContent: "flex-end", flexGrow: 1 },
+  dismissArea: {
+    flex: 1,
+  },
+  sheetScroll: { flexGrow: 0 },
   sheet: {
     backgroundColor: "#fff",
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 24,
     paddingBottom: 44,
+  },
+  handle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "#DDD",
+    alignSelf: "center",
+    marginBottom: 16,
   },
   title: {
     fontSize: 20,

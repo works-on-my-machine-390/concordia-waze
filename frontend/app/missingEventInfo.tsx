@@ -1,6 +1,6 @@
 import MissingEventInfoForm, {
     type MissingInfoEntry,
-  } from "@/components/schedule/MissingEventInfoForm";
+  } from "../components/schedule/MissingEventInfoForm";
   import { useRouter } from "expo-router";
   import { Linking, StyleSheet, Text, TouchableOpacity, View } from "react-native";
   import { SafeAreaView } from "react-native-safe-area-context";
@@ -14,8 +14,10 @@ import MissingEventInfoForm, {
   const EXTENSION_URL =
     "https://chromewebstore.google.com/detail/visual-schedule-builder-e/nbapggbchldhdjckbhdhkhlodokjdoha";
   
+  const isValidBuildingCode = (code?: string) => (code?.trim().length ?? 0) >= 2;
+
   const isMissingInfo = (item: ClassItem): boolean =>
-    !item.buildingCode?.trim() ||
+    !isValidBuildingCode(item.buildingCode) ||
     !item.room?.trim() ||
     !item.startTime?.trim() ||
     !item.endTime?.trim();
