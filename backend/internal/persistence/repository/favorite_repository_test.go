@@ -211,11 +211,11 @@ func TestFavoriteCreate_DuplicateRejected(t *testing.T) {
 
 	// Make sure different user can add same location
 	otherUser := &domain.Favorite{
-		UserID:      "other-user",
-		Type:        domain.FavoriteTypeOutdoor,
-		Name:        "Other Home",
-		Latitude:    45.0,
-		Longitude:   -73.0,
+		UserID:    "other-user",
+		Type:      domain.FavoriteTypeOutdoor,
+		Name:      "Other Home",
+		Latitude:  45.0,
+		Longitude: -73.0,
 	}
 	err = repo.Create(otherUser)
 	if err != nil {
