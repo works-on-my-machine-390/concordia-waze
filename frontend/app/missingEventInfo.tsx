@@ -14,7 +14,7 @@ import MissingEventInfoForm, {
   const EXTENSION_URL =
     "https://chromewebstore.google.com/detail/visual-schedule-builder-e/nbapggbchldhdjckbhdhkhlodokjdoha";
   
-  const isValidBuildingCode = (code?: string) => (code?.trim().length ?? 0) >= 2;
+  const isValidBuildingCode = (code?: string) => (code?.trim().length ?? 0) >= 1;
 
   const isMissingInfo = (item: ClassItem): boolean =>
     !isValidBuildingCode(item.buildingCode) ||

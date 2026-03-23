@@ -1,6 +1,6 @@
-import MissingEventInfoForm from "@/components/schedule/MissingEventInfoForm";
+import MissingEventInfoForm from "../components/schedule/MissingEventInfoForm";
 import { fireEvent, render, waitFor } from "@testing-library/react-native";
-import type { MissingInfoEntry } from "@/components/schedule/MissingEventInfoForm";
+import type { MissingInfoEntry } from "../components/schedule/MissingEventInfoForm";
 
 jest.mock("@/app/constants", () => ({
   COLORS: {

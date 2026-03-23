@@ -28,7 +28,7 @@ type ModalState =
   | { type: "location" | "time"; entry: MissingInfoEntry }
   | null;
 
-const isValidBuildingCode = (code?: string) => (code?.trim().length ?? 0) >= 2;
+const isValidBuildingCode = (code?: string) => (code?.trim().length ?? 0) >= 1;
 
 const isMissingLocation = (item: ClassItem) =>
   !isValidBuildingCode(item.buildingCode) || !item.room?.trim();
