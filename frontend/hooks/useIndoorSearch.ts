@@ -193,7 +193,6 @@ export const useIndoorSearch = (
 
   const addRecentSearch = async (
     roomName: string,
-    roomCode: string,
     floorNumber: number,
     code: string,
   ) => {

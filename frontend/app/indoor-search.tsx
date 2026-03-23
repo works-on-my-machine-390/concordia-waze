@@ -123,7 +123,7 @@ export default function IndoorSearchPage() {
     }
 
     if (poi.type.toLowerCase() === "room") {
-      addRecentSearch(displayName, poi.name, poi.floor_number, poi.building);
+      addRecentSearch(displayName, poi.floor_number, poi.building);
     }
   };
 
@@ -155,7 +155,7 @@ export default function IndoorSearchPage() {
     const poi = poiByFormattedName ?? poiByExtractedCode;
 
     if (poi) {
-      addRecentSearch(search.displayName, poi.name, search.floor, poi.building);
+      addRecentSearch(search.displayName, search.floor, poi.building);
 
       if (navigationState.modifyingField) {
         updateNavigationModifyingField(poi, search.displayName);

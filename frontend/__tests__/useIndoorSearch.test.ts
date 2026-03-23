@@ -155,7 +155,7 @@ describe("useIndoorSearch", () => {
     );
 
     await act(async () => {
-      await result.current.addRecentSearch("210", "210", 2);
+      await result.current.addRecentSearch("210", 2, "MB");
     });
 
     expect(addGuestSearchHistory).toHaveBeenCalled();
@@ -197,7 +197,7 @@ describe("useIndoorSearch", () => {
     );
 
     await act(async () => {
-      await result.current.addRecentSearch("210", "210", 2);
+      await result.current.addRecentSearch("210", 2, "MB");
     });
 
     expect(mutate).toHaveBeenCalled();
