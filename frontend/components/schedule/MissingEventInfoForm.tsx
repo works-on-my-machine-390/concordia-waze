@@ -41,7 +41,7 @@ function ModalSheet({
   onSave,
   onClose,
   children,
-}: {
+}: Readonly<{
   title: string;
   subtitle: string;
   error: string | null;
@@ -49,7 +49,7 @@ function ModalSheet({
   onSave: () => void;
   onClose: () => void;
   children: React.ReactNode;
-}) {
+}>) {
   return (
     <Modal transparent animationType="slide" onRequestClose={onClose}>
       <View style={ms.overlay}>
@@ -78,11 +78,11 @@ function ModalSheet({
   );
 }
 
-function FieldLabel({ label }: { label: string }) {
+function FieldLabel({ label }: Readonly<{ label: string }>) {
   return <Text style={ms.label}>{label}</Text>;
 }
 
-function LocationModal({ entry, onClose }: { entry: MissingInfoEntry; onClose: () => void }) {
+function LocationModal({ entry, onClose }: Readonly<{ entry: MissingInfoEntry; onClose: () => void }>) {
   const [selectedBuilding, setSelectedBuilding] = useState<BuildingListItem | null>(null);
   const [room, setRoom] = useState("");
   const [showList, setShowList] = useState(false);
@@ -176,7 +176,7 @@ function LocationModal({ entry, onClose }: { entry: MissingInfoEntry; onClose: (
 }
 
 
-function TimeModal({ entry, onClose }: { entry: MissingInfoEntry; onClose: () => void }) {
+function TimeModal({ entry, onClose }: Readonly<{ entry: MissingInfoEntry; onClose: () => void }>) {
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -224,12 +224,12 @@ function MissingCard({
   index,
   onDismiss,
   onOpenModal,
-}: {
+}: Readonly<{
   entry: MissingInfoEntry;
   index: number;
   onDismiss: (key: string) => void;
   onOpenModal: (state: NonNullable<ModalState>) => void;
-}) {
+}>) {
   const { courseName, classItem } = entry;
   const key = entryKey(entry, index);
   const missingLocation = isMissingLocation(classItem);
@@ -237,9 +237,12 @@ function MissingCard({
   const timeLabel = classItem.startTime?.trim()
     ? `${classItem.startTime} - ${classItem.endTime}`
     : "No Time";
-  const badgeLabel = missingLocation && missingTime
-    ? "No Location · No Time"
-    : missingLocation ? "No Location" : "No Time";
+
+  const getBadgeLabel = () => {
+    if (missingLocation && missingTime) return "No Location · No Time";
+    if (missingLocation) return "No Location";
+    return "No Time";
+  };
 
   return (
     <View style={s.card}>
@@ -249,7 +252,7 @@ function MissingCard({
           <Text style={s.cardMeta}>{classItem.day || "No Day"}{"  "}{timeLabel}</Text>
         </View>
         <View style={s.missingBadge}>
-          <Text style={s.missingBadgeText}>{badgeLabel}</Text>
+          <Text style={s.missingBadgeText}>{getBadgeLabel()}</Text>
         </View>
       </View>
 
