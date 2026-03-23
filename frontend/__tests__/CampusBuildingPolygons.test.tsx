@@ -3,6 +3,22 @@ import { CampusBuilding } from "@/hooks/queries/buildingQueries";
 import { render } from "@testing-library/react-native";
 import { Polygon } from "react-native-maps";
 
+jest.mock("@/hooks/useMapSettings", () => ({
+  __esModule: true,
+  default: () => ({
+    mapSettings: {
+      showBuildingPolygons: true,
+    },
+  }),
+}));
+
+jest.mock("@/hooks/useStartLocation", () => ({
+  __esModule: true,
+  default: () => ({
+    setStartLocationAutocomplete: jest.fn(),
+  }),
+}));
+
 // Mock react-native-maps
 jest.mock("react-native-maps", () => ({
   Polygon: jest.fn(({ children }) => children),

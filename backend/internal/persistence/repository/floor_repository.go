@@ -129,3 +129,16 @@ func (r *FloorRepository) GetBuildingFloors(code string) ([]domain.Floor, error)
 	}
 	return floorsMap, nil
 }
+
+func (r *FloorRepository) GetAllBuildingFloors() (map[string][]domain.Floor, error) {
+	if err := r.ensureLoaded(); err != nil {
+		return nil, err
+	}
+
+	out := make(map[string][]domain.Floor, len(r.byCode))
+	for code, floors := range r.byCode {
+		out[code] = floors
+	}
+
+	return out, nil
+}

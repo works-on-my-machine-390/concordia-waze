@@ -1,16 +1,19 @@
 import React from "react";
 import { fireEvent, render } from "@testing-library/react-native";
 import IndoorItineraryHeader from "@/components/indoor/IndoorItineraryHeader";
+import {
+  ModifyingFieldOptions,
+  useNavigationStore,
+} from "@/hooks/useNavigationStore";
 
 const mockDispatch = jest.fn();
 const mockPush = jest.fn();
+const mockReplace = jest.fn();
 
 const mockStore = {
-  start: null as any,
-  end: null as any,
-  exitItinerary: jest.fn(),
-  setSelectedRoom: jest.fn(),
-  setPickMode: jest.fn(),
+  startLocation: undefined as any,
+  endLocation: undefined as any,
+  setModifyingField: jest.fn(),
 };
 
 jest.mock("react-native-safe-area-context", () => ({
@@ -23,6 +26,7 @@ jest.mock("expo-router", () => ({
   }),
   useRouter: () => ({
     push: mockPush,
+    replace: mockReplace,
   }),
 }));
 
@@ -49,24 +53,34 @@ jest.mock("@/app/icons", () => ({
   LocationIcon: () => null,
 }));
 
-jest.mock("@/hooks/useIndoorNavigationStore", () => ({
-  useIndoorNavigationStore: jest.fn(() => mockStore),
+jest.mock("@/hooks/useMapStore", () => ({
+  useMapStore: jest.fn(() => ({})),
+  MapMode: {
+    NONE: "NONE",
+  },
 }));
+
+jest.mock("@/hooks/useNavigationStore", () => ({
+  ModifyingFieldOptions: {
+    start: "start",
+    end: "end",
+  },
+  useNavigationStore: jest.fn(),
+}));
+
+const mockedUseNavigationStore = useNavigationStore as unknown as jest.Mock;
 
 describe("IndoorItineraryHeader", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockStore.start = null;
-    mockStore.end = null;
+    mockStore.startLocation = undefined;
+    mockStore.endLocation = undefined;
+
+    mockedUseNavigationStore.mockReturnValue(mockStore);
   });
 
   it("renders default start and end labels", () => {
-    const { getByText, getByTestId } = render(
-      <IndoorItineraryHeader
-        buildingCode="VL"
-        buildingName="Vanier Library"
-      />,
-    );
+    const { getByText, getByTestId } = render(<IndoorItineraryHeader />);
 
     expect(getByTestId("indoor-itinerary-header")).toBeTruthy();
     expect(getByText("Select start")).toBeTruthy();
@@ -74,92 +88,58 @@ describe("IndoorItineraryHeader", () => {
   });
 
   it("renders display labels when available", () => {
-    mockStore.start = {
-      label: "Start A",
-      displayLabel: "Hall Building",
+    mockStore.startLocation = {
+      name: "Hall Building",
     };
-    mockStore.end = {
-      label: "End B",
-      displayLabel: "Library Entrance",
+    mockStore.endLocation = {
+      name: "Library Entrance",
     };
 
-    const { getByText } = render(
-      <IndoorItineraryHeader
-        buildingCode="VL"
-        buildingName="Vanier Library"
-      />,
-    );
+    const { getByText } = render(<IndoorItineraryHeader />);
 
     expect(getByText("Hall Building")).toBeTruthy();
     expect(getByText("Library Entrance")).toBeTruthy();
   });
 
   it("opens drawer when menu is pressed", () => {
-    const { getByTestId } = render(
-      <IndoorItineraryHeader
-        buildingCode="VL"
-        buildingName="Vanier Library"
-      />,
-    );
+    const { getByTestId } = render(<IndoorItineraryHeader />);
 
     fireEvent.press(getByTestId("open-drawer-btn"));
 
     expect(mockDispatch).toHaveBeenCalledWith({ type: "OPEN_DRAWER" });
   });
 
-  it("handles back press by exiting itinerary and clearing selected room", () => {
-    const { getByTestId } = render(
-      <IndoorItineraryHeader
-        buildingCode="VL"
-        buildingName="Vanier Library"
-      />,
-    );
+  it("navigates back to map when back is pressed", () => {
+    const { getByTestId } = render(<IndoorItineraryHeader />);
 
     fireEvent.press(getByTestId("itinerary-back-btn"));
 
-    expect(mockStore.exitItinerary).toHaveBeenCalled();
-    expect(mockStore.setSelectedRoom).toHaveBeenCalledWith(null);
+    expect(mockReplace).toHaveBeenCalledWith("/map");
   });
 
-  it("sets pick mode to start and navigates to indoor search", () => {
-    const { getByText } = render(
-      <IndoorItineraryHeader
-        buildingCode="VL"
-        buildingName="Vanier Library"
-      />,
-    );
+  it("sets modifying field to start and navigates to indoor search", () => {
+    const { getByText } = render(<IndoorItineraryHeader />);
 
     fireEvent.press(getByText("Select start"));
 
-    expect(mockStore.setPickMode).toHaveBeenCalledWith("start");
+    expect(mockStore.setModifyingField).toHaveBeenCalledWith(
+      ModifyingFieldOptions.start
+    );
     expect(mockPush).toHaveBeenCalledWith({
       pathname: "/indoor-search",
-      params: {
-        buildingCode: "VL",
-        buildingName: "Vanier Library",
-        itineraryField: "start",
-      },
     });
   });
 
-  it("sets pick mode to end and navigates to indoor search", () => {
-    const { getByText } = render(
-      <IndoorItineraryHeader
-        buildingCode="VL"
-        buildingName="Vanier Library"
-      />,
-    );
+  it("sets modifying field to end and navigates to indoor search", () => {
+    const { getByText } = render(<IndoorItineraryHeader />);
 
     fireEvent.press(getByText("Select destination"));
 
-    expect(mockStore.setPickMode).toHaveBeenCalledWith("end");
+    expect(mockStore.setModifyingField).toHaveBeenCalledWith(
+      ModifyingFieldOptions.end
+    );
     expect(mockPush).toHaveBeenCalledWith({
       pathname: "/indoor-search",
-      params: {
-        buildingCode: "VL",
-        buildingName: "Vanier Library",
-        itineraryField: "end",
-      },
     });
   });
 });

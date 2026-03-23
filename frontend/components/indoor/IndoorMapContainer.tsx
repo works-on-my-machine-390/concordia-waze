@@ -1,3 +1,4 @@
+import { IndoorMapPageParams } from "@/app/(drawer)/indoor-map";
 import FloorPlanViewer from "@/components/indoor/FloorPlanViewer";
 import FloorSelector from "@/components/indoor/FloorSelector";
 import NoAccessibleRouteNotice from "@/components/indoor/NoAccessibleRouteNotice";
@@ -7,9 +8,8 @@ import type {
   FloorSegment,
 } from "@/hooks/queries/indoorDirectionsQueries";
 import { useGetBuildingFloors } from "@/hooks/queries/indoorMapQueries";
-import { useIndoorNavigationStore } from "@/hooks/useIndoorNavigationStore";
-import { useIndoorSearchStore } from "@/hooks/useIndoorSearchStore";
-import { useEffect, useMemo, useState } from "react";
+import { router, useLocalSearchParams } from "expo-router";
+import { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 
 export type SelectedPoint = {
@@ -23,282 +23,25 @@ type Props = {
   routeSegments?: FloorSegment[] | null;
   preferredFloorNumber?: number | null;
   floorSelectorBottomOffset?: number;
-  selectedRoomFromSearch?: string;
-  selectedFloorFromSearch?: number;
-  selectedPoiCoordFromSearch?: Coordinates;
-
-  disablePoiSelection?: boolean;
-  hideBottomSheetSection?: boolean;
-  hideFloorSelector?: boolean;
-  navigationStartOverride?: Coordinates;
-  navigationPathColor?: string;
-  navigationStepIndex?: number;
-
   requireAccessible?: boolean;
-};
-
-const normalizeName = (s: string) => s.trim().toLowerCase().replace(/\s+/g, "");
-
-const normalizeType = (s?: string) =>
-  (s ?? "").trim().toLowerCase().replace(/\s+/g, "_");
-
-const isTransitionPoi = (type?: string) => {
-  const t = normalizeType(type);
-  return t === "stairs" || t === "elevator";
-};
-
-const dist2 = (a: { x: number; y: number }, b: { x: number; y: number }) => {
-  const dx = a.x - b.x;
-  const dy = a.y - b.y;
-  return dx * dx + dy * dy;
-};
-
-const findNearestTransitionPoi = (
-  pois: {
-    type?: string;
-    name?: string | null;
-    position: { x: number; y: number };
-  }[],
-  point: { x: number; y: number },
-) => {
-  let best: (typeof pois)[number] | null = null;
-  let bestD = Number.POSITIVE_INFINITY;
-
-  for (const poi of pois) {
-    if (!isTransitionPoi(poi.type)) continue;
-    const d = dist2(poi.position, point);
-    if (d < bestD) {
-      bestD = d;
-      best = poi;
-    }
-  }
-  return best;
-};
-
-const cleanPath = (pts: Coordinates[]) => {
-  if (pts.length < 2) return pts;
-
-  const out: Coordinates[] = [pts[0]];
-  for (let i = 1; i < pts.length; i++) {
-    const prev = out.at(-1);
-    const curr = pts[i];
-
-    if (!prev) continue;
-
-    const dx = prev.x - curr.x;
-    const dy = prev.y - curr.y;
-    if (dx * dx + dy * dy > 0.0000005) out.push(curr);
-  }
-  return out;
 };
 
 export default function IndoorMapContainer({
   buildingCode,
-  routeSegments = null,
-  preferredFloorNumber = null,
   floorSelectorBottomOffset = 24,
-  selectedRoomFromSearch,
-  selectedFloorFromSearch,
-  selectedPoiCoordFromSearch,
-  disablePoiSelection = false,
-  hideBottomSheetSection = false,
-  hideFloorSelector = false,
-  navigationStartOverride,
-  navigationPathColor,
-  navigationStepIndex,
   requireAccessible = false,
 }: Readonly<Props>) {
-  const navMode = useIndoorNavigationStore((s) => s.mode);
-  const navCurrentFloor = useIndoorNavigationStore((s) => s.currentFloor);
-  const navEnd = useIndoorNavigationStore((s) => s.end);
-  const navStart = useIndoorNavigationStore((s) => s.start);
-  const navSelectedRoom = useIndoorNavigationStore((s) => s.selectedRoom);
-  const setCurrentFloor = useIndoorNavigationStore((s) => s.setCurrentFloor);
-  const setSelectedRoom = useIndoorNavigationStore((s) => s.setSelectedRoom);
-  const setStart = useIndoorNavigationStore((s) => s.setStart);
-  const setPickMode = useIndoorNavigationStore((s) => s.setPickMode);
-  const clearRoute = useIndoorNavigationStore((s) => s.clearRoute);
+  const params = useLocalSearchParams<IndoorMapPageParams>();
 
-  const clearSelectedPoiFilter = useIndoorSearchStore(
-    (s) => s.clearSelectedPoiFilter,
-  );
-
-  const [selectedFloor, setSelectedFloor] = useState<number | null>(null);
   const [accessibilityRouteUnavailable, setAccessibilityRouteUnavailable] =
     useState(false);
 
   const { data, isLoading, error } = useGetBuildingFloors(buildingCode);
   const { data: buildingData } = useGetBuildingDetails(buildingCode);
 
-  const availableFloorNumbers = useMemo(
-    () => data?.floors?.map((floor) => floor.number) ?? [],
-    [data?.floors],
-  );
-
-  const resolvedFloor = useMemo(() => {
-    if (availableFloorNumbers.length === 0) {
-      return null;
-    }
-
-    if (
-      navMode === "BROWSE" &&
-      selectedFloorFromSearch != null &&
-      availableFloorNumbers.includes(selectedFloorFromSearch)
-    ) {
-      return selectedFloorFromSearch;
-    }
-
-    if (
-      navCurrentFloor != null &&
-      availableFloorNumbers.includes(navCurrentFloor)
-    ) {
-      return navCurrentFloor;
-    }
-
-    if (
-      preferredFloorNumber != null &&
-      availableFloorNumbers.includes(preferredFloorNumber)
-    ) {
-      return preferredFloorNumber;
-    }
-
-    return availableFloorNumbers[0] ?? null;
-  }, [
-    availableFloorNumbers,
-    navMode,
-    selectedFloorFromSearch,
-    navCurrentFloor,
-    preferredFloorNumber,
-  ]);
-
   useEffect(() => {
     setAccessibilityRouteUnavailable(false);
   }, [requireAccessible]);
-
-  useEffect(() => {
-    if (resolvedFloor == null) return;
-
-    setSelectedFloor((prev) => (prev === resolvedFloor ? prev : resolvedFloor));
-  }, [resolvedFloor]);
-
-  useEffect(() => {
-    if (resolvedFloor == null || navCurrentFloor === resolvedFloor) return;
-
-    setCurrentFloor?.(resolvedFloor);
-  }, [resolvedFloor, navCurrentFloor, setCurrentFloor]);
-
-  const currentFloor =
-    selectedFloor == null
-      ? undefined
-      : (data?.floors?.find((f) => f.number === selectedFloor) ??
-        data?.floors?.[0]);
-
-  const { routePathForCurrentFloor, extraHighlightedPoiNames } = useMemo(() => {
-    if (!routeSegments || selectedFloor == null || !data?.floors?.length) {
-      return {
-        routePathForCurrentFloor: null as Coordinates[] | null,
-        extraHighlightedPoiNames: [] as string[],
-      };
-    }
-
-    const idx = routeSegments.findIndex((s) => s.floorNumber === selectedFloor);
-    if (idx === -1) {
-      return {
-        routePathForCurrentFloor: null as Coordinates[] | null,
-        extraHighlightedPoiNames: [] as string[],
-      };
-    }
-
-    const seg = routeSegments[idx];
-    const path = seg?.path ?? null;
-
-    if (!path || path.length < 2) {
-      return {
-        routePathForCurrentFloor: path,
-        extraHighlightedPoiNames: [] as string[],
-      };
-    }
-
-    if (routeSegments.length < 2) {
-      return {
-        routePathForCurrentFloor: path,
-        extraHighlightedPoiNames: [] as string[],
-      };
-    }
-
-    const floorObj =
-      data.floors.find((f) => f.number === selectedFloor) ?? data.floors[0];
-
-    const pois = floorObj?.pois ?? [];
-    const adjusted = [...path];
-    const extraNames: string[] = [];
-
-    if (idx > 0) {
-      const startPt = adjusted[0];
-      const nearest = findNearestTransitionPoi(pois as any, startPt);
-
-      if (nearest?.name) {
-        extraNames.push(nearest.name);
-        adjusted[0] = { x: nearest.position.x, y: nearest.position.y };
-      }
-    }
-
-    if (idx < routeSegments.length - 1) {
-      const endPt = adjusted.at(-1);
-
-      if (endPt) {
-        const nearest = findNearestTransitionPoi(pois as any, endPt);
-
-        if (nearest?.name) {
-          extraNames.push(nearest.name);
-          adjusted[adjusted.length - 1] = {
-            x: nearest.position.x,
-            y: nearest.position.y,
-          };
-        }
-      }
-    }
-
-    const unique = Array.from(new Set(extraNames.map(normalizeName))).map(
-      (nrm) => {
-        const found = extraNames.find((x) => normalizeName(x) === nrm);
-        return found ?? nrm;
-      },
-    );
-
-    return {
-      routePathForCurrentFloor: cleanPath(adjusted),
-      extraHighlightedPoiNames: unique,
-    };
-  }, [routeSegments, selectedFloor, data?.floors]);
-
-  const handleSelectPoiName = (name: string) => {
-    if (disablePoiSelection) return;
-    if (!currentFloor) return;
-
-    const poi = currentFloor.pois.find((p) => (p.name ?? "") === name);
-    if (!poi) return;
-
-    const point: SelectedPoint = {
-      label: poi.name ?? "Room",
-      floor: currentFloor.number,
-      coord: { x: poi.position.x, y: poi.position.y },
-    };
-
-    if (navMode === "BROWSE") {
-      setSelectedRoom(point);
-      return;
-    }
-
-    setStart(point);
-    setPickMode("start");
-    clearRoute();
-  };
-
-  const highlightedPoiName =
-    navMode === "ITINERARY"
-      ? (navEnd?.label ?? navStart?.label)
-      : navSelectedRoom?.label;
 
   if (isLoading) {
     return (
@@ -328,7 +71,7 @@ export default function IndoorMapContainer({
     );
   }
 
-  if (selectedFloor === null || !currentFloor) {
+  if (!params.selectedFloor) {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" />
@@ -339,40 +82,25 @@ export default function IndoorMapContainer({
   return (
     <View style={styles.container}>
       <FloorPlanViewer
-        key={selectedFloor}
-        floor={currentFloor}
-        routePath={routePathForCurrentFloor}
-        selectedPoiName={highlightedPoiName}
-        onSelectPoiName={handleSelectPoiName}
-        extraHighlightedPoiNames={extraHighlightedPoiNames}
-        buildingCode={buildingCode}
+        key={params.selectedFloor}
+        floor={data?.floors.find(
+          (f) => f.number == Number.parseInt(params.selectedFloor),
+        )}
         buildingName={buildingData?.long_name || ""}
         metroAccessible={buildingData?.metro_accessible}
-        initialSelectedRoom={selectedRoomFromSearch}
-        initialSelectedPoiCoord={selectedPoiCoordFromSearch}
-        disablePoiSelection={disablePoiSelection}
-        navigationStartOverride={navigationStartOverride}
-        navigationPathColor={navigationPathColor}
-        navigationStepIndex={navigationStepIndex}
-        hideBottomSheetSection={hideBottomSheetSection}
-        requireAccessible={requireAccessible}
-        onAccessibilityRouteUnavailable={() =>
-          setAccessibilityRouteUnavailable(true)
-        }
       />
 
-      {!hideFloorSelector && (
-        <FloorSelector
-          floors={data.floors}
-          selectedFloor={selectedFloor}
-          onSelectFloor={(floorNum) => {
-            clearSelectedPoiFilter();
-            setSelectedFloor(floorNum);
-            setCurrentFloor?.(floorNum);
-          }}
-          bottomOffset={floorSelectorBottomOffset}
-        />
-      )}
+      <FloorSelector
+        floors={data.floors}
+        selectedFloor={Number.parseInt(params.selectedFloor)}
+        onSelectFloor={(floorNumber: number) =>
+          router.setParams({
+            selectedFloor: floorNumber.toString(),
+            selectedPoiName: null, // reset selected POI when changing floors
+          })
+        }
+        bottomOffset={floorSelectorBottomOffset}
+      />
 
       <NoAccessibleRouteNotice visible={accessibilityRouteUnavailable} />
     </View>

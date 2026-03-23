@@ -1,3 +1,15 @@
+/**
+ * This entire file was highly vibe coded by the original author.
+ * There's quite literally 0 explanations as to what any of these functions do
+ * There's just a single exported functions that generates a certain format of indoor navigation steps
+ * from the backend's response segments.
+ * 
+ * I don't know how it works. I don't think the original author does either.
+ * Integrating the indoor directions with the outdoor ones (for #178) was a huge pain because of how
+ * unmaintainable the indoor navigation is. Thanks a lot.
+ * @author of this comment: @eplxy
+ */
+
 import type {
   Coordinates,
   FloorSegment,
@@ -135,13 +147,14 @@ export function estimateDurationMinutes(distanceMeters: number) {
 }
 
 function buildSvgSizeByFloor(
-  floors: Floor[],
+  floors?: Floor[] | null,
 ): Promise<Record<number, { width: number; height: number } | null>> {
   const svgSizeByFloor: Record<number, { width: number; height: number } | null> =
     {};
+  const safeFloors = floors ?? [];
 
   return Promise.all(
-    floors.map(async (floor) => {
+    safeFloors.map(async (floor) => {
       svgSizeByFloor[floor.number] = await getSvgSizeFromImgPath(floor.imgPath);
     }),
   ).then(() => svgSizeByFloor);
@@ -382,16 +395,21 @@ function addRemainingDistances(
 }
 
 export async function buildIndoorNavigationSteps(args: {
-  segments: FloorSegment[];
-  floors: Floor[];
+  segments?: FloorSegment[] | null;
+  floors?: Floor[] | null;
   transitionType: TransitionType | null;
   exactTotalDistanceMeters?: number | null;
 }) {
   const { segments, floors, transitionType, exactTotalDistanceMeters } = args;
 
+  const safeSegments = segments ?? [];
+  if (safeSegments.length === 0) {
+    return [];
+  }
+
   const svgSizeByFloor = await buildSvgSizeByFloor(floors);
   const rawSteps = buildRawSteps({
-    segments,
+    segments: safeSegments,
     svgSizeByFloor,
     transitionType,
   });

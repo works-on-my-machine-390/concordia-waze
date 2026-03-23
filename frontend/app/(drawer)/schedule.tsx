@@ -1,41 +1,55 @@
 import SyncCalendarButton from "@/components/SyncGoogleCalendarButton";
 import ScheduleListView from "@/components/schedule/ScheduleListView";
 import WeeklyScheduleView from "@/components/schedule/WeeklyScheduleView";
+import { DrawerActions, useNavigation } from "@react-navigation/native";
+import BottomSheet from "@gorhom/bottom-sheet";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useMemo, useState, useRef } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { getGuestCourses } from "../../hooks/guestStorage";
-import { useCourses, type CourseItem } from "../../hooks/queries/googleCalendarQueries";
+import {
+  useCourses,
+  type CourseItem,
+} from "../../hooks/queries/googleCalendarQueries";
 import { COLORS } from "../constants";
 import { AddIcon, MenuIcon } from "../icons";
 import { normalizeScheduleCourses } from "../utils/schedule/normalizeScheduleCourses";
-import { DrawerActions, useNavigation } from "@react-navigation/native";
-import BottomSheet from "@gorhom/bottom-sheet";
-
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Schedule() {
   const nav = useNavigation();
   const router = useRouter();
   const [guestCourses, setGuestCourses] = useState<CourseItem[]>([]);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { checkToken } = useAuth();
   const { data: syncedCourses = [] } = useCourses();
   const bottomSheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ["20%", "45%", "80%"], []);
 
   useFocusEffect(
     useCallback(() => {
-      const loadGuestCourses = async () => {
-        const storedCourses = await getGuestCourses();
-        setGuestCourses(storedCourses);
-      };
+      const loadData = async () => {
+        const loggedIn = await checkToken();
+        setIsLoggedIn(loggedIn);
 
-      loadGuestCourses();
-    }, []),
+        if (!loggedIn) {
+          const storedCourses = await getGuestCourses();
+          setGuestCourses(storedCourses);
+        }
+      };
+      loadData();
+    }, [checkToken]),
+  );
+
+  const visibleCourses = useMemo(
+    () => (isLoggedIn ? syncedCourses : guestCourses),
+    [isLoggedIn, syncedCourses, guestCourses],
   );
 
   const allCourses = useMemo(
-    () => normalizeScheduleCourses([...guestCourses, ...syncedCourses]),
-    [guestCourses, syncedCourses],
+    () => normalizeScheduleCourses(visibleCourses),
+    [visibleCourses],
   );
 
   return (
@@ -67,15 +81,16 @@ export default function Schedule() {
       </View>
 
       <WeeklyScheduleView courses={allCourses} />
+
       <BottomSheet
-      ref={bottomSheetRef}
-      index={1}
-      snapPoints={snapPoints}
-      enablePanDownToClose={false}
+        ref={bottomSheetRef}
+        index={1}
+        snapPoints={snapPoints}
+        enablePanDownToClose={false}
       >
         <View style={styles.bottomSheetContent}>
           <ScheduleListView courses={allCourses} />
-          </View>
+        </View>
       </BottomSheet>
     </SafeAreaView>
   );
@@ -102,6 +117,6 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   bottomSheetContent: {
-  flex: 1,
-},
+    flex: 1,
+  },
 });
