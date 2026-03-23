@@ -1,5 +1,5 @@
 import {
-	DirectionsModel,
+	OutdoorDirectionsModel,
 	StepModel,
 	TransitMode,
 	TransitType,
@@ -52,16 +52,16 @@ describe("OutdoorNavigationTransitSteps", () => {
 	});
 
 	const createDirections = (
-		overrides?: Partial<DirectionsModel>,
-	): DirectionsModel => ({
-		mode: TransitMode.TRANSIT,
+		overrides?: Partial<OutdoorDirectionsModel>,
+	): OutdoorDirectionsModel => ({
+		mode: TransitMode.transit,
 		duration: "18 min",
 		distance: "2.6 km",
 		departure_message: "Depart now",
 		polyline: "route-polyline",
 		steps: [
 			createStep({
-				travel_mode: TransitMode.TRANSIT,
+				travel_mode: TransitMode.transit,
 				departure_stop: "Guy-Concordia",
 				arrival_stop: "Atwater",
 				departure_time: "10:15 AM",
@@ -86,7 +86,7 @@ describe("OutdoorNavigationTransitSteps", () => {
 		const directions = createDirections({
 			steps: [
 				createStep({
-					travel_mode: TransitMode.WALKING,
+					travel_mode: TransitMode.walking,
 					instruction: "Walk to bus stop",
 					distance: "0.3 km",
 					duration: "3 min",
@@ -115,18 +115,20 @@ describe("OutdoorNavigationTransitSteps", () => {
 				name: "H - Hall Building",
 				latitude: 45.497,
 				longitude: -73.579,
+				code: "H",
 			},
 			endLocation: {
 				name: "Loyola Campus",
 				latitude: 45.458,
 				longitude: -73.64,
+				code: "LOY",
 			},
 		});
 
 		const directions = createDirections({
 			steps: [
 				createStep({
-					travel_mode: TransitMode.TRANSIT,
+					travel_mode: TransitMode.transit,
 					departure_stop: "Guy-Concordia",
 					arrival_stop: "Atwater",
 					departure_time: "10:15 AM",
@@ -164,7 +166,7 @@ describe("OutdoorNavigationTransitSteps", () => {
 		const directions = createDirections({
 			steps: [
 				createStep({
-					travel_mode: TransitMode.TRANSIT,
+					travel_mode: TransitMode.transit,
 					transit_type: TransitType.BUS,
 					transit_line: "105",
 					transit_headsign: "Downtown",
@@ -176,7 +178,7 @@ describe("OutdoorNavigationTransitSteps", () => {
 					polyline: "transit-polyline-2",
 				}),
 				createStep({
-					travel_mode: TransitMode.WALKING,
+					travel_mode: TransitMode.walking,
 					instruction: "Walk to destination",
 					duration: "6 min",
 					distance: "0.5 km",

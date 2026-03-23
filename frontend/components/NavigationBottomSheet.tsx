@@ -1,13 +1,26 @@
+import NavigationBottomSheetStyles from "@/app/styles/navigationBottomSheetStyles";
 import { getIsCrossCampus } from "@/app/utils/mapUtils";
+import { formatDuration } from "@/app/utils/stringUtils";
 import {
+  DirectionsResponseBlockType,
   TransitMode,
-  useGetAllModesDirections,
+  useGetDirections,
 } from "@/hooks/queries/navigationQueries";
+import useMapSettings, { MapSettings } from "@/hooks/useMapSettings";
 import { useMapStore } from "@/hooks/useMapStore";
-import { useNavigationStore } from "@/hooks/useNavigationStore";
+import {
+  OutdoorNavigableLocation,
+  useNavigationStore,
+} from "@/hooks/useNavigationStore";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { useEffect, useMemo } from "react";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  Image,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { COLORS } from "../app/constants";
@@ -18,7 +31,9 @@ import {
   TrainIcon,
   WalkingIcon,
 } from "../app/icons";
+import AccessibilityToggle from "./indoor/AccessibilityToggle";
 import OutdoorNavigationSteps from "./OutdoorNavigationSteps";
+import StartNavigationButton from "./StartNavigationButton";
 
 const concordiaLogo = require("../assets/images/concordia_logo.png");
 
@@ -27,95 +42,132 @@ export type NavigationBottomSheetProps = {};
 export default function NavigationBottomSheet(
   props: Readonly<NavigationBottomSheetProps>,
 ) {
+  const { mapSettings, updateSetting } = useMapSettings();
+  const navigationState = useNavigationStore();
+
   const insets = useSafeAreaInsets();
 
-  const queries = useGetAllModesDirections(
-    useNavigationStore().startLocation,
-    useNavigationStore().endLocation,
+  const query = useGetDirections(
+    navigationState.startLocation,
+    navigationState.endLocation,
     new Date(),
+    mapSettings.preferAccessibleRoutes,
   );
-  const directionsData = queries.map((query) => query.data);
+
+  const isLoading = query.isLoading || query.isRefetching;
+  const isError = query.isError;
+
+  useEffect(() => {
+    if (query.data) {
+      navigationState.setCurrentDirections(query.data);
+    }
+  }, [query.data]);
+
+  const durationsByMode = query.data?.durationBlock?.durations;
+  const outdoorBlock = query.data?.directionBlocks.find(
+    (block) => block.type === DirectionsResponseBlockType.OUTDOOR,
+  );
 
   const closeSheet = useMapStore((state) => state.closeSheet);
 
-  const navigationState = useNavigationStore();
+  const handleCloseSheet = () => {
+    navigationState.clearState();
+    closeSheet();
+  };
+  const handleToggleAccessibility = () => {
+    updateSetting(
+      MapSettings.preferAccessibleRoutes,
+      !mapSettings.preferAccessibleRoutes,
+    );
+  };
 
   const isCrossCampus = useMemo(() => {
     if (!navigationState.startLocation || !navigationState.endLocation)
       return false;
     return getIsCrossCampus(
-      navigationState.startLocation,
-      navigationState.endLocation,
+      navigationState.startLocation as OutdoorNavigableLocation,
+      navigationState.endLocation as OutdoorNavigableLocation,
     );
   }, [navigationState.startLocation, navigationState.endLocation]);
 
   const transitOptions = useMemo(() => {
     const baseOptions = [
       {
-        mode: TransitMode.DRIVING,
+        mode: TransitMode.driving,
         Icon: CarIcon,
         label: "Drive",
-        duration:
-          directionsData.find(
-            (data) => data?.mode.toUpperCase() === TransitMode.DRIVING,
-          )?.duration || "",
+        duration: formatDuration(durationsByMode?.[TransitMode.driving]) || "",
+        disabled: !durationsByMode?.[TransitMode.driving.toLowerCase()],
       },
       {
-        mode: TransitMode.TRANSIT,
+        mode: TransitMode.transit,
         Icon: TrainIcon,
         label: "Transit",
-        duration:
-          directionsData.find(
-            (data) => data?.mode.toUpperCase() === TransitMode.TRANSIT,
-          )?.duration || "",
+        duration: formatDuration(durationsByMode?.[TransitMode.transit]) || "",
+        disabled: !durationsByMode?.[TransitMode.transit.toLowerCase()],
       },
       {
-        mode: TransitMode.WALKING,
+        mode: TransitMode.walking,
         Icon: WalkingIcon,
         label: "Walk",
-        duration:
-          directionsData.find(
-            (data) => data?.mode.toUpperCase() === TransitMode.WALKING,
-          )?.duration || "",
+        duration: formatDuration(durationsByMode?.[TransitMode.walking]) || "",
+        disabled: !durationsByMode?.[TransitMode.walking.toLowerCase()],
       },
       {
-        mode: TransitMode.BICYCLING,
+        mode: TransitMode.bicycling,
         Icon: BikeIcon,
         label: "Bike",
         duration:
-          directionsData.find(
-            (data) => data?.mode.toUpperCase() === TransitMode.BICYCLING,
-          )?.duration || "",
+          formatDuration(durationsByMode?.[TransitMode.bicycling]) || "",
+        disabled: !durationsByMode?.[TransitMode.bicycling.toLowerCase()],
       },
       {
-        mode: TransitMode.SHUTTLE,
+        mode: TransitMode.shuttle,
         image: concordiaLogo,
         label: "Shuttle",
-        // does not have a duration for now, see #240
         duration:
-          directionsData.find(
-            (data) => data?.mode.toUpperCase() === TransitMode.SHUTTLE,
-          )?.duration || "",
+          (isCrossCampus &&
+            formatDuration(durationsByMode?.[TransitMode.shuttle])) ||
+          "",
+        disabled:
+          !isCrossCampus ||
+          !durationsByMode?.[TransitMode.shuttle.toLowerCase()],
       },
     ];
 
     if (isCrossCampus) {
       const shuttleOption = baseOptions.find(
-        (option) => option.mode === TransitMode.SHUTTLE,
+        (option) => option.mode === TransitMode.shuttle,
       );
       const otherOptions = baseOptions.filter(
-        (option) => option.mode !== TransitMode.SHUTTLE,
+        (option) => option.mode !== TransitMode.shuttle,
       );
-      return shuttleOption ? [shuttleOption, ...otherOptions] : baseOptions;
+      return shuttleOption &&
+        !!outdoorBlock?.directionsByMode[TransitMode.shuttle.toLowerCase()]
+        ? [shuttleOption, ...otherOptions]
+        : baseOptions;
+    } else {
+      return baseOptions.sort((option) => (option.disabled ? 1 : -1));
     }
-
-    return baseOptions;
-  }, [isCrossCampus, directionsData]);
+  }, [isCrossCampus, durationsByMode]);
 
   useEffect(() => {
     const hasSelectedMode = transitOptions.some(
       (option) => option.mode === navigationState.transitMode,
     );
+
+    if (
+      hasSelectedMode &&
+      transitOptions.find(
+        (option) => option.mode === navigationState.transitMode,
+      )?.disabled &&
+      transitOptions.some((option) => !option.disabled)
+    ) {
+      navigationState.setTransitMode(
+        transitOptions.find((option) => !option.disabled)?.mode,
+      );
+      return;
+    }
 
     if (transitOptions.length > 0 && !hasSelectedMode) {
       navigationState.setTransitMode(transitOptions[0].mode);
@@ -131,6 +183,11 @@ export default function NavigationBottomSheet(
     if (!navigationState.startLocation) return ["14%", "70%"];
     return ["20%", "70%"];
   }, [navigationState.startLocation]);
+
+  const areIndoorStepsPresent =
+    navigationState.currentDirections?.directionBlocks.some(
+      (block) => block.type === DirectionsResponseBlockType.INDOOR,
+    );
 
   return (
     <BottomSheet
@@ -162,18 +219,50 @@ export default function NavigationBottomSheet(
                   </Text>
                 )}
             </View>
-            <TouchableOpacity
-              onPress={closeSheet}
-              style={NavigationBottomSheetStyles.closeIcon}
-              testID="close-navigation"
-              accessibilityLabel="Close navigation"
-              accessibilityRole="button"
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 10,
+              }}
             >
-              <CloseIcon size={28} />
-            </TouchableOpacity>
+              {areIndoorStepsPresent && (
+                <AccessibilityToggle
+                  isActive={mapSettings.preferAccessibleRoutes}
+                  onToggle={handleToggleAccessibility}
+                  isNavigationBottomSheet
+                />
+              )}
+              <StartNavigationButton disabled={isError || isLoading} />
+              <TouchableOpacity
+                onPress={handleCloseSheet}
+                style={NavigationBottomSheetStyles.closeIcon}
+                testID="close-navigation"
+                accessibilityLabel="Close navigation"
+                accessibilityRole="button"
+              >
+                <CloseIcon size={28} />
+              </TouchableOpacity>
+            </View>
           </View>
 
-          {!!navigationState.startLocation && (
+          {isLoading && (
+            <View
+              style={{ width: "100%", marginTop: 20, alignItems: "center" }}
+            >
+              <ActivityIndicator size="large" color={COLORS.conuRed} />
+            </View>
+          )}
+          {isError && (
+            <View
+              style={{ width: "100%", marginTop: 20, alignItems: "center" }}
+            >
+              <Text style={NavigationBottomSheetStyles.errorText}>
+                Error fetching directions. Please try a different location.
+              </Text>
+            </View>
+          )}
+          {!!navigationState.startLocation && !isLoading && !isError && (
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -181,54 +270,55 @@ export default function NavigationBottomSheet(
               contentContainerStyle={NavigationBottomSheetStyles.transitRow}
               nestedScrollEnabled={true}
             >
-              {transitOptions.map(({ mode, Icon, image, duration }) => {
-                const selected = navigationState.transitMode === mode;
-                const disabled = mode === TransitMode.SHUTTLE && !isCrossCampus;
-                return (
-                  <TouchableOpacity
-                    key={mode}
-                    style={[
-                      NavigationBottomSheetStyles.transitChip,
-                      selected &&
-                        NavigationBottomSheetStyles.transitChipSelected,
-                      disabled &&
-                        NavigationBottomSheetStyles.transitChipDisabled,
-                    ]}
-                    onPress={() =>
-                      !disabled && navigationState.setTransitMode(mode)
-                    }
-                    disabled={disabled}
-                  >
-                    {Icon ? (
-                      <Icon
-                        size={18}
-                        color={selected ? "#fff" : COLORS.textPrimary}
-                      />
-                    ) : (
-                      <View style={disabled ? { opacity: 0.5 } : {}}>
-                        <Image
-                          source={image}
-                          style={{ width: 18, height: 18 }}
-                          resizeMode="contain"
-                        />
-                      </View>
-                    )}
-                    {!!duration && (
-                      <Text
-                        style={[
-                          NavigationBottomSheetStyles.transitChipText,
-                          selected &&
-                            NavigationBottomSheetStyles.transitChipTextSelected,
-                          disabled &&
-                            NavigationBottomSheetStyles.transitChipTextDisabled,
-                        ]}
-                      >
-                        {duration}
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
+              {transitOptions.map(
+                ({ mode, Icon, image, duration, disabled }) => {
+                  const selected = navigationState.transitMode === mode;
+                  let iconColor = COLORS.textPrimary;
+                  if (selected) iconColor = "#fff";
+                  if (disabled) iconColor = COLORS.textMuted;
+                  return (
+                    <TouchableOpacity
+                      key={mode}
+                      style={[
+                        NavigationBottomSheetStyles.transitChip,
+                        selected &&
+                          NavigationBottomSheetStyles.transitChipSelected,
+                        disabled &&
+                          NavigationBottomSheetStyles.transitChipDisabled,
+                      ]}
+                      onPress={() =>
+                        !disabled && navigationState.setTransitMode(mode)
+                      }
+                      disabled={disabled}
+                    >
+                      {Icon ? (
+                        <Icon size={18} color={iconColor} />
+                      ) : (
+                        <View style={disabled ? { opacity: 0.5 } : {}}>
+                          <Image
+                            source={image}
+                            style={{ width: 18, height: 18 }}
+                            resizeMode="contain"
+                          />
+                        </View>
+                      )}
+                      {!!duration && (
+                        <Text
+                          style={[
+                            NavigationBottomSheetStyles.transitChipText,
+                            selected &&
+                              NavigationBottomSheetStyles.transitChipTextSelected,
+                            disabled &&
+                              NavigationBottomSheetStyles.transitChipTextDisabled,
+                          ]}
+                        >
+                          {duration}
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+                  );
+                },
+              )}
             </ScrollView>
           )}
         </View>
@@ -241,9 +331,21 @@ export default function NavigationBottomSheet(
           ]}
           nestedScrollEnabled
         >
-          {!!navigationState.currentDirections && (
+          {!!navigationState.currentDirections && !isError && (
             <OutdoorNavigationSteps
-              directions={navigationState.currentDirections}
+              indoorDirectionBlocks={navigationState.currentDirections?.directionBlocks.filter(
+                (block) => block.type === DirectionsResponseBlockType.INDOOR,
+              )}
+              outdoorDirections={
+                navigationState.currentDirections.directionBlocks.find(
+                  (block) => block.type === DirectionsResponseBlockType.OUTDOOR,
+                )?.directionsByMode[selectedOption.mode || ""]
+              }
+              outdoorDirectionSequenceNumber={
+                navigationState.currentDirections.directionBlocks.find(
+                  (block) => block.type === DirectionsResponseBlockType.OUTDOOR,
+                )?.sequenceNumber
+              }
             />
           )}
         </BottomSheetScrollView>
@@ -251,125 +353,3 @@ export default function NavigationBottomSheet(
     </BottomSheet>
   );
 }
-
-const NavigationBottomSheetStyles = StyleSheet.create({
-  bottomSheet: {
-    backgroundColor: COLORS.background,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 12,
-  },
-
-  fakeHandleContainer: {
-    alignItems: "center",
-    paddingVertical: 10,
-    paddingTop: 8,
-  },
-
-  fakeHandleBar: {
-    width: 40,
-    height: 4,
-    backgroundColor: "#D1D1D6",
-    borderRadius: 2,
-  },
-
-  rootContent: {
-    flex: 1,
-  },
-
-  headerContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-
-  stepsScrollView: {
-    flex: 1,
-  },
-
-  navModeHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-  },
-
-  transitModeTitle: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: COLORS.textPrimary,
-  },
-  transitModeDuration: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
-    marginTop: 2,
-  },
-
-  transitRow: {
-    display: "flex",
-    flexDirection: "row",
-    gap: 8,
-    marginTop: 10,
-    paddingBottom: 4,
-    overflow: "visible",
-    minHeight: 40,
-  },
-
-  transitChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 20,
-    backgroundColor: "#f0f0f0",
-  },
-
-  transitChipSelected: {
-    backgroundColor: COLORS.maroon,
-  },
-  transitChipDisabled: {
-    backgroundColor: "#e0e0e0",
-  },
-
-  transitChipText: {
-    fontSize: 14,
-    color: COLORS.textPrimary,
-  },
-
-  transitChipTextSelected: {
-    color: "#fff",
-  },
-
-  transitChipTextDisabled: {
-    color: "#a0a0a0",
-  },
-
-  closeIcon: {
-    marginLeft: 7,
-  },
-
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 20,
-  },
-
-  emptyStateContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingTop: 40,
-  },
-
-  emptyStateImage: {
-    width: 120,
-    height: 120,
-    marginBottom: 16,
-  },
-
-  emptyStateText: {
-    fontSize: 16,
-    color: COLORS.textSecondary,
-    textAlign: "center",
-  },
-});

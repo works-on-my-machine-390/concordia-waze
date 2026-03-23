@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 16,
     gap: 10,
-    zIndex: 2000,
+    zIndex: 99, // bottom sheet is at 100
     elevation: 2000,
   },
   floorButton: {

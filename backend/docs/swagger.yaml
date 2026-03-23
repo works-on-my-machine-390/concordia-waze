@@ -151,6 +151,10 @@ definitions:
         type: string
       code:
         type: string
+      floors:
+        items:
+          $ref: '#/definitions/domain.Floor'
+        type: array
       latitude:
         type: number
       long_name:
@@ -852,6 +856,11 @@ paths:
         "LOY": [ ... ]
         }
         }
+      parameters:
+      - description: Whether to append floor information
+        in: query
+        name: appendFloors
+        type: boolean
       produces:
       - application/json
       responses:

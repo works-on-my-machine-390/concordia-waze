@@ -382,6 +382,14 @@ const docTemplate = `{
                     "buildings"
                 ],
                 "summary": "List all buildings grouped by campus",
+                "parameters": [
+                    {
+                        "type": "boolean",
+                        "description": "Whether to append floor information",
+                        "name": "appendFloors",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -2740,6 +2748,12 @@ const docTemplate = `{
                 },
                 "code": {
                     "type": "string"
+                },
+                "floors": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.Floor"
+                    }
                 },
                 "latitude": {
                     "type": "number"

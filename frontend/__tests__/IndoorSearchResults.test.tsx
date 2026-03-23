@@ -18,17 +18,17 @@ describe("IndoorSearchResults", () => {
 
   const mockResults: IndoorSearchResult[] = [
     {
-      poi: { name: "210", type: "room" },
+      poi: { name: "210", type: "room", building: "MB" },
       floor: { number: 2 },
       type: "room",
     },
     {
-      poi: { name: "poi_5", type: "bathroom" },
+      poi: { name: "poi_5", type: "bathroom", building: "MB" },
       floor: { number: 1 },
       type: "poi",
     },
     {
-      poi: { name: "892", type: "room" },
+      poi: { name: "892", type: "room", building: "MB" },
       floor: { number: 8 },
       type: "room",
     },
@@ -48,13 +48,13 @@ describe("IndoorSearchResults", () => {
     );
 
     expect(screen.getByText("MB210")).toBeOnTheScreen();
-    expect(screen.getByText("Floor 2")).toBeOnTheScreen();
+    expect(screen.getByText(/Floor 2/)).toBeOnTheScreen();
 
     expect(screen.getByText("poi_5")).toBeOnTheScreen();
-    expect(screen.getByText("Floor 1")).toBeOnTheScreen();
+    expect(screen.getByText(/Floor 1/)).toBeOnTheScreen();
 
     expect(screen.getByText("MB892")).toBeOnTheScreen();
-    expect(screen.getByText("Floor 8")).toBeOnTheScreen();
+    expect(screen.getByText(/Floor 8/)).toBeOnTheScreen();
   });
 
   it("calls formatIndoorPoiName for each result", () => {
@@ -82,7 +82,10 @@ describe("IndoorSearchResults", () => {
 
     fireEvent.press(screen.getByText("MB210"));
 
-    expect(mockOnResultSelect).toHaveBeenCalledWith("210", 2, "MB210");
+    expect(mockOnResultSelect).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "210", type: "room" }),
+      "MB210",
+    );
     expect(mockOnResultSelect).toHaveBeenCalledTimes(1);
   });
 
@@ -97,7 +100,10 @@ describe("IndoorSearchResults", () => {
 
     fireEvent.press(screen.getByText("poi_5"));
 
-    expect(mockOnResultSelect).toHaveBeenCalledWith("poi_5", 1, "poi_5");
+    expect(mockOnResultSelect).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "poi_5", type: "bathroom" }),
+      "poi_5",
+    );
   });
 
   it("renders empty state when no results provided", () => {
@@ -116,7 +122,7 @@ describe("IndoorSearchResults", () => {
   it("renders single result correctly", () => {
     const singleResult: IndoorSearchResult[] = [
       {
-        poi: { name: "101", type: "room" },
+        poi: { name: "101", type: "room", building: "MB" },
         floor: { number: 1 },
         type: "room",
       },
@@ -131,13 +137,13 @@ describe("IndoorSearchResults", () => {
     );
 
     expect(screen.getByText("MB101")).toBeOnTheScreen();
-    expect(screen.getByText("Floor 1")).toBeOnTheScreen();
+    expect(screen.getByText(/Floor 1/)).toBeOnTheScreen();
   });
 
   it("handles negative floor numbers", () => {
     const negativeFloorResult: IndoorSearchResult[] = [
       {
-        poi: { name: "B01", type: "room" },
+        poi: { name: "B01", type: "room", building: "MB" },
         floor: { number: -1 },
         type: "room",
       },
@@ -151,13 +157,13 @@ describe("IndoorSearchResults", () => {
       />
     );
 
-    expect(screen.getByText("Floor -1")).toBeOnTheScreen();
+    expect(screen.getByText(/Floor -1/)).toBeOnTheScreen();
   });
 
   it("handles zero floor number", () => {
     const zeroFloorResult: IndoorSearchResult[] = [
       {
-        poi: { name: "G01", type: "room" },
+        poi: { name: "G01", type: "room", building: "MB" },
         floor: { number: 0 },
         type: "room",
       },
@@ -171,7 +177,7 @@ describe("IndoorSearchResults", () => {
       />
     );
 
-    expect(screen.getByText("Floor 0")).toBeOnTheScreen();
+    expect(screen.getByText(/Floor 0/)).toBeOnTheScreen();
   });
 
   it("renders results in the order provided", () => {
@@ -193,17 +199,17 @@ describe("IndoorSearchResults", () => {
   it("handles multiple results on the same floor", () => {
     const sameFloorResults: IndoorSearchResult[] = [
       {
-        poi: { name: "210", type: "room" },
+        poi: { name: "210", type: "room", building: "MB" },
         floor: { number: 2 },
         type: "room",
       },
       {
-        poi: { name: "211", type: "room" },
+        poi: { name: "211", type: "room", building: "MB" },
         floor: { number: 2 },
         type: "room",
       },
       {
-        poi: { name: "poi_3", type: "bathroom" },
+        poi: { name: "poi_3", type: "bathroom", building: "MB" },
         floor: { number: 2 },
         type: "poi",
       },
@@ -217,7 +223,7 @@ describe("IndoorSearchResults", () => {
       />
     );
 
-    const floorLabels = screen.getAllByText("Floor 2");
+    const floorLabels = screen.getAllByText(/Floor 2/);
     expect(floorLabels).toHaveLength(3);
   });
 
@@ -237,10 +243,17 @@ describe("IndoorSearchResults", () => {
 
   it("passes correct buildingCode to formatting function", () => {
     const customBuildingCode = "H";
+    const fallbackBuildingResults: IndoorSearchResult[] = [
+      {
+        poi: { name: "210", type: "room" },
+        floor: { number: 2 },
+        type: "room",
+      },
+    ] as IndoorSearchResult[];
     
     render(
       <IndoorSearchResults
-        results={mockResults}
+        results={fallbackBuildingResults}
         buildingCode={customBuildingCode}
         onResultSelect={mockOnResultSelect}
       />
@@ -262,10 +275,13 @@ describe("IndoorSearchResults", () => {
       />
     );
 
-    const floorText = screen.getAllByText(/^Floor /)[0];
+    const floorText = screen.getAllByText(/Floor /)[0];
     fireEvent.press(floorText);
 
-    expect(mockOnResultSelect).toHaveBeenCalledWith("210", 2, "MB210");
+    expect(mockOnResultSelect).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "210", type: "room" }),
+      "MB210",
+    );
   });
 
   it("supports keyboard interaction props", () => {

@@ -10,7 +10,7 @@ import {
 } from "@/hooks/queries/buildingQueries";
 import { TextSearchRankPreferenceType } from "@/hooks/queries/poiQueries";
 import { MapMode, useMapStore } from "@/hooks/useMapStore";
-import { useNavigationStore } from "@/hooks/useNavigationStore";
+import { ModifyingFieldOptions, useNavigationStore } from "@/hooks/useNavigationStore";
 import { useNextClass } from "@/hooks/useNextClass";
 import { endTaskTimer, startTaskTimer } from "@/lib/telemetry";
 import * as Location from "expo-location";
@@ -382,6 +382,8 @@ export default function MainMap() {
   }, []);
 
   const handleStartLocationPress = () => {
+    navigationState.setModifyingField(ModifyingFieldOptions.start);
+
     router.push({
       pathname: "/search",
       params: {
@@ -395,6 +397,7 @@ export default function MainMap() {
   };
 
   const handleEndLocationPress = () => {
+    navigationState.setModifyingField(ModifyingFieldOptions.end);
     router.push({
       pathname: "/search",
       params: {

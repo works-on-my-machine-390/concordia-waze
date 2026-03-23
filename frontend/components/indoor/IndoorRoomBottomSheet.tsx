@@ -16,17 +16,21 @@ import {
 } from "../../app/icons";
 import { BottomSheetStyles } from "../BuildingBottomSheet";
 import { formatIndoorPoiName } from "../../app/utils/indoorNameFormattingUtils";
+import {
+  NavigationPhase,
+  useNavigationStore,
+} from "@/hooks/useNavigationStore";
+import { useLocalSearchParams } from "expo-router";
+import { IndoorMapPageParams } from "@/app/(drawer)/indoor-map";
+import { useQueryClient } from "@tanstack/react-query";
+import { Building } from "@/hooks/queries/buildingQueries";
+import useStartLocation from "@/hooks/useStartLocation";
+import { PointOfInterest } from "@/hooks/queries/indoorMapQueries";
+import { MapMode, useMapStore } from "@/hooks/useMapStore";
 
 export type IndoorRoomBottomSheetProps = {
-  roomCode: string;
-  buildingCode: string;
-  floorNumber: number;
-  coordX: number;
-  coordY: number;
-  roomType?: string | null;
+  selectedPoi: PointOfInterest;
   onClose: () => void;
-  onDirectionsPress?: () => void;
-  directionsDisabled?: boolean;
 };
 
 const DEFAULT_GUEST_USER_ID = "guest";
@@ -34,17 +38,12 @@ const DEFAULT_GUEST_USER_ID = "guest";
 export default function IndoorRoomBottomSheet(
   props: Readonly<IndoorRoomBottomSheetProps>,
 ) {
-  const {
-    roomCode,
-    buildingCode,
-    floorNumber,
-    coordX,
-    coordY,
-    roomType,
-    onClose,
-    onDirectionsPress,
-    directionsDisabled = false,
-  } = props;
+  const setMapMode = useMapStore((state) => state.setCurrentMode);
+  const queryClient = useQueryClient();
+  const { findAndSetStartLocation } = useStartLocation();
+
+  const navigationState = useNavigationStore(); // link to global navigation (not just indoors)
+  const params = useLocalSearchParams<IndoorMapPageParams>();
 
   const profileQuery = useGetProfile();
   const favoriteUserId = profileQuery.data?.id || DEFAULT_GUEST_USER_ID;
@@ -55,28 +54,55 @@ export default function IndoorRoomBottomSheet(
   const snapPoints = useMemo(() => ["15%"], []);
   const handleSheetChanges = useCallback((_index: number) => {}, []);
 
-  const isRoom = roomType?.toLowerCase() === "room";
+  const isRoom = props.selectedPoi.type?.toLowerCase() === "room";
 
   const displayTitle = formatIndoorPoiName(
-    roomCode,
-    roomType ?? "",
-    buildingCode,
+    props.selectedPoi.name,
+    props.selectedPoi.type ?? "",
+    params.buildingCode,
   );
 
   const displaySubtitle = isRoom ? "Room" : null;
-  const canPressDirections = !directionsDisabled && !!onDirectionsPress;
+
+  const handleNavigatePress = () => {
+    const buildingData: Building | undefined =
+      queryClient.getQueryData<Building>([
+        "buildingDetails",
+        params.buildingCode,
+      ]);
+
+    const endLocation = {
+      building: params.buildingCode,
+      floor_number: Number.parseInt(params.selectedFloor),
+      indoor_position: props.selectedPoi.position,
+      code: params.buildingCode,
+      name: displayTitle,
+      latitude: buildingData?.latitude ?? 0,
+      longitude: buildingData?.longitude ?? 0,
+    };
+
+    if (!navigationState.startLocation) {
+      findAndSetStartLocation(endLocation);
+    }
+
+    navigationState.setEndLocation(endLocation);
+
+    setMapMode(MapMode.NAVIGATION);
+    navigationState.setNavigationPhase(NavigationPhase.PREPARATION);
+    props.onClose?.();
+  };
 
   const existingFavorite = useMemo(
     () =>
       (favoritesQuery.data || []).find(
         (favorite) =>
           favorite.type === "indoor" &&
-          favorite.buildingCode === buildingCode &&
-          favorite.floorNumber === floorNumber &&
-          favorite.x === coordX &&
-          favorite.y === coordY,
+          favorite.buildingCode === params.buildingCode &&
+          favorite.floorNumber === Number.parseInt(params.selectedFloor) &&
+          favorite.x === props.selectedPoi.position.x &&
+          favorite.y === props.selectedPoi.position.y,
       ),
-    [buildingCode, coordX, coordY, favoritesQuery.data, floorNumber],
+    [params.buildingCode, props.selectedPoi.position.x, props.selectedPoi.position.y, favoritesQuery.data, params.selectedFloor],
   );
 
   const handleAddFavorite = () => {
@@ -87,12 +113,12 @@ export default function IndoorRoomBottomSheet(
 
     createFavorite.mutate({
       type: "indoor",
-      name: roomCode,
-      buildingCode,
-      floorNumber,
-      x: coordX,
-      y: coordY,
-      poiType: roomType || undefined,
+      name: props.selectedPoi.name,
+      buildingCode: params.buildingCode,
+      floorNumber: Number.parseInt(params.selectedFloor),
+      x: props.selectedPoi.position.x,
+      y: props.selectedPoi.position.y,
+      poiType: props.selectedPoi.type || undefined,
     });
   };
 
@@ -109,32 +135,16 @@ export default function IndoorRoomBottomSheet(
       backgroundStyle={BottomSheetStyles.bottomSheet}
       containerStyle={{ overflow: "visible" }}
     >
-      <View style={BottomSheetStyles.fakeHandleContainer}>
-        <View style={BottomSheetStyles.fakeHandleBar} />
-      </View>
+      <View style={BottomSheetStyles.fakeHandleContainer}></View>
 
       <View style={BottomSheetStyles.headerContainer}>
         <TouchableOpacity
           testID="indoor-room-navigate-button"
-          onPress={() => {
-            if (canPressDirections && onDirectionsPress) {
-              onDirectionsPress();
-            }
-            onClose();
-          }}
-          disabled={directionsDisabled}
+          onPress={handleNavigatePress}
           activeOpacity={0.8}
         >
-          <View
-            style={[
-              BottomSheetStyles.floatingIcon,
-              directionsDisabled && styles.disabledFloating,
-            ]}
-          >
-            <GetDirectionsIcon
-              size={90}
-              color={directionsDisabled ? "#BDBDBD" : COLORS.maroon}
-            />
+          <View style={[BottomSheetStyles.floatingIcon]}>
+            <GetDirectionsIcon size={90} color={COLORS.maroon} />
           </View>
         </TouchableOpacity>
 
@@ -158,7 +168,7 @@ export default function IndoorRoomBottomSheet(
           </TouchableOpacity>
 
           <TouchableOpacity
-            onPress={onClose}
+            onPress={props.onClose}
             style={BottomSheetStyles.closeIcon}
             testID="indoor-room-close-button"
           >
@@ -186,11 +196,5 @@ const IndoorRoomStyles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginBottom: 4,
     textTransform: "capitalize",
-  },
-});
-
-const styles = StyleSheet.create({
-  disabledFloating: {
-    opacity: 0.6,
   },
 });

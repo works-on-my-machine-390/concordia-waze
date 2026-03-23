@@ -8,7 +8,10 @@ import {
 import { useSaveToHistory } from "@/hooks/queries/userHistoryQueries";
 import { useGetProfile } from "@/hooks/queries/userQueries";
 import { MapMode, useMapStore } from "@/hooks/useMapStore";
-import { useNavigationStore } from "@/hooks/useNavigationStore";
+import {
+  NavigationPhase,
+  useNavigationStore,
+} from "@/hooks/useNavigationStore";
 import useStartLocation from "@/hooks/useStartLocation";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { useCallback, useMemo, useState } from "react";
@@ -154,13 +157,15 @@ export default function BuildingBottomSheet(
 
   const navigationState = useNavigationStore();
   const handleStartNavigation = async () => {
-    navigationState.setEndLocation({
-      code: building.code,
-      name: building.long_name,
+    const endLocation = {
       latitude: building.latitude,
       longitude: building.longitude,
+      name: building.long_name,
+      code: building.code,
       address: building.address,
-    });
+    };
+
+    navigationState.setEndLocation(endLocation);
     mapState.setCurrentMode(MapMode.NAVIGATION);
 
     if (userProfileQuery.data?.id) {
@@ -174,7 +179,8 @@ export default function BuildingBottomSheet(
       });
     }
 
-    findAndSetStartLocation();
+    findAndSetStartLocation(endLocation);
+    navigationState.setNavigationPhase(NavigationPhase.PREPARATION);
   };
 
   const handleAddFavorite = () => {

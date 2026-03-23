@@ -80,7 +80,7 @@ func SetupRouter() *gin.Engine {
 	// ---- Directions wiring (FIXED: inject shuttle schedule repo) ----
 	directionsClient := google.NewGoogleDirectionsClient(os.Getenv("GOOGLE_DIRECTIONS_API_KEY"))
 	directionsService := application.NewDirectionsService(directionsClient).WithShuttleRepo(shuttleService)
-	directionsRedirector := application.NewDirectionsRedirectorService(directionsService, indoorPathService, indoorPOIRepo, buildingService)
+	directionsRedirector := application.NewDirectionsRedirectorService(directionsService, indoorPathService, indoorPOIRepo, buildingDataRepo)
 	directionsHandler := handler.NewDirectionsHandler(directionsRedirector, directionsService, buildingService)
 	// ---------------------------------------------------------------
 

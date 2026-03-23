@@ -64,22 +64,12 @@ func (s *DirectionsService) GetDirectionsWithSchedule(start, end domain.LatLng, 
 	userProvidedTime := strings.TrimSpace(at) != ""
 
 	for _, m := range modes {
-		var direction domain.DirectionsResponse
-
-		if m == "shuttle" {
-			direction, err = s.getShuttleDirectionsAt(start, end, ref, d, userProvidedTime)
-		} else {
-			direction, err = s.directionsClient.GetDirections(start, end, m)
-			if err == nil {
-				if userProvidedTime {
-					direction.DepartureMessage = "Depart at " + ref.Format("15:04")
-				} else {
-					direction.DepartureMessage = "Leave now at " + time.Now().Format("15:04")
-				}
-			}
-		}
+		direction, err := s.getDirectionForModeWithSchedule(m, start, end, ref, d, userProvidedTime)
 
 		if err != nil {
+			if err.Error() == noShuttleErrText { // don't block other modes if shuttle fails
+				continue // don't append
+			}
 			return nil, err
 		}
 
@@ -87,6 +77,30 @@ func (s *DirectionsService) GetDirectionsWithSchedule(start, end domain.LatLng, 
 	}
 
 	return responses, nil
+}
+
+func (s *DirectionsService) getDirectionForModeWithSchedule(
+	mode string,
+	start, end domain.LatLng,
+	ref time.Time,
+	day string,
+	userProvidedTime bool,
+) (domain.DirectionsResponse, error) {
+	if mode == "shuttle" {
+		return s.getShuttleDirectionsAt(start, end, ref, day, userProvidedTime)
+	}
+
+	direction, err := s.directionsClient.GetDirections(start, end, mode)
+	if err != nil {
+		return domain.DirectionsResponse{}, err
+	}
+
+	direction.DepartureMessage = "Leave now at " + time.Now().Format("15:04")
+	if userProvidedTime {
+		direction.DepartureMessage = "Depart at " + ref.Format("15:04")
+	}
+
+	return direction, nil
 }
 
 // ---- Shuttle composition logic ----

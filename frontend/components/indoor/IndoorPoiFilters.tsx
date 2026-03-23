@@ -70,7 +70,7 @@ export default function IndoorPoiFilters({ onFilterPress }: Readonly<Props>) {
 
 const styles = StyleSheet.create({
   scrollView: {
-    marginTop: 12,
+    // marginTop: 12,
     paddingHorizontal: 12,
     flexGrow: 0,
   },
