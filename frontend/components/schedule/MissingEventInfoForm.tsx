@@ -1,7 +1,9 @@
 import { useState } from "react";
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -56,6 +58,10 @@ function ModalSheet({
 }>) {
   return (
     <Modal transparent animationType="fade" onRequestClose={onClose}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+      >
       <TouchableOpacity style={ms.overlay} activeOpacity={1} onPress={onClose}>
         <TouchableOpacity style={ms.popup} activeOpacity={1} onPress={() => {}}>
           <Text style={ms.title}>{title}</Text>
@@ -82,6 +88,7 @@ function ModalSheet({
           </View>
         </TouchableOpacity>
       </TouchableOpacity>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
