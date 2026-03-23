@@ -259,12 +259,12 @@ function MissingCard({
       <View style={s.cardActions}>
         {missingLocation && (
           <TouchableOpacity style={s.addBtn} onPress={() => onOpenModal({ type: "location", entry })} testID={`add-location-${key}`}>
-            <Text style={s.addBtnText}>Add Location</Text>
+            <Text style={s.addBtnText}>+ Location</Text>
           </TouchableOpacity>
         )}
         {missingTime && (
           <TouchableOpacity style={s.addBtn} onPress={() => onOpenModal({ type: "time", entry })} testID={`add-time-${key}`}>
-            <Text style={s.addBtnText}>Add Time</Text>
+            <Text style={s.addBtnText}>+ Time</Text>
           </TouchableOpacity>
         )}
         <TouchableOpacity style={s.continueBtn} onPress={() => onDismiss(key)} testID={`continue-${key}`}>
