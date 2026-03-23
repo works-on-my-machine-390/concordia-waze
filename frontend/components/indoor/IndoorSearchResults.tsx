@@ -2,13 +2,13 @@ import { colors, SHADOW } from "@/app/styles/theme";
 import type { IndoorSearchResult } from "@/hooks/useIndoorSearch";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { formatIndoorPoiName } from "../../app/utils/indoorNameFormattingUtils";
+import { PointOfInterest } from "@/hooks/queries/indoorMapQueries";
 
 type Props = {
   results: IndoorSearchResult[];
   buildingCode: string;
   onResultSelect: (
-    roomCode: string,
-    floorNumber: number,
+    poi: PointOfInterest,
     displayName: string,
   ) => void;
 };
@@ -28,22 +28,23 @@ export default function IndoorSearchResults({
       keyboardShouldPersistTaps="handled"
       keyboardDismissMode="on-drag"
       renderItem={({ item }) => {
+        const poiBuildingCode = item.poi.building ?? buildingCode;
         const displayName = formatIndoorPoiName(
           item.poi.name,
           item.poi.type,
-          buildingCode,
+          poiBuildingCode,
         );
 
         return (
           <Pressable
             style={styles.resultItem}
             onPress={() =>
-              onResultSelect(item.poi.name, item.floor.number, displayName)
+              onResultSelect(item.poi, displayName)
             }
           >
             <Text style={styles.resultTitle}>{displayName}</Text>
             <Text style={styles.resultSubtitle}>
-              {`Floor ${item.floor.number}`}
+              {`${poiBuildingCode} - Floor ${item.floor.number}`}
             </Text>
           </Pressable>
         );

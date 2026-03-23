@@ -1,11 +1,18 @@
 import { colors, SHADOW } from "@/app/styles/theme";
 import SearchPill from "@/components/shared/SearchPill";
+import { MapMode, useMapStore } from "@/hooks/useMapStore";
+import {
+  NavigationPhase,
+  useNavigationStore,
+} from "@/hooks/useNavigationStore";
 import { Ionicons } from "@expo/vector-icons";
 import { DrawerActions } from "@react-navigation/native";
 import { useNavigation } from "expo-router";
 import { Pressable, StyleSheet, View } from "react-native";
 import { MenuIcon } from "../../app/icons";
+import ActiveNavigationHeader from "../activeNavigation/ActiveNavigationHeader";
 import AccessibilityToggle from "./AccessibilityToggle";
+import IndoorItineraryHeader from "./IndoorItineraryHeader";
 
 type Props = {
   onSearchPress: () => void;
@@ -25,6 +32,23 @@ export default function IndoorMapHeader({
   const handleMenuPress = () => {
     navigation.dispatch(DrawerActions.openDrawer());
   };
+
+  const currentMapMode = useMapStore((state) => state.currentMode);
+  const navigationPhase = useNavigationStore((state) => state.navigationPhase);
+
+  if (
+    currentMapMode === MapMode.NAVIGATION &&
+    navigationPhase === NavigationPhase.PREPARATION
+  ) {
+    return <IndoorItineraryHeader />;
+  }
+
+  if (
+    currentMapMode === MapMode.NAVIGATION &&
+    navigationPhase === NavigationPhase.ACTIVE
+  ) {
+    return <ActiveNavigationHeader />;
+  }
 
   return (
     <View style={styles.wrapper} pointerEvents="box-none">

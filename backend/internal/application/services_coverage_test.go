@@ -100,6 +100,19 @@ func (f *fakeFloorRepo) GetBuildingFloors(code string) ([]domain.Floor, error) {
 	return m, nil
 }
 
+func (f *fakeFloorRepo) GetAllBuildingFloors() (map[string][]domain.Floor, error) {
+	if f.err != nil {
+		return nil, f.err
+	}
+
+	out := make(map[string][]domain.Floor, len(f.floors))
+	for k, v := range f.floors {
+		out[k] = v
+	}
+
+	return out, nil
+}
+
 type countingPlacesClient struct {
 	placeID     string
 	hours       domain.OpeningHours
@@ -270,7 +283,7 @@ func TestBuildingService_GetAllBuildingsByCampus_Success(t *testing.T) {
 	cacheDir := t.TempDir()
 	svc := NewBuildingService(repo, nil, nil, cacheDir)
 
-	grouped, err := svc.GetAllBuildingsByCampus()
+	grouped, err := svc.GetAllBuildingsByCampus(false)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}

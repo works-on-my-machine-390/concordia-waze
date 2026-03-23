@@ -414,11 +414,13 @@ describe("MainMap screen", () => {
         latitude: 45.497,
         longitude: -73.579,
         name: "SGW Start",
+        code: "SGW",
       },
       endLocation: {
         latitude: 45.4589,
         longitude: -73.64,
         name: "LOY End",
+        code: "LOY",
       },
     });
 
@@ -450,11 +452,13 @@ describe("MainMap screen", () => {
         latitude: 45.497,
         longitude: -73.579,
         name: "SGW Start",
+        code: "SGW",
       },
       endLocation: {
         latitude: 45.4589,
         longitude: -73.64,
         name: "LOY End",
+        code: "LOY",
       },
       transitMode: "TRANSIT" as any,
     });

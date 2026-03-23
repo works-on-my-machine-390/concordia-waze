@@ -1,35 +1,31 @@
-import { useIndoorNavigationStore } from "@/hooks/useIndoorNavigationStore";
-import { Pressable, StyleSheet, Text, View } from "react-native";
 import { COLORS } from "@/app/constants";
 import { CircleIcon, LocationIcon } from "@/app/icons";
+import { navigationHeaderStyles } from "@/app/styles/navigationHeaderStyles";
+import {
+  ModifyingFieldOptions,
+  useNavigationStore,
+} from "@/hooks/useNavigationStore";
 import { Ionicons } from "@expo/vector-icons";
 import { DrawerActions } from "@react-navigation/native";
 import { useNavigation, useRouter } from "expo-router";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-type Props = {
-  buildingCode: string;
-  buildingName: string;
-};
+type Props = {};
 
-export default function IndoorItineraryHeader({
-  buildingCode,
-  buildingName,
-}: Readonly<Props>) {
-  const indoor = useIndoorNavigationStore();
+export default function IndoorItineraryHeader({}: Readonly<Props>) {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const router = useRouter();
 
+  const navigationState = useNavigationStore();
+
   const handleBack = () => {
-    indoor.exitItinerary();
-    indoor.setSelectedRoom(null);
+    router.replace("/map");
   };
 
-  const startText =
-    indoor.start?.displayLabel || indoor.start?.label || "Select start";
-  const endText =
-    indoor.end?.displayLabel || indoor.end?.label || "Select destination";
+  const startText = navigationState.startLocation?.name || "Select start";
+  const endText = navigationState.endLocation?.name || "Select destination";
 
   return (
     <View
@@ -57,29 +53,24 @@ export default function IndoorItineraryHeader({
           </Pressable>
         </View>
 
-        <View style={styles.card} pointerEvents="auto">
-          <View style={styles.locationsContainer}>
+        <View style={[navigationHeaderStyles.card, { flex: 1 }]} pointerEvents="auto">
+          <View style={navigationHeaderStyles.locationsContainer}>
             <Pressable
-              style={styles.locationRow}
+              style={navigationHeaderStyles.locationRow}
               onPress={() => {
-                indoor.setPickMode("start");
+                navigationState.setModifyingField(ModifyingFieldOptions.start);
                 router.push({
                   pathname: "/indoor-search",
-                  params: {
-                    buildingCode,
-                    buildingName,
-                    itineraryField: "start",
-                  },
                 });
               }}
             >
-              <View style={styles.iconContainer}>
+              <View style={navigationHeaderStyles.iconContainer}>
                 <CircleIcon size={16} />
               </View>
-              <View style={styles.locationTextContainer}>
-                <Text style={styles.locationLabel}>From</Text>
+              <View style={navigationHeaderStyles.locationTextContainer}>
+                <Text style={navigationHeaderStyles.locationLabel}>From</Text>
                 <Text
-                  style={styles.locationText}
+                  style={navigationHeaderStyles.locationText}
                   numberOfLines={1}
                   ellipsizeMode="tail"
                 >
@@ -88,30 +79,25 @@ export default function IndoorItineraryHeader({
               </View>
             </Pressable>
 
-            <View style={styles.dividerRow}>
-              <View style={styles.dotsConnector}>
-                <View style={styles.dot} />
-                <View style={styles.dot} />
-                <View style={styles.dot} />
+            <View style={navigationHeaderStyles.dividerRow}>
+              <View style={navigationHeaderStyles.dotsConnector}>
+                <View style={navigationHeaderStyles.dot} />
+                <View style={navigationHeaderStyles.dot} />
+                <View style={navigationHeaderStyles.dot} />
               </View>
-              <View style={styles.dividerLine} />
+              <View style={navigationHeaderStyles.dividerLine} />
             </View>
 
             <Pressable
-              style={styles.locationRow}
+              style={navigationHeaderStyles.locationRow}
               onPress={() => {
-                indoor.setPickMode("end");
+                navigationState.setModifyingField(ModifyingFieldOptions.end);
                 router.push({
                   pathname: "/indoor-search",
-                  params: {
-                    buildingCode,
-                    buildingName,
-                    itineraryField: "end",
-                  },
                 });
               }}
             >
-              <View style={styles.iconContainer}>
+              <View style={navigationHeaderStyles.iconContainer}>
                 <LocationIcon size={20} color={COLORS.maroon} />
               </View>
               <View style={styles.locationTextContainer}>
@@ -167,60 +153,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 5,
-  },
-
-  card: {
-    flex: 1,
-    backgroundColor: "white",
-    borderRadius: 12,
-    padding: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-
-  locationsContainer: {
-    paddingVertical: 4,
-  },
-
-  locationRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-
-  iconContainer: {
-    width: 28,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  dividerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 4,
-  },
-
-  dotsConnector: {
-    width: 28,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 2,
-  },
-
-  dot: {
-    width: 3,
-    height: 3,
-    borderRadius: 1.5,
-    backgroundColor: "#CCCCCC",
-  },
-
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: "#CCCCCC",
-    marginLeft: 12,
   },
 
   locationTextContainer: {
