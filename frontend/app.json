@@ -3,6 +3,7 @@
     "name": "frontend",
     "slug": "frontend",
     "version": "1.0.0",
+    "owner": "amal_sabs",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "frontend",
