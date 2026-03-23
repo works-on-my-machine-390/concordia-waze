@@ -2,6 +2,17 @@ import MissingEventInfoScreen from "@/app/missingEventInfo";
 import { fireEvent, render, waitFor } from "@testing-library/react-native";
 import { Linking } from "react-native";
 
+jest.mock("@/app/constants", () => ({
+  COLORS: {
+    maroon: "#6B0F1A",
+    background: "#fff",
+    textPrimary: "#1A1A2E",
+    error: "#D32F2F",
+    white: "#fff",
+    selectionBlue: "#4A90D9",
+  },
+}));
+
 const mockReplace = jest.fn();
 
 jest.mock("expo-router", () => ({

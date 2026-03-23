@@ -2,6 +2,17 @@ import MissingEventInfoForm from "@/components/schedule/MissingEventInfoForm";
 import { fireEvent, render, waitFor } from "@testing-library/react-native";
 import type { MissingInfoEntry } from "@/components/schedule/MissingEventInfoForm";
 
+jest.mock("@/app/constants", () => ({
+  COLORS: {
+    maroon: "#6B0F1A",
+    background: "#fff",
+    textPrimary: "#1A1A2E",
+    error: "#D32F2F",
+    white: "#fff",
+    selectionBlue: "#4A90D9",
+  },
+}));
+
 const mockMutate = jest.fn();
 const mockBack = jest.fn();
 
