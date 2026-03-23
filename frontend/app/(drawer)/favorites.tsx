@@ -193,8 +193,6 @@ export default function Favorites() {
     let pathname: "/map" | "/indoor-map";
     let params: Record<string, string | undefined>;
 
-    console.log("favorite", favorite);
-
     if (favorite.type === "indoor" && favorite.buildingCode) {
       // we need to get the latitude and longitude for indoor favorites
 

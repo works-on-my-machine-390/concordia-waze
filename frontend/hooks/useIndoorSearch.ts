@@ -105,11 +105,7 @@ export const useIndoorSearch = (
       if (userId) {
         const entries = userHistoryQuery.data ?? [];
         const buildingSearches = entries
-          .filter(
-            (item) =>
-              (!buildingCode || item.building_code === buildingCode) &&
-              item.destinationType === "room",
-          )
+          .filter((item) => item.destinationType === "room")
           .map((item) => ({
             displayName: item.name,
             floor: extractFloorFromAddress(item.address),
@@ -121,7 +117,9 @@ export const useIndoorSearch = (
       } else {
         const items = await getGuestSearchHistory();
         const buildingSearches = items
-          .filter((item) => item.locations?.includes(buildingCode))
+          .filter(
+            (item) => item.locations?.includes(buildingCode) || !buildingCode,
+          )
           .map((item) => ({
             displayName: item.query,
             floor: extractFloorFromAddress(item.locations || ""),
@@ -197,20 +195,21 @@ export const useIndoorSearch = (
     roomName: string,
     roomCode: string,
     floorNumber: number,
+    code: string,
   ) => {
     if (userId) {
       saveToHistory.mutate({
         name: roomName,
-        address: `${buildingCode} - Floor ${floorNumber}`,
+        address: `${code} - Floor ${floorNumber}`,
         lat: 0,
         lng: 0,
-        building_code: buildingCode,
-        destinationType: "room",
+        building_code: code,
+        destinationType: "poi",
       });
     } else {
       await addGuestSearchHistory({
         query: roomName,
-        locations: `${buildingCode} - Floor ${floorNumber}`,
+        locations: `${code} - Floor ${floorNumber}`,
         timestamp: new Date(),
       });
 

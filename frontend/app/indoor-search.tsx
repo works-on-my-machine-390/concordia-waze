@@ -123,7 +123,7 @@ export default function IndoorSearchPage() {
     }
 
     if (poi.type.toLowerCase() === "room") {
-      addRecentSearch(displayName, poi.name, poi.floor_number);
+      addRecentSearch(displayName, poi.name, poi.floor_number, poi.building);
     }
   };
 
@@ -155,7 +155,7 @@ export default function IndoorSearchPage() {
     const poi = poiByFormattedName ?? poiByExtractedCode;
 
     if (poi) {
-      addRecentSearch(search.displayName, poi.name, search.floor);
+      addRecentSearch(search.displayName, poi.name, search.floor, poi.building);
 
       if (navigationState.modifyingField) {
         updateNavigationModifyingField(poi, search.displayName);
@@ -163,7 +163,7 @@ export default function IndoorSearchPage() {
         router.navigate({
           pathname: "/indoor-map",
           params: {
-            buildingCode,
+            buildingCode: poi.building,
             selectedPoiName: poi.name,
             selectedFloor: search.floor.toString(),
           },
@@ -230,7 +230,7 @@ export default function IndoorSearchPage() {
           {query.trim().length === 0 && !navigationState.modifyingField && (
             <IndoorPoiFilters onFilterPress={handleFilterPress} />
           )}
-          {query.trim().length === 0 && !params.buildingCode && (
+          {!params.buildingCode && (
             <SearchForTypeButton
               label="Looking for a building?"
               onPress={() => {

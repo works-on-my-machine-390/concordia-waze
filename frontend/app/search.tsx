@@ -89,11 +89,13 @@ export default function SearchPage() {
         const entries = userHistoryQuery.data ?? [];
         if (active) {
           setRecentSearches(
-            entries.map((item) => ({
-              query: item.name,
-              locations: item.address,
-              code: item.building_code || undefined,
-            })),
+            entries
+              .filter((item) => item.destinationType === "building")
+              .map((item) => ({
+                query: item.name,
+                locations: item.address,
+                code: item.building_code || undefined,
+              })),
           );
         }
       } else if (!userId) {
@@ -101,10 +103,12 @@ export default function SearchPage() {
         const items = await getGuestSearchHistory();
         if (active) {
           setRecentSearches(
-            items.map((item) => ({
-              query: item.query,
-              locations: item.locations,
-            })),
+            items
+              .filter((item) => item.destinationType === "building")
+              .map((item) => ({
+                query: item.query,
+                locations: item.locations,
+              })),
           );
         }
       }
@@ -212,11 +216,8 @@ export default function SearchPage() {
           query: label,
           locations: address,
           timestamp: new Date(),
+          destinationType: "building",
         });
-        setRecentSearches((prev) => [
-          { query: label, locations: address },
-          ...prev.filter((entry) => entry.query !== label),
-        ]);
       }
     } catch {
       // Best effort only; search should still navigate even if persistence fails.
@@ -256,6 +257,16 @@ export default function SearchPage() {
     cameraPosition?: { latitude: number; longitude: number },
   ) => {
     const resolvedCampus = targetCampus ?? (campus as CampusCode);
+    const resolvedLabel = label ?? code;
+    const resolvedAddress = address ?? "";
+
+    if (!userProfile?.id) {
+      // Update local recent list before navigation unmounts this screen.
+      setRecentSearches((prev) => [
+        { query: resolvedLabel, locations: resolvedAddress },
+        ...prev.filter((entry) => entry.query !== resolvedLabel),
+      ]);
+    }
 
     // if user in edit mode, pass the edit info back to map
     if (editMode) {
@@ -528,19 +539,17 @@ export default function SearchPage() {
             editMode === "start" ||
             navigationState.modifyingField === ModifyingFieldOptions.start
           ) && <SearchNearbySuggestions onClick={handleSearchNearbyPressed} />}
-          {query.length === 0 && (
-            <SearchForTypeButton
-              onPress={handleSearchForRoomsPress}
-              label={"Looking for rooms?"}
-              icon={
-                <FontAwesome6
-                  name="door-open"
-                  size={24}
-                  color={COLORS.textMuted}
-                />
-              }
-            />
-          )}
+          <SearchForTypeButton
+            onPress={handleSearchForRoomsPress}
+            label={"Looking for rooms?"}
+            icon={
+              <FontAwesome6
+                name="door-open"
+                size={24}
+                color={COLORS.textMuted}
+              />
+            }
+          />
         </View>
 
         <FlatList
