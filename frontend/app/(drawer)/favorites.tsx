@@ -9,10 +9,18 @@ import {
   useGetUserFavorites,
 } from "@/hooks/queries/favoritesQueries";
 import { useGetProfile } from "@/hooks/queries/userQueries";
+import { MapMode, useMapStore } from "@/hooks/useMapStore";
+import {
+  IndoorNavigableLocation,
+  NavigableLocation,
+  NavigationPhase,
+  OutdoorNavigableLocation,
+  useNavigationStore,
+} from "@/hooks/useNavigationStore";
+import useStartLocation from "@/hooks/useStartLocation";
 import { DrawerActions, useNavigation } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import { useMemo, useState } from "react";
-import { Toast as toast } from "toastify-react-native";
 import {
   ActivityIndicator,
   FlatList,
@@ -26,6 +34,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 const DEFAULT_GUEST_USER_ID = "guest";
 
 export default function Favorites() {
+  // for directions
+  const navigationState = useNavigationStore();
+  const mapState = useMapStore();
+  const { findAndSetStartLocation } = useStartLocation();
+
   const nav = useNavigation();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
@@ -154,15 +167,11 @@ export default function Favorites() {
         pathname: "/indoor-map",
         params: {
           buildingCode: favorite.buildingCode,
-          selectedRoom: favorite.name,
+          selectedPoiName: favorite.name,
           selectedFloor:
             typeof favorite.floorNumber === "number"
               ? String(favorite.floorNumber)
               : undefined,
-          selectedX:
-            typeof favorite.x === "number" ? String(favorite.x) : undefined,
-          selectedY:
-            typeof favorite.y === "number" ? String(favorite.y) : undefined,
         },
       });
       return;
@@ -179,8 +188,60 @@ export default function Favorites() {
     });
   };
 
-  const handleDirectionsPress = (_favorite: FavoriteLocation) => {
-    toast.info("STEVEN IS WORKING ON IT");
+  const handleDirectionsPress = (favorite: FavoriteLocation) => {
+    let endLocation: NavigableLocation;
+    let pathname: "/map" | "/indoor-map";
+    let params: Record<string, string | undefined>;
+
+    if (favorite.type === "indoor" && favorite.buildingCode) {
+      // we need to get the latitude and longitude for indoor favorites
+
+      const building = buildingByCode.get(favorite.buildingCode);
+      const latitude = building?.latitude;
+      const longitude = building?.longitude;
+
+      endLocation = {
+        latitude: latitude,
+        longitude: longitude,
+        name: favorite.name,
+        code: favorite.buildingCode,
+        building: favorite.buildingCode,
+        floor_number: favorite.floorNumber,
+        indoor_position: {
+          x: favorite.x,
+          y: favorite.y,
+        },
+      } as IndoorNavigableLocation;
+
+      pathname = "/indoor-map";
+      params = {
+        buildingCode: favorite.buildingCode,
+        selectedPoiName: favorite.name,
+        selectedFloor:
+          typeof favorite.floorNumber === "number"
+            ? String(favorite.floorNumber)
+            : undefined,
+      };
+    } else if (favorite.type === "outdoor") {
+      endLocation = {
+        latitude: favorite.latitude,
+        longitude: favorite.longitude,
+        name: favorite.name,
+        code: favorite.buildingCode,
+      } as OutdoorNavigableLocation;
+
+      pathname = "/map";
+      params = {
+        selected: favorite.buildingCode,
+      }
+    }
+
+    router.push({ pathname, params });
+
+    findAndSetStartLocation();
+    navigationState.setEndLocation(endLocation);
+    mapState.setCurrentMode(MapMode.NAVIGATION);
+    navigationState.setNavigationPhase(NavigationPhase.PREPARATION);
   };
 
   const renderFavoriteItem = ({ item }: { item: FavoriteLocation }) => (

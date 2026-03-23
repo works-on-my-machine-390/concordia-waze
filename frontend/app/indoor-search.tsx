@@ -3,12 +3,20 @@ import { formatIndoorPoiName } from "@/app/utils/indoorNameFormattingUtils";
 import IndoorPoiFilters from "@/components/indoor/IndoorPoiFilters";
 import IndoorRecentSearches from "@/components/indoor/IndoorRecentSearches";
 import IndoorSearchResults from "@/components/indoor/IndoorSearchResults";
+import SearchForTypeButton from "@/components/SearchForTypeButton";
 import SearchPill from "@/components/shared/SearchPill";
-import { useGetBuildingFloors } from "@/hooks/queries/indoorMapQueries";
+import { useGetAllBuildings } from "@/hooks/queries/buildingQueries";
+import {
+  PointOfInterest,
+  useGetBuildingFloors,
+} from "@/hooks/queries/indoorMapQueries";
 import { RecentIndoorSearch, useIndoorSearch } from "@/hooks/useIndoorSearch";
 import { useIndoorSearchStore } from "@/hooks/useIndoorSearchStore";
-import { useIndoorNavigationStore } from "@/hooks/useIndoorNavigationStore";
-import { Ionicons } from "@expo/vector-icons";
+import {
+  ModifyingFieldOptions,
+  useNavigationStore,
+} from "@/hooks/useNavigationStore";
+import { FontAwesome6, Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useState } from "react";
 import {
@@ -21,23 +29,21 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { COLORS } from "./constants";
 
 type SearchParams = {
   buildingCode: string;
   buildingName: string;
-  itineraryField?: "start" | "end";
+  previouslySelectedFloor?: string; // if the user was previously viewing an indoor map, the floor they were looking at is saved here
 };
 
 export default function IndoorSearchPage() {
   const router = useRouter();
   const params = useLocalSearchParams<SearchParams>();
-  const { buildingCode, buildingName, itineraryField } = params;
+  const { buildingCode, buildingName } = params;
+  const navigationState = useNavigationStore();
 
   const [query, setQuery] = useState("");
-
-  const setStart = useIndoorNavigationStore((s) => s.setStart);
-  const setEnd = useIndoorNavigationStore((s) => s.setEnd);
-  const setCurrentFloor = useIndoorNavigationStore((s) => s.setCurrentFloor);
 
   useFocusEffect(
     useCallback(() => {
@@ -45,53 +51,79 @@ export default function IndoorSearchPage() {
     }, []),
   );
 
+  const buildingListQuery = useGetAllBuildings(true);
+  const allFloors = Object.values(buildingListQuery.data?.buildings || {})
+    .flat()
+    .flatMap((building) =>
+      building.floors?.map((floor) => ({
+        ...floor,
+        building: building.code,
+        latitude: building.latitude,
+        longitude: building.longitude,
+      })),
+    )
+    .filter((floor) => !!floor);
   const { data, isLoading } = useGetBuildingFloors(buildingCode);
   const floors = data?.floors || [];
 
   const { results, recentSearches, addRecentSearch, clearRecentSearches } =
-    useIndoorSearch(floors, query, buildingCode);
+    useIndoorSearch(allFloors, query, buildingCode);
 
-  const handleResultSelect = (
-    roomCode: string,
-    floorNumber: number,
+  const updateNavigationModifyingField = (
+    poi: PointOfInterest,
     displayName: string,
   ) => {
-    const floor = floors.find((f) => f.number === floorNumber);
-    const poi = floor?.pois.find((p) => p.name === roomCode);
+    if (!navigationState.modifyingField) return; // extra guard
+
+    const selectedLocation = {
+      name: displayName,
+      code: poi.building,
+      indoor_position: {
+        x: poi.position.x,
+        y: poi.position.y,
+      },
+      building: poi.building,
+      floor_number: poi.floor_number,
+      latitude: poi.latitude,
+      longitude: poi.longitude,
+    };
+
+    if (navigationState.modifyingField === ModifyingFieldOptions.start) {
+      navigationState.setStartLocation(selectedLocation);
+    } else if (navigationState.modifyingField === ModifyingFieldOptions.end) {
+      navigationState.setEndLocation(selectedLocation);
+    }
+    navigationState.setModifyingField(null);
+
+    router.push({
+      pathname: "/map",
+
+      params: {
+        camLat: poi.latitude,
+        camLng: poi.longitude,
+      },
+    });
+  };
+
+  const handleResultSelect = (poi: PointOfInterest, displayName: string) => {
     if (!poi) return;
 
-    if (itineraryField === "start" || itineraryField === "end") {
-      const selectedPoint = {
-        label: poi.name,
-        displayLabel: displayName,
-        floor: floorNumber,
-        coord: {
-          x: poi.position.x,
-          y: poi.position.y,
-        },
-      };
-
-      if (itineraryField === "start") {
-        setStart(selectedPoint);
-      } else {
-        setEnd(selectedPoint);
-      }
-
-      setCurrentFloor(floorNumber);
-      router.back();
+    if (navigationState.modifyingField) {
+      updateNavigationModifyingField(poi, displayName);
+      return;
     } else {
       router.navigate({
         pathname: "/indoor-map",
         params: {
-          buildingCode: params.buildingCode,
-          selectedRoom: roomCode,
-          selectedFloor: floorNumber.toString(),
+          buildingCode: poi.building,
+          selectedPoiName: poi.name,
+          selectedFloor: poi.floor_number.toString(),
         },
       });
     }
 
     if (poi.type.toLowerCase() === "room") {
-      addRecentSearch(displayName, roomCode, floorNumber);
+      addRecentSearch(displayName, poi.floor_number, poi.building);
     }
   };
 
@@ -102,8 +134,9 @@ export default function IndoorSearchPage() {
 
     const poiByFormattedName = floor?.pois.find(
       (p) =>
-        formatIndoorPoiName(p.name, p.type, buildingCode).trim().toLowerCase() ===
-        normalizedDisplayName,
+        formatIndoorPoiName(p.name, p.type, buildingCode)
+          .trim()
+          .toLowerCase() === normalizedDisplayName,
     );
 
     const extractedRoomCode = search.displayName
@@ -114,40 +147,24 @@ export default function IndoorSearchPage() {
     const poiByExtractedCode =
       extractedRoomCode.length > 0
         ? floor?.pois.find(
-            (p) => p.name.trim().toLowerCase() === extractedRoomCode.toLowerCase(),
+            (p) =>
+              p.name.trim().toLowerCase() === extractedRoomCode.toLowerCase(),
           )
         : undefined;
 
     const poi = poiByFormattedName ?? poiByExtractedCode;
 
     if (poi) {
-      addRecentSearch(search.displayName, poi.name, search.floor);
+      addRecentSearch(search.displayName, search.floor, poi.building);
 
-      if (itineraryField === "start" || itineraryField === "end") {
-        const selectedPoint = {
-          label: poi.name,
-          displayLabel: search.displayName,
-          floor: search.floor,
-          coord: {
-            x: poi.position.x,
-            y: poi.position.y,
-          },
-        };
-
-        if (itineraryField === "start") {
-          setStart(selectedPoint);
-        } else {
-          setEnd(selectedPoint);
-        }
-
-        setCurrentFloor(search.floor);
-        router.back();
+      if (navigationState.modifyingField) {
+        updateNavigationModifyingField(poi, search.displayName);
       } else {
         router.navigate({
           pathname: "/indoor-map",
           params: {
-            buildingCode,
-            selectedRoom: poi.name,
+            buildingCode: poi.building,
+            selectedPoiName: poi.name,
             selectedFloor: search.floor.toString(),
           },
         });
@@ -161,23 +178,27 @@ export default function IndoorSearchPage() {
     useIndoorSearchStore.getState().setSelectedPoiFilter(type, label);
     router.navigate({
       pathname: "/indoor-map",
-      params: { buildingCode: params.buildingCode },
+      params: {
+        buildingCode: params.buildingCode,
+        selectedFloor: params.previouslySelectedFloor,
+      },
     });
   };
 
   const showRecent = query.trim().length === 0 && recentSearches.length > 0;
 
-      const searchPlaceholder = (() => {
-      if (itineraryField === "start") {
-        return `Choose start in ${buildingName}...`;
-      }
+  const searchPlaceholder = (() => {
+    if (!buildingName) {
+      return "Search for indoor locations...";
+    }
 
-      if (itineraryField === "end") {
-        return `Choose destination in ${buildingName}...`;
-      }
+    return `Search in ${buildingName}...`;
+  })();
 
-      return `Search in ${buildingName}...`;
-    })();
+  const getEditModeParam = () => {
+    return navigationState.modifyingField || undefined;
+  };
+
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
       <KeyboardAvoidingView
@@ -206,8 +227,28 @@ export default function IndoorSearchPage() {
             />
           </View>
 
-          {query.trim().length === 0 && !itineraryField && (
+          {query.trim().length === 0 && !navigationState.modifyingField && (
             <IndoorPoiFilters onFilterPress={handleFilterPress} />
+          )}
+          {!params.buildingCode && (
+            <SearchForTypeButton
+              label="Looking for a building?"
+              onPress={() => {
+                router.replace({
+                  pathname: "/search",
+                  params: {
+                    editMode: getEditModeParam(),
+                  },
+                });
+              }}
+              icon={
+                <FontAwesome6
+                  name="building"
+                  size={20}
+                  color={COLORS.textMuted}
+                />
+              }
+            />
           )}
 
           {isLoading ? (
@@ -253,7 +294,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
   },

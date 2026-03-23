@@ -35,11 +35,13 @@ describe("NavigationHeader", () => {
         name: "H - Hall Building",
         latitude: 45.497,
         longitude: -73.579,
+        code: "H",
       },
       endLocation: {
         name: "EV - Engineering Building",
         latitude: 45.495,
         longitude: -73.577,
+        code: "EV",
       },
     });
 
@@ -57,6 +59,7 @@ describe("NavigationHeader", () => {
         name: longLocation,
         latitude: 45.497,
         longitude: -73.579,
+        code: "LONG",
       },
       endLocation: undefined,
     });

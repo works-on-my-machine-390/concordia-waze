@@ -1,12 +1,7 @@
 import { COLORS, DIRECTION_COLORS } from "@/app/constants";
-import { formatIndoorPoiName } from "@/app/utils/indoorNameFormattingUtils";
-import type { Coordinates } from "@/hooks/queries/indoorDirectionsQueries";
-import type { Floor } from "@/hooks/queries/indoorMapQueries";
-import { useIndoorNavigationStore } from "@/hooks/useIndoorNavigationStore";
-import { useIndoorSearchStore } from "@/hooks/useIndoorSearchStore";
+import type { Floor, PointOfInterest } from "@/hooks/queries/indoorMapQueries";
 import { useSvgDimensions } from "@/hooks/useSvgDimensions";
 import { ReactNativeZoomableView } from "@openspacelabs/react-native-zoomable-view";
-import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   StyleSheet,
@@ -16,6 +11,14 @@ import {
 } from "react-native";
 import { SvgXml } from "react-native-svg";
 
+import { IndoorMapPageParams } from "@/app/(drawer)/indoor-map";
+import { useIndoorSearchStore } from "@/hooks/useIndoorSearchStore";
+import {
+  ModifyingFieldOptions,
+  useNavigationStore,
+} from "@/hooks/useNavigationStore";
+import useStartLocation from "@/hooks/useStartLocation";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import IndoorBottomSheetSection from "./IndoorBottomSheetSection";
 import IndoorPathOverlay from "./IndoorPathOverlay";
 import PoiMarker from "./PoiMarker";
@@ -51,29 +54,9 @@ export function isNoAccessibleRouteError(error: unknown): boolean {
 
 type Props = {
   floor: Floor | undefined;
-
-  routePath?: Coordinates[] | null;
-  selectedPoiName?: string;
-  onSelectPoiName?: (name: string) => void;
-  extraHighlightedPoiNames?: string[];
-
-  buildingCode?: string;
   buildingName?: string;
   metroAccessible?: boolean;
-
-  initialSelectedRoom?: string;
-  initialSelectedPoiCoord?: Coordinates;
-  disablePoiSelection?: boolean;
-  navigationStartOverride?: Coordinates;
-  navigationPathColor?: string;
-  navigationStepIndex?: number;
-  hideBottomSheetSection?: boolean;
-
-  requireAccessible?: boolean;
-  onAccessibilityRouteUnavailable?: () => void;
 };
-
-const normalizeName = (s: string) => s.trim().toLowerCase().replaceAll(/\s+/g, "");
 
 function renderStatus(message: string, loading = false) {
   return (
@@ -84,297 +67,74 @@ function renderStatus(message: string, loading = false) {
   );
 }
 
-function findPoiByName(floor: Floor, name?: string | null) {
-  if (!name) return null;
-
-  return (
-    floor.pois.find(
-      (poi) => normalizeName(poi.name ?? "") === normalizeName(name ?? ""),
-    ) ?? null
-  );
-}
-
-function findPoiByExactName(floor: Floor, name: string) {
-  return floor.pois.find((poi) => (poi.name ?? "") === name) ?? null;
-}
-
-function normalizePoiMatchName(name: string) {
-  return name
-    .trim()
-    .toLowerCase()
-    .replaceAll(/[\s-]+/g, "");
-}
-
-function findPoiByInitialSelection(
-  floor: Floor,
-  name: string,
-  buildingCode?: string,
-) {
-  const normalizedName = normalizePoiMatchName(name);
-
-  return (
-    floor.pois.find((poi) => {
-      const poiName = poi.name ?? "";
-
-      if (normalizePoiMatchName(poiName) === normalizedName) {
-        return true;
-      }
-
-      if (!buildingCode) {
-        return false;
-      }
-
-      const formattedPoiName = formatIndoorPoiName(
-        poiName,
-        poi.type ?? "",
-        buildingCode,
-      );
-
-      return normalizePoiMatchName(formattedPoiName) === normalizedName;
-    }) ?? null
-  );
-}
-
-function findPoiByCoordinate(floor: Floor, coord?: Coordinates | null) {
-  if (!coord) return null;
-
-  return (
-    floor.pois.find(
-      (poi) =>
-        Math.abs(poi.position.x - coord.x) < 0.000001 &&
-        Math.abs(poi.position.y - coord.y) < 0.000001,
-    ) ?? null
-  );
-}
-
-function getPolygonOverride(
-  poi:
-    | {
-        polygon?: Coordinates[];
-        position: Coordinates;
-      }
-    | null
-    | undefined,
-) {
-  return poi && (poi.polygon?.length ?? 0) <= 2
-    ? { x: poi.position.x, y: poi.position.y }
-    : undefined;
-}
-
-function setBrowseSelectedRoom(params: {
-  floor: Floor;
-  poi: {
-    name?: string | null;
-    position: Coordinates;
-  } | null;
-  setSelectedRoom: (value: {
-    label: string;
-    floor: number;
-    coord: Coordinates;
-  }) => void;
-}) {
-  const { floor, poi, setSelectedRoom } = params;
-  if (!poi) return;
-
-  setSelectedRoom({
-    label: poi.name ?? "Room",
-    floor: floor.number,
-    coord: { x: poi.position.x, y: poi.position.y },
-  });
-}
-
-function getRouteOverlayData(params: {
-  floor: Floor;
-  navMode: string;
-  navStart?: { floor: number; label?: string | null } | null;
-  navEnd?: { floor: number; label?: string | null } | null;
-  navigationStartOverride?: Coordinates;
-}) {
-  const { floor, navMode, navStart, navEnd, navigationStartOverride } = params;
-
-  const isEndOnCurrentFloor =
-    navMode === "ITINERARY" && navEnd?.floor === floor.number;
-  const isStartOnCurrentFloor =
-    navMode === "ITINERARY" && navStart?.floor === floor.number;
-
-  const destinationPoi = isEndOnCurrentFloor
-    ? findPoiByName(floor, navEnd?.label)
-    : null;
-
-  const startPoi = isStartOnCurrentFloor
-    ? findPoiByName(floor, navStart?.label)
-    : null;
-
-  const endPolygon =
-    destinationPoi && (destinationPoi.polygon?.length ?? 0) > 2
-      ? destinationPoi.polygon
-      : undefined;
-
-  return {
-    endPolygon,
-    startOverride: navigationStartOverride ?? getPolygonOverride(startPoi),
-    endOverride: getPolygonOverride(destinationPoi),
-  };
-}
-
-function renderPoiMarkers(params: {
-  floor: Floor;
-  displayWidth: number;
-  displayHeight: number;
-  effectiveSelectedPoiName?: string;
-  extraSet: Set<string>;
-  disablePoiSelection: boolean;
-  handlePoiPress: (name: string) => void;
-}) {
-  const {
-    floor,
-    displayWidth,
-    displayHeight,
-    effectiveSelectedPoiName,
-    extraSet,
-    disablePoiSelection,
-    handlePoiPress,
-  } = params;
-
-  return floor.pois.map((poi) => {
-    const poiName = poi.name ?? "";
-    const normalizedPoiName = normalizeName(poiName);
-
-    const highlighted =
-      (!!effectiveSelectedPoiName &&
-        normalizedPoiName === normalizeName(effectiveSelectedPoiName)) ||
-      extraSet.has(normalizedPoiName);
-
-    return (
-      <PoiMarker
-        key={`poi-${poi.name}-${poi.position.x}-${poi.position.y}`}
-        poi={poi}
-        width={displayWidth}
-        height={displayHeight}
-        highlighted={highlighted}
-        onPress={
-          disablePoiSelection
-            ? undefined
-            : () => {
-                const name = poi.name ?? "";
-                if (name) handlePoiPress(name);
-              }
-        }
-      />
-    );
-  });
-}
-
 export default function FloorPlanViewer({
   floor,
-  routePath,
-  selectedPoiName,
-  onSelectPoiName,
-  extraHighlightedPoiNames = [],
-  buildingCode,
   buildingName,
   metroAccessible,
-  initialSelectedRoom,
-  initialSelectedPoiCoord,
-  disablePoiSelection = false,
-  navigationStartOverride,
-  navigationPathColor,
-  hideBottomSheetSection = false,
-  requireAccessible = false,
 }: Readonly<Props>) {
-  const navMode = useIndoorNavigationStore((s) => s.mode);
-  const navEnd = useIndoorNavigationStore((s) => s.end);
-  const navStart = useIndoorNavigationStore((s) => s.start);
-  const navSelectedRoom = useIndoorNavigationStore((s) => s.selectedRoom);
-  const setSelectedRoom = useIndoorNavigationStore((s) => s.setSelectedRoom);
-  const enterItineraryFromSelected = useIndoorNavigationStore(
-    (s) => s.enterItineraryFromSelected,
-  );
-
-  const clearSelectedPoiFilter = useIndoorSearchStore(
-    (s) => s.clearSelectedPoiFilter,
-  );
-
-  const [localSelectedPoiName, setLocalSelectedPoiName] = useState<
-    string | undefined
-  >(undefined);
-  const consumedInitialSelectionKeyRef = useRef<string | null>(null);
-
+  const params = useLocalSearchParams<IndoorMapPageParams>();
+  const router = useRouter();
   const { width: screenWidth } = useWindowDimensions();
   const { dimensions, svgText, error, isLoading } = useSvgDimensions(
     floor?.imgPath,
   );
 
-  const effectiveSelectedPoiName = selectedPoiName ?? localSelectedPoiName;
-  const bottomSheetSelectedPoiName =
-    navMode === "BROWSE" ? effectiveSelectedPoiName : undefined;
+  const navigationState = useNavigationStore();
+  const indoorSearchState = useIndoorSearchStore();
+  const { setStartLocationManually } = useStartLocation();
 
-  const extraSet = useMemo(
-    () => new Set(extraHighlightedPoiNames.map((name) => normalizeName(name))),
-    [extraHighlightedPoiNames],
-  );
+  // includes both POIs and rooms which count as POIs
+  const handlePressPoi = (poi: PointOfInterest) => {
+    const isDisabled =
+      !!navigationState.navigationPhase && !!navigationState.startLocation;
 
-  const routeStyle = requireAccessible
-    ? ROUTE_STYLE_ACCESSIBLE
-    : ROUTE_STYLE_STANDARD;
-  const resolvedPathColor = navigationPathColor ?? routeStyle.stroke;
-  const initialSelectionKey = useMemo(() => {
-    if (initialSelectedRoom) {
-      return `room:${buildingCode ?? ""}:${floor?.number ?? "none"}:${normalizePoiMatchName(initialSelectedRoom)}`;
+    if (isDisabled) return;
+    if (indoorSearchState.selectedPoiFilter)
+      indoorSearchState.clearSelectedPoiFilter();
+
+    if (
+      !navigationState.startLocation &&
+      navigationState.modifyingField === ModifyingFieldOptions.start
+    ) {
+      setStartLocationManually({
+        name: poi.name,
+        code: params.buildingCode,
+        building: params.buildingCode,
+        floor_number: Number.parseInt(params.selectedFloor),
+        indoor_position: poi.position,
+        latitude: 0, // not used for indoors but required by type
+        longitude: 0, // not used for indoors but required by type
+      });
     }
 
-    if (initialSelectedPoiCoord) {
-      return `coord:${floor?.number ?? "none"}:${initialSelectedPoiCoord.x}:${initialSelectedPoiCoord.y}`;
-    }
+    router.setParams({ selectedPoiName: poi.name });
+  };
 
-    return null;
-  }, [
-    buildingCode,
-    floor?.number,
-    initialSelectedRoom,
-    initialSelectedPoiCoord,
-  ]);
+  function renderPoiMarkers(parameters: {
+    floor: Floor;
+    displayWidth: number;
+    displayHeight: number;
+  }) {
+    const { floor, displayWidth, displayHeight } = parameters;
 
-  useEffect(() => {
-    if (initialSelectionKey == null) {
-      consumedInitialSelectionKeyRef.current = null;
-    }
-  }, [initialSelectionKey]);
-
-  useEffect(() => {
-    if (!floor || navMode !== "BROWSE") return;
-    if (initialSelectionKey == null) return;
-    if (consumedInitialSelectionKeyRef.current === initialSelectionKey) return;
-
-    const poi = initialSelectedRoom
-      ? findPoiByInitialSelection(floor, initialSelectedRoom, buildingCode)
-      : findPoiByCoordinate(floor, initialSelectedPoiCoord);
-
-    consumedInitialSelectionKeyRef.current = initialSelectionKey;
-
-    if (!poi) return;
-
-    const poiName = poi.name ?? initialSelectedRoom ?? "Room";
-    if (localSelectedPoiName === poiName) return;
-
-    clearSelectedPoiFilter();
-    setLocalSelectedPoiName(poiName);
-
-    if (navSelectedRoom?.label !== poiName) {
-      setBrowseSelectedRoom({ floor, poi, setSelectedRoom });
-    }
-  }, [
-    initialSelectionKey,
-    initialSelectedRoom,
-    initialSelectedPoiCoord,
-    buildingCode,
-    floor,
-    navMode,
-    localSelectedPoiName,
-    navSelectedRoom?.label,
-    setSelectedRoom,
-    clearSelectedPoiFilter,
-  ]);
+    return floor.pois.map((poi) => {
+      const highlightedByFilter =
+        indoorSearchState.selectedPoiFilter &&
+        indoorSearchState.filteredPois?.some((p) => p.name === poi.name);
+      const highlighted =
+        poi.name === params.selectedPoiName || highlightedByFilter;
+      return (
+        <PoiMarker
+          key={`poi-${poi.name}-${poi.position.x}-${poi.position.y}`}
+          poi={poi}
+          width={displayWidth}
+          height={displayHeight}
+          highlighted={highlighted}
+          onPress={() => handlePressPoi(poi)}
+        />
+      );
+    });
+  }
 
   if (!floor) {
     return renderStatus("No floor plan available");
@@ -391,46 +151,10 @@ export default function FloorPlanViewer({
   const displayWidth = screenWidth - 32;
   const displayHeight = displayWidth * (dimensions.height / dimensions.width);
 
-  const { endPolygon, startOverride, endOverride } = getRouteOverlayData({
-    floor,
-    navMode,
-    navStart,
-    navEnd,
-    navigationStartOverride,
-  });
-
-  const handlePoiPress = (name: string) => {
-    if (disablePoiSelection) return;
-
-    clearSelectedPoiFilter();
-
-    if (onSelectPoiName) {
-      onSelectPoiName(name);
-      return;
-    }
-
-    setLocalSelectedPoiName(name);
-
-    if (navMode !== "BROWSE") return;
-
-    const poi = findPoiByExactName(floor, name);
-    setBrowseSelectedRoom({ floor, poi, setSelectedRoom });
-  };
-
-  const showBottomSheetSection =
-    !!buildingCode &&
-    !!buildingName &&
-    !disablePoiSelection &&
-    !hideBottomSheetSection;
-
   const poiMarkers = renderPoiMarkers({
     floor,
     displayWidth,
     displayHeight,
-    effectiveSelectedPoiName,
-    extraSet,
-    disablePoiSelection,
-    handlePoiPress,
   });
 
   return (
@@ -461,52 +185,32 @@ export default function FloorPlanViewer({
             preserveAspectRatio="xMidYMid meet"
           />
 
+          <IndoorPathOverlay width={displayWidth} height={displayHeight} />
+
           <PolygonOverlay
             pois={floor.pois}
             width={displayWidth}
             height={displayHeight}
-            selectedPoiName={effectiveSelectedPoiName}
-            onSelectPoi={disablePoiSelection ? () => {} : handlePoiPress}
+            selectedPoiName={params.selectedPoiName}
+            onSelectPoi={handlePressPoi}
           />
 
           <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
             {poiMarkers}
           </View>
-
-          {routePath && routePath.length >= 2 ? (
-            <IndoorPathOverlay
-              path={routePath}
-              width={displayWidth}
-              height={displayHeight}
-              endPolygon={endPolygon}
-              startOverride={startOverride}
-              endOverride={endOverride}
-              color={resolvedPathColor}
-            />
-          ) : null}
         </View>
       </ReactNativeZoomableView>
 
-      {showBottomSheetSection ? (
-        <IndoorBottomSheetSection
-          floor={floor}
-          buildingName={buildingName}
-          buildingCode={buildingCode}
-          metroAccessible={metroAccessible}
-          selectedPoiName={bottomSheetSelectedPoiName}
-          onClearSelectedPoi={() => {
-            clearSelectedPoiFilter();
-            setLocalSelectedPoiName(undefined);
-            setSelectedRoom(null);
-          }}
-          onDirectionsPress={() => {
-            clearSelectedPoiFilter();
-            setLocalSelectedPoiName(undefined);
-            enterItineraryFromSelected();
-          }}
-          directionsDisabled={!navSelectedRoom}
-        />
-      ) : null}
+      <IndoorBottomSheetSection
+        floor={floor}
+        buildingName={buildingName}
+        buildingCode={params.buildingCode}
+        metroAccessible={metroAccessible}
+        selectedPoiName={params.selectedPoiName}
+        onClearSelectedPoi={() =>
+          router.setParams({ selectedPoiName: undefined })
+        }
+      />
     </View>
   );
 }

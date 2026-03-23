@@ -36,12 +36,30 @@ import { extractFloorFromAddress } from "../app/utils/indoorNameFormattingUtils"
 
 describe("useIndoorSearch", () => {
   const mockFloor = {
-    id: "1",
-    level: 2,
+    number: 2,
+    name: "MB - Floor 2",
+    building: "MB",
+    latitude: 45.497,
+    longitude: -73.579,
     pois: [
-      { id: "1", name: "210", type: "room" },
-      { id: "2", name: "Library", type: "study_space" },
-      { id: "3", name: "POI_123", type: "bathroom" },
+      {
+        name: "210",
+        type: "room",
+        position: { x: 0.2, y: 0.3 },
+        polygon: [],
+      },
+      {
+        name: "Library",
+        type: "study_space",
+        position: { x: 0.4, y: 0.3 },
+        polygon: [],
+      },
+      {
+        name: "POI_123",
+        type: "bathroom",
+        position: { x: 0.6, y: 0.3 },
+        polygon: [],
+      },
     ],
   };
 
@@ -137,7 +155,7 @@ describe("useIndoorSearch", () => {
     );
 
     await act(async () => {
-      await result.current.addRecentSearch("210", "210", 2);
+      await result.current.addRecentSearch("210", 2, "MB");
     });
 
     expect(addGuestSearchHistory).toHaveBeenCalled();
@@ -179,7 +197,7 @@ describe("useIndoorSearch", () => {
     );
 
     await act(async () => {
-      await result.current.addRecentSearch("210", "210", 2);
+      await result.current.addRecentSearch("210", 2, "MB");
     });
 
     expect(mutate).toHaveBeenCalled();

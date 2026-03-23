@@ -21,6 +21,7 @@ type BuildingReader interface {
 
 type FloorReader interface {
 	GetBuildingFloors(code string) ([]domain.Floor, error)
+	GetAllBuildingFloors() (map[string][]domain.Floor, error)
 }
 
 type BuildingService struct {
@@ -289,8 +290,28 @@ func campusFallback(lat, lng float64) (string, domain.LatLng, bool) {
 	return constants.SirGeorgeWilliamsCampusName, sgw, true
 }
 
-func (s *BuildingService) GetAllBuildingsByCampus() (map[string][]domain.BuildingSummary, error) {
-	return s.buildingRepo.GetAllBuildingsByCampus()
+func (s *BuildingService) GetAllBuildingsByCampus(appendFloors bool) (map[string][]domain.BuildingSummary, error) {
+	buildings, err := s.buildingRepo.GetAllBuildingsByCampus()
+	if err != nil {
+		return nil, err
+	}
+	if appendFloors {
+		allFloors, err := s.floorRepo.GetAllBuildingFloors()
+		if err != nil {
+			return nil, err
+		}
+
+		for campus, bList := range buildings {
+			for i, b := range bList {
+				codeKey := strings.ToUpper(strings.TrimSpace(b.Code))
+				if floors, ok := allFloors[codeKey]; ok {
+					buildings[campus][i].Floors = floors
+				}
+			}
+		}
+	}
+
+	return buildings, nil
 }
 
 func (s *BuildingService) GetBuildingFloors(code string) ([]domain.Floor, error) {

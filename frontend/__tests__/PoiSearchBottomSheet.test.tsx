@@ -3,11 +3,17 @@ import {
   TextSearchRankPreferenceType,
   useGetNearbyPoi,
 } from "@/hooks/queries/poiQueries";
-import { useMapStore } from "@/hooks/useMapStore";
+import { MapMode, useMapStore } from "@/hooks/useMapStore";
+import {
+  NavigationPhase,
+} from "@/hooks/useNavigationStore";
 import { fireEvent } from "@testing-library/react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import PoiSearchBottomSheet from "../components/poi/PoiSearchBottomSheet";
 import { renderWithProviders } from "../test_utils/renderUtils";
+
+const mockUseNavigationStore = jest.fn();
+const mockFindAndSetStartLocation = jest.fn();
 
 jest.mock("expo-router", () => ({
   useRouter: jest.fn(),
@@ -27,7 +33,29 @@ jest.mock("@/app/utils/mapUtils", () => ({
 }));
 
 jest.mock("@/hooks/useMapStore", () => ({
+  MapMode: {
+    POI: "POI",
+    BUILDING: "BUILDING",
+    SETTINGS: "SETTINGS",
+    NAVIGATION: "NAVIGATION",
+    NONE: "NONE",
+  },
   useMapStore: jest.fn(),
+}));
+
+jest.mock("@/hooks/useNavigationStore", () => ({
+  NavigationPhase: {
+    PREPARATION: "PREPARATION",
+    ACTIVE: "ACTIVE",
+  },
+  useNavigationStore: () => mockUseNavigationStore(),
+}));
+
+jest.mock("@/hooks/useStartLocation", () => ({
+  __esModule: true,
+  default: () => ({
+    findAndSetStartLocation: mockFindAndSetStartLocation,
+  }),
 }));
 
 jest.mock("react-native-gesture-handler", () => {
@@ -52,9 +80,13 @@ jest.mock("@gorhom/bottom-sheet", () => {
 });
 
 jest.mock("../components/poi/PoiSearchBottomSheetHeader", () => {
-  const { Text } = require("react-native");
-  return function MockHeader() {
-    return <Text>Nearby results</Text>;
+  const { Pressable, Text } = require("react-native");
+  return function MockHeader({ onClose }: { onClose: () => void }) {
+    return (
+      <Pressable testID="poi-header-close" onPress={onClose}>
+        <Text>Nearby results</Text>
+      </Pressable>
+    );
   };
 });
 
@@ -103,6 +135,10 @@ describe("PoiSearchBottomSheet", () => {
 
   const mockSetParams = jest.fn();
   const mockRefetch = jest.fn();
+  const mockCloseSheet = jest.fn();
+  const mockSetCurrentMode = jest.fn();
+  const mockSetEndLocation = jest.fn();
+  const mockSetNavigationPhase = jest.fn();
 
   const mockPoiResults = [
     {
@@ -154,8 +190,15 @@ describe("PoiSearchBottomSheet", () => {
     });
 
     mockedUseMapStore.mockReturnValue({
-      closeSheet: jest.fn(),
+      closeSheet: mockCloseSheet,
+      setCurrentMode: mockSetCurrentMode,
       userLocation: undefined,
+    });
+
+    mockUseNavigationStore.mockReturnValue({
+      startLocation: undefined,
+      setEndLocation: mockSetEndLocation,
+      setNavigationPhase: mockSetNavigationPhase,
     });
 
     mockedGetDistanceInMeters.mockImplementation((poi: { latitude: number }) =>
@@ -224,5 +267,60 @@ describe("PoiSearchBottomSheet", () => {
     const rows = getAllByTestId("poi-result-row");
     expect(rows[0].props.accessibilityLabel).toBe("result-poi-near");
     expect(rows[1].props.accessibilityLabel).toBe("result-poi-far");
+  });
+
+  test("pressing header close clears poi params and closes sheet", () => {
+    const { getByTestId } = renderWithProviders(<PoiSearchBottomSheet />);
+
+    fireEvent.press(getByTestId("poi-header-close"));
+
+    expect(mockSetParams).toHaveBeenCalledWith({
+      query: "",
+      poiLat: undefined,
+      poiLng: undefined,
+    });
+    expect(mockCloseSheet).toHaveBeenCalledTimes(1);
+  });
+
+  test("pressing directions moves to navigation and infers start when missing", () => {
+    const { getByTestId } = renderWithProviders(<PoiSearchBottomSheet />);
+
+    fireEvent.press(getByTestId("directions-poi-near"));
+
+    expect(mockSetCurrentMode).toHaveBeenCalledWith(MapMode.NAVIGATION);
+    expect(mockSetEndLocation).toHaveBeenCalledWith({
+      latitude: 45.5,
+      longitude: -73.58,
+      name: "Near Place",
+      code: "",
+    });
+    expect(mockSetNavigationPhase).toHaveBeenCalledWith(
+      NavigationPhase.PREPARATION,
+    );
+    expect(mockFindAndSetStartLocation).toHaveBeenCalledWith({
+      latitude: 45.5,
+      longitude: -73.58,
+      name: "Near Place",
+      code: "",
+    });
+  });
+
+  test("pressing directions does not infer start if start already exists", () => {
+    mockUseNavigationStore.mockReturnValue({
+      startLocation: {
+        name: "Start",
+        latitude: 45.49,
+        longitude: -73.57,
+        code: "MB",
+      },
+      setEndLocation: mockSetEndLocation,
+      setNavigationPhase: mockSetNavigationPhase,
+    });
+
+    const { getByTestId } = renderWithProviders(<PoiSearchBottomSheet />);
+
+    fireEvent.press(getByTestId("directions-poi-far"));
+
+    expect(mockFindAndSetStartLocation).not.toHaveBeenCalled();
   });
 });

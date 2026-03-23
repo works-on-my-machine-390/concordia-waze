@@ -13,6 +13,7 @@ export interface SearchHistoryItem {
   locations: string;
   query: string;
   timestamp: Date;
+  destinationType?: "building" | "poi";
 }
 
 export interface CourseItem {
@@ -111,9 +112,7 @@ export const createCourse = async (
   userId: string,
   title: string,
 ): Promise<void> => {
-  await (await api())
-    .post({}, `/users/${userId}/courses/${title}`)
-    .res();
+  await (await api()).post({}, `/users/${userId}/courses/${title}`).res();
 };
 
 export const getUserCourses = async (userId: string): Promise<CourseItem[]> => {
@@ -127,9 +126,7 @@ export const deleteCourse = async (
   userId: string,
   title: string,
 ): Promise<void> => {
-  await (await api())
-    .delete(`/users/${userId}/courses/${title}`)
-    .res();
+  await (await api()).delete(`/users/${userId}/courses/${title}`).res();
 };
 
 // == Classes ==
