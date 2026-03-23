@@ -50,9 +50,9 @@ function normalizeClassType(
 ): ClassInfoFormData["type"] | null {
   const normalized = type.trim().toLowerCase();
 
-  if (normalized === "lecture" || normalized === "lec") return "Lecture";
-  if (normalized === "lab") return "Lab";
-  if (normalized === "tutorial" || normalized === "tut") return "Tutorial";
+  if (normalized === "lecture" || normalized === "lec") return "Lecture" as const ;
+  if (normalized === "lab") return "Lab" as const;
+  if (normalized === "tutorial" || normalized === "tut") return "Tutorial" as const;
 
   return null;
 }
@@ -109,17 +109,11 @@ export default function AddClassScreen() {
   () => [
     ...storedCourses.flatMap((course) =>
       course.classes
-        .map((classItem) => {
-          const session = toExistingSession(classItem);
-          return session ? { ...session, courseName: course.name } : null;
-        })
-        .filter(
-          (
-            item,
-          ): item is ClassInfoFormData & {
-            courseName: string;
-          } => item !== null,
-        ),
+  .filter((classItem) => normalizeClassType(classItem.type) !== null)
+  .map((classItem) => {
+    const session = toExistingSession(classItem)!;
+    return { ...session, courseName: course.name };
+  }),
     ),
     ...classInfo,
   ],

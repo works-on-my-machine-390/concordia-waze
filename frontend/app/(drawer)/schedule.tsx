@@ -16,26 +16,31 @@ import { useGetProfile } from "../../hooks/queries/userQueries";
 import { COLORS } from "../constants";
 import { AddIcon, MenuIcon } from "../icons";
 import { normalizeScheduleCourses } from "../utils/schedule/normalizeScheduleCourses";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Schedule() {
   const nav = useNavigation();
   const router = useRouter();
   const [guestCourses, setGuestCourses] = useState<CourseItem[]>([]);
-  const { data: userProfile } = useGetProfile();
-  const isLoggedIn = !!userProfile?.id;
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { checkToken } = useAuth();
   const { data: syncedCourses = [] } = useCourses();
   const bottomSheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ["20%", "45%", "80%"], []);
 
   useFocusEffect(
     useCallback(() => {
-      const loadGuestCourses = async () => {
-        const storedCourses = await getGuestCourses();
-        setGuestCourses(storedCourses);
-      };
+      const loadData = async () => {
+        const loggedIn = await checkToken();
+        setIsLoggedIn(loggedIn);
 
-      loadGuestCourses();
-    }, []),
+        if (!loggedIn) {
+          const storedCourses = await getGuestCourses();
+          setGuestCourses(storedCourses);
+        }
+      };
+      loadData();
+    }, [checkToken]),
   );
 
   const visibleCourses = useMemo(

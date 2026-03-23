@@ -7,6 +7,13 @@ const mockUseCourses = jest.fn();
 const mockGetGuestCourses = jest.fn();
 const mockDispatch = jest.fn();
 const mockUseGetProfile = jest.fn();
+const mockCheckToken = jest.fn();
+
+jest.mock("@/hooks/useAuth", () => ({
+  useAuth: () => ({
+    checkToken: mockCheckToken,
+  }),
+}));
 
 jest.mock("expo-router", () => ({
   useRouter: () => ({
@@ -129,9 +136,7 @@ describe("Schedule screen", () => {
   });
 
   test("renders only synced course cards when user is logged in", async () => {
-    mockUseGetProfile.mockReturnValue({
-      data: { id: "user-123", name: "Test User" },
-    });
+    mockCheckToken.mockResolvedValue(true);
 
     const { getByText, queryByText } = renderWithProviders(<Schedule />);
 
@@ -143,9 +148,7 @@ describe("Schedule screen", () => {
   });
 
   test("renders only guest course cards when user is not logged in", async () => {
-    mockUseGetProfile.mockReturnValue({
-      data: null,
-    });
+    mockCheckToken.mockResolvedValue(false);
 
     const { getByText, queryByText } = renderWithProviders(<Schedule />);
 
