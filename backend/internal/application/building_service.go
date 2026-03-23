@@ -21,6 +21,7 @@ type BuildingReader interface {
 
 type FloorReader interface {
 	GetBuildingFloors(code string) ([]domain.Floor, error)
+	GetAllBuildingFloors() (map[string][]domain.Floor, error)
 }
 
 type BuildingService struct {
@@ -295,14 +296,17 @@ func (s *BuildingService) GetAllBuildingsByCampus(appendFloors bool) (map[string
 		return nil, err
 	}
 	if appendFloors {
+		allFloors, err := s.floorRepo.GetAllBuildingFloors()
+		if err != nil {
+			return nil, err
+		}
+
 		for campus, bList := range buildings {
 			for i, b := range bList {
-				floors, err := s.floorRepo.GetBuildingFloors(b.Code)
-				if err != nil {
-					fmt.Fprintf(os.Stderr, "BuildingService: failed to get floors for building %s: %v\n", b.Code, err)
-					continue
+				codeKey := strings.ToUpper(strings.TrimSpace(b.Code))
+				if floors, ok := allFloors[codeKey]; ok {
+					buildings[campus][i].Floors = floors
 				}
-				buildings[campus][i].Floors = floors
 			}
 		}
 	}
