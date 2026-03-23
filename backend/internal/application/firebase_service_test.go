@@ -1176,10 +1176,10 @@ func TestFirebaseService_AddFavorite_InvalidType(t *testing.T) {
 	ctx := context.Background()
 	userID := "invalid-type-user"
 	fav := application.FirestoreFavorite{
-		ID:       "foo",
-		Type:     "notvalid",
-		Name:     "FOO",
-		Latitude: 1,
+		ID:        "foo",
+		Type:      "notvalid",
+		Name:      "FOO",
+		Latitude:  1,
 		Longitude: 1,
 	}
 	err := service.AddFavorite(ctx, userID, fav)
@@ -1232,16 +1232,18 @@ func TestFirebaseService_GetUserProfile_NotFound(t *testing.T) {
 func TestFirebaseService_GetUserProfileByEmail_NotFound(t *testing.T) {
 	service := setupTestService(t)
 	ctx := context.Background()
-	_, err := service.GetUserProfileByEmail(ctx, "email-never-used-" + time.Now().Format("20060102150405") + "@test.com")
+	_, err := service.GetUserProfileByEmail(ctx, "email-never-used-"+time.Now().Format("20060102150405")+"@test.com")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "user not found")
 }
 
 type errorRepo struct{}
 
-func (e *errorRepo) Create(f *domain.Favorite) error             { return errors.New("db broke") }
-func (e *errorRepo) FindByUserID(_ string) ([]*domain.Favorite, error) { return nil, errors.New("db broke") }
-func (e *errorRepo) Delete(_ string, _ string) error             { return errors.New("db broke") }
+func (e *errorRepo) Create(f *domain.Favorite) error { return errors.New("db broke") }
+func (e *errorRepo) FindByUserID(_ string) ([]*domain.Favorite, error) {
+	return nil, errors.New("db broke")
+}
+func (e *errorRepo) Delete(_ string, _ string) error { return errors.New("db broke") }
 
 func TestFavoritesService_AddFavorite_RepoError(t *testing.T) {
 	svc := application.NewFavoritesService(&errorRepo{})
