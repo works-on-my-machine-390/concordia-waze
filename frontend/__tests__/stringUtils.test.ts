@@ -1,5 +1,6 @@
 import {
 	formatDuration,
+	getArrivalInstruction,
 	getDistanceDisplayText,
 	getSimplifiedAddress,
 	parseDirectionsDurationToSeconds,
@@ -35,6 +36,16 @@ describe("stringUtils", () => {
 			const html = '<div>Turn <b>left</b> onto <i>Main St</i></div>';
 			expect(stripHtmlTags(html)).toBe("Turn left onto Main St");
 		});
+
+		it("should decode common html entities", () => {
+			const html = "<div>Tom &amp; Jerry &nbsp; &lt;3</div>";
+			expect(stripHtmlTags(html)).toBe("Tom & Jerry <3");
+		});
+
+		it("should normalize whitespace and newlines", () => {
+			const html = "<div>  First\t\tstep </div>\n\n<div> Second\r\nstep </div>";
+			expect(stripHtmlTags(html)).toBe("First step\nSecond\nstep");
+		});
 	});
 
 	describe("formatDuration", () => {
@@ -44,6 +55,11 @@ describe("stringUtils", () => {
 
 		it("should format seconds mode with hour and minute breakdown", () => {
 			expect(formatDuration(6340, "seconds")).toBe("1 hr 45 min 40 sec");
+		});
+
+		it("should return null for null or undefined duration", () => {
+			expect(formatDuration(undefined as unknown as number)).toBeNull();
+			expect(formatDuration(null as unknown as number)).toBeNull();
 		});
 	});
 
@@ -58,6 +74,45 @@ describe("stringUtils", () => {
 
 		it("should parse day, hour, minute and second values", () => {
 			expect(parseDirectionsDurationToSeconds("1 day 2 hours 3 min 4 sec")).toBe(93784);
+		});
+
+		it("should support shorthand units and extra spaces", () => {
+			expect(parseDirectionsDurationToSeconds(" 1hr   30min 10s ")).toBe(5410);
+		});
+	});
+
+	describe("getArrivalInstruction", () => {
+		it("should return original instruction for non-arrival step", () => {
+			expect(
+				getArrivalInstruction(
+					{ kind: "walk", instruction: "Continue straight" },
+					false,
+					false,
+					false,
+				),
+			).toBe("Continue straight");
+		});
+
+		it("should return exit building for arrival before outdoor segment", () => {
+			expect(
+				getArrivalInstruction(
+					{ kind: "arrival", instruction: "Arrive at waypoint" },
+					true,
+					true,
+					false,
+				),
+			).toBe("Exit building");
+		});
+
+		it("should return you have arrived at final destination", () => {
+			expect(
+				getArrivalInstruction(
+					{ kind: "arrival", instruction: "Arrive" },
+					true,
+					false,
+					true,
+				),
+			).toBe("You have arrived");
 		});
 	});
 });

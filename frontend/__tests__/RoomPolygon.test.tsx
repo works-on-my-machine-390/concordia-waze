@@ -2,6 +2,21 @@ import type { Coordinate } from "@/hooks/queries/indoorMapQueries";
 import { renderWithProviders } from "@/test_utils/renderUtils";
 import RoomPolygon from "../components/indoor/RoomPolygon";
 
+jest.mock("react-native-svg", () => {
+  const React = require("react");
+  const { View } = require("react-native");
+
+  return {
+    Polygon: (props: any) =>
+      React.createElement(View, {
+        ...props,
+        testID: "polygon",
+        accessibilityLabel: `polygon-${props.points}`,
+        accessibilityHint: `fill:${props.fill},stroke:${props.stroke},strokeWidth:${props.strokeWidth}`,
+      }),
+  };
+});
+
 describe("RoomPolygon", () => {
   const defaultProps = {
     width: 1000,
@@ -73,9 +88,9 @@ describe("RoomPolygon", () => {
 
   test("converts normalized coordinates to pixel coordinates", () => {
     const polygon: Coordinate[] = [
-      { x: 0.0, y: 0.0 },
-      { x: 1.0, y: 0.0 },
-      { x: 0.5, y: 1.0 },
+      { x: 0, y: 0 },
+      { x: 1, y: 0 },
+      { x: 0.5, y: 1 },
     ];
 
     const { getByLabelText } = renderWithProviders(
@@ -147,5 +162,118 @@ describe("RoomPolygon", () => {
     );
 
     expect(getByTestId("polygon")).toBeTruthy();
+  });
+
+  test("invokes onPress on a short tap", () => {
+    const onPress = jest.fn();
+    const polygon: Coordinate[] = [
+      { x: 0.1, y: 0.1 },
+      { x: 0.5, y: 0.9 },
+      { x: 0.9, y: 0.1 },
+    ];
+
+    const nowSpy = jest.spyOn(Date, "now");
+    nowSpy.mockReturnValueOnce(1000).mockReturnValueOnce(1200);
+
+    const { getByTestId } = renderWithProviders(
+      <RoomPolygon polygon={polygon} {...defaultProps} onPress={onPress} />,
+    );
+
+    const polygonElement = getByTestId("polygon");
+
+    polygonElement.props.onResponderGrant({
+      nativeEvent: { pageX: 50, pageY: 60 },
+    });
+    polygonElement.props.onResponderRelease({
+      nativeEvent: { pageX: 55, pageY: 63 },
+    });
+
+    expect(onPress).toHaveBeenCalledTimes(1);
+    nowSpy.mockRestore();
+  });
+
+  test("does not invoke onPress when movement is too large", () => {
+    const onPress = jest.fn();
+    const polygon: Coordinate[] = [
+      { x: 0.1, y: 0.1 },
+      { x: 0.5, y: 0.9 },
+      { x: 0.9, y: 0.1 },
+    ];
+
+    const nowSpy = jest.spyOn(Date, "now");
+    nowSpy.mockReturnValueOnce(1000).mockReturnValueOnce(1100);
+
+    const { getByTestId } = renderWithProviders(
+      <RoomPolygon polygon={polygon} {...defaultProps} onPress={onPress} />,
+    );
+
+    const polygonElement = getByTestId("polygon");
+
+    polygonElement.props.onResponderGrant({
+      nativeEvent: { pageX: 50, pageY: 60 },
+    });
+    polygonElement.props.onResponderRelease({
+      nativeEvent: { pageX: 80, pageY: 95 },
+    });
+
+    expect(onPress).not.toHaveBeenCalled();
+    nowSpy.mockRestore();
+  });
+
+  test("does not invoke onPress when press duration is too long", () => {
+    const onPress = jest.fn();
+    const polygon: Coordinate[] = [
+      { x: 0.1, y: 0.1 },
+      { x: 0.5, y: 0.9 },
+      { x: 0.9, y: 0.1 },
+    ];
+
+    const nowSpy = jest.spyOn(Date, "now");
+    nowSpy.mockReturnValueOnce(1000).mockReturnValueOnce(1600);
+
+    const { getByTestId } = renderWithProviders(
+      <RoomPolygon polygon={polygon} {...defaultProps} onPress={onPress} />,
+    );
+
+    const polygonElement = getByTestId("polygon");
+
+    polygonElement.props.onResponderGrant({
+      nativeEvent: { pageX: 50, pageY: 60 },
+    });
+    polygonElement.props.onResponderRelease({
+      nativeEvent: { pageX: 52, pageY: 61 },
+    });
+
+    expect(onPress).not.toHaveBeenCalled();
+    nowSpy.mockRestore();
+  });
+
+  test("terminating responder aborts pending tap", () => {
+    const onPress = jest.fn();
+    const polygon: Coordinate[] = [
+      { x: 0.1, y: 0.1 },
+      { x: 0.5, y: 0.9 },
+      { x: 0.9, y: 0.1 },
+    ];
+
+    const nowSpy = jest.spyOn(Date, "now");
+    nowSpy.mockReturnValueOnce(1000).mockReturnValueOnce(1200);
+
+    const { getByTestId } = renderWithProviders(
+      <RoomPolygon polygon={polygon} {...defaultProps} onPress={onPress} />,
+    );
+
+    const polygonElement = getByTestId("polygon");
+
+    polygonElement.props.onResponderGrant({
+      nativeEvent: { pageX: 50, pageY: 60 },
+    });
+    polygonElement.props.onResponderTerminate();
+    polygonElement.props.onResponderRelease({
+      nativeEvent: { pageX: 51, pageY: 61 },
+    });
+
+    expect(onPress).not.toHaveBeenCalled();
+    nowSpy.mockRestore();
   });
 });

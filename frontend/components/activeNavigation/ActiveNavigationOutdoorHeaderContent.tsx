@@ -21,6 +21,10 @@ export default function ActiveNavigationOutdoorHeaderContent() {
   const navigationState = useNavigationStore();
   const resetMapState = useMapStore((state) => state.closeSheet);
 
+  if (!navigationState.currentDirections) {
+    return null;
+  }
+
   const outdoorDirectionsBlock: OutdoorDirectionsBlockModel =
     navigationState.currentDirections?.directionBlocks.find(
       (block) => block.type === DirectionsResponseBlockType.OUTDOOR,

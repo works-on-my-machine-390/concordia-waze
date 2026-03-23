@@ -8,5 +8,5 @@ type BuildingSummary struct {
 	Campus    string  `json:"campus,omitempty"` // "SGW" or "LOY"
 	Latitude  float64 `json:"latitude,omitempty"`
 	Longitude float64 `json:"longitude,omitempty"`
-	Floors    []Floor `json:"floors"`
+	Floors    []Floor `json:"floors,omitempty"`
 }

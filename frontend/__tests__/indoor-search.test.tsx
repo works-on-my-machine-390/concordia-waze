@@ -131,11 +131,23 @@ jest.mock("@/components/shared/SearchPill", () => {
   });
 });
 
+jest.mock("@/components/SearchForTypeButton", () => {
+  return jest.fn(({ label, onPress }) => {
+    const { Pressable, Text } = require("react-native");
+    return (
+      <Pressable onPress={onPress}>
+        <Text>{label}</Text>
+      </Pressable>
+    );
+  });
+});
+
 describe("IndoorSearchPage", () => {
   const mockRouter = {
     navigate: jest.fn(),
     back: jest.fn(),
     push: jest.fn(),
+    replace: jest.fn(),
   };
 
   const mockFloors = [
@@ -272,6 +284,101 @@ describe("IndoorSearchPage", () => {
     expect(mockRouter.navigate).toHaveBeenCalledWith({
       pathname: "/indoor-map",
       params: { buildingCode: "MB" },
+    });
+  });
+
+  test("selecting a result in start edit mode sets start location and returns to map", () => {
+    (useIndoorSearch as jest.Mock).mockReturnValue({
+      results: mockSearchResults,
+      recentSearches: mockRecentSearches,
+      addRecentSearch: jest.fn(),
+      clearRecentSearches: jest.fn(),
+    });
+
+    useNavigationStore.setState({
+      modifyingField: "start",
+      startLocation: undefined,
+      endLocation: undefined,
+    });
+
+    render(<IndoorSearchPage />);
+
+    fireEvent.changeText(
+      screen.getByPlaceholderText("Search in John Molson Building..."),
+      "210",
+    );
+    fireEvent.press(screen.getByText("Result: 210"));
+
+    expect(useNavigationStore.getState().startLocation).toEqual(
+      expect.objectContaining({
+        code: "MB",
+        building: "MB",
+        floor_number: 1,
+        name: "210",
+      }),
+    );
+    expect(useNavigationStore.getState().modifyingField).toBeNull();
+    expect(mockRouter.push).toHaveBeenCalledWith({
+      pathname: "/map",
+      params: {
+        camLat: 45.497,
+        camLng: -73.579,
+      },
+    });
+  });
+
+  test("selecting a result in end edit mode sets end location and returns to map", () => {
+    (useIndoorSearch as jest.Mock).mockReturnValue({
+      results: mockSearchResults,
+      recentSearches: mockRecentSearches,
+      addRecentSearch: jest.fn(),
+      clearRecentSearches: jest.fn(),
+    });
+
+    useNavigationStore.setState({
+      modifyingField: "end",
+      startLocation: undefined,
+      endLocation: undefined,
+    });
+
+    render(<IndoorSearchPage />);
+
+    fireEvent.changeText(
+      screen.getByPlaceholderText("Search in John Molson Building..."),
+      "210",
+    );
+    fireEvent.press(screen.getByText("Result: 210"));
+
+    expect(useNavigationStore.getState().endLocation).toEqual(
+      expect.objectContaining({
+        code: "MB",
+        building: "MB",
+        floor_number: 1,
+        name: "210",
+      }),
+    );
+    expect(useNavigationStore.getState().modifyingField).toBeNull();
+  });
+
+  test("shows building search shortcut when building code is missing", () => {
+    (ExpoRouter.useLocalSearchParams as jest.Mock).mockReturnValue({
+      buildingCode: "",
+      buildingName: "",
+    });
+
+    useNavigationStore.setState({
+      modifyingField: "end",
+      startLocation: undefined,
+      endLocation: undefined,
+    });
+
+    render(<IndoorSearchPage />);
+
+    fireEvent.press(screen.getByText("Looking for a building?"));
+
+    expect(mockRouter.replace).toHaveBeenCalledWith({
+      pathname: "/search",
+      params: { editMode: "end" },
     });
   });
 });

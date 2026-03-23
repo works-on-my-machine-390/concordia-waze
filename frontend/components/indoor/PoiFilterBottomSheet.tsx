@@ -13,27 +13,13 @@ type PoiFilterBottomSheetProps = {
   poiType: string;
   poiLabel: string;
   floors: Floor[];
-  buildingCode: string;
-  onPoiSelect: (roomCode: string, floorNumber: number) => void;
   onClose: () => void;
-};
-
-type PoiItem = {
-  name: string;
-  floor: number;
-};
-
-type Section = {
-  title: string;
-  data: PoiItem[];
 };
 
 export default function PoiFilterBottomSheet({
   poiType,
   poiLabel,
   floors,
-  buildingCode,
-  onPoiSelect,
   onClose,
 }: Readonly<PoiFilterBottomSheetProps>) {
   const snapPoints = useMemo(() => ["15%"], []);
@@ -44,7 +30,7 @@ export default function PoiFilterBottomSheet({
       .find((floor) => floor.number.toString() === params.selectedFloor)
       ?.pois?.filter((poi) => poi.type.toLowerCase() === poiType.toLowerCase());
     indoorSearchState.setFilteredPois(filteredPois || null);
-  }, [params.selectedFloor]);
+  }, [params.selectedFloor, floors, poiType, indoorSearchState]);
 
   return (
     <BottomSheet

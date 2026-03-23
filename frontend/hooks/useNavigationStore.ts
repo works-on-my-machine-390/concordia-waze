@@ -55,7 +55,7 @@ interface NavigationState {
   setStartLocation: (location: NavigableLocation | null) => void;
 
   endLocation?: NavigableLocation;
-  setEndLocation: (location: NavigableLocation) => void;
+  setEndLocation: (location: NavigableLocation | null) => void;
 
   transitMode?: TransitMode;
   setTransitMode?: (mode: TransitMode) => void;
@@ -86,10 +86,10 @@ interface NavigationState {
 
 export const useNavigationStore = create<NavigationState>()((set) => ({
   startLocation: undefined,
-  setStartLocation: (location: NavigableLocation) =>
+  setStartLocation: (location: NavigableLocation | null) =>
     set({ startLocation: location }),
   endLocation: undefined,
-  setEndLocation: (location: NavigableLocation) =>
+  setEndLocation: (location: NavigableLocation | null) =>
     set({ endLocation: location }),
   transitMode: undefined,
   setTransitMode: (mode: TransitMode) => set({ transitMode: mode }),
