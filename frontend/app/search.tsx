@@ -90,7 +90,10 @@ export default function SearchPage() {
         if (active) {
           setRecentSearches(
             entries
-              .filter((item) => item.destinationType === "building")
+              .filter(
+                (item) =>
+                  (item.destinationType ?? "building") === "building", // for legacy entries -> assume building if type is missing
+              )
               .map((item) => ({
                 query: item.name,
                 locations: item.address,
@@ -104,7 +107,10 @@ export default function SearchPage() {
         if (active) {
           setRecentSearches(
             items
-              .filter((item) => item.destinationType === "building")
+              .filter(
+                (item) =>
+                  (item.destinationType ?? "building") === "building",
+              )
               .map((item) => ({
                 query: item.query,
                 locations: item.locations,

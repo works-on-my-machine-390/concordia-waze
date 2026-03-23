@@ -229,7 +229,7 @@ describe("IndoorBottomSheetSection", () => {
       pathname: "/indoor-map",
       params: {
         buildingCode: "H",
-        selectedRoom: "poi_1",
+        selectedPoiName: "poi_1",
         selectedFloor: "2",
       },
     });

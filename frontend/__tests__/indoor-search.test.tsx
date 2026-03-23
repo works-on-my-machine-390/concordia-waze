@@ -12,6 +12,10 @@ jest.mock("expo-router", () => ({
 }));
 
 jest.mock("@/hooks/queries/buildingQueries", () => ({
+  CampusCode: {
+    SGW: "SGW",
+    LOY: "LOY",
+  },
   useGetAllBuildings: jest.fn(() => ({
     data: {
       buildings: {

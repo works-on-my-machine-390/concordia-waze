@@ -22,7 +22,14 @@ jest.mock("expo-router", () => ({
 }));
 
 // Mock building queries
-jest.mock("@/hooks/queries/buildingQueries");
+jest.mock("@/hooks/queries/buildingQueries", () => {
+  const actual = jest.requireActual("@/hooks/queries/buildingQueries");
+  return {
+    ...actual,
+    useGetBuildings: jest.fn(),
+    useGetAllBuildings: jest.fn(),
+  };
+});
 
 // Mock user queries
 jest.mock("@/hooks/queries/userQueries");
@@ -44,6 +51,7 @@ jest.mock("@/hooks/api", () => ({
 
 // Mock Ionicons
 jest.mock("@expo/vector-icons", () => ({
+  FontAwesome6: "FontAwesome6",
   Ionicons: "Ionicons",
 }));
 
@@ -56,6 +64,7 @@ describe("SearchPage", () => {
   const mockRouter = {
     back: jest.fn(),
     replace: jest.fn(),
+    push: jest.fn((...args: any[]) => mockRouter.replace(...args)),
   };
 
   const mockSGWBuildings = {

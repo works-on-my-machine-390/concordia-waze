@@ -116,6 +116,7 @@ describe("IndoorMapPage", () => {
       params: {
         buildingCode: "VL",
         buildingName: "Vanier Library",
+        previouslySelectedFloor: "8",
       },
     });
   });
