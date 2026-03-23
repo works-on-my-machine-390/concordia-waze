@@ -76,6 +76,10 @@ const createPoi = (type: string): PointOfInterest => ({
   type,
   position: { x: 0.5, y: 0.5 },
   polygon: [],
+  floor_number: 1,
+  latitude: 45.497,
+  longitude: -73.579,
+  building: "CC",
 });
 
 describe("PoiMarker", () => {
@@ -171,6 +175,10 @@ describe("PoiMarker", () => {
       type: "stairs",
       position: { x: 0.25, y: 0.75 },
       polygon: [],
+      floor_number: 1,
+      latitude: 45.497,
+      longitude: -73.579,
+      building: "CC",
     };
 
     const { getByTestId } = renderWithProviders(
@@ -186,6 +194,10 @@ describe("PoiMarker", () => {
       type: "bathroom",
       position: { x: 0.5, y: 0.5 },
       polygon: [],
+      floor_number: 1,
+      latitude: 45.497,
+      longitude: -73.579,
+      building: "CC",
     };
 
     const { getByTestId } = renderWithProviders(
@@ -207,7 +219,7 @@ describe("PoiMarker", () => {
   test("changes icon color when selected", () => {
     const poi = createPoi("elevator");
     const { getByLabelText } = renderWithProviders(
-      <PoiMarker poi={poi} {...defaultProps} isSelected={true} />,
+      <PoiMarker poi={poi} {...defaultProps} highlighted={true} />,
     );
 
     expect(getByLabelText("elevator-20-#4180c0")).toBeTruthy();

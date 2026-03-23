@@ -1,4 +1,5 @@
 import MapBottomSection from "@/components/MapBottomSection";
+import NavigationPolylines from "@/components/NavigationPolylines";
 import PoiOutdoorMarkers from "@/components/poi/PoiOutdoorMarkers";
 import ShuttleBusMarkers from "@/components/ShuttleBusMarkers";
 import {
@@ -9,7 +10,9 @@ import {
 } from "@/hooks/queries/buildingQueries";
 import { TextSearchRankPreferenceType } from "@/hooks/queries/poiQueries";
 import { MapMode, useMapStore } from "@/hooks/useMapStore";
-import { useNavigationStore } from "@/hooks/useNavigationStore";
+import { ModifyingFieldOptions, useNavigationStore } from "@/hooks/useNavigationStore";
+import { useNextClass } from "@/hooks/useNextClass";
+import { endTaskTimer, startTaskTimer } from "@/lib/telemetry";
 import * as Location from "expo-location";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -26,8 +29,6 @@ import {
   DEFAULT_MAP_DELTA,
 } from "../constants";
 import { getDistance } from "../utils/mapUtils";
-import NavigationPolylines from "@/components/NavigationPolylines";
-import { endTaskTimer, startTaskTimer } from "@/lib/telemetry";
 
 export type MapQueryParamsModel = {
   selected?: string;
@@ -381,6 +382,8 @@ export default function MainMap() {
   }, []);
 
   const handleStartLocationPress = () => {
+    navigationState.setModifyingField(ModifyingFieldOptions.start);
+
     router.push({
       pathname: "/search",
       params: {
@@ -394,6 +397,7 @@ export default function MainMap() {
   };
 
   const handleEndLocationPress = () => {
+    navigationState.setModifyingField(ModifyingFieldOptions.end);
     router.push({
       pathname: "/search",
       params: {
@@ -411,6 +415,8 @@ export default function MainMap() {
       query: "",
     });
   };
+
+  const { nextClass } = useNextClass();
 
   return (
     <View style={styles.container}>
@@ -459,6 +465,7 @@ export default function MainMap() {
         goToMyLocation={goToMyLocation}
         moveCamera={moveCamera}
         userLocation={location?.coords}
+        nextClass={nextClass}
       />
     </View>
   );

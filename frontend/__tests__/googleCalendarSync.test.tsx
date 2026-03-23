@@ -84,7 +84,7 @@ describe("GoogleSyncPage", () => {
 
     jest.advanceTimersByTime(1500);
 
-    expect(mockPush).toHaveBeenCalledWith("/(drawer)/schedule");
+    expect(mockPush).toHaveBeenCalledWith("/missingEventInfo");
   });
 
   test("cancel sync resets mutation and navigates back", () => {

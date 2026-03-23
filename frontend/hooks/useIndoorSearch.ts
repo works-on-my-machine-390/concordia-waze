@@ -5,7 +5,11 @@ import {
   clearGuestSearchHistory,
   getGuestSearchHistory,
 } from "./guestStorage";
-import type { Floor, PointOfInterest } from "./queries/indoorMapQueries";
+import type {
+  ExtendedBuildingFloor,
+  Floor,
+  PointOfInterest,
+} from "./queries/indoorMapQueries";
 import {
   useClearUserHistory,
   useGetUserHistory,
@@ -24,13 +28,24 @@ export type RecentIndoorSearch = {
   floor: number;
 };
 
-function calculateSearchScore(poi: PointOfInterest, query: string): number {
+function calculateSearchScore(
+  poi: PointOfInterest,
+  query: string, // cleaned
+  originalQuery: string,
+): number {
   const poiName = poi.name.toLowerCase();
   const poiType = poi.type.toLowerCase();
   const poiTypeCleaned = poiType.replace(/_/g, " "); // eslint-disable-line prefer-string-replace-all
 
   const isPoi_X = /^poi_\d+$/i.test(poi.name);
-  const searchableName = isPoi_X ? "" : poiName;
+  let searchableName = isPoi_X ? "" : poiName;
+
+  if (searchableName.startsWith("room")) {
+    searchableName = searchableName.replace(
+      /^room\s*/i,
+      poi.building.toLowerCase(),
+    );
+  }
 
   const exactNameMatch = searchableName === query;
   const exactTypeMatch = poiType === query || poiTypeCleaned === query;
@@ -69,9 +84,9 @@ function deduplicateSearches(
 }
 
 export const useIndoorSearch = (
-  floors: Floor[],
+  floors: ExtendedBuildingFloor[],
   query: string,
-  buildingCode: string,
+  buildingCode?: string, // optional - will restrict results to a given building if provided
 ) => {
   const { data: userProfile } = useGetProfile();
   const userId = userProfile?.id || "";
@@ -90,11 +105,7 @@ export const useIndoorSearch = (
       if (userId) {
         const entries = userHistoryQuery.data ?? [];
         const buildingSearches = entries
-          .filter(
-            (item) =>
-              item.building_code === buildingCode &&
-              item.destinationType === "room",
-          )
+          .filter((item) => item.destinationType === "room")
           .map((item) => ({
             displayName: item.name,
             floor: extractFloorFromAddress(item.address),
@@ -106,7 +117,9 @@ export const useIndoorSearch = (
       } else {
         const items = await getGuestSearchHistory();
         const buildingSearches = items
-          .filter((item) => item.locations?.includes(buildingCode))
+          .filter(
+            (item) => item.locations?.includes(buildingCode) || !buildingCode,
+          )
           .map((item) => ({
             displayName: item.query,
             floor: extractFloorFromAddress(item.locations || ""),
@@ -129,7 +142,7 @@ export const useIndoorSearch = (
     const q = query.trim().toLowerCase();
     if (!q) return [];
 
-    const buildingCodeLower = buildingCode.toLowerCase();
+    const buildingCodeLower = buildingCode?.toLowerCase();
     let cleanedQuery = q;
 
     if (q.startsWith(buildingCodeLower)) {
@@ -141,13 +154,32 @@ export const useIndoorSearch = (
 
     const matches: Array<IndoorSearchResult & { score: number }> = [];
 
-    for (const floor of floors) {
+    const relevantFloors = buildingCode
+      ? floors.filter((f) => {
+          if (!f) return false;
+          const floorName = f.name?.toLowerCase();
+          const floorBuilding = f.building?.toLowerCase();
+          return (
+            floorName?.includes(buildingCodeLower) ||
+            floorBuilding === buildingCodeLower
+          );
+        })
+      : floors;
+
+    for (const floor of relevantFloors) {
       for (const poi of floor.pois) {
-        const score = calculateSearchScore(poi, cleanedQuery);
+        const extendedPoi = {
+          ...poi,
+          latitude: floor.latitude,
+          longitude: floor.longitude,
+          building: floor.building,
+          floor_number: floor.number,
+        };
+        const score = calculateSearchScore(extendedPoi, cleanedQuery, q);
 
         if (score > 0) {
           matches.push({
-            poi,
+            poi: extendedPoi,
             floor,
             type: poi.type.toLowerCase() === "room" ? "room" : "poi",
             score,
@@ -161,22 +193,22 @@ export const useIndoorSearch = (
 
   const addRecentSearch = async (
     roomName: string,
-    roomCode: string,
     floorNumber: number,
+    code: string,
   ) => {
     if (userId) {
       saveToHistory.mutate({
         name: roomName,
-        address: `${buildingCode} - Floor ${floorNumber}`,
+        address: `${code} - Floor ${floorNumber}`,
         lat: 0,
         lng: 0,
-        building_code: buildingCode,
-        destinationType: "room",
+        building_code: code,
+        destinationType: "poi",
       });
     } else {
       await addGuestSearchHistory({
         query: roomName,
-        locations: `${buildingCode} - Floor ${floorNumber}`,
+        locations: `${code} - Floor ${floorNumber}`,
         timestamp: new Date(),
       });
 

@@ -5,6 +5,15 @@ import { renderWithProviders } from "@/test_utils/renderUtils";
 const mockRouterPush = jest.fn();
 const mockUseCourses = jest.fn();
 const mockGetGuestCourses = jest.fn();
+const mockDispatch = jest.fn();
+const mockUseGetProfile = jest.fn();
+const mockCheckToken = jest.fn();
+
+jest.mock("@/hooks/useAuth", () => ({
+  useAuth: () => ({
+    checkToken: mockCheckToken,
+  }),
+}));
 
 jest.mock("expo-router", () => ({
   useRouter: () => ({
@@ -12,6 +21,34 @@ jest.mock("expo-router", () => ({
   }),
   useFocusEffect: (callback: () => void) => callback(),
 }));
+
+jest.mock("@react-navigation/native", () => ({
+  useNavigation: () => ({
+    dispatch: mockDispatch,
+  }),
+  DrawerActions: {
+    openDrawer: () => ({ type: "OPEN_DRAWER" }),
+  },
+}));
+
+jest.mock("@gorhom/bottom-sheet", () => {
+  const React = require("react");
+  const { View, ScrollView } = require("react-native");
+
+  const MockBottomSheet = React.forwardRef(({ children }: any, ref: any) => (
+    <View ref={ref} testID="bottom-sheet">
+      {children}
+    </View>
+  ));
+
+  return {
+    __esModule: true,
+    default: MockBottomSheet,
+    BottomSheetScrollView: ({ children, ...props }: any) => (
+      <ScrollView {...props}>{children}</ScrollView>
+    ),
+  };
+});
 
 jest.mock("@/hooks/queries/googleCalendarQueries", () => ({
   useCourses: () => mockUseCourses(),
@@ -21,8 +58,18 @@ jest.mock("@/hooks/guestStorage", () => ({
   getGuestCourses: () => mockGetGuestCourses(),
 }));
 
-jest.mock("@/components/classes/ClassInfoCard", () => {
-  return ({ courseName, classInfo }: { courseName: string; classInfo: { type: string } }) => {
+jest.mock("@/hooks/queries/userQueries", () => ({
+  useGetProfile: () => mockUseGetProfile(),
+}));
+
+jest.mock("@/components/schedule/ScheduleClassCard", () => {
+  return ({
+    courseName,
+    classInfo,
+  }: {
+    courseName: string;
+    classInfo: { type: string };
+  }) => {
     const { Text, View } = require("react-native");
     return (
       <View>
@@ -43,9 +90,14 @@ jest.mock("@/components/SyncGoogleCalendarButton", () => {
   };
 });
 
+jest.mock("@/components/schedule/WeeklyScheduleView", () => {
+  return () => null;
+});
+
 describe("Schedule screen", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+
     mockUseCourses.mockReturnValue({
       data: [
         {
@@ -83,23 +135,58 @@ describe("Schedule screen", () => {
     ]);
   });
 
-  test("renders both guest and synced course cards", async () => {
-    const { getByText } = renderWithProviders(<Schedule />);
+  test("renders only synced course cards when user is logged in", async () => {
+    mockCheckToken.mockResolvedValue(true);
+
+    const { getByText, queryByText } = renderWithProviders(<Schedule />);
 
     await waitFor(() => {
-      expect(getByText("COMP 346-LAB")).toBeTruthy();
-      expect(getByText("SOEN 341-LEC")).toBeTruthy();
+      expect(getByText("SOEN 341-Lecture")).toBeTruthy();
     });
+
+    expect(queryByText("COMP 346-Lab")).toBeNull();
   });
 
-  test("navigates to add-class when add icon is pressed", async () => {
-    const { getByText } = renderWithProviders(<Schedule />);
+  test("renders only guest course cards when user is not logged in", async () => {
+    mockCheckToken.mockResolvedValue(false);
+
+    const { getByText, queryByText } = renderWithProviders(<Schedule />);
+
+    await waitFor(() => {
+      expect(getByText("COMP 346-Lab")).toBeTruthy();
+    });
+
+    expect(queryByText("SOEN 341-Lecture")).toBeNull();
+  });
+
+  test("opens drawer when menu button is pressed", async () => {
+    mockUseGetProfile.mockReturnValue({
+      data: null,
+    });
+
+    const { getByTestId } = renderWithProviders(<Schedule />);
 
     await waitFor(() => {
       expect(mockGetGuestCourses).toHaveBeenCalled();
     });
 
-    fireEvent.press(getByText(""));
+    fireEvent.press(getByTestId("schedule-menu-button"));
+
+    expect(mockDispatch).toHaveBeenCalledWith({ type: "OPEN_DRAWER" });
+  });
+
+  test("navigates to add-class when add button is pressed", async () => {
+    mockUseGetProfile.mockReturnValue({
+      data: null,
+    });
+
+    const { getByTestId } = renderWithProviders(<Schedule />);
+
+    await waitFor(() => {
+      expect(mockGetGuestCourses).toHaveBeenCalled();
+    });
+
+    fireEvent.press(getByTestId("add-class-button"));
 
     expect(mockRouterPush).toHaveBeenCalledWith({
       pathname: "/add-class",
@@ -108,6 +195,10 @@ describe("Schedule screen", () => {
   });
 
   test("navigates to google sync page when sync button is pressed", async () => {
+    mockUseGetProfile.mockReturnValue({
+      data: null,
+    });
+
     const { getByTestId } = renderWithProviders(<Schedule />);
 
     await waitFor(() => {
@@ -117,5 +208,19 @@ describe("Schedule screen", () => {
     fireEvent.press(getByTestId("sync-button"));
 
     expect(mockRouterPush).toHaveBeenCalledWith("/googleCalendarSync");
+  });
+
+  test("renders bottom sheet container", async () => {
+    mockUseGetProfile.mockReturnValue({
+      data: null,
+    });
+
+    const { getByTestId } = renderWithProviders(<Schedule />);
+
+    await waitFor(() => {
+      expect(mockGetGuestCourses).toHaveBeenCalled();
+    });
+
+    expect(getByTestId("bottom-sheet")).toBeTruthy();
   });
 });

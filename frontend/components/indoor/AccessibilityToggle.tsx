@@ -1,22 +1,18 @@
-import React, {useRef } from "react";
-import {
-  Animated,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
-import { WheelchairIcon } from "@/app/icons";
 import { COLORS } from "@/app/constants";
+import { WheelchairIcon } from "@/app/icons";
+import { useRef } from "react";
+import { Animated, Pressable, StyleSheet, Text } from "react-native";
 
 interface AccessibilityToggleProps {
   isActive: boolean;
   onToggle: () => void;
+  isNavigationBottomSheet?: boolean; // for overriding styling
 }
 
 export default function AccessibilityToggle({
   isActive,
   onToggle,
+  isNavigationBottomSheet,
 }: Readonly<AccessibilityToggleProps>) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
@@ -37,24 +33,31 @@ export default function AccessibilityToggle({
   };
 
   return (
-    <Pressable onPress={handlePress} accessibilityRole="button"
-      accessibilityLabel={isActive ? "Disable accessibility mode" : "Enable accessibility mode"}
+    <Pressable
+      onPress={handlePress}
+      accessibilityRole="button"
+      accessibilityLabel={
+        isActive ? "Disable accessibility mode" : "Enable accessibility mode"
+      }
       accessibilityState={{ checked: isActive }}
     >
       <Animated.View
         style={[
           styles.button,
           isActive && styles.buttonActive,
+          isNavigationBottomSheet && {
+            paddingHorizontal: 10,
+            paddingVertical: 8,
+            ...noShadow,
+          },
           { transform: [{ scale: scaleAnim }] },
         ]}
       >
         <WheelchairIcon
-          size={22}
+          size={isNavigationBottomSheet ? 20 : 22}
           color={isActive ? COLORS.surface : COLORS.accessibilityIcon}
         />
-        {isActive && (
-          <Text style={styles.activeLabel}>Accessible</Text>
-        )}
+        {isActive && <Text style={styles.activeLabel}>Accessible</Text>}
       </Animated.View>
     </Pressable>
   );
@@ -88,3 +91,11 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
 });
+
+const noShadow = {
+  shadowColor: null,
+  shadowOpacity: null,
+  shadowRadius: null,
+  shadowOffset: null,
+  elevation: 0,
+};

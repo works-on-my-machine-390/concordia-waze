@@ -25,6 +25,8 @@ export const COLORS = {
   success: "#4CAF50",
   warning: "#FF9800",
   accessibilityIcon: "#0E4C92",
+  darkBgOverlay: "rgba(0, 0, 0, 0.9)",
+  white: "#FFFFFF",
 };
 
 export const DIRECTION_COLORS = {

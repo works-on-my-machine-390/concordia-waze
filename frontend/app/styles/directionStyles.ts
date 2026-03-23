@@ -187,6 +187,12 @@ export const directionStepsStyles = StyleSheet.create({
   walkingStepTextFullWidth: {
     maxWidth: "100%",
   },
+  indoorStepContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    gap: 16,
+  },
 });
 
 export const getTransitStepVerticalLineColorStyle = (color?: string) => ({
