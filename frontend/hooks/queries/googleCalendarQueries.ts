@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 export type ClassItem = {
   eventId?: string;
   classId?: string;
+  itemId?: string;
   type: string; // lab, lec, tut
   section: string;
   day: string;
