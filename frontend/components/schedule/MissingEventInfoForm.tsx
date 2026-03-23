@@ -1,9 +1,7 @@
 import { useState } from "react";
 import {
   ActivityIndicator,
-  KeyboardAvoidingView,
   Modal,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -57,38 +55,33 @@ function ModalSheet({
   children: React.ReactNode;
 }>) {
   return (
-    <Modal transparent animationType="slide" onRequestClose={onClose}>
-      <KeyboardAvoidingView
-        style={ms.keyboardAvoid}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-      >
-        <TouchableOpacity style={ms.dismissArea} activeOpacity={1} onPress={onClose} />
-        <ScrollView
-          contentContainerStyle={ms.sheetScroll}
-          keyboardShouldPersistTaps="handled"
-          bounces={false}
-        >
-          <View style={ms.sheet}>
-            <View style={ms.handle} />
-            <Text style={ms.title}>{title}</Text>
-            <Text style={ms.subtitle}>{subtitle}</Text>
+    <Modal transparent animationType="fade" onRequestClose={onClose}>
+      <TouchableOpacity style={ms.overlay} activeOpacity={1} onPress={onClose}>
+        <TouchableOpacity style={ms.popup} activeOpacity={1} onPress={() => {}}>
+          <Text style={ms.title}>{title}</Text>
+          <Text style={ms.subtitle}>{subtitle}</Text>
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            bounces={false}
+          >
             {children}
-            {!!error && <Text style={ms.error}>{error}</Text>}
-            <View style={ms.actions}>
-              <TouchableOpacity style={ms.cancelBtn} onPress={onClose}>
-                <Text style={ms.cancelText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[ms.saveBtn, isPending && ms.saveBtnDisabled]}
-                onPress={onSave}
-                disabled={isPending}
-              >
-                <Text style={ms.saveText}>{isPending ? "Saving…" : "Save"}</Text>
-              </TouchableOpacity>
-            </View>
+          </ScrollView>
+          {!!error && <Text style={ms.error}>{error}</Text>}
+          <View style={ms.actions}>
+            <TouchableOpacity style={ms.cancelBtn} onPress={onClose}>
+              <Text style={ms.cancelText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[ms.saveBtn, isPending && ms.saveBtnDisabled]}
+              onPress={onSave}
+              disabled={isPending}
+            >
+              <Text style={ms.saveText}>{isPending ? "Saving…" : "Save"}</Text>
+            </TouchableOpacity>
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+        </TouchableOpacity>
+      </TouchableOpacity>
     </Modal>
   );
 }
@@ -376,29 +369,24 @@ const s = StyleSheet.create({
 });
 
 const ms = StyleSheet.create({
-  keyboardAvoid: {
+  overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    justifyContent: "flex-end",
-  },
-  dismissArea: {
-    flex: 1,
-  },
-  sheetScroll: { flexGrow: 0 },
-  sheet: {
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+    backgroundColor: "rgba(0,0,0,0.50)",
+    justifyContent: "center",
+    alignItems: "center",
     padding: 24,
-    paddingBottom: 44,
   },
-  handle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: "#DDD",
-    alignSelf: "center",
-    marginBottom: 16,
+  popup: {
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    padding: 24,
+    width: "100%",
+    maxHeight: "80%",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 12,
   },
   title: {
     fontSize: 20,
@@ -446,7 +434,7 @@ const ms = StyleSheet.create({
     borderColor: "#E5E5E5",
     borderRadius: 8,
     marginTop: 4,
-    maxHeight: 200,
+    maxHeight: 180,
     overflow: "hidden",
   },
   list: { backgroundColor: "#fff" },
