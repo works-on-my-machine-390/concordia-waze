@@ -28,7 +28,9 @@ export default function NextClassCard({
   onNavigatePress,
 }: Readonly<Props>) {
   const [minutesUntil, setMinutesUntil] = useState(() =>
-    nextClass?.item?.startTime ? getMinutesUntil(nextClass.item.startTime) : null,
+    nextClass?.item?.startTime
+      ? getMinutesUntil(nextClass.item.startTime)
+      : null,
   );
 
   useEffect(() => {
@@ -85,7 +87,9 @@ export default function NextClassCard({
               : `NEXT CLASS IN ${formatTimeUntil(minutesUntil)}`}
           </Text>
         </View>
-        <Text style={styles.startTimeText}>{item.startTime}</Text>
+        <Text style={styles.startTimeText}>
+          {hasStarted ? `${item.startTime} - ${item.endTime}` : item.startTime}
+        </Text>
       </View>
 
       <View style={styles.divider} />
