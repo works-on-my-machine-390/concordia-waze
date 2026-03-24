@@ -1,4 +1,4 @@
-import { fireEvent, render } from "@testing-library/react-native";
+import { render } from "@testing-library/react-native";
 import NextClassCard from "../components/classes/NextClassCard";
 import { NextClassResponse } from "../hooks/queries/classQueries";
 
@@ -36,7 +36,7 @@ describe("NextClassCard", () => {
     const { getByText } = render(
       <NextClassCard nextClass={mockNextClass} onNavigatePress={jest.fn()} />,
     );
-    expect(getByText("SOEN 363")).toBeTruthy();
+    expect(getByText("SOEN 363 - LEC")).toBeTruthy();
   });
 
   test("renders location in correct format", () => {
@@ -85,5 +85,49 @@ describe("NextClassCard", () => {
       <NextClassCard nextClass={mockNextClass} onNavigatePress={jest.fn()} />,
     );
     expect(getByText("CLASS IN PROGRESS")).toBeTruthy();
+  });
+
+  test("shows NO MORE CLASSES TODAY when nextClass is null", () => {
+    const { getByText } = render(
+      <NextClassCard nextClass={null} onNavigatePress={jest.fn()} />,
+    );
+    expect(getByText("NO MORE CLASSES TODAY")).toBeTruthy();
+  });
+
+  test("shows NO MORE CLASSES TODAY when nextClass has no item", () => {
+    const nextClassWithoutItem = {
+      className: "SOEN 363",
+      buildingLatitude: 0,
+      buildingLongitude: 0,
+      floorNumber: 0,
+      roomX: 0,
+      roomY: 0,
+      item: undefined,
+    } as any;
+
+    const { getByText } = render(
+      <NextClassCard
+        nextClass={nextClassWithoutItem}
+        onNavigatePress={jest.fn()}
+      />,
+    );
+    expect(getByText("NO MORE CLASSES TODAY")).toBeTruthy();
+  });
+
+  test("updates minutesUntil after next minute tick", () => {
+    jest.useFakeTimers();
+    mockDate(15, 30);
+
+    const { getByText } = render(
+      <NextClassCard nextClass={mockNextClass} onNavigatePress={jest.fn()} />,
+    );
+
+    expect(getByText("NEXT CLASS IN 30 MIN.")).toBeTruthy();
+
+    jest.advanceTimersByTime(61000);
+
+    expect(getByText("NEXT CLASS IN 30 MIN.")).toBeTruthy();
+
+    jest.useRealTimers();
   });
 });

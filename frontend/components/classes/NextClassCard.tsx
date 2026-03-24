@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 type Props = {
-  nextClass: NextClassResponse;
+  nextClass: NextClassResponse | null;
   onNavigatePress: () => void;
 };
 
@@ -27,28 +27,53 @@ export default function NextClassCard({
   nextClass,
   onNavigatePress,
 }: Readonly<Props>) {
-  const { className, item } = nextClass;
   const [minutesUntil, setMinutesUntil] = useState(() =>
-    getMinutesUntil(item.startTime),
+    nextClass?.item?.startTime
+      ? getMinutesUntil(nextClass.item.startTime)
+      : null,
   );
+
   useEffect(() => {
+    if (!nextClass?.item?.startTime) return;
+    setMinutesUntil(getMinutesUntil(nextClass.item.startTime));
+  }, [nextClass?.item?.startTime]);
+
+  useEffect(() => {
+    if (!nextClass) return;
+
     const now = new Date();
     const msUntilNextMinute = //im getting the next minute just to make sure that the time left is accurate (and that we dont start calculating one minute from whenever it was rendered)
       (60 - now.getSeconds()) * 1000 - now.getMilliseconds();
 
     const timeout = setTimeout(() => {
-      setMinutesUntil(getMinutesUntil(item.startTime));
+      if (!nextClass?.item?.startTime) return;
+      setMinutesUntil(getMinutesUntil(nextClass.item.startTime));
 
       const interval = setInterval(() => {
-        setMinutesUntil(getMinutesUntil(item.startTime));
+        if (!nextClass?.item?.startTime) return;
+        setMinutesUntil(getMinutesUntil(nextClass.item.startTime));
       }, 60000);
 
       return () => clearInterval(interval);
     }, msUntilNextMinute);
 
     return () => clearTimeout(timeout);
-  }, [item.startTime]);
-  const hasStarted = minutesUntil <= 0;
+  }, [nextClass?.item?.startTime]);
+
+  if (!nextClass?.item) {
+    return (
+      <View style={styles.card}>
+        <View style={styles.topLeft}>
+          <TimeIcon size={12} color={COLORS.conuRedLight} />
+          <Text style={styles.timeUntilText}>NO MORE CLASSES TODAY</Text>
+        </View>
+      </View>
+    );
+  }
+
+  const { className, item } = nextClass;
+
+  const hasStarted = minutesUntil !== null && minutesUntil <= 0;
   const location = `${item.buildingCode.toUpperCase()} ${item.room}`;
 
   return (
@@ -62,14 +87,16 @@ export default function NextClassCard({
               : `NEXT CLASS IN ${formatTimeUntil(minutesUntil)}`}
           </Text>
         </View>
-        <Text style={styles.startTimeText}>{item.startTime}</Text>
+        <Text style={styles.startTimeText}>
+          {hasStarted ? `${item.startTime} - ${item.endTime}` : item.startTime}
+        </Text>
       </View>
 
       <View style={styles.divider} />
 
       <View style={styles.bottomRow}>
         <View style={styles.classInfo}>
-          <Text style={styles.classNameText}>{className.toUpperCase()}</Text>
+          <Text style={styles.classNameText}>{className.toUpperCase()} - {item.type.slice(0, 3).toUpperCase()}</Text>
           <Text style={styles.locationText}>{location}</Text>
         </View>
         <Pressable style={styles.navigateButton} onPress={onNavigatePress}>
