@@ -15,7 +15,7 @@ appId: host.exp.Exponent
 - waitForAnimationToEnd
 
 # 4) Assert bottom sheet appears with building name
-- assertVisible: "Henry F. Hall Building (H)"
+- assertVisible: "Hall Building (H)"
 - waitForAnimationToEnd
 
 # 5) Click on view indoor map
@@ -23,7 +23,7 @@ appId: host.exp.Exponent
     point: "21%, 75%"
 
 # 6) Select floors within the building
-- assertVisible: "Henry F. Hall Building (H) - 1st Floor"
+- assertVisible: "Hall Building (H) - 1st Floor"
 
 - tapOn:
     text: "8"
@@ -69,7 +69,8 @@ appId: host.exp.Exponent
     index: 1
 
 # 16) Click on go and next until finished
-- tapOn: GO
-- tapOn: NEXT
-- tapOn: NEXT
-- tapOn: FINISH
+- tapOn: Start, 󰎐
+- tapOn: Next step
+- tapOn: Next step
+- tapOn: Finish
+- assertVisible: "Hall Building (H) - 8th Floor"
