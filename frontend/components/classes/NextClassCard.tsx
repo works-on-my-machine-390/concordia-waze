@@ -96,7 +96,7 @@ export default function NextClassCard({
 
       <View style={styles.bottomRow}>
         <View style={styles.classInfo}>
-          <Text style={styles.classNameText}>{className.toUpperCase()}</Text>
+          <Text style={styles.classNameText}>{className.toUpperCase()} - {item.type.slice(0, 3).toUpperCase()}</Text>
           <Text style={styles.locationText}>{location}</Text>
         </View>
         <Pressable style={styles.navigateButton} onPress={onNavigatePress}>

@@ -36,7 +36,7 @@ describe("NextClassCard", () => {
     const { getByText } = render(
       <NextClassCard nextClass={mockNextClass} onNavigatePress={jest.fn()} />,
     );
-    expect(getByText("SOEN 363")).toBeTruthy();
+    expect(getByText("SOEN 363 - LEC")).toBeTruthy();
   });
 
   test("renders location in correct format", () => {
