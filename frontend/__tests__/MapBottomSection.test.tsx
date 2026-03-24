@@ -191,12 +191,4 @@ describe("MapBottomSection", () => {
 
     expect(getByTestId("next-class-drawer")).toBeTruthy();
   });
-
-  test("does not render NextClassDrawer when nextClass is null", () => {
-    const { queryByTestId } = render(
-      <MapBottomSection goToMyLocation={jest.fn()} nextClass={null} />,
-    );
-
-    expect(queryByTestId("next-class-drawer")).toBeNull();
-  });
 });

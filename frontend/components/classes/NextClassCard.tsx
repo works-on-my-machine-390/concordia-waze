@@ -28,7 +28,7 @@ export default function NextClassCard({
   onNavigatePress,
 }: Readonly<Props>) {
   const [minutesUntil, setMinutesUntil] = useState(() =>
-    nextClass ? getMinutesUntil(nextClass.item.startTime) : null,
+    nextClass?.item?.startTime ? getMinutesUntil(nextClass.item.startTime) : null,
   );
 
   useEffect(() => {
