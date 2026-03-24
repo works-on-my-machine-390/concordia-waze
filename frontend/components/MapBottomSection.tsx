@@ -1,6 +1,11 @@
 import { NextClassResponse } from "@/hooks/queries/classQueries";
 import { MapMode, useMapStore } from "@/hooks/useMapStore";
+import {
+  NavigationPhase,
+  useNavigationStore,
+} from "@/hooks/useNavigationStore";
 import { StyleSheet, View } from "react-native";
+import ActiveNavigationBottomSheet from "./activeNavigation/ActiveNavigationBottomSheet";
 import BuildingBottomSheet from "./BuildingBottomSheet";
 import NextClassDrawer from "./classes/NextClassDrawer";
 import LocationButton from "./LocationButton";
@@ -8,11 +13,6 @@ import MapSettingsBottomSheet from "./MapSettingsBottomSheet";
 import MapSettingsButton from "./MapSettingsButton";
 import NavigationBottomSheet from "./NavigationBottomSheet";
 import PoiSearchBottomSheet from "./poi/PoiSearchBottomSheet";
-import {
-  NavigationPhase,
-  useNavigationStore,
-} from "@/hooks/useNavigationStore";
-import ActiveNavigationBottomSheet from "./activeNavigation/ActiveNavigationBottomSheet";
 
 export type MapBottomSectionProps = {
   goToMyLocation: () => void;
@@ -52,8 +52,7 @@ export default function MapBottomSection(
   };
 
   const renderNextClassDrawer = () => {
-    if (!props.nextClass?.item) return null;
-    return <NextClassDrawer nextClass={props.nextClass} />;
+    return <NextClassDrawer nextClass={props.nextClass ?? null} />;
   };
 
   const renderSheets = () => {

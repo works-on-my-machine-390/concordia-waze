@@ -1,8 +1,21 @@
 import { DAYS, toMinutes } from "@/app/utils/dateUtils";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { getGuestCourses } from "./guestStorage";
 import { NextClassResponse, useGetNextClass } from "./queries/classQueries";
 import { useAuth } from "./useAuth";
+
+const scheduleCallback = (
+  endTime: string,
+  callback: () => void,
+): (() => void) => {
+  const now = new Date();
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const msUntilEnd = (toMinutes(endTime) - nowMinutes) * 60 * 1000;
+  if (msUntilEnd <= 0) return () => {};
+  const timeout = setTimeout(callback, msUntilEnd);
+  return () => clearTimeout(timeout);
+};
 
 const findNextGuestClass = async (): Promise<NextClassResponse | null> => {
   const courses = await getGuestCourses();
@@ -50,15 +63,19 @@ export type UseNextClassResult = {
 
 export const useNextClass = (): UseNextClassResult => {
   const { checkToken } = useAuth();
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null); 
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   // im putting null instead of false as default here because if it defaults to false, the hook might assume user is a guest before checkToken resolves
   // (even though they might be logged in) and guest storage will be called
+
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     checkToken().then(setIsAuthenticated);
   }, []);
 
-  const { data, isLoading, isError } = useGetNextClass(isAuthenticated === true);
+  const { data, isLoading, isError } = useGetNextClass(
+    isAuthenticated === true,
+  );
 
   const [guestNextClass, setGuestNextClass] =
     useState<NextClassResponse | null>(null);
@@ -72,6 +89,24 @@ export const useNextClass = (): UseNextClassResult => {
       .then(setGuestNextClass)
       .finally(() => setGuestLoading(false));
   }, [isAuthenticated]);
+
+  // for authenticated users to fetch next class when the current class ends
+  useEffect(() => {
+    if (isAuthenticated !== true || !data?.item?.endTime) return;
+
+    return scheduleCallback(data.item.endTime, () => {
+      queryClient.invalidateQueries({ queryKey: ["nextClass"] });
+    });
+  }, [data?.item?.endTime, isAuthenticated]);
+
+  // same as previous useeffect but for guest users
+  useEffect(() => {
+    if (isAuthenticated !== false || !guestNextClass?.item?.endTime) return;
+
+    return scheduleCallback(guestNextClass.item.endTime, () => {
+      findNextGuestClass().then(setGuestNextClass);
+    });
+  }, [guestNextClass?.item?.endTime, isAuthenticated]);
 
   if (isAuthenticated !== false) {
     return {
