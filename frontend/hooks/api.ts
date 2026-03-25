@@ -6,22 +6,42 @@ import { DeviceEventEmitter } from "react-native";
 const debuggerHost = Constants.expoConfig?.hostUri?.split(":").shift();
 export const AUTH_EXPIRED_EVENT = "auth:expired";
 const FALLBACK_PRODUCTION_API_URL = "https://concordia-waze.onrender.com";
+const NGROK_URL = "https://untapestried-katia-unmurmuringly.ngrok-free.dev";
 
 const normalizeBaseUrl = (url: string) => url.replace(/\/$/, "");
 
+const getApiOverride = () => {
+  const override = process.env.API_OVERRIDE_TYPE?.trim().toLowerCase();
+
+  if (!override) return null;
+
+  switch (override) {
+    case "none":
+      return null;
+    case "local":
+      return `http://${debuggerHost}:8080`;
+    case "ngrok":
+      return NGROK_URL;
+    case "render":
+      return FALLBACK_PRODUCTION_API_URL;
+  }
+};
+
 const getBaseUrl = () => {
+  const apiOverride = getApiOverride();
+
+  if (apiOverride) {
+    return apiOverride;
+  }
+
   const configuredBaseUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
 
   if (configuredBaseUrl) {
     return normalizeBaseUrl(configuredBaseUrl);
   }
 
-  if (__DEV__ && debuggerHost) {
-    return `https://untapestried-katia-unmurmuringly.ngrok-free.dev`;
-  }
-
   if (__DEV__) {
-    return "https://untapestried-katia-unmurmuringly.ngrok-free.dev";
+    return NGROK_URL;
   }
 
   return FALLBACK_PRODUCTION_API_URL;
