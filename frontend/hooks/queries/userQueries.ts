@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { api } from "../api";
+import { api, isTokenExpired } from "../api";
+import * as SecureStore from "expo-secure-store";
 
 type UserProfile = {
   name: string;
@@ -8,8 +9,17 @@ type UserProfile = {
 };
 
 // /auth/profile
-export const useGetProfile = () =>
-  useQuery({
+export const useGetProfile = () => {
+  const { data: isAuthenticated = false } = useQuery({
+    queryKey: ["auth", "isAuthenticated"],
+    queryFn: async () => {
+      const token = await SecureStore.getItemAsync("accessToken");
+      return Boolean(token) && !isTokenExpired(token);
+    },
+    staleTime: 1 * 60 * 60 * 1000, // 1 hour
+  });
+
+  return useQuery({
     queryKey: ["get", "profile"],
     queryFn: async () => {
       const apiClient = await api();
@@ -21,4 +31,6 @@ export const useGetProfile = () =>
           return null;
         });
     },
+    enabled: isAuthenticated,
   });
+};
