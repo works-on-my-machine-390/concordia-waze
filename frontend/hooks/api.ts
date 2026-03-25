@@ -16,14 +16,15 @@ const getApiOverride = () => {
   if (!override) return null;
 
   switch (override) {
-    case "none":
-      return null;
     case "local":
       return `http://${debuggerHost}:8080`;
     case "ngrok":
       return NGROK_URL;
-    case "render":
+    case "prod":
       return FALLBACK_PRODUCTION_API_URL;
+    case "none":
+    default:
+      return null;
   }
 };
 
