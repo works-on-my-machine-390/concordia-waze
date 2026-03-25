@@ -11,7 +11,7 @@ const NGROK_URL = "https://untapestried-katia-unmurmuringly.ngrok-free.dev";
 const normalizeBaseUrl = (url: string) => url.replace(/\/$/, "");
 
 const getApiOverride = () => {
-  const override = process.env.API_OVERRIDE_TYPE?.trim().toLowerCase();
+  const override = process.env.EXPO_PUBLIC_API_OVERRIDE_TYPE;
 
   if (!override) return null;
 

@@ -36,7 +36,7 @@ Depending on your method of previewing the application, follow the corresponding
 
 By default, the frontend makes calls to the backend hosted on one of our teammate's server (@catalexandre).
 
-This can be rerouted by specifying an `API_OVERRIDE_TYPE` environment variable in "devConfig.json".
+This can be rerouted by specifying an `EXPO_PUBLIC_API_OVERRIDE_TYPE` environment variable in "devConfig.json".
 
 | Value | Description                                                                   |
 | ----- | ----------------------------------------------------------------------------- |
