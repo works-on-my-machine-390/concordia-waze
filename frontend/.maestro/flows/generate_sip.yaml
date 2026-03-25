@@ -1,0 +1,76 @@
+appId: host.exp.Exponent
+---
+
+# 1) Continue as guest
+- tapOn: "Use without account"
+- waitForAnimationToEnd
+
+# 2) Assert map loads
+- assertVisible: "SGW"
+- waitForAnimationToEnd
+
+# 3) Tap on Hall building on the map
+- tapOn:
+    point: "55%, 48%"
+- waitForAnimationToEnd
+
+# 4) Assert bottom sheet appears with building name
+- assertVisible: "Hall Building (H)"
+- waitForAnimationToEnd
+
+# 5) Click on view indoor map
+- tapOn:
+    point: "21%, 75%"
+
+# 6) Select floors within the building
+- assertVisible: "Hall Building (H) - 1st Floor"
+
+- tapOn:
+    text: "8"
+
+# 7) Tap on the search bar to search for a room
+- tapOn: Search rooms...
+
+# 8) Search for a specific room
+- inputText: "H82"
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# 9) Wait for the appropiate room to appear
+- extendedWaitUntil:
+    visible: H825
+    timeout: 8000
+
+# 10) Select the room
+- tapOn: H825
+
+# 11) Click on navigation icon
+- tapOn:
+    point: "86%, 84%"
+- tapOn:
+    point: "86%, 84%"
+
+# 12) Selectthe starting room
+- tapOn: Select start
+
+# 13) Search for a specific room
+- inputText: "H801"
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# 14) Wait for the appropiate room to appear
+- extendedWaitUntil:
+    visible: H801
+    timeout: 8000
+
+# 15) Select the room
+- tapOn:
+    text: H801
+    index: 1
+
+# 16) Click on go and next until finished
+- tapOn: Start, 󰎐
+- tapOn: Next step
+- tapOn: Next step
+- tapOn: Finish
+- assertVisible: "Hall Building (H) - 8th Floor"
