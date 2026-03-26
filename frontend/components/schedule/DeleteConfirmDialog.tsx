@@ -36,6 +36,7 @@ export default function DeleteConfirmDialog({
           <TouchableOpacity
             style={s.x}
             onPress={onCancel}
+            testID="close-button"
             hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
           >
             <CloseIcon size={20} color={COLORS.textMuted} />
