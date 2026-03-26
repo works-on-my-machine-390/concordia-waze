@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import type { NormalizedScheduleClass } from "../../app/utils/schedule/types";
 
 type Props = {
@@ -6,6 +6,7 @@ type Props = {
   classInfo: NormalizedScheduleClass;
   backgroundColor: string;
   textColor: string;
+  onEdit?: () => void;
 };
 
 export default function ScheduleClassCard({
@@ -13,6 +14,7 @@ export default function ScheduleClassCard({
   classInfo,
   backgroundColor,
   textColor,
+  onEdit,
 }: Readonly<Props>) {
   const formattedSection = classInfo.section
   ? classInfo.section.replaceAll("-", " ").toUpperCase()
@@ -23,7 +25,7 @@ export default function ScheduleClassCard({
     .map((value) => value.toUpperCase())
     .join(" ");
 
-  return (
+  const cardContent = (
     <View style={[styles.card, { backgroundColor }]}>
       <View style={styles.content}>
         <View style={styles.top}>
@@ -32,9 +34,23 @@ export default function ScheduleClassCard({
             {formattedSection ? ` - ${formattedSection}` : ""}
           </Text>
 
-          <Text style={[styles.type, { color: textColor }]}>
-            {classInfo.type}
-          </Text>
+          <View style={styles.topRight}>
+            <Text style={[styles.type, { color: textColor }]}>
+              {classInfo.type}
+            </Text>
+
+            {onEdit && (
+              <TouchableOpacity
+                onPress={onEdit}
+                hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+                style={styles.editIcon}
+              >
+                <Text style={[styles.editIconText, { color: textColor }]}>
+                  ✎
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
         <View style={styles.bottom}>
@@ -49,6 +65,16 @@ export default function ScheduleClassCard({
       </View>
     </View>
   );
+
+  if (onEdit) {
+    return (
+      <TouchableOpacity onLongPress={onEdit} activeOpacity={0.88}>
+        {cardContent}
+      </TouchableOpacity>
+    );
+  }
+
+  return cardContent;
 }
 
 const styles = StyleSheet.create({
@@ -67,6 +93,12 @@ const styles = StyleSheet.create({
   top: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  topRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   bottom: {
     flexDirection: "row",
@@ -84,5 +116,12 @@ const styles = StyleSheet.create({
   },
   text: {
     fontSize: 13,
+  },
+  editIcon: {
+    marginLeft: 2,
+  },
+  editIconText: {
+    fontSize: 15,
+    opacity: 0.85,
   },
 });

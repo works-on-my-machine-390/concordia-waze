@@ -25,11 +25,17 @@ export type SyncCoursesResponse = {
   errors?: string[];
 };
 
-// Courses
-export const getCourses = async (): Promise<CourseItem[]> => {
-  const apiClient = await api();
-  return apiClient.url("/courses").get().json<CourseItem[]>();
+export type SyncCoursesOptions = {
+  since?: string;
+  calendarID?: string;
 };
+
+export type UpdateClassItemPayload = {
+  classID: string;
+  classItem: Partial<ClassItem>;
+};
+const COURSE_QUERY_KEY = ["courses"] as const;
+const NEXT_CLASS_QUERY_KEY = ["nextClass"] as const;
 
 const formatDateYYYYMMDD = (date: Date): string => {
   const year = date.getFullYear();
@@ -38,9 +44,16 @@ const formatDateYYYYMMDD = (date: Date): string => {
   return `${year}-${month}-${day}`;
 };
 
-export type SyncCoursesOptions = {
-  since?: string;
-  calendarID?: string;
+const invalidateCourseQueries = async (queryClient: ReturnType<typeof useQueryClient>) => {
+  await Promise.all([
+    queryClient.invalidateQueries({ queryKey: COURSE_QUERY_KEY }),
+    queryClient.invalidateQueries({ queryKey: NEXT_CLASS_QUERY_KEY }),
+  ]);
+};
+
+export const getCourses = async (): Promise<CourseItem[]> => {
+  const apiClient = await api();
+  return apiClient.url("/courses").get().json<CourseItem[]>();
 };
 
 export const syncCourses = async (
@@ -115,11 +128,6 @@ export const deleteClassItem = async (
     .json<{ success: boolean }>();
 };
 
-// --- React Query Hooks ---
-
-const COURSE_QUERY_KEY = ["courses"] as const;
-
-// Courses
 export const useCourses = () =>
   useQuery({
     queryKey: COURSE_QUERY_KEY,
@@ -130,8 +138,9 @@ export const useSyncCourses = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: syncCourses,
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: COURSE_QUERY_KEY }),
+    onSuccess: async () => {
+      await invalidateCourseQueries(queryClient);
+    },
   });
 };
 
@@ -139,8 +148,9 @@ export const useAddCourse = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: addCourse,
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: COURSE_QUERY_KEY }),
+    onSuccess: async () => {
+      await invalidateCourseQueries(queryClient);
+    },
   });
 };
 
@@ -148,34 +158,31 @@ export const useDeleteCourse = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: deleteCourse,
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: COURSE_QUERY_KEY }),
+    onSuccess: async () => {
+      await invalidateCourseQueries(queryClient);
+    },
   });
 };
 
-// Class Items
 export const useAddClassItem = (courseName: string) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (classItem: Partial<ClassItem>) =>
       addClassItem(courseName, classItem),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: COURSE_QUERY_KEY }),
+    onSuccess: async () => {
+      await invalidateCourseQueries(queryClient);
+    },
   });
 };
 
 export const useUpdateClassItem = (courseName: string) => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({
-      classID,
-      classItem,
-    }: {
-      classID: string;
-      classItem: Partial<ClassItem>;
-    }) => updateClassItem(courseName, classID, classItem),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: COURSE_QUERY_KEY }),
+    mutationFn: ({ classID, classItem }: UpdateClassItemPayload) =>
+      updateClassItem(courseName, classID, classItem),
+    onSuccess: async () => {
+      await invalidateCourseQueries(queryClient);
+    },
   });
 };
 
@@ -183,7 +190,8 @@ export const useDeleteClassItem = (courseName: string) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (classID: string) => deleteClassItem(courseName, classID),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: COURSE_QUERY_KEY }),
+    onSuccess: async () => {
+      await invalidateCourseQueries(queryClient);
+    },
   });
 };
