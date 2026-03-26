@@ -1,0 +1,83 @@
+appId: host.exp.Exponent
+---
+
+# 1) Continue as guest
+- tapOn: "Use without account"
+- waitForAnimationToEnd
+
+# 2) Assert map loads
+- assertVisible: "SGW"
+- waitForAnimationToEnd
+
+# 3) Look for an indoor room
+- tapOn: Where to…
+- tapOn: Looking for rooms?
+- waitForAnimationToEnd
+- inputText: "japan"
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# 4) Wait for the appropiate room to appear
+- extendedWaitUntil:
+    visible: Japan Group Study Room
+    timeout: 8000
+
+# 5) Select the room
+- tapOn: Japan Group Study Room
+- waitForAnimationToEnd:
+    timeout: 9000
+
+# 6) Click on navigation icon
+- assertVisible: Japan Group Study Room
+- tapOn:
+    point: "86%, 84%"
+- tapOn:
+    point: "86%, 84%"
+- tapOn:
+    point: "86%, 84%"
+- tapOn:
+    point: "86%, 84%"
+
+# 7) Tap on the search bar to search for a room
+- tapOn: From
+- inputText: "H825"
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# 8) Select the room
+- tapOn: H825, H - Floor 8
+
+# 9) Click and drag up on the bottom sheet title text
+- swipe:
+    from:
+      text: "Drive"
+    direction: UP
+    duration: 600
+- waitForAnimationToEnd
+
+# 10) Click on different methodsof transport
+- tapOn: , 2 min
+- tapOn: , 3 min
+- tapOn: , 3 min
+- tapOn: , 5 min
+
+# 11) Start navigation
+- tapOn: Start, 󰎐
+- tapOn: Next step
+- tapOn: Next step
+- tapOn: Next step
+- tapOn: Next step
+- tapOn: Next step
+- tapOn: Continue outdoors
+- tapOn: Next step
+- tapOn: Next step
+- tapOn: Next step
+- tapOn: Continue indoors
+- assertVisible: View outdoor map
+- tapOn: Next step
+- tapOn: Next step
+- tapOn: Next step
+- tapOn: Next step
+- tapOn: Next step
+- tapOn: Finish
+- assertVisible: Japan Group Study Room

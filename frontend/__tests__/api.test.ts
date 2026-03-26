@@ -1,6 +1,8 @@
 import { AUTH_EXPIRED_EVENT, api, API_URL, isTokenExpired } from "../hooks/api";
 import * as SecureStore from "expo-secure-store";
 
+const testApiUrl = "https://api.example.com";
+
 // Mock wretch
 jest.mock("wretch", () => {
   const mockHeaders = jest.fn();
@@ -20,6 +22,7 @@ describe("api", () => {
     jest.clearAllMocks();
     (globalThis as any).__DEV__ = true;
     delete process.env.EXPO_PUBLIC_API_URL;
+    delete process.env.EXPO_PUBLIC_API_OVERRIDE_TYPE;
   });
 
   afterAll(() => {
@@ -104,11 +107,64 @@ describe("api", () => {
 
   test("API_URL uses EXPO_PUBLIC_API_URL when configured", () => {
     jest.resetModules();
-    process.env.EXPO_PUBLIC_API_URL = "https://api.example.com/";
+    process.env.EXPO_PUBLIC_API_URL = testApiUrl;
 
     jest.isolateModules(() => {
       const isolated = require("../hooks/api");
-      expect(isolated.API_URL).toBe("https://api.example.com");
+      expect(isolated.API_URL).toBe(testApiUrl);
+    });
+  });
+
+  test("API_URL uses local override when EXPO_PUBLIC_API_OVERRIDE_TYPE is local", () => {
+    jest.resetModules();
+    process.env.EXPO_PUBLIC_API_OVERRIDE_TYPE = "local";
+    process.env.EXPO_PUBLIC_API_URL = testApiUrl;
+
+    jest.isolateModules(() => {
+      const isolated = require("../hooks/api");
+      expect(isolated.API_URL).not.toBe(testApiUrl);
+    });
+  });
+
+  test("API_URL uses ngrok override when EXPO_PUBLIC_API_OVERRIDE_TYPE is ngrok", () => {
+    jest.resetModules();
+    process.env.EXPO_PUBLIC_API_OVERRIDE_TYPE = "ngrok";
+
+    jest.isolateModules(() => {
+      const isolated = require("../hooks/api");
+      expect(isolated.API_URL).not.toBe(testApiUrl);
+    });
+  });
+
+  test("API_URL uses production override when EXPO_PUBLIC_API_OVERRIDE_TYPE is prod", () => {
+    jest.resetModules();
+    process.env.EXPO_PUBLIC_API_OVERRIDE_TYPE = "prod";
+
+    jest.isolateModules(() => {
+      const isolated = require("../hooks/api");
+      expect(isolated.API_URL).not.toBe(testApiUrl);
+    });
+  });
+
+  test("API_URL ignores configured URL when override is set", () => {
+    jest.resetModules();
+    process.env.EXPO_PUBLIC_API_OVERRIDE_TYPE = "ngrok";
+    process.env.EXPO_PUBLIC_API_URL = testApiUrl;
+
+    jest.isolateModules(() => {
+      const isolated = require("../hooks/api");
+      expect(isolated.API_URL).not.toBe(testApiUrl);
+    });
+  });
+
+  test("API_URL falls back to configured URL when override is none", () => {
+    jest.resetModules();
+    process.env.EXPO_PUBLIC_API_OVERRIDE_TYPE = "none";
+    process.env.EXPO_PUBLIC_API_URL = testApiUrl;
+
+    jest.isolateModules(() => {
+      const isolated = require("../hooks/api");
+      expect(isolated.API_URL).toBe(testApiUrl);
     });
   });
 
