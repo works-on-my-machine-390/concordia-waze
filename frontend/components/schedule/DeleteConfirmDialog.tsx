@@ -4,7 +4,9 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  View,
 } from "react-native";
+import { CloseIcon } from "@/app/icons";
 import { COLORS } from "@/app/constants";
 
 type Props = {
@@ -30,13 +32,13 @@ export default function DeleteConfirmDialog({
       onRequestClose={onCancel}
     >
       <TouchableOpacity style={s.overlay} activeOpacity={1} onPress={onCancel}>
-        <TouchableOpacity style={s.card} activeOpacity={1} onPress={() => {}}>
+        <View style={s.card}>
           <TouchableOpacity
             style={s.x}
             onPress={onCancel}
             hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
           >
-            <Text style={s.xTxt}>✕</Text>
+            <CloseIcon size={20} color={COLORS.textMuted} />
           </TouchableOpacity>
 
           <Text style={s.title}>Delete Class?</Text>
@@ -55,7 +57,7 @@ export default function DeleteConfirmDialog({
               <Text style={s.btnTxt}>Delete</Text>
             )}
           </TouchableOpacity>
-        </TouchableOpacity>
+        </View>
       </TouchableOpacity>
     </Modal>
   );
@@ -70,7 +72,7 @@ const s = StyleSheet.create({
     padding: 24,
   },
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.surface,
     borderRadius: 20,
     padding: 24,
     width: "100%",
@@ -82,7 +84,6 @@ const s = StyleSheet.create({
     alignItems: "center",
   },
   x: { position: "absolute", top: 14, right: 16, zIndex: 10 },
-  xTxt: { fontSize: 16, color: "#aaa", fontWeight: "600" },
   title: {
     fontSize: 20,
     fontWeight: "800",
@@ -90,10 +91,10 @@ const s = StyleSheet.create({
     marginBottom: 4,
     textAlign: "center",
   },
-  sub: { fontSize: 13, color: "#888", marginBottom: 2, textAlign: "center" },
+  sub: { fontSize: 13, color: COLORS.textMuted, marginBottom: 2, textAlign: "center" },
   body: {
     fontSize: 13,
-    color: "#888",
+    color: COLORS.textMuted,
     textAlign: "center",
     lineHeight: 18,
     marginTop: 2,
@@ -106,6 +107,6 @@ const s = StyleSheet.create({
     alignItems: "center",
     width: "100%",
   },
-  btnTxt: { color: "#fff", fontSize: 15, fontWeight: "700" },
+  btnTxt: { color: COLORS.surface, fontSize: 15, fontWeight: "700" },
   dim: { opacity: 0.55 },
 });

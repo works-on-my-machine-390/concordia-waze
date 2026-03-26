@@ -8,7 +8,7 @@ import ScheduleClassCard from "./ScheduleClassCard";
 
 type Props = {
   courses: NormalizedScheduleCourse[];
-  rawCourses?: CourseItem[];
+  rawCourses: CourseItem[];
 };
 
 export default function ScheduleListView({
@@ -35,7 +35,7 @@ export default function ScheduleListView({
           const backgroundColor =
             index % 2 === 0 ? COLORS.maroon : COLORS.selectionBlue;
 
-          const rawClass = rawCourses?.[courseIdx]?.classes?.[classIdx];
+          const rawClass = rawCourses[courseIdx]?.classes?.[classIdx];
           const classId = rawClass?.itemId ?? rawClass?.classId ?? "";
 
           const handleEdit = () =>

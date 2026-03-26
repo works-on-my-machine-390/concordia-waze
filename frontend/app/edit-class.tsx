@@ -7,7 +7,7 @@ import {
   updateClassItem,
 } from "@/hooks/queries/googleCalendarQueries";
 import { deleteGuestClass, updateGuestClass } from "@/hooks/guestStorage";
-import { useGetProfile } from "@/hooks/queries/userQueries";
+import { useAuth } from "@/hooks/useAuth";
 import {
   validateTime,
   validateTimeRange,
@@ -47,11 +47,11 @@ function Pill({
   options,
   selected,
   onSelect,
-}: {
+}: Readonly<{
   options: readonly string[];
   selected: string;
   onSelect: (v: string) => void;
-}) {
+}>) {
   return (
     <View style={s.row}>
       {options.map((o) => (
@@ -68,7 +68,7 @@ function Pill({
   );
 }
 
-function Field({ label }: { label: string }) {
+function Field({ label }: Readonly<{ label: string }>) {
   return <Text style={s.label}>{label}</Text>;
 }
 
@@ -86,16 +86,15 @@ export default function EditClassScreen() {
     room: string;
   }>();
 
-  const { data: userProfile } = useGetProfile();
+  const { loggedIn: isLoggedIn } = useAuth();
   const queryClient = useQueryClient();
-  const isLoggedIn = !!userProfile?.id;
 
   const [type, setType] = useState(normalizeType(params.type));
   const [section, setSection] = useState(params.section ?? "");
   const [day, setDay] = useState(params.day ?? "MON");
-  const [startTime, setStart] = useState(params.startTime ?? "");
-  const [endTime, setEnd] = useState(params.endTime ?? "");
-  const [buildingCode, setBuilding] = useState(params.buildingCode ?? "");
+  const [startTime, setStartTime] = useState(params.startTime ?? "");
+  const [endTime, setEndTime] = useState(params.endTime ?? "");
+  const [buildingCode, setBuildingCode] = useState(params.buildingCode ?? "");
   const [room, setRoom] = useState(params.room ?? "");
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -209,7 +208,7 @@ export default function EditClassScreen() {
             style={s.input}
             value={startTime}
             onChangeText={(v) => {
-              setStart(v);
+              setStartTime(v);
               setError(null);
             }}
             placeholder="e.g. 09:00"
@@ -222,7 +221,7 @@ export default function EditClassScreen() {
             style={s.input}
             value={endTime}
             onChangeText={(v) => {
-              setEnd(v);
+              setEndTime(v);
               setError(null);
             }}
             placeholder="e.g. 10:30"
@@ -234,7 +233,7 @@ export default function EditClassScreen() {
           <TextInput
             style={s.input}
             value={buildingCode}
-            onChangeText={setBuilding}
+            onChangeText={setBuildingCode}
             placeholder="e.g. H"
             placeholderTextColor="#bbb"
             autoCapitalize="characters"
@@ -326,7 +325,7 @@ const s = StyleSheet.create({
     borderWidth: 1.8,
     borderColor: "#bfb8b8",
     paddingHorizontal: 12,
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.surface,
     color: COLORS.textPrimary,
   },
   row: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
@@ -336,7 +335,7 @@ const s = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 14,
     paddingVertical: 9,
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.surface,
   },
   pillOn: { backgroundColor: COLORS.maroon, borderColor: COLORS.maroon },
   pillTxt: { fontSize: 13, fontWeight: "600", color: COLORS.textPrimary },

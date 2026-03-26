@@ -1,4 +1,5 @@
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { EditIcon } from "@/app/icons";
 import type { NormalizedScheduleClass } from "../../app/utils/schedule/types";
 
 type Props = {
@@ -17,15 +18,15 @@ export default function ScheduleClassCard({
   onEdit,
 }: Readonly<Props>) {
   const formattedSection = classInfo.section
-  ? classInfo.section.replaceAll("-", " ").toUpperCase()
-  : "";
+    ? classInfo.section.replaceAll("-", " ").toUpperCase()
+    : "";
 
   const formattedLocation = [classInfo.buildingCode, classInfo.room]
     .filter(Boolean)
     .map((value) => value.toUpperCase())
     .join(" ");
 
-  const cardContent = (
+  return (
     <View style={[styles.card, { backgroundColor }]}>
       <View style={styles.content}>
         <View style={styles.top}>
@@ -45,9 +46,7 @@ export default function ScheduleClassCard({
                 hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
                 style={styles.editIcon}
               >
-                <Text style={[styles.editIconText, { color: textColor }]}>
-                  ✎
-                </Text>
+                <EditIcon size={14} color={textColor} />
               </TouchableOpacity>
             )}
           </View>
@@ -65,16 +64,6 @@ export default function ScheduleClassCard({
       </View>
     </View>
   );
-
-  if (onEdit) {
-    return (
-      <TouchableOpacity onLongPress={onEdit} activeOpacity={0.88}>
-        {cardContent}
-      </TouchableOpacity>
-    );
-  }
-
-  return cardContent;
 }
 
 const styles = StyleSheet.create({
@@ -119,9 +108,5 @@ const styles = StyleSheet.create({
   },
   editIcon: {
     marginLeft: 2,
-  },
-  editIconText: {
-    fontSize: 15,
-    opacity: 0.85,
   },
 });
