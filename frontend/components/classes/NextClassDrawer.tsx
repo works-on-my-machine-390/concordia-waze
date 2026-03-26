@@ -2,8 +2,6 @@ import { COLORS } from "@/app/constants";
 import { DrawerCloseIcon, DrawerOpenIcon } from "@/app/icons";
 import NextClassCard from "@/components/classes/NextClassCard";
 import { NextClassResponse } from "@/hooks/queries/classQueries";
-import { MapMode, useMapStore } from "@/hooks/useMapStore";
-import { NavigationPhase, useNavigationStore } from "@/hooks/useNavigationStore";
 import { useRef, useState } from "react";
 import { Animated, Pressable, StyleSheet, View } from "react-native";
 
@@ -19,21 +17,12 @@ export default function NextClassDrawer({ nextClass }: Readonly<Props>) {
   const [cardWidth, setCardWidth] = useState(0);
   const translateX = useRef(new Animated.Value(-9999)).current;
 
-  const setMapMode = useMapStore((state) => state.setCurrentMode);
-  const navigationState = useNavigationStore();
-
   const handleLayout = (event: any) => {
     const width = event.nativeEvent.layout.width;
     setCardWidth(width);
     if (!isOpen) {
       translateX.setValue(-width);
     }
-  };
-
-  const handleNavigatePress = () => {
-    setMapMode(MapMode.NAVIGATION);
-    navigationState.setNavigationPhase(NavigationPhase.PREPARATION);
-    navigationState.setEndLocation(null) //TODO adjust
   };
 
   const toggle = () => {
@@ -58,11 +47,8 @@ export default function NextClassDrawer({ nextClass }: Readonly<Props>) {
       onLayout={handleLayout}
       style={[styles.wrapper, { transform: [{ translateX }] }]}
     >
-      <Pressable onPress={toggle}>
-        <NextClassCard
-          nextClass={nextClass}
-          onNavigatePress={handleNavigatePress}
-        />
+      <Pressable onPressIn={toggle}>
+        <NextClassCard nextClass={nextClass} />
         <View style={styles.tab}>
           {isOpen ? (
             <DrawerCloseIcon size={35} color="white" />
