@@ -14,7 +14,7 @@ const mockDeleteGuestClass = jest.fn(() => Promise.resolve());
 const mockValidateTime = jest.fn(() => null);
 const mockValidateTimeRange = jest.fn(() => null);
 
-let mockUserProfile: any = { id: "user-1" };
+let mockLoggedIn = true;
 
 jest.mock("expo-router", () => ({
   useRouter: () => ({
@@ -50,9 +50,9 @@ jest.mock("@/hooks/guestStorage", () => ({
   deleteGuestClass: (...args: any[]) => mockDeleteGuestClass.apply(null, args),
 }));
 
-jest.mock("@/hooks/queries/userQueries", () => ({
-  useGetProfile: () => ({
-    data: mockUserProfile,
+jest.mock("@/hooks/useAuth", () => ({
+  useAuth: () => ({
+    loggedIn: mockLoggedIn,
   }),
 }));
 
@@ -64,7 +64,7 @@ jest.mock("@/app/utils/classValidationUtils", () => ({
 describe("EditClassScreen", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUserProfile = { id: "user-1" };
+    mockLoggedIn = true;
     mockValidateTime.mockReturnValue(null);
     mockValidateTimeRange.mockReturnValue(null);
     mockUpdateClassItem.mockResolvedValue(undefined);
@@ -98,7 +98,7 @@ describe("EditClassScreen", () => {
   });
 
   it("saves guest class edits for unauthenticated users", async () => {
-    mockUserProfile = null;
+    mockLoggedIn = false;
 
     const { getByText } = render(<EditClassScreen />);
 
@@ -125,7 +125,7 @@ describe("EditClassScreen", () => {
   });
 
   it("deletes guest class for unauthenticated users", async () => {
-    mockUserProfile = null;
+    mockLoggedIn = false;
 
     const { getByText } = render(<EditClassScreen />);
 

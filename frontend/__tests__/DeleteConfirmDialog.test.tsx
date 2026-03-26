@@ -36,7 +36,7 @@ describe("DeleteConfirmDialog", () => {
   it("calls onCancel when close button is pressed", () => {
     const onCancel = jest.fn();
 
-    const { getByText } = render(
+    const { getByTestId } = render(
       <DeleteConfirmDialog
         visible
         courseName="SOEN 341"
@@ -46,7 +46,7 @@ describe("DeleteConfirmDialog", () => {
       />,
     );
 
-    fireEvent.press(getByText("✕"));
+    fireEvent.press(getByTestId("close-button"));
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
 
