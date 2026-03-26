@@ -1,5 +1,6 @@
 import React from "react";
 import { fireEvent, render, waitFor } from "@testing-library/react-native";
+import { Alert } from "react-native";
 import EditClassScreen from "../app/edit-class";
 
 const mockBack = jest.fn();
@@ -82,8 +83,10 @@ describe("EditClassScreen", () => {
       expect(mockUpdateClassItem).toHaveBeenCalled();
     });
 
-    expect(mockInvalidateQueries).toHaveBeenCalled();
-    expect(mockBack).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(mockInvalidateQueries).toHaveBeenCalled();
+      expect(mockBack).toHaveBeenCalled();
+    });
   });
 
   it("saves guest class edits for unauthenticated users", async () => {
@@ -97,7 +100,9 @@ describe("EditClassScreen", () => {
       expect(mockUpdateGuestClass).toHaveBeenCalled();
     });
 
-    expect(mockBack).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(mockBack).toHaveBeenCalled();
+    });
   });
 
   it("shows delete dialog and deletes logged-in class", async () => {
@@ -110,8 +115,10 @@ describe("EditClassScreen", () => {
       expect(mockDeleteClassItem).toHaveBeenCalled();
     });
 
-    expect(mockInvalidateQueries).toHaveBeenCalled();
-    expect(mockBack).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(mockInvalidateQueries).toHaveBeenCalled();
+      expect(mockBack).toHaveBeenCalled();
+    });
   });
 
   it("deletes guest class for unauthenticated users", async () => {
@@ -126,10 +133,12 @@ describe("EditClassScreen", () => {
       expect(mockDeleteGuestClass).toHaveBeenCalled();
     });
 
-    expect(mockBack).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(mockBack).toHaveBeenCalled();
+    });
   });
 
-  it('shows error when save fails', async () => {
+  it("shows error when save fails", async () => {
     mockUpdateClassItem.mockRejectedValueOnce(new Error("Saving failed"));
 
     const { getByText, findByText } = render(<EditClassScreen />);
@@ -140,9 +149,11 @@ describe("EditClassScreen", () => {
   });
 
   it("shows alert when delete fails", async () => {
-    mockDeleteClassItem.mockRejectedValueOnce(new Error("Could not delete class."));
+    mockDeleteClassItem.mockRejectedValueOnce(
+      new Error("Could not delete class."),
+    );
 
-    const alertSpy = jest.spyOn(require("react-native").Alert, "alert");
+    const alertSpy = jest.spyOn(Alert, "alert").mockImplementation(jest.fn());
 
     const { getByText } = render(<EditClassScreen />);
 
@@ -152,5 +163,7 @@ describe("EditClassScreen", () => {
     await waitFor(() => {
       expect(alertSpy).toHaveBeenCalled();
     });
+
+    alertSpy.mockRestore();
   });
 });
