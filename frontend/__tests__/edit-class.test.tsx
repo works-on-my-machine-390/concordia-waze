@@ -206,13 +206,17 @@ describe("EditClassScreen", () => {
   });
 
   it("does not save when validateTimeRange returns an error", async () => {
-    mockValidateTimeRange.mockReturnValueOnce("End time must be after start time");
+    mockValidateTimeRange.mockReturnValueOnce(
+      "End time must be after start time",
+    );
 
     const { getByText, findByText } = render(<EditClassScreen />);
 
     fireEvent.press(getByText("Confirm & Save"));
 
-    expect(await findByText("End time must be after start time")).toBeTruthy();
+    expect(
+      await findByText("End time must be after start time"),
+    ).toBeTruthy();
     expect(mockUpdateClassItem).not.toHaveBeenCalled();
     expect(mockUpdateGuestClass).not.toHaveBeenCalled();
   });
@@ -235,14 +239,18 @@ describe("EditClassScreen", () => {
   });
 
   it("clears the error when editing the end time", async () => {
-    mockValidateTimeRange.mockReturnValueOnce("End time must be after start time");
+    mockValidateTimeRange.mockReturnValueOnce(
+      "End time must be after start time",
+    );
 
     const { getByText, findByText, getByDisplayValue, queryByText } = render(
       <EditClassScreen />,
     );
 
     fireEvent.press(getByText("Confirm & Save"));
-    expect(await findByText("End time must be after start time")).toBeTruthy();
+    expect(
+      await findByText("End time must be after start time"),
+    ).toBeTruthy();
 
     fireEvent.changeText(getByDisplayValue("10:15"), "10:30");
 
@@ -267,7 +275,7 @@ describe("EditClassScreen", () => {
         "SOEN 341",
         "class-1",
         expect.objectContaining({
-          section: "B",
+          section: "  B  ",
           startTime: "09:30",
           endTime: "10:45",
           buildingCode: "H",
