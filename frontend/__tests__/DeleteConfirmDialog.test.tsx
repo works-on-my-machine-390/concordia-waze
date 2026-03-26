@@ -1,6 +1,6 @@
 import React from "react";
-import { render, fireEvent } from "@testing-library/react-native";
-import DeleteConfirmDialog from "@/components/schedule/DeleteConfirmDialog";
+import { fireEvent, render } from "@testing-library/react-native";
+import DeleteConfirmDialog from "../components/schedule/DeleteConfirmDialog";
 
 describe("DeleteConfirmDialog", () => {
   it("renders dialog content when visible", () => {
@@ -46,7 +46,7 @@ describe("DeleteConfirmDialog", () => {
       />,
     );
 
-    fireEvent.press(getByText("×"));
+    fireEvent.press(getByText("✕"));
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
 
@@ -68,7 +68,7 @@ describe("DeleteConfirmDialog", () => {
   });
 
   it("shows pending state", () => {
-    const { queryByText, getByTestId } = render(
+    const { queryByText } = render(
       <DeleteConfirmDialog
         visible
         courseName="SOEN 341"

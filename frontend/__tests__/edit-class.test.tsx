@@ -1,20 +1,20 @@
 import React from "react";
-import { render, fireEvent, waitFor } from "@testing-library/react-native";
-import EditClassScreen from "@/app/edit-class";
+import { fireEvent, render, waitFor } from "@testing-library/react-native";
+import EditClassScreen from "../app/edit-class";
 
-const backMock = jest.fn();
-const invalidateQueriesMock = jest.fn(() => Promise.resolve());
+const mockBack = jest.fn();
+const mockInvalidateQueries = jest.fn(() => Promise.resolve());
 
-const updateClassItemMock = jest.fn(() => Promise.resolve());
-const deleteClassItemMock = jest.fn(() => Promise.resolve());
-const updateGuestClassMock = jest.fn(() => Promise.resolve());
-const deleteGuestClassMock = jest.fn(() => Promise.resolve());
+const mockUpdateClassItem = jest.fn(() => Promise.resolve());
+const mockDeleteClassItem = jest.fn(() => Promise.resolve());
+const mockUpdateGuestClass = jest.fn(() => Promise.resolve());
+const mockDeleteGuestClass = jest.fn(() => Promise.resolve());
 
 let mockUserProfile: any = { id: "user-1" };
 
 jest.mock("expo-router", () => ({
   useRouter: () => ({
-    back: backMock,
+    back: mockBack,
   }),
   useLocalSearchParams: () => ({
     courseName: "SOEN 341",
@@ -32,19 +32,19 @@ jest.mock("expo-router", () => ({
 
 jest.mock("@tanstack/react-query", () => ({
   useQueryClient: () => ({
-    invalidateQueries: invalidateQueriesMock,
+    invalidateQueries: mockInvalidateQueries,
   }),
 }));
 
 jest.mock("@/hooks/queries/googleCalendarQueries", () => ({
-    updateClassItem: (...args: any[]) => updateClassItemMock.apply(null, args),
-    deleteClassItem: (...args: any[]) => deleteClassItemMock.apply(null, args),
-  }));
-  
-  jest.mock("@/hooks/guestStorage", () => ({
-    updateGuestClass: (...args: any[]) => updateGuestClassMock.apply(null, args),
-    deleteGuestClass: (...args: any[]) => deleteGuestClassMock.apply(null, args),
-  }));
+  updateClassItem: (...args: any[]) => mockUpdateClassItem.apply(null, args),
+  deleteClassItem: (...args: any[]) => mockDeleteClassItem.apply(null, args),
+}));
+
+jest.mock("@/hooks/guestStorage", () => ({
+  updateGuestClass: (...args: any[]) => mockUpdateGuestClass.apply(null, args),
+  deleteGuestClass: (...args: any[]) => mockDeleteGuestClass.apply(null, args),
+}));
 
 jest.mock("@/hooks/queries/userQueries", () => ({
   useGetProfile: () => ({
@@ -70,6 +70,7 @@ describe("EditClassScreen", () => {
     expect(getByDisplayValue("09:00")).toBeTruthy();
     expect(getByDisplayValue("10:15")).toBeTruthy();
     expect(getByDisplayValue("H")).toBeTruthy();
+    expect(getByDisplayValue("110")).toBeTruthy();
   });
 
   it("saves logged-in class edits", async () => {
@@ -78,11 +79,11 @@ describe("EditClassScreen", () => {
     fireEvent.press(getByText("Confirm & Save"));
 
     await waitFor(() => {
-      expect(updateClassItemMock).toHaveBeenCalled();
+      expect(mockUpdateClassItem).toHaveBeenCalled();
     });
 
-    expect(invalidateQueriesMock).toHaveBeenCalled();
-    expect(backMock).toHaveBeenCalled();
+    expect(mockInvalidateQueries).toHaveBeenCalled();
+    expect(mockBack).toHaveBeenCalled();
   });
 
   it("saves guest class edits for unauthenticated users", async () => {
@@ -93,8 +94,10 @@ describe("EditClassScreen", () => {
     fireEvent.press(getByText("Confirm & Save"));
 
     await waitFor(() => {
-      expect(updateGuestClassMock).toHaveBeenCalled();
+      expect(mockUpdateGuestClass).toHaveBeenCalled();
     });
+
+    expect(mockBack).toHaveBeenCalled();
   });
 
   it("shows delete dialog and deletes logged-in class", async () => {
@@ -104,10 +107,11 @@ describe("EditClassScreen", () => {
     fireEvent.press(getByText("Delete"));
 
     await waitFor(() => {
-      expect(deleteClassItemMock).toHaveBeenCalled();
+      expect(mockDeleteClassItem).toHaveBeenCalled();
     });
 
-    expect(backMock).toHaveBeenCalled();
+    expect(mockInvalidateQueries).toHaveBeenCalled();
+    expect(mockBack).toHaveBeenCalled();
   });
 
   it("deletes guest class for unauthenticated users", async () => {
@@ -119,17 +123,34 @@ describe("EditClassScreen", () => {
     fireEvent.press(getByText("Delete"));
 
     await waitFor(() => {
-      expect(deleteGuestClassMock).toHaveBeenCalled();
+      expect(mockDeleteGuestClass).toHaveBeenCalled();
     });
+
+    expect(mockBack).toHaveBeenCalled();
   });
 
-  it("shows error when save fails", async () => {
-    updateClassItemMock.mockRejectedValueOnce(new Error("Saving failed"));
+  it('shows error when save fails', async () => {
+    mockUpdateClassItem.mockRejectedValueOnce(new Error("Saving failed"));
 
     const { getByText, findByText } = render(<EditClassScreen />);
 
     fireEvent.press(getByText("Confirm & Save"));
 
     expect(await findByText("Saving failed")).toBeTruthy();
+  });
+
+  it("shows alert when delete fails", async () => {
+    mockDeleteClassItem.mockRejectedValueOnce(new Error("Could not delete class."));
+
+    const alertSpy = jest.spyOn(require("react-native").Alert, "alert");
+
+    const { getByText } = render(<EditClassScreen />);
+
+    fireEvent.press(getByText("Delete Class"));
+    fireEvent.press(getByText("Delete"));
+
+    await waitFor(() => {
+      expect(alertSpy).toHaveBeenCalled();
+    });
   });
 });
