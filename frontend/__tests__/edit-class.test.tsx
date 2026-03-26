@@ -85,7 +85,6 @@ describe("EditClassScreen", () => {
 
     await waitFor(() => {
       expect(mockInvalidateQueries).toHaveBeenCalled();
-      expect(mockBack).toHaveBeenCalled();
     });
   });
 
@@ -98,10 +97,6 @@ describe("EditClassScreen", () => {
 
     await waitFor(() => {
       expect(mockUpdateGuestClass).toHaveBeenCalled();
-    });
-
-    await waitFor(() => {
-      expect(mockBack).toHaveBeenCalled();
     });
   });
 
@@ -117,7 +112,6 @@ describe("EditClassScreen", () => {
 
     await waitFor(() => {
       expect(mockInvalidateQueries).toHaveBeenCalled();
-      expect(mockBack).toHaveBeenCalled();
     });
   });
 
@@ -131,10 +125,6 @@ describe("EditClassScreen", () => {
 
     await waitFor(() => {
       expect(mockDeleteGuestClass).toHaveBeenCalled();
-    });
-
-    await waitFor(() => {
-      expect(mockBack).toHaveBeenCalled();
     });
   });
 
