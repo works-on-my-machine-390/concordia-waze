@@ -131,7 +131,7 @@ func normalizeRoomIdentifier(value string) string {
 	return b.String()
 }
 
-func stripBuildingPrefix(roomID string, buildingCode string) string {
+func stripBuildingPrefix(roomID, buildingCode string) string {
 	if buildingCode == "" {
 		return roomID
 	}
