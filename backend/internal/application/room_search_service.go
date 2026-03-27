@@ -11,8 +11,8 @@ import (
 )
 
 type RoomSearchGetter interface {
-	FindRoom(building string, room string, floor *int) (domain.IndoorRoom, error)
-	FindRoomOrDefaultToBuilding(building string, room string) (RoomSearchResult, error)
+	FindRoom(building, room string, floor *int) (domain.IndoorRoom, error)
+	FindRoomOrDefaultToBuilding(building, room string) (RoomSearchResult, error)
 }
 
 // Returns the room information if available, and if not, then default to the building it's in
@@ -27,6 +27,8 @@ type RoomSearchResult struct {
 	Reason             string             `json:"reason,omitempty"`
 }
 
+var LABEL_STRUCTURE = "%s - %s" // building code - room code (if room found) or building long name (if room not found)
+
 type roomSearchService struct {
 	roomRepo     repository.IndoorRoomGetter
 	buildingRepo BuildingReader
@@ -37,7 +39,7 @@ func NewRoomSearchService(roomRepo repository.IndoorRoomGetter, buildingRepo Bui
 	return &roomSearchService{roomRepo: roomRepo, buildingRepo: buildingRepo, floorRepo: floorRepo}
 }
 
-func (s *roomSearchService) FindRoomOrDefaultToBuilding(building string, room string) (RoomSearchResult, error) {
+func (s *roomSearchService) FindRoomOrDefaultToBuilding(building, room string) (RoomSearchResult, error) {
 
 	// input validation
 	if strings.TrimSpace(building) == "" {
@@ -57,7 +59,7 @@ func (s *roomSearchService) FindRoomOrDefaultToBuilding(building string, room st
 
 	// append building info to start. if the room search fails, this is what is returned.
 	result := RoomSearchResult{
-		Label:        fmt.Sprintf("%s - %s", strings.ToUpper(strings.TrimSpace(building)), b.LongName),
+		Label:        fmt.Sprintf(LABEL_STRUCTURE, strings.ToUpper(strings.TrimSpace(building)), b.LongName),
 		BuildingCode: strings.ToUpper(strings.TrimSpace(building)),
 		BuildingLat:  b.Latitude,
 		BuildingLng:  b.Longitude,
@@ -168,15 +170,15 @@ func getRoomLabel(room domain.IndoorRoom, buildingCode string) string {
 
 		buildingCodeUpperCase := strings.ToUpper(strings.TrimSpace(buildingCode))
 		if strings.Contains(roomValue, ".") { // retain the dot if it's part of the room identifier (e.g., S2.285)
-			return fmt.Sprintf("%s - %s", buildingCodeUpperCase, roomValue)
+			return fmt.Sprintf(LABEL_STRUCTURE, buildingCodeUpperCase, roomValue)
 		}
 
-		return fmt.Sprintf("%s - %s", buildingCodeUpperCase, normalizeRoomIdentifier(stripBuildingPrefix(roomValue, buildingCodeUpperCase)))
+		return fmt.Sprintf(LABEL_STRUCTURE, buildingCodeUpperCase, normalizeRoomIdentifier(stripBuildingPrefix(roomValue, buildingCodeUpperCase)))
 	}
 	return ""
 }
 
-func (s *roomSearchService) FindRoom(building string, room string, floor *int) (domain.IndoorRoom, error) {
+func (s *roomSearchService) FindRoom(building, room string, floor *int) (domain.IndoorRoom, error) {
 	if strings.TrimSpace(building) == "" {
 		return domain.IndoorRoom{}, fmt.Errorf("building cannot be empty")
 	}

@@ -1,9 +1,9 @@
 import { COLORS } from "@/app/constants";
-import { GetDirectionsIcon, TimeIcon } from "@/app/icons";
+import { TimeIcon } from "@/app/icons";
 import { toMinutes } from "@/app/utils/dateUtils";
 import { NextClassResponse } from "@/hooks/queries/classQueries";
 import { useEffect, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import DirectionsToRoomButton from "./DirectionsToRoomButton";
 
 type Props = {
