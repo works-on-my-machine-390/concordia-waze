@@ -1557,6 +1557,50 @@ paths:
       summary: Get nearby indoor POIs
       tags:
       - point of interest
+  /rooms/lookup:
+    get:
+      description: Returns room data when mapped and found; otherwise returns building
+        latitude/longitude
+      parameters:
+      - description: Building code (MB, LB, CC, VL)
+        in: query
+        name: building
+        required: true
+        type: string
+      - description: Room name/number (e.g., S2.285)
+        in: query
+        name: room
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Lookup room with building fallback
+      tags:
+      - rooms
   /rooms/search:
     get:
       description: Returns room centroid coordinates by room number (EPSG:32198)
