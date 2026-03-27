@@ -46,7 +46,14 @@ describe("ScheduleListView", () => {
       },
     ];
 
-    const { getByText } = render(<ScheduleListView courses={courses} />);
+    const rawCourses = [
+      { classes: [{ itemId: "item-1" }] },
+      { classes: [{ itemId: "item-2" }] },
+    ] as any;
+
+    const { getByText } = render(
+      <ScheduleListView courses={courses} rawCourses={rawCourses} />,
+    );
 
     expect(getByText("Upcoming Classes")).toBeTruthy();
     expect(getByText("SOEN 341 - AA")).toBeTruthy();
@@ -58,7 +65,9 @@ describe("ScheduleListView", () => {
   test("renders title when there are no courses", () => {
     const courses: NormalizedScheduleCourse[] = [];
 
-    const { getByText } = render(<ScheduleListView courses={courses} />);
+    const { getByText } = render(
+      <ScheduleListView courses={courses} rawCourses={[]} />,
+    );
 
     expect(getByText("Upcoming Classes")).toBeTruthy();
   });
@@ -81,8 +90,12 @@ describe("ScheduleListView", () => {
       },
     ];
 
+    const rawCourses = [
+      { classes: [{ itemId: "item-1" }] },
+    ] as any;
+
     const { getByText, queryByText } = render(
-      <ScheduleListView courses={courses} />,
+      <ScheduleListView courses={courses} rawCourses={rawCourses} />,
     );
 
     expect(getByText("SOEN 363")).toBeTruthy();
