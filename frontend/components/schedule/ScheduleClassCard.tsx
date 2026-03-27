@@ -1,4 +1,5 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { EditIcon } from "@/app/icons";
 import type { NormalizedScheduleClass } from "../../app/utils/schedule/types";
 
 type Props = {
@@ -6,6 +7,7 @@ type Props = {
   classInfo: NormalizedScheduleClass;
   backgroundColor: string;
   textColor: string;
+  onEdit?: () => void;
 };
 
 export default function ScheduleClassCard({
@@ -13,10 +15,11 @@ export default function ScheduleClassCard({
   classInfo,
   backgroundColor,
   textColor,
+  onEdit,
 }: Readonly<Props>) {
   const formattedSection = classInfo.section
-  ? classInfo.section.replaceAll("-", " ").toUpperCase()
-  : "";
+    ? classInfo.section.replaceAll("-", " ").toUpperCase()
+    : "";
 
   const formattedLocation = [classInfo.buildingCode, classInfo.room]
     .filter(Boolean)
@@ -32,9 +35,21 @@ export default function ScheduleClassCard({
             {formattedSection ? ` - ${formattedSection}` : ""}
           </Text>
 
-          <Text style={[styles.type, { color: textColor }]}>
-            {classInfo.type}
-          </Text>
+          <View style={styles.topRight}>
+            <Text style={[styles.type, { color: textColor }]}>
+              {classInfo.type}
+            </Text>
+
+            {onEdit && (
+              <TouchableOpacity
+                onPress={onEdit}
+                hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+                style={styles.editIcon}
+              >
+                <EditIcon size={14} color={textColor} />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
         <View style={styles.bottom}>
@@ -67,6 +82,12 @@ const styles = StyleSheet.create({
   top: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  topRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   bottom: {
     flexDirection: "row",
@@ -84,5 +105,8 @@ const styles = StyleSheet.create({
   },
   text: {
     fontSize: 13,
+  },
+  editIcon: {
+    marginLeft: 2,
   },
 });
