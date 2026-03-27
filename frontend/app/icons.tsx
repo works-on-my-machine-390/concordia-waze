@@ -61,7 +61,6 @@ export const ForwardIcon: React.FC<IconProps> = ({
   color = DEFAULT_ICON_COLOR,
 }) => <Ionicons name="arrow-forward" size={size} color={color} />;
 
-
 // Logout icon
 export const LogoutIcon: React.FC<IconProps> = ({
   size = DEFAULT_ICON_SIZE,
@@ -311,3 +310,9 @@ export const DrawerCloseIcon: React.FC<IconProps> = ({
 }) => (
   <MaterialIcons name="keyboard-double-arrow-left" size={size} color={color} />
 );
+
+// Edit icon
+export const EditIcon: React.FC<IconProps> = ({
+  size = DEFAULT_ICON_SIZE,
+  color = DEFAULT_ICON_COLOR,
+}) => <Feather name="edit-2" size={size} color={color} />;

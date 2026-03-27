@@ -89,7 +89,7 @@ export default function Schedule() {
         enablePanDownToClose={false}
       >
         <View style={styles.bottomSheetContent}>
-          <ScheduleListView courses={allCourses} />
+          <ScheduleListView courses={allCourses} rawCourses={visibleCourses} />
         </View>
       </BottomSheet>
     </SafeAreaView>
