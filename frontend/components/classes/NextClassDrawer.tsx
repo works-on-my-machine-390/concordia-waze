@@ -47,7 +47,7 @@ export default function NextClassDrawer({ nextClass }: Readonly<Props>) {
       onLayout={handleLayout}
       style={[styles.wrapper, { transform: [{ translateX }] }]}
     >
-      <Pressable onPressIn={toggle}>
+      <Pressable onPress={toggle}>
         <NextClassCard nextClass={nextClass} />
         <View style={styles.tab}>
           {isOpen ? (

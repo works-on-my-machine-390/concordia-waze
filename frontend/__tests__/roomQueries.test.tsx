@@ -59,7 +59,7 @@ describe("roomQueries", () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(mockGet).toHaveBeenCalledWith(
-        "/rooms/search?building=H&room=892"
+        "/rooms/safesearch?building=H&room=892"
       );
       expect(result.current.data).toEqual(mockRoomLocation);
     });
@@ -75,7 +75,7 @@ describe("roomQueries", () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(mockGet).toHaveBeenCalledWith(
-        "/rooms/search?building=MB&room=210"
+        "/rooms/safesearch?building=MB&room=210"
       );
       expect(result.current.data).toEqual(mockRoomLocation);
     });
@@ -91,7 +91,7 @@ describe("roomQueries", () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(mockGet).toHaveBeenCalledWith(
-        "/rooms/search?building=MB&room=S2.285"
+        "/rooms/safesearch?building=MB&room=S2.285"
       );
     });
 
@@ -106,7 +106,7 @@ describe("roomQueries", () => {
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
       expect(mockGet).toHaveBeenCalledWith(
-        "/rooms/search?building=CC&room=2.185"
+        "/rooms/safesearch?building=CC&room=2.185"
       );
     });
 
@@ -159,7 +159,7 @@ describe("roomQueries", () => {
       const queryKey =
         queryClient.getQueryCache().getAll()[0]?.queryKey;
 
-      expect(queryKey).toEqual(["roomLocation", "MB210"]);
+      expect(queryKey).toEqual(["room", "search", "MB210"]);
     });
 
     test("handles API errors", async () => {

@@ -48,6 +48,9 @@ export default function DirectionsToRoomButton(
     res: RoomSearchResponseModel,
   ) => {
     if (res.fallback_to_building) {
+      Toast.warn(
+        "Room location data is not available, defaulting to building location.",
+      );
       return {
         latitude: res.building_latitude,
         longitude: res.building_longitude,
@@ -71,10 +74,12 @@ export default function DirectionsToRoomButton(
   };
 
   const handlePress = () => {
-    if (!roomLocationQuery.data)
+    if (!roomLocationQuery.data) {
       Toast.warn(
         "Room location data is not available, please try again later.",
       );
+      return;
+    }
 
     const endLocation = buildEndLocationFromSafeSearchResult(
       roomLocationQuery.data,
