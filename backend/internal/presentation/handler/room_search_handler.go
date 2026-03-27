@@ -76,11 +76,11 @@ func (h *RoomSearchHandler) FindRoomOrDefaultToBuilding(c *gin.Context) {
 		return
 	}
 
-	room, err := h.service.FindRoomOrDefaultToBuilding(req.Building, req.Room)
+	result, err := h.service.FindRoomOrDefaultToBuilding(req.Building, req.Room)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"data": room})
+	c.JSON(http.StatusOK, result)
 }

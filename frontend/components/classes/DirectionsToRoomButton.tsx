@@ -1,9 +1,19 @@
 import { COLORS } from "@/app/constants";
 import { GetDirectionsIcon } from "@/app/icons";
-import { useGetRoomLocation } from "@/hooks/queries/roomQueries";
-import { useMapStore } from "@/hooks/useMapStore";
-import { useNavigationStore } from "@/hooks/useNavigationStore";
+import {
+  RoomSearchResponseModel,
+  useGetRoomLocation,
+} from "@/hooks/queries/roomQueries";
+import { MapMode, useMapStore } from "@/hooks/useMapStore";
+import {
+  IndoorNavigableLocation,
+  NavigationPhase,
+  OutdoorNavigableLocation,
+  useNavigationStore,
+} from "@/hooks/useNavigationStore";
+import useStartLocation from "@/hooks/useStartLocation";
 import { Pressable, View } from "react-native";
+import { Toast } from "toastify-react-native";
 
 export type DirectionsToRoomTargetModel = {
   buildingCode: string;
@@ -29,12 +39,51 @@ export default function DirectionsToRoomButton(
       : "";
 
   const roomLocationQuery = useGetRoomLocation(fullRoomCode);
-  
+
   const setMapMode = useMapStore((state) => state.setCurrentMode);
   const navigationState = useNavigationStore();
+  const { findAndSetStartLocation } = useStartLocation();
+
+  const buildEndLocationFromSafeSearchResult = (
+    res: RoomSearchResponseModel,
+  ) => {
+    if (res.fallback_to_building) {
+      return {
+        latitude: res.building_latitude,
+        longitude: res.building_longitude,
+        code: res.building_code,
+        name: res.label,
+      } as OutdoorNavigableLocation;
+    }
+
+    return {
+      latitude: res.building_latitude,
+      longitude: res.building_longitude,
+      code: res.building_code,
+      building: res.building_code,
+      name: res.label,
+      floor_number: res.room.floor,
+      indoor_position: {
+        x: res.room.centroid.x,
+        y: res.room.centroid.y,
+      },
+    } as IndoorNavigableLocation;
+  };
 
   const handlePress = () => {
-    console.log(props.target, roomLocationQuery.data);
+    if (!roomLocationQuery.data)
+      Toast.warn(
+        "Room location data is not available, please try again later.",
+      );
+
+    const endLocation = buildEndLocationFromSafeSearchResult(
+      roomLocationQuery.data,
+    );
+
+    navigationState.setEndLocation(endLocation);
+    findAndSetStartLocation(endLocation);
+    setMapMode(MapMode.NAVIGATION);
+    navigationState.setNavigationPhase(NavigationPhase.PREPARATION);
   };
 
   return (

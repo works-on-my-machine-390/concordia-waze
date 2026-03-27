@@ -32,11 +32,28 @@ const parseRoomNumber = (fullRoomNumber: string) => {
   };
 };
 
+export type RoomSearchResponseModel = {
+  label: string; // label to display while navigating, e.g. building code + room code if available, otherwise building code + building long name
+  room?: {
+   centroid: {
+     x: number;
+     y: number;
+   },
+    floor: number;
+    geometryType: string;
+  };
+  building_code: string;
+  building_latitude?: number;
+  building_longitude?: number;
+  fallback_to_building: boolean;
+  reason?: string;
+}
+
 export const useGetRoomLocation = (fullRoomNumber: string) => {
   const { building, room } = parseRoomNumber(fullRoomNumber);
   
-  return useQuery<RoomLocation>({
-    queryKey: ["roomLocation", fullRoomNumber],
+  return useQuery<RoomSearchResponseModel>({
+    queryKey: ["room", "search", fullRoomNumber],
     queryFn: async () => {
       const apiClient = await api();
       
@@ -46,8 +63,8 @@ export const useGetRoomLocation = (fullRoomNumber: string) => {
       });
       
       return apiClient
-        .get(`/rooms/search?${params}`)
-        .json<RoomLocation>();
+        .get(`/rooms/safesearch?${params}`)
+        .json<RoomSearchResponseModel>();
     },
     enabled: !!building && !!room,
     staleTime: Infinity, 

@@ -107,9 +107,7 @@ func (s *roomSearchService) isFloorMapped(building string, floor int) (bool, err
 		return false, err
 	}
 
-	fmt.Println("called with", building, floor)
 	for _, f := range floors {
-		fmt.Println(f.FloorNumber)
 		if f.FloorNumber == floor {
 			return true, nil
 		}
@@ -147,8 +145,6 @@ func matchRoom(r domain.IndoorRoom, target string, buildingCode string) bool {
 	roomID := normalizeRoomIdentifier(r.Room)
 	targetID := normalizeRoomIdentifier(target)
 	buildingID := normalizeRoomIdentifier(buildingCode)
-
-	fmt.Println("normalized ids:", roomID, targetID, buildingID)
 
 	if roomID == "" || targetID == "" {
 		return false
