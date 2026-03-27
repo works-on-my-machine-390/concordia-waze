@@ -16,7 +16,7 @@ export const useGetProfile = () => {
       const token = await SecureStore.getItemAsync("accessToken");
       return Boolean(token) && !isTokenExpired(token);
     },
-    staleTime: 1 * 60 * 60 * 1000, // 1 hour
+    staleTime: 1 * 60 * 1000, // 1 min
   });
 
   return useQuery({
