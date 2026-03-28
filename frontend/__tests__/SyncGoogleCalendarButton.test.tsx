@@ -40,6 +40,7 @@ jest.mock("@/hooks/useAuth", () => ({
 
 describe("SyncCalendarButton", () => {
   beforeEach(() => {
+    jest.useRealTimers();
     jest.clearAllMocks();
     mockUseAuth.mockReturnValue(buildUseAuthMock(true));
   });
