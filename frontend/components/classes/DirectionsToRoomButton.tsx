@@ -1,5 +1,6 @@
 import { COLORS } from "@/app/constants";
 import { GetDirectionsIcon } from "@/app/icons";
+import { buildEndLocationFromSafeSearchResult } from "@/app/utils/mapUtils";
 import {
   RoomSearchResponseModel,
   useGetRoomLocation,
@@ -43,35 +44,6 @@ export default function DirectionsToRoomButton(
   const setMapMode = useMapStore((state) => state.setCurrentMode);
   const navigationState = useNavigationStore();
   const { findAndSetStartLocation } = useStartLocation();
-
-  const buildEndLocationFromSafeSearchResult = (
-    res: RoomSearchResponseModel,
-  ) => {
-    if (res.fallback_to_building) {
-      Toast.warn(
-        "Room location data is not available, defaulting to building location.",
-      );
-      return {
-        latitude: res.building_latitude,
-        longitude: res.building_longitude,
-        code: res.building_code,
-        name: res.label,
-      } as OutdoorNavigableLocation;
-    }
-
-    return {
-      latitude: res.building_latitude,
-      longitude: res.building_longitude,
-      code: res.building_code,
-      building: res.building_code,
-      name: res.label,
-      floor_number: res.room.floor,
-      indoor_position: {
-        x: res.room.centroid.x,
-        y: res.room.centroid.y,
-      },
-    } as IndoorNavigableLocation;
-  };
 
   const handlePress = () => {
     if (!roomLocationQuery.data) {
