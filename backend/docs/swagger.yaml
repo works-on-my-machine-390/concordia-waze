@@ -1557,6 +1557,43 @@ paths:
       summary: Get nearby indoor POIs
       tags:
       - point of interest
+  /rooms/safesearch:
+    get:
+      description: Returns room information if found, using the building as fallback.
+      parameters:
+      - description: Building code (MB, LB, CC, VL)
+        in: query
+        name: building
+        required: true
+        type: string
+      - description: Room name/number (e.g., S2.285)
+        in: query
+        name: room
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Search a room by number, with building fallback
+      tags:
+      - rooms
   /rooms/search:
     get:
       description: Returns room centroid coordinates by room number (EPSG:32198)

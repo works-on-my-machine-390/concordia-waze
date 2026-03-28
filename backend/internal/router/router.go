@@ -71,7 +71,7 @@ func SetupRouter() *gin.Engine {
 	indoorPOIRepo := repository.NewIndoorPOIRepository(dataDir)
 	indoorPOIService := application.NewIndoorPointOfInterestService(indoorPOIRepo)
 	indoorRoomRepo := repository.NewIndoorRoomRepository(dataDir) // reuse same base dir you used for POIs
-	roomSearchService := application.NewRoomSearchService(indoorRoomRepo)
+	roomSearchService := application.NewRoomSearchService(indoorRoomRepo, buildingDataRepo, floorDataRepo)
 	roomSearchHandler := handler.NewRoomSearchHandler(roomSearchService)
 
 	indoorPathService := application.NewIndoorPathService(floorDataRepo, indoorRoomRepo)
@@ -165,7 +165,12 @@ func SetupRouter() *gin.Engine {
 
 	// Indoor POIs + room search are local repo-based -> no external API calls (leave unlimited)
 	router.GET("/pointofinterest/indoor", pointOfInterestHandler.GetNearbyIndoorPOIs)
-	router.GET("/rooms/search", roomSearchHandler.SearchRoom)
+
+	roomSearchGroup := router.Group("/rooms")
+	{
+		roomSearchGroup.GET("/search", roomSearchHandler.SearchRoom)
+		roomSearchGroup.GET("/safesearch", roomSearchHandler.FindRoomOrDefaultToBuilding)
+	}
 
 	// Favorites (optional auth — ownership enforced in handler)
 	userFavGroup := router.Group("/users/:userId/favorites")

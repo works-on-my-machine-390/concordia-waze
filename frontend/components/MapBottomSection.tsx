@@ -52,6 +52,8 @@ export default function MapBottomSection(
   };
 
   const renderNextClassDrawer = () => {
+    if (navigationPhase) return null;
+
     return <NextClassDrawer nextClass={props.nextClass ?? null} />;
   };
 

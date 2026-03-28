@@ -29,9 +29,8 @@ export default function useStartLocation() {
     );
 
     const isUserInSameBuildingAsEndLocation =
-      endLocation &&
-      endLocation.code &&
-      endLocation.code === currentLocationDetails?.code;
+      endLocation?.code &&
+      endLocation?.code === currentLocationDetails?.code;
 
     const isUserLocationAvailable = !!userLocation;
 
