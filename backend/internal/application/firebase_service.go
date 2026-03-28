@@ -633,9 +633,36 @@ func (fs *FirebaseService) DeleteSavedAddress(ctx context.Context, userID, addre
 
 // AddFavorite stores a favorite location under users/{userID}/favorites/{fav.ID}.
 func (fs *FirebaseService) AddFavorite(ctx context.Context, userID string, fav FirestoreFavorite) error {
+	query := fs.client.Collection("users").Doc(userID).Collection("favorites").Query
+
+	var dupQuery firestore.Query
+	if fav.Type == "outdoor" {
+		dupQuery = query.
+			Where("latitude", "==", fav.Latitude).
+			Where("longitude", "==", fav.Longitude)
+	} else if fav.Type == "indoor" {
+		dupQuery = query.
+			Where("buildingCode", "==", fav.BuildingCode).
+			Where("floorNumber", "==", fav.FloorNumber).
+			Where("x", "==", fav.X).
+			Where("y", "==", fav.Y)
+	} else {
+		return fmt.Errorf("invalid favorite type: %q", fav.Type)
+	}
+
+	docs, err := dupQuery.Documents(ctx).GetAll()
+	if err != nil {
+		return fmt.Errorf("add favorite duplicate check: %w", err)
+	}
+	for _, doc := range docs {
+		if doc.Ref.ID != fav.ID {
+			return domain.ErrFavoriteAlreadyExists
+		}
+	}
+
 	path := fmt.Sprintf("users/%s/favorites/%s", userID, fav.ID)
 	log.Printf("[firestore] writing favorite path=%s name=%q", path, fav.Name)
-	_, err := fs.client.Collection("users").Doc(userID).Collection("favorites").Doc(fav.ID).Set(ctx, fav)
+	_, err = fs.client.Collection("users").Doc(userID).Collection("favorites").Doc(fav.ID).Set(ctx, fav)
 	if err != nil {
 		log.Printf("[firestore] AddFavorite failed path=%s: %v", path, err)
 		return fmt.Errorf("add favorite: %w", err)
