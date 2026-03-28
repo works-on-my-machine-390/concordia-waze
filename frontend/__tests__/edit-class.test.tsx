@@ -63,6 +63,7 @@ jest.mock("@/app/utils/classValidationUtils", () => ({
 
 describe("EditClassScreen", () => {
   beforeEach(() => {
+    jest.useRealTimers();
     jest.clearAllMocks();
     mockLoggedIn = true;
     mockValidateTime.mockReturnValue(null);

@@ -1,13 +1,13 @@
 import { COLORS } from "@/app/constants";
-import { GetDirectionsIcon, TimeIcon } from "@/app/icons";
+import { TimeIcon } from "@/app/icons";
 import { toMinutes } from "@/app/utils/dateUtils";
 import { NextClassResponse } from "@/hooks/queries/classQueries";
 import { useEffect, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+import DirectionsToRoomButton from "./DirectionsToRoomButton";
 
 type Props = {
   nextClass: NextClassResponse | null;
-  onNavigatePress: () => void;
 };
 
 const getMinutesUntil = (startTime: string): number => {
@@ -23,10 +23,7 @@ const formatTimeUntil = (minutes: number): string => {
   return mins === 0 ? `${hours}H` : `${hours}H${String(mins).padStart(2, "0")}`;
 };
 
-export default function NextClassCard({
-  nextClass,
-  onNavigatePress,
-}: Readonly<Props>) {
+export default function NextClassCard({ nextClass }: Readonly<Props>) {
   const [minutesUntil, setMinutesUntil] = useState(() =>
     nextClass?.item?.startTime
       ? getMinutesUntil(nextClass.item.startTime)
@@ -96,12 +93,14 @@ export default function NextClassCard({
 
       <View style={styles.bottomRow}>
         <View style={styles.classInfo}>
-          <Text style={styles.classNameText}>{className.toUpperCase()} - {item.type.slice(0, 3).toUpperCase()}</Text>
+          <Text style={styles.classNameText}>
+            {className.toUpperCase()} - {item.type.slice(0, 3).toUpperCase()}
+          </Text>
           <Text style={styles.locationText}>{location}</Text>
         </View>
-        <Pressable style={styles.navigateButton} onPress={onNavigatePress}>
-          <GetDirectionsIcon size={30} color={COLORS.conuRed} />
-        </Pressable>
+        <DirectionsToRoomButton
+          target={{ buildingCode: item.buildingCode, roomCode: item.room }}
+        />
       </View>
     </View>
   );

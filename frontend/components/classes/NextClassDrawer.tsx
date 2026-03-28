@@ -48,7 +48,7 @@ export default function NextClassDrawer({ nextClass }: Readonly<Props>) {
       style={[styles.wrapper, { transform: [{ translateX }] }]}
     >
       <Pressable onPress={toggle}>
-        <NextClassCard nextClass={nextClass} onNavigatePress={() => {}} />
+        <NextClassCard nextClass={nextClass} />
         <View style={styles.tab}>
           {isOpen ? (
             <DrawerCloseIcon size={35} color="white" />
