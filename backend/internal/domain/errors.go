@@ -28,4 +28,9 @@ var (
 	ErrOutdoorMissingCoords = errors.New("outdoor favorites require latitude and longitude")
 	ErrIndoorMissingFields  = errors.New("indoor favorites require buildingCode, floorNumber, x, and y")
 	ErrCourseNotFound       = errors.New("course not found")
+
+	// Room Search errors
+	ErrRoomNotFound     = errors.New("room not found")
+	ErrFloorNotMapped   = errors.New("floor not mapped")
+	ErrBuildingNotFound = errors.New("building not found")
 )
