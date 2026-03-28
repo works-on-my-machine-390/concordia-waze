@@ -1,15 +1,10 @@
 import { COLORS } from "@/app/constants";
 import { GetDirectionsIcon } from "@/app/icons";
 import { buildEndLocationFromSafeSearchResult } from "@/app/utils/mapUtils";
-import {
-  RoomSearchResponseModel,
-  useGetRoomLocation,
-} from "@/hooks/queries/roomQueries";
+import { useGetRoomLocation } from "@/hooks/queries/roomQueries";
 import { MapMode, useMapStore } from "@/hooks/useMapStore";
 import {
-  IndoorNavigableLocation,
   NavigationPhase,
-  OutdoorNavigableLocation,
   useNavigationStore,
 } from "@/hooks/useNavigationStore";
 import useStartLocation from "@/hooks/useStartLocation";
