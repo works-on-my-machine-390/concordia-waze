@@ -1280,8 +1280,8 @@ func TestAddFavoriteRepositoryError(t *testing.T) {
 		Latitude:  10,
 		Longitude: 20,
 	})
-	if err == nil || err.Error() != "db error" {
-		t.Errorf("Expected 'db error', got %v", err)
+	if err == nil || err.Error() != "db broke" {
+		t.Errorf("Expected 'db broke', got %v", err)
 	}
 }
 
