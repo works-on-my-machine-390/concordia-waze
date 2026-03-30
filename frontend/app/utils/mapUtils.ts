@@ -2,6 +2,12 @@ import { CampusCode } from "@/hooks/queries/buildingQueries";
 import * as Location from "expo-location";
 import { LocationObject } from "expo-location";
 import { CAMPUS_COORDS } from "../constants";
+import { RoomSearchResponseModel } from "@/hooks/queries/roomQueries";
+import { Toast } from "toastify-react-native";
+import {
+  IndoorNavigableLocation,
+  OutdoorNavigableLocation,
+} from "@/hooks/useNavigationStore";
 
 // Haversine formula
 export function getDistance(
@@ -107,4 +113,33 @@ export const getAddressFromLocation = async (location: LocationObject) => {
     }
   }
   return "";
+};
+
+export const buildEndLocationFromSafeSearchResult = (
+  res: RoomSearchResponseModel,
+) => {
+  if (res.fallback_to_building) {
+    Toast.warn(
+      "Room location data is not available, defaulting to building location.",
+    );
+    return {
+      latitude: res.building_latitude,
+      longitude: res.building_longitude,
+      code: res.building_code,
+      name: res.label,
+    } as OutdoorNavigableLocation;
+  }
+
+  return {
+    latitude: res.building_latitude,
+    longitude: res.building_longitude,
+    code: res.building_code,
+    building: res.building_code,
+    name: res.label,
+    floor_number: res.room.floor,
+    indoor_position: {
+      x: res.room.centroid.x,
+      y: res.room.centroid.y,
+    },
+  } as IndoorNavigableLocation;
 };

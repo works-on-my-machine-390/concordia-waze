@@ -82,7 +82,10 @@ const missingBothEntry: MissingInfoEntry = {
 };
 
 describe("MissingEventInfoForm", () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.useRealTimers();
+    jest.clearAllMocks();
+  });
 
   test("renders empty state when no missing entries", () => {
     const { getByText } = render(

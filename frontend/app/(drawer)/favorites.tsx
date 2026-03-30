@@ -238,8 +238,8 @@ export default function Favorites() {
 
     router.push({ pathname, params });
 
-    findAndSetStartLocation();
     navigationState.setEndLocation(endLocation);
+    findAndSetStartLocation(endLocation);
     mapState.setCurrentMode(MapMode.NAVIGATION);
     navigationState.setNavigationPhase(NavigationPhase.PREPARATION);
   };

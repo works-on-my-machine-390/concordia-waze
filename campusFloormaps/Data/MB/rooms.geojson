@@ -12,7 +12,7 @@
             "type": "Feature",
             "properties": {
                 "fid": 1,
-                "floor": 0,
+                "floor": -2,
                 "name": "S2.285"
             },
             "geometry": {
@@ -47,7 +47,7 @@
             "type": "Feature",
             "properties": {
                 "fid": 2,
-                "floor": 0,
+                "floor": -2,
                 "name": "S2.273"
             },
             "geometry": {
@@ -82,7 +82,7 @@
             "type": "Feature",
             "properties": {
                 "fid": 3,
-                "floor": 0,
+                "floor": -2,
                 "name": "S2.275"
             },
             "geometry": {
@@ -117,7 +117,7 @@
             "type": "Feature",
             "properties": {
                 "fid": 4,
-                "floor": 0,
+                "floor": -2,
                 "name": "S2.279"
             },
             "geometry": {
@@ -152,7 +152,7 @@
             "type": "Feature",
             "properties": {
                 "fid": 5,
-                "floor": 0,
+                "floor": -2,
                 "name": "S2.210"
             },
             "geometry": {
@@ -187,7 +187,7 @@
             "type": "Feature",
             "properties": {
                 "fid": 6,
-                "floor": 0,
+                "floor": -2,
                 "name": "S2.330"
             },
             "geometry": {
@@ -222,7 +222,7 @@
             "type": "Feature",
             "properties": {
                 "fid": 7,
-                "floor": 0,
+                "floor": -2,
                 "name": "S2.401"
             },
             "geometry": {
@@ -257,7 +257,7 @@
             "type": "Feature",
             "properties": {
                 "fid": 8,
-                "floor": 0,
+                "floor": -2,
                 "name": "S2.465"
             },
             "geometry": {
@@ -292,7 +292,7 @@
             "type": "Feature",
             "properties": {
                 "fid": 9,
-                "floor": 0,
+                "floor": -2,
                 "name": "S2.105"
             },
             "geometry": {
@@ -327,7 +327,7 @@
             "type": "Feature",
             "properties": {
                 "fid": 10,
-                "floor": 0,
+                "floor": -2,
                 "name": "S2.115"
             },
             "geometry": {
@@ -362,7 +362,7 @@
             "type": "Feature",
             "properties": {
                 "fid": 11,
-                "floor": 0,
+                "floor": -2,
                 "name": "S2.135"
             },
             "geometry": {
@@ -397,7 +397,7 @@
             "type": "Feature",
             "properties": {
                 "fid": 12,
-                "floor": 0,
+                "floor": -2,
                 "name": "S2.428"
             },
             "geometry": {
@@ -432,7 +432,7 @@
             "type": "Feature",
             "properties": {
                 "fid": 13,
-                "floor": 0,
+                "floor": -2,
                 "name": "S2.445"
             },
             "geometry": {
@@ -467,7 +467,7 @@
             "type": "Feature",
             "properties": {
                 "fid": 14,
-                "floor": 0,
+                "floor": -2,
                 "name": "S2.455"
             },
             "geometry": {

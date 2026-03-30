@@ -6,7 +6,7 @@ import { useRef, useState } from "react";
 import { Animated, Pressable, StyleSheet, View } from "react-native";
 
 type Props = {
-  nextClass: NextClassResponse;
+  nextClass: NextClassResponse | null;
 };
 
 const PEEK_AMOUNT = 48;
@@ -20,7 +20,9 @@ export default function NextClassDrawer({ nextClass }: Readonly<Props>) {
   const handleLayout = (event: any) => {
     const width = event.nativeEvent.layout.width;
     setCardWidth(width);
-    translateX.setValue(-width);
+    if (!isOpen) {
+      translateX.setValue(-width);
+    }
   };
 
   const toggle = () => {
@@ -46,10 +48,7 @@ export default function NextClassDrawer({ nextClass }: Readonly<Props>) {
       style={[styles.wrapper, { transform: [{ translateX }] }]}
     >
       <Pressable onPress={toggle}>
-        <NextClassCard 
-            nextClass={nextClass} 
-            onNavigatePress={() => {}}
-        />
+        <NextClassCard nextClass={nextClass} />
         <View style={styles.tab}>
           {isOpen ? (
             <DrawerCloseIcon size={35} color="white" />

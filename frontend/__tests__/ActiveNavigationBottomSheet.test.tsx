@@ -18,7 +18,12 @@ jest.mock("@gorhom/bottom-sheet", () => {
   const { View } = require("react-native");
   return {
     __esModule: true,
-    default: ({ children }: any) => <View testID="active-nav-sheet">{children}</View>,
+    default: ({ children, handleComponent: HandleComp }: any) => (
+      <View testID="active-nav-sheet">
+        {HandleComp && <HandleComp />}
+        {children}
+      </View>
+    ),
     BottomSheetScrollView: ({ children }: any) => (
       <View testID="active-nav-sheet-scroll">{children}</View>
     ),
@@ -172,5 +177,33 @@ describe("ActiveNavigationBottomSheet", () => {
     const { queryByTestId } = render(<ActiveNavigationBottomSheet />);
 
     expect(queryByTestId("return-outdoor-button")).toBeNull();
+  });
+
+  test("passes end location coordinates when buildingCode matches endLocation", () => {
+    mockedUsePathname.mockReturnValue("/indoor-map");
+    mockedUseLocalSearchParams.mockReturnValue({ buildingCode: "H" });
+
+    const { getByTestId } = render(<ActiveNavigationBottomSheet />);
+
+    expect(getByTestId("return-outdoor-button")).toBeTruthy();
+    expect(getByTestId("return-outdoor-location").props.children).toContain("45.495");
+  });
+
+  test("passes null location when buildingCode matches neither start nor end location", () => {
+    mockedUsePathname.mockReturnValue("/indoor-map");
+    mockedUseLocalSearchParams.mockReturnValue({ buildingCode: "EV" });
+
+    const { getByTestId } = render(<ActiveNavigationBottomSheet />);
+
+    expect(getByTestId("return-outdoor-location").props.children).toBe("null");
+  });
+
+  test("renders fallback ETA block when startDateTime is not set", () => {
+    const state = createNavigationState();
+    mockUseNavigationStore.mockReturnValue({ ...state, startDateTime: null });
+
+    const { getByText } = render(<ActiveNavigationBottomSheet />);
+
+    expect(getByText(/Route will take/i)).toBeTruthy();
   });
 });
