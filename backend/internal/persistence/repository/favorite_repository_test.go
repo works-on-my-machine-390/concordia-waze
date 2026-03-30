@@ -152,3 +152,73 @@ func TestFavoriteDelete_OnlyRemovesTargetFavorite(t *testing.T) {
 		t.Errorf("Expected remaining favorite to be 'Office', got %s", results[0].Name)
 	}
 }
+
+func TestFavoriteCreate_DuplicateRejected(t *testing.T) {
+	repo := repository.NewInMemoryFavoriteRepository()
+	userID := "user-dup-test"
+
+	orig := &domain.Favorite{
+		UserID:    userID,
+		Type:      domain.FavoriteTypeOutdoor,
+		Name:      "Home",
+		Latitude:  45.0,
+		Longitude: -73.0,
+	}
+	err := repo.Create(orig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	dup := &domain.Favorite{
+		UserID:    userID,
+		Type:      domain.FavoriteTypeOutdoor,
+		Name:      "Work",
+		Latitude:  45.0,
+		Longitude: -73.0,
+	}
+	err = repo.Create(dup)
+	if err != domain.ErrFavoriteAlreadyExists {
+		t.Errorf("expected ErrFavoriteAlreadyExists for outdoor duplicate, got %v", err)
+	}
+
+	indoorOrig := &domain.Favorite{
+		UserID:       userID,
+		Type:         domain.FavoriteTypeIndoor,
+		Name:         "Room1",
+		BuildingCode: "H",
+		FloorNumber:  5,
+		X:            1.23,
+		Y:            4.56,
+	}
+	err = repo.Create(indoorOrig)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	indoorDup := &domain.Favorite{
+		UserID:       userID,
+		Type:         domain.FavoriteTypeIndoor,
+		Name:         "Room1 Again",
+		BuildingCode: "H",
+		FloorNumber:  5,
+		X:            1.23,
+		Y:            4.56,
+	}
+	err = repo.Create(indoorDup)
+	if err != domain.ErrFavoriteAlreadyExists {
+		t.Errorf("expected ErrFavoriteAlreadyExists for indoor duplicate, got %v", err)
+	}
+
+	// Make sure different user can add same location
+	otherUser := &domain.Favorite{
+		UserID:    "other-user",
+		Type:      domain.FavoriteTypeOutdoor,
+		Name:      "Other Home",
+		Latitude:  45.0,
+		Longitude: -73.0,
+	}
+	err = repo.Create(otherUser)
+	if err != nil {
+		t.Errorf("expected no error for different user, got %v", err)
+	}
+}
