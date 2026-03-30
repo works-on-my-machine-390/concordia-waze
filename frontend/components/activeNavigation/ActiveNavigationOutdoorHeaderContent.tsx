@@ -5,6 +5,7 @@ import { stripHtmlTags } from "@/app/utils/stringUtils";
 import {
   DirectionsResponseBlockType,
   OutdoorDirectionsBlockModel,
+  StepModel,
 } from "@/hooks/queries/navigationQueries";
 import { useMapStore } from "@/hooks/useMapStore";
 import {
@@ -15,6 +16,22 @@ import { useRouter } from "expo-router";
 import { Text, View } from "react-native";
 import DirectionIcon from "../DirectionIcon";
 import ActiveNavigationHeaderStepper from "./ActiveNavigationHeaderStepper";
+
+function getTransitInstruction(step: StepModel): string {
+  const type = step.transit_type?.toLowerCase();
+  const line = step.transit_line;
+  const headsign = step.transit_headsign;
+  const arrivalStop = step.arrival_stop;
+
+  const lineLabel = line ? ` ${line}` : "";
+  const towards = headsign ? ` towards ${headsign}` : "";
+  const exit = arrivalStop ? `, exit at ${arrivalStop}` : "";
+
+  if (type === "subway") {
+    return `Metro${lineLabel}${towards}${exit}`;
+  }
+  return `Bus${lineLabel}${towards}${exit}`;
+}
 
 export default function ActiveNavigationOutdoorHeaderContent() {
   const router = useRouter();
@@ -149,7 +166,9 @@ export default function ActiveNavigationOutdoorHeaderContent() {
                   activeNavigationHeaderStyles.instructionText,
                 ]}
               >
-                {stripHtmlTags(currentStep.instruction)}
+                {currentStep.transit_type
+                  ? getTransitInstruction(currentStep)
+                  : stripHtmlTags(currentStep.instruction)}
               </Text>
             </View>
           )}
