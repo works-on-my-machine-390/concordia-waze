@@ -32,24 +32,8 @@ func (r *InMemoryFavoriteRepository) Create(favorite *domain.Favorite) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	// Check for duplicate by user/location
-	for _, existing := range r.favorites {
-		if existing.UserID != favorite.UserID {
-			continue
-		}
-		if favorite.Type == domain.FavoriteTypeOutdoor && existing.Type == domain.FavoriteTypeOutdoor {
-			if existing.Latitude == favorite.Latitude && existing.Longitude == favorite.Longitude {
-				return domain.ErrFavoriteAlreadyExists
-			}
-		}
-		if favorite.Type == domain.FavoriteTypeIndoor && existing.Type == domain.FavoriteTypeIndoor {
-			if existing.BuildingCode == favorite.BuildingCode &&
-				existing.FloorNumber == favorite.FloorNumber &&
-				existing.X == favorite.X &&
-				existing.Y == favorite.Y {
-				return domain.ErrFavoriteAlreadyExists
-			}
-		}
+	if r.hasDuplicateForUser(favorite) {
+		return domain.ErrFavoriteAlreadyExists
 	}
 
 	if favorite.ID == "" {
@@ -58,6 +42,34 @@ func (r *InMemoryFavoriteRepository) Create(favorite *domain.Favorite) error {
 
 	r.favorites[favorite.ID] = favorite
 	return nil
+}
+
+func (r *InMemoryFavoriteRepository) hasDuplicateForUser(favorite *domain.Favorite) bool {
+	for _, existing := range r.favorites {
+		if existing.UserID != favorite.UserID {
+			continue
+		}
+		if r.isOutdoorDuplicate(existing, favorite) || r.isIndoorDuplicate(existing, favorite) {
+			return true
+		}
+	}
+	return false
+}
+
+func (r *InMemoryFavoriteRepository) isOutdoorDuplicate(existing, favorite *domain.Favorite) bool {
+	return favorite.Type == domain.FavoriteTypeOutdoor &&
+		existing.Type == domain.FavoriteTypeOutdoor &&
+		existing.Latitude == favorite.Latitude &&
+		existing.Longitude == favorite.Longitude
+}
+
+func (r *InMemoryFavoriteRepository) isIndoorDuplicate(existing, favorite *domain.Favorite) bool {
+	return favorite.Type == domain.FavoriteTypeIndoor &&
+		existing.Type == domain.FavoriteTypeIndoor &&
+		existing.BuildingCode == favorite.BuildingCode &&
+		existing.FloorNumber == favorite.FloorNumber &&
+		existing.X == favorite.X &&
+		existing.Y == favorite.Y
 }
 
 // FindByUserID retrieves all favorites for a given user identifier

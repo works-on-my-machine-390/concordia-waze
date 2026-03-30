@@ -1270,21 +1270,8 @@ func TestFavoritesService_DeleteFavorite_RepoError(t *testing.T) {
 	assert.Equal(t, "db broke", err.Error())
 }
 
-// failRepo is a mock repository that always fails on Create.
-type failRepo struct{}
-
-func (f *failRepo) Create(fav *domain.Favorite) error {
-	return errors.New("db error")
-}
-func (f *failRepo) FindByUserID(userID string) ([]*domain.Favorite, error) {
-	return nil, nil
-}
-func (f *failRepo) Delete(id, userID string) error {
-	return nil
-}
-
 func TestAddFavoriteRepositoryError(t *testing.T) {
-	service := application.NewFavoritesService(&failRepo{})
+	service := application.NewFavoritesService(&errorRepo{})
 
 	_, err := service.AddFavorite(&domain.Favorite{
 		UserID:    "user-1",
