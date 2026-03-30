@@ -255,8 +255,8 @@ func (s *IndoorPathService) selectTransitions(
 	}
 
 	// Otherwise try preferred then fallback inside findBestTransitions
-	tt, sT, eT := s.findBestTransitions(startFloor, endFloor, startPoint, endPoint, preferred)
-	return tt, sT, eT
+	transitionType, startTransition, endTransition := s.findBestTransitions(startFloor, endFloor, startPoint, endPoint, preferred)
+	return transitionType, startTransition, endTransition
 }
 
 // computeFloorSegment builds a graph for the given floor, finds nearest/split vertices,
