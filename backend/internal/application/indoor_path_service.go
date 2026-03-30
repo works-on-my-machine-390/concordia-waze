@@ -205,86 +205,90 @@ func (s *IndoorPathService) MultiFloorShortestPath(req MultiFloorPathRequest) (*
 		return nil, err
 	}
 
-	// Find transition points (stairs/elevator) on both floors using enum
+	// Determine preferred transition type
 	preferredType := TransitionStairs
 	if req.PreferElevator || req.RequireAccessible {
 		preferredType = TransitionElevator
 	}
 
-	// When accessibility required, only allow elevator (no stairs fallback)
-	var transitionType TransitionType
-	var startTransition, endTransition *domain.Coordinates
-	if req.RequireAccessible {
-		startTransition, endTransition = s.findClosestLinkedTransitionPair(
-			startFloor, endFloor, TransitionElevator, startPoint, endPoint,
-		)
-		if startTransition != nil && endTransition != nil {
-			transitionType = TransitionElevator
-		}
-	} else {
-		transitionType, startTransition, endTransition = s.findBestTransitions(
-			startFloor, endFloor, startPoint, endPoint, preferredType,
-		)
-	}
-
+	// Select transitions (may return none)
+	transitionType, startTransition, endTransition := s.selectTransitions(req, startFloor, endFloor, startPoint, endPoint, preferredType)
 	if startTransition == nil || endTransition == nil {
 		return nil, errors.New("no transition point (stairs/elevator) found on floor or no linked pair exists across floors")
 	}
 
-	// Calculate path on start floor: from start point to transition
-	startGraph, err := newGraphFromFloor(*startFloor, req.RequireAccessible)
-	if err != nil {
-		return nil, err
-	}
-
-	startIdx := startGraph.nearestVertexWithSplit(startPoint)
-	transitionStartIdx := startGraph.nearestVertexWithSplit(*startTransition)
-
-	pathToTransition, distToTransition, err := startGraph.shortestPath(startIdx, transitionStartIdx)
+	// Compute path on start floor (start -> transition)
+	startSeg, distToTransition, err := s.computeFloorSegment(startFloor, req.RequireAccessible, req.StartFloor, startPoint, *startTransition)
 	if err != nil {
 		return nil, errors.New("no path to transition point on start floor")
 	}
 
-	// Calculate path on end floor: from transition to end point
-	endGraph, err := newGraphFromFloor(*endFloor, req.RequireAccessible)
-	if err != nil {
-		return nil, err
-	}
-
-	transitionEndIdx := endGraph.nearestVertexWithSplit(*endTransition)
-	endIdx := endGraph.nearestVertexWithSplit(endPoint)
-
-	pathFromTransition, distFromTransition, err := endGraph.shortestPath(transitionEndIdx, endIdx)
+	// Compute path on end floor (transition -> end)
+	endSeg, distFromTransition, err := s.computeFloorSegment(endFloor, req.RequireAccessible, req.EndFloor, *endTransition, endPoint)
 	if err != nil {
 		return nil, errors.New("no path from transition point on end floor")
 	}
 
-	// Build result with floor segments
-	pathToTransitionCoords := startGraph.pathCoordinates(pathToTransition)
-	pathFromTransitionCoords := endGraph.pathCoordinates(pathFromTransition)
-
-	segments := []FloorSegment{
-		{
-			FloorNumber: req.StartFloor,
-			FloorName:   startFloor.FloorName,
-			Path:        pathToTransitionCoords,
-			Distance:    distToTransition,
-			Directions:  calculateTurnDirections(pathToTransitionCoords),
-		},
-		{
-			FloorNumber: req.EndFloor,
-			FloorName:   endFloor.FloorName,
-			Path:        pathFromTransitionCoords,
-			Distance:    distFromTransition,
-			Directions:  calculateTurnDirections(pathFromTransitionCoords),
-		},
-	}
-
+	segments := []FloorSegment{startSeg, endSeg}
 	return &MultiFloorPathResult{
 		Segments:       segments,
 		TotalDistance:  distToTransition + distFromTransition,
 		TransitionType: transitionType,
 	}, nil
+}
+
+// selectTransitions encapsulates the logic that chooses the transition type and pair of coordinates.
+// It returns the chosen TransitionType and the start/end transition coordinates (or nils).
+func (s *IndoorPathService) selectTransitions(
+	req MultiFloorPathRequest,
+	startFloor, endFloor *domain.Floor,
+	startPoint, endPoint domain.Coordinates,
+	preferred TransitionType,
+) (TransitionType, *domain.Coordinates, *domain.Coordinates) {
+	// When accessibility required, only allow elevator (no stairs fallback)
+	if req.RequireAccessible {
+		startTransition, endTransition := s.findClosestLinkedTransitionPair(startFloor, endFloor, TransitionElevator, startPoint, endPoint)
+		if startTransition != nil && endTransition != nil {
+			return TransitionElevator, startTransition, endTransition
+		}
+		return TransitionNone, nil, nil
+	}
+
+	// Otherwise try preferred then fallback inside findBestTransitions
+	tt, sT, eT := s.findBestTransitions(startFloor, endFloor, startPoint, endPoint, preferred)
+	return tt, sT, eT
+}
+
+// computeFloorSegment builds a graph for the given floor, finds nearest/split vertices,
+// computes the shortest path between 'from' and 'to' coordinates and returns a FloorSegment and its distance.
+func (s *IndoorPathService) computeFloorSegment(
+	floor *domain.Floor,
+	requireAccessible bool,
+	floorNumber int,
+	from, to domain.Coordinates,
+) (FloorSegment, float64, error) {
+	g, err := newGraphFromFloor(*floor, requireAccessible)
+	if err != nil {
+		return FloorSegment{}, 0, err
+	}
+
+	startIdx := g.nearestVertexWithSplit(from)
+	endIdx := g.nearestVertexWithSplit(to)
+
+	vertexPath, dist, err := g.shortestPath(startIdx, endIdx)
+	if err != nil {
+		return FloorSegment{}, 0, err
+	}
+
+	pathCoords := g.pathCoordinates(vertexPath)
+	segment := FloorSegment{
+		FloorNumber: floorNumber,
+		FloorName:   floor.FloorName,
+		Path:        pathCoords,
+		Distance:    dist,
+		Directions:  calculateTurnDirections(pathCoords),
+	}
+	return segment, dist, nil
 }
 
 // resolveCoordinate resolves a coordinate from either a direct coord or a room name
