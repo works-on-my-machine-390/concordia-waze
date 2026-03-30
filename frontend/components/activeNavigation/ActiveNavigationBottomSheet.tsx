@@ -15,6 +15,12 @@ import { BottomSheetStyles } from "../BuildingBottomSheet";
 import OutdoorNavigationSteps from "../OutdoorNavigationSteps";
 import ReturnOutdoorButton from "./ReturnOutdoorButton";
 
+const HandleComponent = () => (
+  <View style={NavigationBottomSheetStyles.fakeHandleContainer}>
+    <View style={NavigationBottomSheetStyles.fakeHandleBar} />
+  </View>
+);
+
 export default function ActiveNavigationBottomSheet() {
   const snapPoints = ["15%", "70%"];
   const insets = useSafeAreaInsets();
@@ -99,67 +105,60 @@ export default function ActiveNavigationBottomSheet() {
   // reusing navigationBottomSheetStyles - naming may be off but styles are still relevant
   return (
     <BottomSheet
-      handleComponent={null}
+      handleComponent={HandleComponent}
       index={0}
       snapPoints={snapPoints}
-      enableContentPanningGesture
+      enableContentPanningGesture={false}
       enableDynamicSizing={false}
       detached
       backgroundStyle={BottomSheetStyles.bottomSheet}
       containerStyle={{ overflow: "visible" }}
     >
-      <View style={NavigationBottomSheetStyles.rootContent}>
-        <View style={NavigationBottomSheetStyles.fakeHandleContainer}>
-          <View style={NavigationBottomSheetStyles.fakeHandleBar} />
-        </View>
-        <View style={NavigationBottomSheetStyles.headerContainer}>
-          <View style={NavigationBottomSheetStyles.navModeHeader}>
-            {renderETABlock()}
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 10,
-              }}
+      <View style={NavigationBottomSheetStyles.headerContainer}>
+        <View style={NavigationBottomSheetStyles.navModeHeader}>
+          {renderETABlock()}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 10,
+            }}
+          >
+            <TouchableOpacity
+              onPress={handleCloseSheet}
+              style={NavigationBottomSheetStyles.closeIcon}
+              testID="close-navigation"
+              accessibilityLabel="Close navigation"
+              accessibilityRole="button"
             >
-              <TouchableOpacity
-                onPress={handleCloseSheet}
-                style={NavigationBottomSheetStyles.closeIcon}
-                testID="close-navigation"
-                accessibilityLabel="Close navigation"
-                accessibilityRole="button"
-              >
-                <CloseIcon size={28} />
-              </TouchableOpacity>
-            </View>
+              <CloseIcon size={28} />
+            </TouchableOpacity>
           </View>
-          {pathname === "/indoor-map" && (
-            <View style={NavigationBottomSheetStyles.toOutdoorButton}>
-              <ReturnOutdoorButton location={getCurrentLocationLatLng()} />
-            </View>
-          )}
         </View>
-        <BottomSheetScrollView
-          style={NavigationBottomSheetStyles.stepsScrollView}
-          contentContainerStyle={[
-            NavigationBottomSheetStyles.scrollContent,
-            { paddingBottom: insets.bottom },
-          ]}
-          nestedScrollEnabled
-        >
-          <OutdoorNavigationSteps
-            indoorDirectionBlocks={navigationState.currentDirections?.directionBlocks.filter(
-              (block) => block.type === DirectionsResponseBlockType.INDOOR,
-            )}
-            outdoorDirections={outdoorDirections}
-            outdoorDirectionSequenceNumber={
-              navigationState.currentDirections.directionBlocks.find(
-                (block) => block.type === DirectionsResponseBlockType.OUTDOOR,
-              )?.sequenceNumber
-            }
-          />
-        </BottomSheetScrollView>
+        {pathname === "/indoor-map" && (
+          <View style={NavigationBottomSheetStyles.toOutdoorButton}>
+            <ReturnOutdoorButton location={getCurrentLocationLatLng()} />
+          </View>
+        )}
       </View>
+      <BottomSheetScrollView
+        contentContainerStyle={[
+          NavigationBottomSheetStyles.scrollContent,
+          { paddingBottom: insets.bottom },
+        ]}
+      >
+        <OutdoorNavigationSteps
+          indoorDirectionBlocks={navigationState.currentDirections?.directionBlocks.filter(
+            (block) => block.type === DirectionsResponseBlockType.INDOOR,
+          )}
+          outdoorDirections={outdoorDirections}
+          outdoorDirectionSequenceNumber={
+            navigationState.currentDirections.directionBlocks.find(
+              (block) => block.type === DirectionsResponseBlockType.OUTDOOR,
+            )?.sequenceNumber
+          }
+        />
+      </BottomSheetScrollView>
     </BottomSheet>
   );
 }
