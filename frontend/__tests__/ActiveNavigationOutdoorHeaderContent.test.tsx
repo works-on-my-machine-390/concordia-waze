@@ -106,6 +106,14 @@ describe("ActiveNavigationOutdoorHeaderContent", () => {
     mockUseNavigationStore.mockReturnValue(createState());
   });
 
+  test("returns null when currentDirections is not set", () => {
+    mockUseNavigationStore.mockReturnValue(createState({ currentDirections: null }));
+
+    const { toJSON } = render(<ActiveNavigationOutdoorHeaderContent />);
+
+    expect(toJSON()).toBeNull();
+  });
+
   test("renders indoor-only content and continues to indoor map", () => {
     const state = createState({
       currentDirections: {
@@ -147,6 +155,17 @@ describe("ActiveNavigationOutdoorHeaderContent", () => {
     fireEvent.press(getByTestId("main-action"));
 
     expect(state.setCurrentOutdoorStepIndex).toHaveBeenCalledWith(1);
+  });
+
+  test("does nothing when previous is pressed at first step", () => {
+    const state = createState({ currentOutdoorStepIndex: 0 });
+    mockUseNavigationStore.mockReturnValue(state);
+
+    const { getByTestId } = render(<ActiveNavigationOutdoorHeaderContent />);
+
+    fireEvent.press(getByTestId("previous-step"));
+
+    expect(state.setCurrentOutdoorStepIndex).not.toHaveBeenCalled();
   });
 
   test("goes to previous step when previous is pressed", () => {
@@ -197,5 +216,98 @@ describe("ActiveNavigationOutdoorHeaderContent", () => {
 
     expect(state.clearState).toHaveBeenCalledTimes(1);
     expect(mockCloseSheet).toHaveBeenCalledTimes(1);
+  });
+
+  test("renders subway transit instruction with all fields", () => {
+    const state = createState({
+      transitMode: "transit",
+      currentDirections: {
+        directionBlocks: [
+          {
+            type: "outdoor",
+            sequenceNumber: 0,
+            directionsByMode: {
+              transit: {
+                steps: [
+                  {
+                    transit_type: "SUBWAY",
+                    transit_line: "Green",
+                    transit_headsign: "Berri-UQAM",
+                    arrival_stop: "Lionel-Groulx",
+                    distance: "5 km",
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      },
+    });
+    mockUseNavigationStore.mockReturnValue(state);
+
+    const { getByText } = render(<ActiveNavigationOutdoorHeaderContent />);
+
+    expect(getByText("Metro Green towards Berri-UQAM, exit at Lionel-Groulx")).toBeTruthy();
+  });
+
+  test("renders bus transit instruction with all fields", () => {
+    const state = createState({
+      transitMode: "transit",
+      currentDirections: {
+        directionBlocks: [
+          {
+            type: "outdoor",
+            sequenceNumber: 0,
+            directionsByMode: {
+              transit: {
+                steps: [
+                  {
+                    transit_type: "BUS",
+                    transit_line: "80",
+                    transit_headsign: "Sud",
+                    arrival_stop: "Guy-Concordia",
+                    distance: "2 km",
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      },
+    });
+    mockUseNavigationStore.mockReturnValue(state);
+
+    const { getByText } = render(<ActiveNavigationOutdoorHeaderContent />);
+
+    expect(getByText("Bus 80 towards Sud, exit at Guy-Concordia")).toBeTruthy();
+  });
+
+  test("renders bus transit instruction with no optional fields", () => {
+    const state = createState({
+      transitMode: "transit",
+      currentDirections: {
+        directionBlocks: [
+          {
+            type: "outdoor",
+            sequenceNumber: 0,
+            directionsByMode: {
+              transit: {
+                steps: [
+                  {
+                    transit_type: "BUS",
+                    distance: "1 km",
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      },
+    });
+    mockUseNavigationStore.mockReturnValue(state);
+
+    const { getByText } = render(<ActiveNavigationOutdoorHeaderContent />);
+
+    expect(getByText("Bus")).toBeTruthy();
   });
 });
