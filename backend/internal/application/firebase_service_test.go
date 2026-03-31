@@ -1118,21 +1118,160 @@ func TestDeleteFavoriteWrongUser(t *testing.T) {
 	}
 }
 
-// failRepo is a mock repository that always fails on Create.
-type failRepo struct{}
+func TestAddFavorite_DuplicateRejected(t *testing.T) {
+	repo := repository.NewInMemoryFavoriteRepository()
+	service := application.NewFavoritesService(repo)
 
-func (f *failRepo) Create(fav *domain.Favorite) error {
-	return errors.New("db error")
+	userID := "dup-user-1"
+
+	// Outdoor: lat,lng define uniqueness
+	orig := &domain.Favorite{
+		UserID:    userID,
+		Type:      domain.FavoriteTypeOutdoor,
+		Name:      "Home",
+		Latitude:  45.0001,
+		Longitude: -73.0001,
+	}
+	_, err := service.AddFavorite(orig)
+	require.NoError(t, err)
+
+	duplicate := &domain.Favorite{
+		UserID:    userID,
+		Type:      domain.FavoriteTypeOutdoor,
+		Name:      "Duplicate Home",
+		Latitude:  45.0001,
+		Longitude: -73.0001,
+	}
+	_, err = service.AddFavorite(duplicate)
+	assert.ErrorIs(t, err, domain.ErrFavoriteAlreadyExists, "should reject duplicate outdoor favorite")
+
+	// Indoor: building+floor+x+y define uniqueness
+	indoorOrig := &domain.Favorite{
+		UserID:       userID,
+		Type:         domain.FavoriteTypeIndoor,
+		Name:         "Room1",
+		BuildingCode: "H",
+		FloorNumber:  3,
+		X:            1.234,
+		Y:            5.678,
+	}
+	_, err = service.AddFavorite(indoorOrig)
+	require.NoError(t, err)
+
+	indoorDup := &domain.Favorite{
+		UserID:       userID,
+		Type:         domain.FavoriteTypeIndoor,
+		Name:         "Room1-Duplicate",
+		BuildingCode: "H",
+		FloorNumber:  3,
+		X:            1.234,
+		Y:            5.678,
+	}
+	_, err = service.AddFavorite(indoorDup)
+	assert.ErrorIs(t, err, domain.ErrFavoriteAlreadyExists, "should reject duplicate indoor favorite")
 }
-func (f *failRepo) FindByUserID(userID string) ([]*domain.Favorite, error) {
-	return nil, nil
+
+func TestFirebaseService_AddFavorite_InvalidType(t *testing.T) {
+	service := setupTestService(t)
+	ctx := context.Background()
+	userID := "invalid-type-user"
+	fav := application.FirestoreFavorite{
+		ID:        "foo",
+		Type:      "notvalid",
+		Name:      "FOO",
+		Latitude:  1,
+		Longitude: 1,
+	}
+	err := service.AddFavorite(ctx, userID, fav)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid favorite type")
 }
-func (f *failRepo) Delete(id, userID string) error {
-	return nil
+
+func TestFirebaseService_AddFavorite_Duplicate(t *testing.T) {
+	service := setupTestService(t)
+	ctx := context.Background()
+	userID := "dup-fs-user-" + time.Now().Format("20060102150405")
+
+	fav := application.FirestoreFavorite{
+		ID:        "fav-id-1",
+		Type:      "outdoor",
+		Name:      "Place",
+		Latitude:  1.001,
+		Longitude: 2.002,
+	}
+	require.NoError(t, service.AddFavorite(ctx, userID, fav))
+	// Try to add duplicate location with different ID
+	dup := application.FirestoreFavorite{
+		ID:        "fav-id-2",
+		Type:      "outdoor",
+		Name:      "Dup",
+		Latitude:  1.001,
+		Longitude: 2.002,
+	}
+	err := service.AddFavorite(ctx, userID, dup)
+	assert.ErrorIs(t, err, domain.ErrFavoriteAlreadyExists)
+}
+
+func TestFirebaseService_DeleteFavorite_NotFound(t *testing.T) {
+	service := setupTestService(t)
+	ctx := context.Background()
+	userID := "del-missing-user"
+	badID := "notreal"
+	err := service.DeleteFavorite(ctx, userID, badID)
+	assert.ErrorIs(t, err, domain.ErrFavoriteNotFound)
+}
+
+func TestFirebaseService_GetUserProfile_NotFound(t *testing.T) {
+	service := setupTestService(t)
+	ctx := context.Background()
+	_, err := service.GetUserProfile(ctx, "does-not-exist-id")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "get user profile")
+}
+
+func TestFirebaseService_GetUserProfileByEmail_NotFound(t *testing.T) {
+	service := setupTestService(t)
+	ctx := context.Background()
+	_, err := service.GetUserProfileByEmail(ctx, "email-never-used-"+time.Now().Format("20060102150405")+"@test.com")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "user not found")
+}
+
+type errorRepo struct{}
+
+func (e *errorRepo) Create(f *domain.Favorite) error { return errors.New("db broke") }
+func (e *errorRepo) FindByUserID(_ string) ([]*domain.Favorite, error) {
+	return nil, errors.New("db broke")
+}
+func (e *errorRepo) Delete(_ string, _ string) error { return errors.New("db broke") }
+
+func TestFavoritesService_AddFavorite_RepoError(t *testing.T) {
+	svc := application.NewFavoritesService(&errorRepo{})
+	_, err := svc.AddFavorite(&domain.Favorite{
+		UserID: "user",
+		Type:   domain.FavoriteTypeOutdoor,
+		Name:   "X",
+	})
+	assert.Error(t, err)
+	assert.Equal(t, "db broke", err.Error())
+}
+
+func TestFavoritesService_GetFavorites_RepoError(t *testing.T) {
+	svc := application.NewFavoritesService(&errorRepo{})
+	_, err := svc.GetFavorites("user")
+	assert.Error(t, err)
+	assert.Equal(t, "db broke", err.Error())
+}
+
+func TestFavoritesService_DeleteFavorite_RepoError(t *testing.T) {
+	svc := application.NewFavoritesService(&errorRepo{})
+	err := svc.DeleteFavorite("id", "user")
+	assert.Error(t, err)
+	assert.Equal(t, "db broke", err.Error())
 }
 
 func TestAddFavoriteRepositoryError(t *testing.T) {
-	service := application.NewFavoritesService(&failRepo{})
+	service := application.NewFavoritesService(&errorRepo{})
 
 	_, err := service.AddFavorite(&domain.Favorite{
 		UserID:    "user-1",
@@ -1141,8 +1280,8 @@ func TestAddFavoriteRepositoryError(t *testing.T) {
 		Latitude:  10,
 		Longitude: 20,
 	})
-	if err == nil || err.Error() != "db error" {
-		t.Errorf("Expected 'db error', got %v", err)
+	if err == nil || err.Error() != "db broke" {
+		t.Errorf("Expected 'db broke', got %v", err)
 	}
 }
 
