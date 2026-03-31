@@ -67,6 +67,12 @@ export default function NavigationPolylines(
     }
   };
 
+  const isStepCompleted = (index: number) => {
+    if (navigationState.currentOutdoorStepIndex === undefined) return false;
+
+    return currentStepIndex !== undefined && index < currentStepIndex;
+  };
+
   if (!outdoorDirections) return null;
 
   return (
@@ -76,11 +82,7 @@ export default function NavigationPolylines(
           key={step.polyline + index}
           strokeWidth={4}
           coordinates={step.decodedPolyline}
-          {...getStepStyling(
-            step,
-            currentStepIndex !== undefined &&
-            currentStepIndex > index
-          )}
+          {...getStepStyling(step, isStepCompleted(index))}
         />
       ))}
       {props.showEndPoint && (
