@@ -25,7 +25,7 @@ export default function Schedule() {
   const { checkToken } = useAuth();
   const { data: syncedCourses = [] } = useCourses();
   const bottomSheetRef = useRef<BottomSheet>(null);
-  const snapPoints = useMemo(() => ["20%", "45%", "80%"], []);
+  const snapPoints = useMemo(() => ["5%", "20%", "45%", "80%"], []);
 
   useFocusEffect(
     useCallback(() => {
@@ -84,7 +84,7 @@ export default function Schedule() {
 
       <BottomSheet
         ref={bottomSheetRef}
-        index={1}
+        index={2}
         snapPoints={snapPoints}
         enablePanDownToClose={true}
       >
