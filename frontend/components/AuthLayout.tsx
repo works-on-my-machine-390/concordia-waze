@@ -24,12 +24,13 @@ export default function AuthLayout({ title, logoSize = 140, children }: Readonly
       <BackHeader />
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.page}
       >
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
           <View style={styles.container}>
             <View style={styles.logoContainer}>
