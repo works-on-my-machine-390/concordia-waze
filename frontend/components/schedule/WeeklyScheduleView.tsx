@@ -23,7 +23,7 @@ const JS_DAY_TO_SCHEDULE_DAY = [
 ] as const;
 
 const START_HOUR = 8;
-const END_HOUR = 22;
+const END_HOUR = 24;
 const HOUR_HEIGHT = 72;
 const TIME_COLUMN_WIDTH = 56;
 const DAY_COLUMN_WIDTH = 120;
