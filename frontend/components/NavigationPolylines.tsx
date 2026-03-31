@@ -41,11 +41,13 @@ export default function NavigationPolylines(
 
     // check first for travel mode transit, and apply the transit line color if available.
     if (travelMode.toLowerCase() === TransitMode.transit) {
+      const color = completed
+        ? DIRECTION_COLORS.completed
+        : step.transit_line_color || DIRECTION_COLORS.transit;
       return {
         ...directionPolylineStyles.transit,
-        strokeColor: completed
-          ? DIRECTION_COLORS.completed
-          : step.transit_line_color || DIRECTION_COLORS.transit,
+        strokeColor: color,
+        fillColor: color,
       };
     }
 
@@ -54,7 +56,7 @@ export default function NavigationPolylines(
         travelMode.toLowerCase() as TransitMode,
       )
     ) {
-      const strokeColor = completed
+      const color = completed
         ? DIRECTION_COLORS.completed
         : DIRECTION_COLORS[
             travelMode.toLowerCase() as keyof typeof DIRECTION_COLORS
@@ -62,7 +64,8 @@ export default function NavigationPolylines(
       return {
         ...(directionPolylineStyles[travelMode.toLowerCase()] ||
           directionPolylineStyles.walking),
-        strokeColor,
+        strokeColor: color,
+        fillColor: color,
       };
     }
   };
@@ -80,7 +83,7 @@ export default function NavigationPolylines(
       {stepsWithDecodedPolylines.map((step, index) => (
         <Polyline
           key={step.polyline + index}
-          strokeWidth={4}
+          // strokeWidth={10}
           coordinates={step.decodedPolyline}
           {...getStepStyling(step, isStepCompleted(index))}
         />
