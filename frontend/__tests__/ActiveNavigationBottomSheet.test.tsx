@@ -95,6 +95,8 @@ describe("ActiveNavigationBottomSheet", () => {
   const createNavigationState = () => ({
     transitMode: "walking",
     setNavigationPhase: jest.fn(),
+    setCurrentOutdoorStepIndex: jest.fn(),
+    setCurrentIndoorStepIndex: jest.fn(),
     startDateTime: new Date("2026-03-22T12:00:00.000Z"),
     startLocation: {
       code: "MB",
@@ -147,7 +149,10 @@ describe("ActiveNavigationBottomSheet", () => {
     expect(getByText(/Arriving at/i)).toBeTruthy();
     expect(getByText(/10 min/)).toBeTruthy();
     expect(mockOutdoorNavigationSteps).toHaveBeenCalledTimes(1);
-    expect(mockOutdoorNavigationSteps.mock.calls[0][0].outdoorDirectionSequenceNumber).toBe(1);
+    expect(
+      mockOutdoorNavigationSteps.mock.calls[0][0]
+        .outdoorDirectionSequenceNumber,
+    ).toBe(1);
   });
 
   test("closes active navigation when close button is pressed", () => {
@@ -168,7 +173,9 @@ describe("ActiveNavigationBottomSheet", () => {
     const { getByTestId } = render(<ActiveNavigationBottomSheet />);
 
     expect(getByTestId("return-outdoor-button")).toBeTruthy();
-    expect(getByTestId("return-outdoor-location").props.children).toContain("45.497");
+    expect(getByTestId("return-outdoor-location").props.children).toContain(
+      "45.497",
+    );
   });
 
   test("does not show return outdoor button on map route", () => {
@@ -186,7 +193,9 @@ describe("ActiveNavigationBottomSheet", () => {
     const { getByTestId } = render(<ActiveNavigationBottomSheet />);
 
     expect(getByTestId("return-outdoor-button")).toBeTruthy();
-    expect(getByTestId("return-outdoor-location").props.children).toContain("45.495");
+    expect(getByTestId("return-outdoor-location").props.children).toContain(
+      "45.495",
+    );
   });
 
   test("passes null location when buildingCode matches neither start nor end location", () => {
