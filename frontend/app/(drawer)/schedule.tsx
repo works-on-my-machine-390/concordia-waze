@@ -86,7 +86,7 @@ export default function Schedule() {
         ref={bottomSheetRef}
         index={1}
         snapPoints={snapPoints}
-        enablePanDownToClose={false}
+        enablePanDownToClose={true}
       >
         <View style={styles.bottomSheetContent}>
           <ScheduleListView courses={allCourses} rawCourses={visibleCourses} />
