@@ -83,7 +83,7 @@ export default function NavigationPolylines(
       {stepsWithDecodedPolylines.map((step, index) => (
         <Polyline
           key={step.polyline + index}
-          // strokeWidth={10}
+          strokeWidth={4}
           coordinates={step.decodedPolyline}
           {...getStepStyling(step, isStepCompleted(index))}
         />
