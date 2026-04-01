@@ -18,7 +18,6 @@
         "backgroundColor": "#E6F4FE"
       },
       "edgeToEdgeEnabled": true,
-      "softwareKeyboardLayoutMode": "pan",
       "predictiveBackGestureEnabled": false,
       "googleServicesFile": "./google-services.json",
       "package": "com.concordiawaze.app",
@@ -35,6 +34,7 @@
     },
     "plugins": [
       "expo-router",
+      "@react-native-community/datetimepicker",
       [
         "expo-location",
         {
