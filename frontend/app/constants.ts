@@ -35,6 +35,7 @@ export const DIRECTION_COLORS = {
   shuttle: COLORS.goldDark,
   transit: "#429FE1", // the color to use is typically returned but this is the fallback for transit
   bicycling: "#1F8E3F",
+  completed: COLORS.textMuted,
 };
 
 // App Info

@@ -4,7 +4,6 @@ import NavigationPolylines from "@/components/NavigationPolylines";
 import { TransitMode } from "@/hooks/queries/navigationQueries";
 import { useNavigationStore } from "@/hooks/useNavigationStore";
 import { render } from "@testing-library/react-native";
-import React from "react";
 
 const mockDecode = jest.fn();
 
@@ -43,6 +42,7 @@ describe("NavigationPolylines", () => {
         code: "SGW",
       } as any,
       transitMode: TransitMode.transit,
+      currentOutdoorStepIndex: 0,
       currentDirections: undefined,
     });
 
@@ -61,6 +61,7 @@ describe("NavigationPolylines", () => {
 
   test("renders polylines with decoded coordinates and step styling", () => {
     useNavigationStore.setState({
+      currentOutdoorStepIndex: 0,
       currentDirections: {
         durationBlock: { type: "duration", durations: {} },
         directionBlocks: [
@@ -112,6 +113,58 @@ describe("NavigationPolylines", () => {
       directionPolylineStyles.transit.strokeWidth,
     );
 
+    expect(polylines[1].props.strokeColor).toBe(
+      directionPolylineStyles.walking.strokeColor,
+    );
+  });
+
+  test("applies completed styling to steps before current step index", () => {
+    useNavigationStore.setState({
+      currentOutdoorStepIndex: 1,
+      currentDirections: {
+        durationBlock: { type: "duration", durations: {} },
+        directionBlocks: [
+          {
+            type: "outdoor",
+            directionsByMode: {
+              transit: {
+                mode: "transit",
+                duration: "12 min",
+                distance: "1.4 km",
+                departure_message: "Depart now",
+                polyline: "route-polyline",
+                steps: [
+                  {
+                    instruction: "Step 1",
+                    distance: "0.2 km",
+                    duration: "2 min",
+                    start: { latitude: 45.49, longitude: -73.57 },
+                    end: { latitude: 45.5, longitude: -73.58 },
+                    polyline: "completed-transit-step",
+                    travel_mode: TransitMode.transit,
+                    transit_line_color: "#00ff00",
+                  },
+                  {
+                    instruction: "Step 2",
+                    distance: "0.2 km",
+                    duration: "2 min",
+                    start: { latitude: 45.49, longitude: -73.57 },
+                    end: { latitude: 45.5, longitude: -73.58 },
+                    polyline: "active-walking-step",
+                    travel_mode: TransitMode.walking,
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      } as any,
+    });
+
+    const { getAllByTestId } = render(<NavigationPolylines />);
+    const polylines = getAllByTestId("polyline");
+
+    expect(polylines[0].props.strokeColor).toBe(DIRECTION_COLORS.completed);
     expect(polylines[1].props.strokeColor).toBe(
       directionPolylineStyles.walking.strokeColor,
     );

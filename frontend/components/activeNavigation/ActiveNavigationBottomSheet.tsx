@@ -35,6 +35,8 @@ export default function ActiveNavigationBottomSheet() {
 
   const handleCloseSheet = () => {
     navigationState.setNavigationPhase(NavigationPhase.PREPARATION);
+    navigationState.setCurrentOutdoorStepIndex(undefined);
+    navigationState.setCurrentIndoorStepIndex(undefined);
   };
 
   const initialDuration =
