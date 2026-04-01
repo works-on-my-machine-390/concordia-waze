@@ -22,6 +22,7 @@ export default function NavigationPolylines(
       (block) => block.type === DirectionsResponseBlockType.OUTDOOR,
     )?.directionsByMode?.[navigationState.transitMode];
   const steps: StepModel[] = outdoorDirections?.steps || [];
+  const currentStepIndex = navigationState.currentOutdoorStepIndex;
 
   const stepsWithDecodedPolylines = useMemo(() => {
     return steps.map((step) => {
@@ -35,14 +36,18 @@ export default function NavigationPolylines(
     });
   }, [steps]);
 
-  const getStepStyling = (step: StepModel) => {
+  const getStepStyling = (step: StepModel, completed: boolean) => {
     const travelMode = step.travel_mode;
 
     // check first for travel mode transit, and apply the transit line color if available.
     if (travelMode.toLowerCase() === TransitMode.transit) {
+      const color = completed
+        ? DIRECTION_COLORS.completed
+        : step.transit_line_color || DIRECTION_COLORS.transit;
       return {
         ...directionPolylineStyles.transit,
-        strokeColor: step.transit_line_color || DIRECTION_COLORS.transit,
+        strokeColor: color,
+        fillColor: color,
       };
     }
 
@@ -51,11 +56,24 @@ export default function NavigationPolylines(
         travelMode.toLowerCase() as TransitMode,
       )
     ) {
-      return (
-        directionPolylineStyles[travelMode.toLowerCase()] ||
-        directionPolylineStyles.walking
-      );
+      const color = completed
+        ? DIRECTION_COLORS.completed
+        : DIRECTION_COLORS[
+            travelMode.toLowerCase() as keyof typeof DIRECTION_COLORS
+          ] || DIRECTION_COLORS.walking; // default to walking color if specific mode color is not defined
+      return {
+        ...(directionPolylineStyles[travelMode.toLowerCase()] ||
+          directionPolylineStyles.walking),
+        strokeColor: color,
+        fillColor: color,
+      };
     }
+  };
+
+  const isStepCompleted = (index: number) => {
+    if (navigationState.currentOutdoorStepIndex === undefined) return false;
+
+    return currentStepIndex !== undefined && index < currentStepIndex;
   };
 
   if (!outdoorDirections) return null;
@@ -67,7 +85,7 @@ export default function NavigationPolylines(
           key={step.polyline + index}
           strokeWidth={4}
           coordinates={step.decodedPolyline}
-          {...getStepStyling(step)}
+          {...getStepStyling(step, isStepCompleted(index))}
         />
       ))}
       {props.showEndPoint && (

@@ -25,17 +25,20 @@ export const directionPolylineStyles = {
   walking: {
     ...basePolylineStyle,
     strokeColor: DIRECTION_COLORS.walking,
+    fillColor: DIRECTION_COLORS.walking,
     lineDashPattern: [10, 6],
     zIndex: 40,
   },
   driving: {
     ...basePolylineStyle,
     strokeColor: DIRECTION_COLORS.driving,
+    fillColor: DIRECTION_COLORS.driving,
     zIndex: 35,
   },
   shuttle: {
     ...basePolylineStyle,
     strokeColor: DIRECTION_COLORS.shuttle,
+    fillColor: DIRECTION_COLORS.shuttle,
     zIndex: 30,
   },
   transit: {
@@ -45,6 +48,7 @@ export const directionPolylineStyles = {
   bicycling: {
     ...basePolylineStyle,
     strokeColor: DIRECTION_COLORS.bicycling,
+    fillColor: DIRECTION_COLORS.bicycling,
     zIndex: 33,
   },
 };
