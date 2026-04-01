@@ -20,12 +20,15 @@ type Props = {
 
 function timeStringToDate(timeStr: string): Date {
   const date = new Date();
-  const match = timeStr.match(/^(\d{1,2}):(\d{2})$/);
+  const timeRegex = /^(\d{1,2}):(\d{2})$/;
+  const match = timeRegex.exec(timeStr);
+
   if (match) {
-    date.setHours(parseInt(match[1], 10), parseInt(match[2], 10), 0, 0);
-  } else {
-    date.setHours(9, 0, 0, 0);
+    date.setHours(Number.parseInt(match[1], 10), Number.parseInt(match[2], 10), 0, 0);
+    return date;
   }
+
+  date.setHours(9, 0, 0, 0);
   return date;
 }
 
@@ -50,10 +53,10 @@ export default function TimePickerField({
       if (selected) {
         onChange(dateToTimeString(selected));
       }
-    } else {
-      if (selected) {
-        setTempDate(selected);
-      }
+      return;
+    }
+    if (selected) {
+      setTempDate(selected);
     }
   };
 
@@ -170,5 +173,6 @@ const styles = StyleSheet.create({
   },
   picker: {
     height: 200,
+    marginLeft: 40,
   },
 });
