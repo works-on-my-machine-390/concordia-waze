@@ -10,6 +10,7 @@ import {
   SlopeUpIcon,
   CirculationDeskIcon,
   ReferenceDeskIcon,
+  ExitIcon
 } from "@/app/icons";
 import type { PointOfInterest } from "@/hooks/queries/indoorMapQueries";
 import { Pressable, StyleSheet, View } from "react-native";
@@ -51,6 +52,8 @@ const getIconComponent = (type: string) => {
       return CirculationDeskIcon;
     case "reference_desk":
       return ReferenceDeskIcon;
+    case "exit":
+      return ExitIcon;
     default:
       return null;
   }
