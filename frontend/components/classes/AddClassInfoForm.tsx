@@ -14,6 +14,7 @@ import {
 import { DAYS } from "../../app/utils/dateUtils";
 import ClassInfoDaySelector from "./ClassInfoDaySelector";
 import ClassInfoTypeSelector from "./ClassInfoTypeSelector";
+import TimePickerField from "./TimePickerField";
 
 export type ClassInfoFormData = {
   type: (typeof TYPES)[number];
@@ -100,20 +101,18 @@ export default function AddClassInfoForm({
 
       <Text style={styles.label}>Time</Text>
       <View style={[styles.row, { gap: 8 }]}>
-        <TextInput
-          style={[styles.input, { flex: 1 }]}
-          placeholder="09:00"
-          placeholderTextColor="#bbb"
+        <TimePickerField
           value={startTime}
-          onChangeText={setStartTime}
+          onChange={setStartTime}
+          placeholder="09:00"
+          inputStyle={{ flex: 1 }}
         />
         <Text style={styles.timeSep}>-</Text>
-        <TextInput
-          style={[styles.input, { flex: 1 }]}
-          placeholder="10:30"
-          placeholderTextColor="#bbb"
+        <TimePickerField
           value={endTime}
-          onChangeText={setEndTime}
+          onChange={setEndTime}
+          placeholder="10:30"
+          inputStyle={{ flex: 1 }}
         />
       </View>
 
