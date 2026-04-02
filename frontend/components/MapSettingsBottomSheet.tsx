@@ -16,13 +16,20 @@ export default function MapSettingsBottomSheet(
   const { closeSheet } = useMapStore();
   const bottomSheetRef = useRef<BottomSheet>(null);
 
-  const snapPoints = ["40%", "70%"];
+  const snapPoints = ["20%", "70%"];
 
   const { mapSettings, updateSetting } = useMapSettings();
 
   const handleSheetChanges = useCallback((index: number) => {
     props.onSheetIndexChange?.(index);
   }, [props.onSheetIndexChange]);
+
+  const handleSheetAnimate = useCallback(
+    (_fromIndex: number, toIndex: number) => {
+      props.onSheetIndexChange?.(toIndex);
+    },
+    [props.onSheetIndexChange],
+  );
 
   return (
     <BottomSheet
@@ -33,6 +40,7 @@ export default function MapSettingsBottomSheet(
       enablePanDownToClose
       onClose={closeSheet}
       onChange={handleSheetChanges}
+      onAnimate={handleSheetAnimate}
       enableContentPanningGesture
       enableDynamicSizing={false}
       detached

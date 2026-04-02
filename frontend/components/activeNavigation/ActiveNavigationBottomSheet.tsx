@@ -48,6 +48,13 @@ export default function ActiveNavigationBottomSheet(props: Readonly<ActiveNaviga
     props.onSheetIndexChange?.(index);
   }, [props.onSheetIndexChange]);
 
+  const handleSheetAnimate = useCallback(
+    (_fromIndex: number, toIndex: number) => {
+      props.onSheetIndexChange?.(toIndex);
+    },
+    [props.onSheetIndexChange],
+  );
+
   const initialDuration =
     navigationState.currentDirections?.durationBlock?.durations[
       navigationState.transitMode
@@ -118,7 +125,10 @@ export default function ActiveNavigationBottomSheet(props: Readonly<ActiveNaviga
     <BottomSheet
       handleComponent={HandleComponent}
       index={0}
-      snapPoints={snapPoints}      onChange={handleSheetChanges}      enableContentPanningGesture={false}
+      snapPoints={snapPoints}
+      onChange={handleSheetChanges}
+      onAnimate={handleSheetAnimate}
+      enableContentPanningGesture={false}
       enableDynamicSizing={false}
       detached
       backgroundStyle={BottomSheetStyles.bottomSheet}

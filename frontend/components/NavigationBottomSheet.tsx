@@ -63,6 +63,13 @@ export default function NavigationBottomSheet(
     props.onSheetIndexChange?.(index);
   }, [props.onSheetIndexChange]);
 
+  const handleSheetAnimate = useCallback(
+    (_fromIndex: number, toIndex: number) => {
+      props.onSheetIndexChange?.(toIndex);
+    },
+    [props.onSheetIndexChange],
+  );
+
   useEffect(() => {
     if (query.data) {
       navigationState.setCurrentDirections(query.data);
@@ -201,6 +208,7 @@ export default function NavigationBottomSheet(
       index={0}
       snapPoints={snapPoints}
       onChange={handleSheetChanges}
+      onAnimate={handleSheetAnimate}
       enableContentPanningGesture
       enableDynamicSizing={false}
       detached

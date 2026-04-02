@@ -55,6 +55,13 @@ export default function PoiSearchBottomSheet(
     props.onSheetIndexChange?.(index);
   }, [props.onSheetIndexChange]);
 
+  const handleSheetAnimate = useCallback(
+    (_fromIndex: number, toIndex: number) => {
+      props.onSheetIndexChange?.(toIndex);
+    },
+    [props.onSheetIndexChange],
+  );
+
   const results: ExtendedPoiSearchResultModel[] = useMemo(() => {
     if (poiSearchQuery.isLoading || !poiSearchQuery.data) {
       return [];
@@ -128,6 +135,8 @@ export default function PoiSearchBottomSheet(
       snapPoints={snapPoints}
       enableContentPanningGesture
       enableDynamicSizing={false}
+      onChange={handleSheetChanges}
+      onAnimate={handleSheetAnimate}
       detached
       backgroundStyle={[BottomSheetStyles.bottomSheet]}
       containerStyle={{ overflow: "visible" }}
