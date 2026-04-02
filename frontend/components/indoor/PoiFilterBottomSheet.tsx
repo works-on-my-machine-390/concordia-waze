@@ -24,13 +24,17 @@ export default function PoiFilterBottomSheet({
 }: Readonly<PoiFilterBottomSheetProps>) {
   const snapPoints = useMemo(() => ["15%"], []);
   const params = useLocalSearchParams<IndoorMapPageParams>();
-  const indoorSearchState = useIndoorSearchStore();
+
+  const filteredPois = useIndoorSearchStore((s) => s.filteredPois);
+  const searchFilter = useIndoorSearchStore((s) => s.selectedPoiFilter);
+  const setFilteredPois = useIndoorSearchStore((s) => s.setFilteredPois);
+
   useEffect(() => {
     const filteredPois = floors
       .find((floor) => floor.number.toString() === params.selectedFloor)
       ?.pois?.filter((poi) => poi.type.toLowerCase() === poiType.toLowerCase());
-    indoorSearchState.setFilteredPois(filteredPois || null);
-  }, [params.selectedFloor, floors, poiType, indoorSearchState]);
+    setFilteredPois(filteredPois || null);
+  }, [params.selectedFloor, floors, poiType, searchFilter]);
 
   return (
     <BottomSheet
@@ -55,8 +59,8 @@ export default function PoiFilterBottomSheet({
 
       <BottomSheetScrollView contentContainerStyle={styles.scrollContent}>
         <Text>
-          There are {indoorSearchState.filteredPois?.length}{" "}
-          {poiLabel.toLowerCase()} available on this floor.
+          There are {filteredPois?.length} {poiLabel.toLowerCase()} available on
+          this floor.
         </Text>
       </BottomSheetScrollView>
     </BottomSheet>
