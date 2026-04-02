@@ -316,3 +316,9 @@ export const EditIcon: React.FC<IconProps> = ({
   size = DEFAULT_ICON_SIZE,
   color = DEFAULT_ICON_COLOR,
 }) => <Feather name="edit-2" size={size} color={color} />;
+
+// Exit icon
+export const ExitIcon: React.FC<IconProps> = ({
+  size = DEFAULT_ICON_SIZE,
+  color = DEFAULT_ICON_COLOR,
+}) => <Ionicons name="exit" size={size} color={color} />;

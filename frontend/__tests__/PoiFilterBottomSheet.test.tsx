@@ -28,12 +28,18 @@ jest.mock("@gorhom/bottom-sheet", () => ({
 
 const mockSetFilteredPois = jest.fn();
 let mockFilteredPois: any[] | null = null;
+let mockSelectedPoiFilter: { type: string; label: string } | null = null;
 
 jest.mock("@/hooks/useIndoorSearchStore", () => ({
-  useIndoorSearchStore: jest.fn(() => ({
-    filteredPois: mockFilteredPois,
-    setFilteredPois: mockSetFilteredPois,
-  })),
+  useIndoorSearchStore: jest.fn((selector: any) => {
+    const state = {
+      filteredPois: mockFilteredPois,
+      selectedPoiFilter: mockSelectedPoiFilter,
+      setFilteredPois: mockSetFilteredPois,
+    };
+
+    return selector ? selector(state) : state;
+  }),
 }));
 
 describe("PoiFilterBottomSheet", () => {
@@ -60,6 +66,7 @@ describe("PoiFilterBottomSheet", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockFilteredPois = null;
+    mockSelectedPoiFilter = null;
     (useLocalSearchParams as jest.Mock).mockReturnValue({
       selectedFloor: "1",
     });
