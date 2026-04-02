@@ -15,6 +15,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
+import TimePickerField from "@/components/classes/TimePickerField";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -204,29 +205,25 @@ export default function EditClassScreen() {
           <Pill options={DAYS} selected={day} onSelect={setDay} />
 
           <Field label="Start Time" />
-          <TextInput
-            style={s.input}
+          <TimePickerField
             value={startTime}
-            onChangeText={(v) => {
+            onChange={(v) => {
               setStartTime(v);
               setError(null);
             }}
-            placeholder="e.g. 09:00"
-            placeholderTextColor="#bbb"
-            keyboardType="numbers-and-punctuation"
+            placeholder="09:00"
+            inputStyle={s.timePickerInput}
           />
 
           <Field label="End Time" />
-          <TextInput
-            style={s.input}
+          <TimePickerField
             value={endTime}
-            onChangeText={(v) => {
+            onChange={(v) => {
               setEndTime(v);
               setError(null);
             }}
-            placeholder="e.g. 10:30"
-            placeholderTextColor="#bbb"
-            keyboardType="numbers-and-punctuation"
+            placeholder="10:30"
+            inputStyle={s.timePickerInput}
           />
 
           <Field label="Building Code" />
@@ -327,6 +324,14 @@ const s = StyleSheet.create({
     paddingHorizontal: 12,
     backgroundColor: COLORS.surface,
     color: COLORS.textPrimary,
+  },
+  timePickerInput: {
+    height: 48,
+    borderRadius: 10,
+    borderWidth: 1.8,
+    borderColor: "#bfb8b8",
+    backgroundColor: COLORS.surface,
+    justifyContent: "center",
   },
   row: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   pill: {

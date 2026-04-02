@@ -23,6 +23,20 @@ jest.mock("@/components/classes/ClassInfoDaySelector", () => {
   };
 });
 
+jest.mock("@/components/classes/TimePickerField", () => {
+  const React = require("react");
+  const { TouchableOpacity, Text } = require("react-native");
+
+  return ({ value, onChange, placeholder }: any) => (
+    <TouchableOpacity
+      testID={`time-picker-${placeholder}`}
+      onPress={() => onChange(placeholder === "09:00" ? "10:00" : "12:00")}
+    >
+      <Text>{value || placeholder}</Text>
+    </TouchableOpacity>
+  );
+});
+
 const mockOnAdd = jest.fn();
 const mockOnCancel = jest.fn();
 
@@ -36,8 +50,8 @@ const fillValidForm = (getByTestId: any, getByPlaceholderText: any) => {
   fireEvent.press(getByTestId("mock-type"));
   fireEvent.press(getByTestId("mock-day"));
   fireEvent.changeText(getByPlaceholderText("e.g. S JL"), "N");
-  fireEvent.changeText(getByPlaceholderText("09:00"), "10:00");
-  fireEvent.changeText(getByPlaceholderText("10:30"), "12:00");
+  fireEvent.press(getByTestId("time-picker-09:00"));
+  fireEvent.press(getByTestId("time-picker-10:30"));
   fireEvent.changeText(getByPlaceholderText("Building (e.g. H)"), "H");
   fireEvent.changeText(getByPlaceholderText("Room (e.g. 110)"), "110");
 };
@@ -49,17 +63,17 @@ describe("AddClassInfoForm", () => {
 
   test("renders all labels", () => {
     const { getByText } = render(<AddClassInfoForm {...defaultProps} />);
-    getByText("Class Type");
-    getByText("Section");
-    getByText("Day");
-    getByText("Time");
-    getByText("Location");
+    expect(getByText("Class Type")).toBeTruthy();
+    expect(getByText("Section")).toBeTruthy();
+    expect(getByText("Day")).toBeTruthy();
+    expect(getByText("Time")).toBeTruthy();
+    expect(getByText("Location")).toBeTruthy();
   });
 
   test("renders cancel and add buttons", () => {
     const { getByText } = render(<AddClassInfoForm {...defaultProps} />);
-    getByText("Cancel");
-    getByText("Add Class");
+    expect(getByText("Cancel")).toBeTruthy();
+    expect(getByText("Add Class")).toBeTruthy();
   });
 
   test("calls onCancel when cancel is pressed", () => {
@@ -71,7 +85,7 @@ describe("AddClassInfoForm", () => {
   test("shows error when all fields are empty and add is pressed", () => {
     const { getByText } = render(<AddClassInfoForm {...defaultProps} />);
     fireEvent.press(getByText("Add Class"));
-    getByText("Please fill in all fields.");
+    expect(getByText("Please fill in all fields.")).toBeTruthy();
   });
 
   test("shows error when only type is missing", () => {
@@ -80,12 +94,14 @@ describe("AddClassInfoForm", () => {
     );
     fireEvent.press(getByTestId("mock-day"));
     fireEvent.changeText(getByPlaceholderText("e.g. S JL"), "N");
-    fireEvent.changeText(getByPlaceholderText("09:00"), "10:00");
-    fireEvent.changeText(getByPlaceholderText("10:30"), "12:00");
+    fireEvent.press(getByTestId("time-picker-09:00"));
+    fireEvent.press(getByTestId("time-picker-10:30"));
     fireEvent.changeText(getByPlaceholderText("Building (e.g. H)"), "H");
     fireEvent.changeText(getByPlaceholderText("Room (e.g. 110)"), "110");
     fireEvent.press(getByText("Add Class"));
-    getByText("Please select a class type (lecture, lab, tutorial).");
+    expect(
+      getByText("Please select a class type (lecture, lab, tutorial)."),
+    ).toBeTruthy();
   });
 
   test("shows error when only day is missing", () => {
@@ -94,12 +110,12 @@ describe("AddClassInfoForm", () => {
     );
     fireEvent.press(getByTestId("mock-type"));
     fireEvent.changeText(getByPlaceholderText("e.g. S JL"), "N");
-    fireEvent.changeText(getByPlaceholderText("09:00"), "10:00");
-    fireEvent.changeText(getByPlaceholderText("10:30"), "12:00");
+    fireEvent.press(getByTestId("time-picker-09:00"));
+    fireEvent.press(getByTestId("time-picker-10:30"));
     fireEvent.changeText(getByPlaceholderText("Building (e.g. H)"), "H");
     fireEvent.changeText(getByPlaceholderText("Room (e.g. 110)"), "110");
     fireEvent.press(getByText("Add Class"));
-    getByText("Please select a day.");
+    expect(getByText("Please select a day.")).toBeTruthy();
   });
 
   test("shows overlap error when session overlaps existing one", () => {
@@ -122,7 +138,9 @@ describe("AddClassInfoForm", () => {
     );
     fillValidForm(getByTestId, getByPlaceholderText);
     fireEvent.press(getByText("Add Class"));
-    getByText("This class overlaps with an existing class.");
+    expect(
+      getByText("This class overlaps with an existing class."),
+    ).toBeTruthy();
   });
 
   test("calls onAdd with correct data when form is valid", () => {

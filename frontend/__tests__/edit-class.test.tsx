@@ -61,6 +61,20 @@ jest.mock("@/app/utils/classValidationUtils", () => ({
   validateTimeRange: (...args: any[]) => mockValidateTimeRange.apply(null, args),
 }));
 
+jest.mock("@/components/classes/TimePickerField", () => {
+  const React = require("react");
+  const { TouchableOpacity, Text } = require("react-native");
+
+  return ({ value, onChange, placeholder }: any) => (
+    <TouchableOpacity
+      testID={`time-picker-${placeholder}`}
+      onPress={() => onChange(placeholder === "09:00" ? "09:30" : "10:45")}
+    >
+      <Text>{value || placeholder}</Text>
+    </TouchableOpacity>
+  );
+});
+
 describe("EditClassScreen", () => {
   beforeEach(() => {
     jest.useRealTimers();
@@ -75,11 +89,11 @@ describe("EditClassScreen", () => {
   });
 
   it("renders initial values", () => {
-    const { getByDisplayValue } = render(<EditClassScreen />);
+    const { getByDisplayValue, getByText } = render(<EditClassScreen />);
 
     expect(getByDisplayValue("A")).toBeTruthy();
-    expect(getByDisplayValue("09:00")).toBeTruthy();
-    expect(getByDisplayValue("10:15")).toBeTruthy();
+    expect(getByText("09:00")).toBeTruthy();
+    expect(getByText("10:15")).toBeTruthy();
     expect(getByDisplayValue("H")).toBeTruthy();
     expect(getByDisplayValue("110")).toBeTruthy();
   });
@@ -225,14 +239,14 @@ describe("EditClassScreen", () => {
   it("clears the error when editing the start time", async () => {
     mockValidateTime.mockReturnValueOnce("Invalid start time");
 
-    const { getByText, findByText, getByDisplayValue, queryByText } = render(
+    const { getByText, findByText, getByTestId, queryByText } = render(
       <EditClassScreen />,
     );
 
     fireEvent.press(getByText("Confirm & Save"));
     expect(await findByText("Invalid start time")).toBeTruthy();
 
-    fireEvent.changeText(getByDisplayValue("09:00"), "09:30");
+    fireEvent.press(getByTestId("time-picker-09:00"));
 
     await waitFor(() => {
       expect(queryByText("Invalid start time")).toBeNull();
@@ -244,7 +258,7 @@ describe("EditClassScreen", () => {
       "End time must be after start time",
     );
 
-    const { getByText, findByText, getByDisplayValue, queryByText } = render(
+    const { getByText, findByText, getByTestId, queryByText } = render(
       <EditClassScreen />,
     );
 
@@ -253,7 +267,7 @@ describe("EditClassScreen", () => {
       await findByText("End time must be after start time"),
     ).toBeTruthy();
 
-    fireEvent.changeText(getByDisplayValue("10:15"), "10:30");
+    fireEvent.press(getByTestId("time-picker-10:30"));
 
     await waitFor(() => {
       expect(queryByText("End time must be after start time")).toBeNull();
@@ -261,11 +275,11 @@ describe("EditClassScreen", () => {
   });
 
   it("passes trimmed values to updateClassItem", async () => {
-    const { getByText, getByDisplayValue } = render(<EditClassScreen />);
+    const { getByText, getByDisplayValue, getByTestId } = render(<EditClassScreen />);
 
     fireEvent.changeText(getByDisplayValue("A"), "  B  ");
-    fireEvent.changeText(getByDisplayValue("09:00"), " 09:30 ");
-    fireEvent.changeText(getByDisplayValue("10:15"), " 10:45 ");
+    fireEvent.press(getByTestId("time-picker-09:00"));
+    fireEvent.press(getByTestId("time-picker-10:30"));
     fireEvent.changeText(getByDisplayValue("H"), " H ");
     fireEvent.changeText(getByDisplayValue("110"), " 820 ");
 
