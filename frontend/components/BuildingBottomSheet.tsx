@@ -39,7 +39,9 @@ import MetroAccessibleChip from "./MetroAccessibleChip";
 import OpeningHours from "./OpeningHours";
 import ViewIndoorMapButton from "./ViewIndoorMapButton";
 
-export type BuildingBottomSheetProps = {};
+export type BuildingBottomSheetProps = {
+  onSheetIndexChange?: (index: number) => void;
+};
 
 const DEFAULT_GUEST_USER_ID = "guest";
 
@@ -115,9 +117,20 @@ export default function BuildingBottomSheet(
     }
   }, [getBuildingQuery.data]);
 
-  const handleSheetChanges = useCallback((index: number) => {
-    if (index > -1) setSheetOpen(true);
-  }, []);
+  const handleSheetChanges = useCallback(
+    (index: number) => {
+      setSheetOpen(index > -1);
+      props.onSheetIndexChange?.(index);
+    },
+    [props.onSheetIndexChange],
+  );
+
+  const handleSheetAnimate = useCallback(
+    (_fromIndex: number, toIndex: number) => {
+      props.onSheetIndexChange?.(toIndex);
+    },
+    [props.onSheetIndexChange],
+  );
 
   const accessibilityIcons = useMemo(() => {
     if (!building?.accessibilityMapping) return [];
@@ -131,9 +144,9 @@ export default function BuildingBottomSheet(
       building.accessibilityMapping.ramp && (
         <SlopeUpIcon key="ramp" color="#0E4C92" size={30} />
       ),
-      building.metro_accessible && <MetroAccessibleChip key={"metro-access"} />,
+      building.metro_accessible && <MetroAccessibleChip key="metro-access" />,
     ].filter(Boolean);
-  }, [building?.accessibilityMapping]);
+  }, [building?.accessibilityMapping, building?.metro_accessible]);
 
   const isLoading = getBuildingQuery.isLoading;
   const hasBuildingData = !!building && getBuildingQuery.isSuccess;
@@ -156,7 +169,10 @@ export default function BuildingBottomSheet(
   }, [building, favoritesQuery.data]);
 
   const navigationState = useNavigationStore();
+
   const handleStartNavigation = async () => {
+    if (!building) return;
+
     const endLocation = {
       latitude: building.latitude,
       longitude: building.longitude,
@@ -205,6 +221,7 @@ export default function BuildingBottomSheet(
       index={0}
       snapPoints={snapPoints}
       onChange={handleSheetChanges}
+      onAnimate={handleSheetAnimate}
       enableContentPanningGesture
       enableDynamicSizing={false}
       detached
@@ -217,12 +234,12 @@ export default function BuildingBottomSheet(
         </View>
       )}
 
-      {!isLoading && hasBuildingData && (
+      {!isLoading && hasBuildingData && building && (
         <>
           <View style={BottomSheetStyles.fakeHandleContainer}>
             <View style={BottomSheetStyles.fakeHandleBar} />
           </View>
-          {/* Header */}
+
           <View style={BottomSheetStyles.headerContainer}>
             {sheetOpen && (
               <>
@@ -265,6 +282,7 @@ export default function BuildingBottomSheet(
                     <FavoriteEmptyIcon color={COLORS.textSecondary} />
                   )}
                 </TouchableOpacity>
+
                 <TouchableOpacity
                   onPress={() => {
                     mapState.setSelectedBuildingCode(null);
@@ -278,7 +296,6 @@ export default function BuildingBottomSheet(
             </View>
           </View>
 
-          {/* Scrollable Content */}
           <BottomSheetScrollView
             contentContainerStyle={BottomSheetStyles.scrollContent}
           >
@@ -290,6 +307,7 @@ export default function BuildingBottomSheet(
           </BottomSheetScrollView>
         </>
       )}
+
       {!isLoading && !hasBuildingData && (
         <BottomSheetScrollView
           contentContainerStyle={BottomSheetStyles.scrollContent}
