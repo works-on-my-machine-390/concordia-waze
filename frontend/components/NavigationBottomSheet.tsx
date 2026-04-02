@@ -13,7 +13,7 @@ import {
   useNavigationStore,
 } from "@/hooks/useNavigationStore";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -37,7 +37,9 @@ import StartNavigationButton from "./StartNavigationButton";
 
 const concordiaLogo = require("../assets/images/concordia_logo.png");
 
-export type NavigationBottomSheetProps = {};
+export type NavigationBottomSheetProps = {
+  onSheetIndexChange?: (index: number) => void;
+};
 
 export default function NavigationBottomSheet(
   props: Readonly<NavigationBottomSheetProps>,
@@ -56,6 +58,10 @@ export default function NavigationBottomSheet(
 
   const isLoading = query.isLoading || query.isRefetching;
   const isError = query.isError;
+
+  const handleSheetChanges = useCallback((index: number) => {
+    props.onSheetIndexChange?.(index);
+  }, [props.onSheetIndexChange]);
 
   useEffect(() => {
     if (query.data) {
@@ -194,6 +200,7 @@ export default function NavigationBottomSheet(
       handleComponent={null}
       index={0}
       snapPoints={snapPoints}
+      onChange={handleSheetChanges}
       enableContentPanningGesture
       enableDynamicSizing={false}
       detached

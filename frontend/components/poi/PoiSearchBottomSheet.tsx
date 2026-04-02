@@ -10,7 +10,7 @@ import {
 import { MapMode, useMapStore } from "@/hooks/useMapStore";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useMemo, useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
 import { BottomSheetStyles } from "../BuildingBottomSheet";
@@ -25,6 +25,7 @@ import useStartLocation from "@/hooks/useStartLocation";
 
 export type PoiSearchBottomSheetProps = {
   moveCamera?: (params: { latitude: number; longitude: number }) => void;
+  onSheetIndexChange?: (index: number) => void;
 };
 
 export type ExtendedPoiSearchResultModel = {
@@ -49,6 +50,10 @@ export default function PoiSearchBottomSheet(
     Number.parseFloat(params.poiLng),
     params.rankPref,
   );
+
+  const handleSheetChanges = useCallback((index: number) => {
+    props.onSheetIndexChange?.(index);
+  }, [props.onSheetIndexChange]);
 
   const results: ExtendedPoiSearchResultModel[] = useMemo(() => {
     if (poiSearchQuery.isLoading || !poiSearchQuery.data) {

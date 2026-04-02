@@ -4,7 +4,7 @@ import {
   NavigationPhase,
   useNavigationStore,
 } from "@/hooks/useNavigationStore";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Dimensions, StyleSheet, View } from "react-native";
 import ActiveNavigationBottomSheet from "./activeNavigation/ActiveNavigationBottomSheet";
 import BuildingBottomSheet from "./BuildingBottomSheet";
@@ -34,6 +34,15 @@ export default function MapBottomSection(
   const navigationPhase = useNavigationStore((state) => state.navigationPhase);
 
   const [currentSheetIndex, setCurrentSheetIndex] = useState<number | null>(null);
+
+  // Reset sheet index when mode changes
+  useEffect(() => {
+    if (state.currentMode === MapMode.NONE) {
+      setCurrentSheetIndex(null);
+    } else {
+      setCurrentSheetIndex(0);
+    }
+  }, [state.currentMode]);
 
   const handleSheetIndexChange = (index: number) => {
     setCurrentSheetIndex(index);
@@ -68,7 +77,7 @@ export default function MapBottomSection(
     return (
       <>
         {state.currentMode === MapMode.POI && (
-          <PoiSearchBottomSheet moveCamera={props.moveCamera} />
+          <PoiSearchBottomSheet moveCamera={props.moveCamera} onSheetIndexChange={handleSheetIndexChange} />
         )}
 
         {state.currentMode === MapMode.BUILDING && (
@@ -77,15 +86,15 @@ export default function MapBottomSection(
 
         {state.currentMode === MapMode.NAVIGATION &&
           navigationPhase === NavigationPhase.PREPARATION && (
-            <NavigationBottomSheet />
+            <NavigationBottomSheet onSheetIndexChange={handleSheetIndexChange} />
           )}
 
         {state.currentMode === MapMode.NAVIGATION &&
           navigationPhase === NavigationPhase.ACTIVE && (
-            <ActiveNavigationBottomSheet />
+            <ActiveNavigationBottomSheet onSheetIndexChange={handleSheetIndexChange} />
           )}
 
-        {state.currentMode === MapMode.SETTINGS && <MapSettingsBottomSheet />}
+        {state.currentMode === MapMode.SETTINGS && <MapSettingsBottomSheet onSheetIndexChange={handleSheetIndexChange} />}
       </>
     );
   };

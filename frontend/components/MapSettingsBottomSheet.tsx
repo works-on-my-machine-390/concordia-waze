@@ -1,12 +1,14 @@
 import useMapSettings, { MapSettings } from "@/hooks/useMapSettings";
 import { useMapStore } from "@/hooks/useMapStore";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
-import { useRef } from "react";
+import { useCallback, useRef } from "react";
 import { Text, View } from "react-native";
 import { BottomSheetStyles } from "./BuildingBottomSheet";
 import SettingListItem from "./MapSettingsListItem";
 
-export type MapSettingsBottomSheetProps = {};
+export type MapSettingsBottomSheetProps = {
+  onSheetIndexChange?: (index: number) => void;
+};
 
 export default function MapSettingsBottomSheet(
   props: Readonly<MapSettingsBottomSheetProps>,
@@ -18,6 +20,10 @@ export default function MapSettingsBottomSheet(
 
   const { mapSettings, updateSetting } = useMapSettings();
 
+  const handleSheetChanges = useCallback((index: number) => {
+    props.onSheetIndexChange?.(index);
+  }, [props.onSheetIndexChange]);
+
   return (
     <BottomSheet
       handleComponent={null}
@@ -26,6 +32,7 @@ export default function MapSettingsBottomSheet(
       snapPoints={snapPoints}
       enablePanDownToClose
       onClose={closeSheet}
+      onChange={handleSheetChanges}
       enableContentPanningGesture
       enableDynamicSizing={false}
       detached
