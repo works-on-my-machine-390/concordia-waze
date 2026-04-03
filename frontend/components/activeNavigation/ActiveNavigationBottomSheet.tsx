@@ -8,6 +8,7 @@ import {
   useNavigationStore,
 } from "@/hooks/useNavigationStore";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import { useCallback } from "react";
 import { useLocalSearchParams, usePathname } from "expo-router";
 import { Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -21,7 +22,11 @@ const HandleComponent = () => (
   </View>
 );
 
-export default function ActiveNavigationBottomSheet() {
+export type ActiveNavigationBottomSheetProps = {
+  onSheetIndexChange?: (index: number) => void;
+};
+
+export default function ActiveNavigationBottomSheet(props: Readonly<ActiveNavigationBottomSheetProps> = {}) {
   const snapPoints = ["15%", "70%"];
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams();
@@ -38,6 +43,17 @@ export default function ActiveNavigationBottomSheet() {
     navigationState.setCurrentOutdoorStepIndex(undefined);
     navigationState.setCurrentIndoorStepIndex(undefined);
   };
+
+  const handleSheetChanges = useCallback((index: number) => {
+    props.onSheetIndexChange?.(index);
+  }, [props.onSheetIndexChange]);
+
+  const handleSheetAnimate = useCallback(
+    (_fromIndex: number, toIndex: number) => {
+      props.onSheetIndexChange?.(toIndex);
+    },
+    [props.onSheetIndexChange],
+  );
 
   const initialDuration =
     navigationState.currentDirections?.durationBlock?.durations[
@@ -110,6 +126,8 @@ export default function ActiveNavigationBottomSheet() {
       handleComponent={HandleComponent}
       index={0}
       snapPoints={snapPoints}
+      onChange={handleSheetChanges}
+      onAnimate={handleSheetAnimate}
       enableContentPanningGesture={false}
       enableDynamicSizing={false}
       detached
