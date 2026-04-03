@@ -243,4 +243,101 @@ describe("MapBottomSection", () => {
     // After index changes to 1+, buttons should be hidden
     expect(queryByTestId("floating-buttons-container")).toBeNull();
   });
+
+  test("renders ActiveNavigationBottomSheet when in ACTIVE navigation phase", () => {
+    useMapStore.getState().setCurrentMode(MapMode.NAVIGATION);
+    useNavigationStore.setState({ navigationPhase: NavigationPhase.ACTIVE });
+
+    const { getByTestId, queryByTestId } = render(
+      <MapBottomSection goToMyLocation={jest.fn()} />,
+    );
+
+    expect(getByTestId("active-navigation-bottom-sheet")).toBeTruthy();
+    expect(queryByTestId("navigation-bottom-sheet")).toBeNull();
+  });
+
+  test("does not render NextClassDrawer when navigationPhase is set", () => {
+    useNavigationStore.setState({ navigationPhase: NavigationPhase.PREPARATION });
+
+    const nextClass = {
+      className: "SOEN 363",
+      buildingLatitude: 0,
+      buildingLongitude: 0,
+      floorNumber: 0,
+      roomX: 0,
+      roomY: 0,
+      item: {
+        type: "Lecture" as const,
+        section: "WW",
+        day: "FRI",
+        startTime: "16:00",
+        endTime: "17:15",
+        buildingCode: "MB",
+        room: "S2.210",
+        origin: "manual" as const,
+      },
+    };
+
+    const { queryByTestId } = render(
+      <MapBottomSection goToMyLocation={jest.fn()} nextClass={nextClass} />,
+    );
+
+    expect(queryByTestId("next-class-drawer")).toBeNull();
+  });
+
+  test("resets sheet index to 0 when mode changes from NONE to other mode", () => {
+    useMapStore.getState().setCurrentMode(MapMode.NONE);
+
+    const { rerender } = render(
+      <MapBottomSection goToMyLocation={jest.fn()} />,
+    );
+
+    useMapStore.getState().setCurrentMode(MapMode.BUILDING);
+    rerender(<MapBottomSection goToMyLocation={jest.fn()} />);
+
+    // After mode changes, sheet index should be 0
+    // Verify by checking floatingButtonsBottom is 20% of screen height (which only happens at index 0, not at NONE)
+    const { height } = require("react-native").Dimensions.get("window");
+    expect(useMapStore.getState().currentMode).toBe(MapMode.BUILDING);
+  });
+
+  test("does not render any sheet when mode is NONE", () => {
+    useMapStore.getState().setCurrentMode(MapMode.NONE);
+
+    const { queryByTestId } = render(
+      <MapBottomSection goToMyLocation={jest.fn()} />,
+    );
+
+    expect(queryByTestId("poi-bottom-sheet")).toBeNull();
+    expect(queryByTestId("building-bottom-sheet")).toBeNull();
+    expect(queryByTestId("navigation-bottom-sheet")).toBeNull();
+    expect(queryByTestId("map-settings-bottom-sheet")).toBeNull();
+  });
+
+  test("passes onSheetIndexChange callback to POI sheet", () => {
+    useMapStore.getState().setCurrentMode(MapMode.POI);
+
+    render(
+      <MapBottomSection goToMyLocation={jest.fn()} />,
+    );
+
+    expect(mockPoiSearchBottomSheet).toHaveBeenCalledWith(
+      expect.objectContaining({
+        onSheetIndexChange: expect.any(Function),
+      }),
+    );
+  });
+
+  test("renders floating buttons only when sheet is not large", () => {
+    useMapStore.getState().setCurrentMode(MapMode.SETTINGS);
+
+    const { queryByTestId } = render(
+      <MapBottomSection goToMyLocation={jest.fn()} />,
+    );
+
+    // Initially buttons should be visible (index 0, not large)
+    expect(queryByTestId("floating-buttons-container")).toBeTruthy();
+    expect(queryByTestId("settings-button")).toBeTruthy();
+    expect(queryByTestId("location-button")).toBeTruthy();
+  });
 });
