@@ -23,7 +23,7 @@ go install github.com/air-verse/air@latest
 
 - In a terminal, `cd backend`.
 - Run `air` for live reload, or simply `go run .` to run without live reload (if you change a file, you need to stop and restart the server for changes to apply).
-- Once the server boots up, you can access it at `localhost:8080` by making a GET request to `/greeting`. Try viewing the swagger page at http://localhost:8080/swagger/index.html
+- Once the server boots up, you can access it at `localhost:8080`. Try viewing the swagger page at http://localhost:8080/swagger/index.html
 
 ### Updating swagger docs
 
@@ -46,6 +46,7 @@ go test ./... -cover
 ```
 
 #### VSCode Go extension code coverage tooling
+
 If you're using VSCode and have the Go extension, you can run tests with coverage, and view which lines are of code are covered or not.
 
 1. Open the file you want to check coverage for. Make sure the tests are in the same package.
