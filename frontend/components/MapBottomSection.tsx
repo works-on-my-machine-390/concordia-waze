@@ -4,7 +4,8 @@ import {
   NavigationPhase,
   useNavigationStore,
 } from "@/hooks/useNavigationStore";
-import { StyleSheet, View } from "react-native";
+import { useEffect, useMemo, useState } from "react";
+import { Dimensions, StyleSheet, View } from "react-native";
 import ActiveNavigationBottomSheet from "./activeNavigation/ActiveNavigationBottomSheet";
 import BuildingBottomSheet from "./BuildingBottomSheet";
 import NextClassDrawer from "./classes/NextClassDrawer";
@@ -24,36 +25,51 @@ export type MapBottomSectionProps = {
   nextClass?: NextClassResponse | null;
 };
 
-/**
- * Collection of all bottom sheets used on the map page + bottom buttons + next class drawer.
- */
+const SCREEN_HEIGHT = Dimensions.get("window").height;
+
 export default function MapBottomSection(
   props: Readonly<MapBottomSectionProps>,
 ) {
   const state = useMapStore();
   const navigationPhase = useNavigationStore((state) => state.navigationPhase);
 
-  const renderButtons = () => {
-    return (
-      <>
-        <MapSettingsButton
-          onPress={() =>
-            state.setCurrentMode(
-              state.currentMode === MapMode.SETTINGS
-                ? MapMode.NONE
-                : MapMode.SETTINGS,
-            )
-          }
-        />
+  const [currentSheetIndex, setCurrentSheetIndex] = useState<number | null>(null);
 
-        <LocationButton onPress={props.goToMyLocation} />
-      </>
-    );
+  // Reset sheet index when mode changes
+  useEffect(() => {
+    if (state.currentMode === MapMode.NONE) {
+      setCurrentSheetIndex(null);
+    } else {
+      setCurrentSheetIndex(0);
+    }
+  }, [state.currentMode]);
+
+  const handleSheetIndexChange = (index: number) => {
+    setCurrentSheetIndex(index);
   };
+
+  const isNoSheetOpen = state.currentMode === MapMode.NONE;
+
+  const isLargeSheetOpen =
+    !isNoSheetOpen && currentSheetIndex !== null && currentSheetIndex >= 1;
+
+  const floatingButtonsBottom = useMemo(() => {
+    if (isNoSheetOpen) {
+      return 0;
+    }
+
+    // Small snap point (20%) then move buttons just above the sheet
+    if (currentSheetIndex === 0) {
+      const smallSheetHeight = SCREEN_HEIGHT * 0.2;
+      return smallSheetHeight;
+    }
+
+    // Fallback for any other non-large state
+    return 0;
+  }, [isNoSheetOpen, currentSheetIndex]);
 
   const renderNextClassDrawer = () => {
     if (navigationPhase) return null;
-
     return <NextClassDrawer nextClass={props.nextClass ?? null} />;
   };
 
@@ -61,30 +77,60 @@ export default function MapBottomSection(
     return (
       <>
         {state.currentMode === MapMode.POI && (
-          <PoiSearchBottomSheet moveCamera={props.moveCamera} />
+          <PoiSearchBottomSheet moveCamera={props.moveCamera} onSheetIndexChange={handleSheetIndexChange} />
         )}
 
-        {state.currentMode === MapMode.BUILDING && <BuildingBottomSheet />}
+        {state.currentMode === MapMode.BUILDING && (
+          <BuildingBottomSheet onSheetIndexChange={handleSheetIndexChange} />
+        )}
 
         {state.currentMode === MapMode.NAVIGATION &&
           navigationPhase === NavigationPhase.PREPARATION && (
-            <NavigationBottomSheet />
-          )}
-        {state.currentMode === MapMode.NAVIGATION &&
-          navigationPhase === NavigationPhase.ACTIVE && (
-            <ActiveNavigationBottomSheet />
+            <NavigationBottomSheet onSheetIndexChange={handleSheetIndexChange} />
           )}
 
-        {state.currentMode === MapMode.SETTINGS && <MapSettingsBottomSheet />}
+        {state.currentMode === MapMode.NAVIGATION &&
+          navigationPhase === NavigationPhase.ACTIVE && (
+            <ActiveNavigationBottomSheet onSheetIndexChange={handleSheetIndexChange} />
+          )}
+
+        {state.currentMode === MapMode.SETTINGS && <MapSettingsBottomSheet onSheetIndexChange={handleSheetIndexChange} />}
       </>
     );
   };
 
   return (
-    <View style={mapBottomSheetStyles.bottomSheetContainer}>
-      {renderButtons()}
-      {renderNextClassDrawer()}
+    <View
+      style={mapBottomSheetStyles.bottomSheetContainer}
+      pointerEvents="box-none"
+    >
       {renderSheets()}
+      {renderNextClassDrawer()}
+
+      {!isLargeSheetOpen && (
+        <View
+          testID="floating-buttons-container"
+          pointerEvents="box-none"
+          style={[
+            mapBottomSheetStyles.floatingButtonsContainer,
+            { bottom: floatingButtonsBottom },
+          ]}
+        >
+          <View style={mapBottomSheetStyles.buttonsWrapper}>
+            <MapSettingsButton
+              onPress={() =>
+                state.setCurrentMode(
+                  state.currentMode === MapMode.SETTINGS
+                    ? MapMode.NONE
+                    : MapMode.SETTINGS,
+                )
+              }
+            />
+
+            <LocationButton onPress={props.goToMyLocation} />
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -96,5 +142,17 @@ const mapBottomSheetStyles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+  },
+
+  floatingButtonsContainer: {
+    position: "absolute",
+    right: 16,
+    zIndex: 1000,
+    elevation: 1000,
+  },
+
+  buttonsWrapper: {
+    gap: 12,
+    alignItems: "center",
   },
 });
