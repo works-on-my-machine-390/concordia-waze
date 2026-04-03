@@ -12,6 +12,7 @@ import {
   getDirectionsSequence,
   useNavigationStore,
 } from "@/hooks/useNavigationStore";
+import { useMapCamera } from "@/contexts/MapCameraContext";
 import { useRouter } from "expo-router";
 import { Text, View } from "react-native";
 import DirectionIcon from "../DirectionIcon";
@@ -36,6 +37,7 @@ function getTransitInstruction(step: StepModel): string {
 export default function ActiveNavigationOutdoorHeaderContent() {
   const router = useRouter();
   const navigationState = useNavigationStore();
+  const { moveCamera } = useMapCamera();
   const resetMapState = useMapStore((state) => state.closeSheet);
 
   if (!navigationState.currentDirections) {
@@ -53,9 +55,21 @@ export default function ActiveNavigationOutdoorHeaderContent() {
   const currentStepIndex = navigationState.currentOutdoorStepIndex;
   const currentStep = outdoorDirections?.steps[currentStepIndex || 0];
 
+  const focusOnStep = (step: StepModel | undefined) => {
+    if (!step) return;
+
+    moveCamera({
+      latitude: step.start.latitude,
+      longitude: step.start.longitude,
+      duration: 500,
+    });
+  };
+
   const handlePreviousStepPress = () => {
     if (!currentStep || !outdoorDirections || currentStepIndex === 0) return;
-    navigationState.setCurrentOutdoorStepIndex((currentStepIndex || 0) - 1);
+    const previousStepIndex = (currentStepIndex || 0) - 1;
+    navigationState.setCurrentOutdoorStepIndex(previousStepIndex);
+    focusOnStep(outdoorDirections.steps[previousStepIndex]);
   };
 
   const isLastStep = currentStepIndex === outdoorDirections?.steps?.length - 1;
@@ -101,7 +115,9 @@ export default function ActiveNavigationOutdoorHeaderContent() {
 
       return;
     }
-    navigationState.setCurrentOutdoorStepIndex((currentStepIndex || 0) + 1);
+    const nextStepIndex = (currentStepIndex || 0) + 1;
+    navigationState.setCurrentOutdoorStepIndex(nextStepIndex);
+    focusOnStep(outdoorDirections?.steps[nextStepIndex]);
   };
 
   const getStepperButtonText = () => {
