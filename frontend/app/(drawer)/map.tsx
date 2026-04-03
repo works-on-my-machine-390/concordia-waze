@@ -13,6 +13,7 @@ import { MapMode, useMapStore } from "@/hooks/useMapStore";
 import { ModifyingFieldOptions, useNavigationStore } from "@/hooks/useNavigationStore";
 import { useNextClass } from "@/hooks/useNextClass";
 import { endTaskTimer, startTaskTimer } from "@/lib/telemetry";
+import { MapCameraProvider, MoveCameraParams } from "@/contexts/MapCameraContext";
 import * as Location from "expo-location";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -112,12 +113,7 @@ export default function MainMap() {
 
   const buildingListQuery = useGetBuildings(campus);
 
-  const moveCamera = (params: {
-    latitude: number;
-    longitude: number;
-    delta?: number;
-    duration?: number;
-  }) => {
+  const moveCamera = (params: MoveCameraParams) => {
     setCameraCenter({
       latitude: params.latitude,
       longitude: params.longitude,
@@ -419,55 +415,57 @@ export default function MainMap() {
   const { nextClass } = useNextClass();
 
   return (
-    <View style={styles.container}>
-      <MapView
-        provider={PROVIDER_GOOGLE}
-        customMapStyle={mapStyle}
-        showsPointsOfInterest={false}
-        ref={mapRef}
-        showsMyLocationButton={false} // remove default google location button
-        style={styles.map}
-        showsUserLocation={true}
-        initialRegion={{
-          // coordinates for SGW campus (default)
-          latitude: CAMPUS_COORDS[CampusCode.SGW].latitude,
-          longitude: CAMPUS_COORDS[CampusCode.SGW].longitude,
-          latitudeDelta: DEFAULT_MAP_DELTA,
-          longitudeDelta: DEFAULT_MAP_DELTA,
-        }}
-        onRegionChangeComplete={handleRegionChangeComplete}
-      >
-        <CampusBuildingPolygons buildings={buildingsToRender} />
-        {mapState.currentMode === MapMode.NAVIGATION && (
-          <NavigationPolylines showEndPoint />
-        )}
-        {mapState.currentMode === MapMode.POI && <PoiOutdoorMarkers />}
-        <ShuttleBusMarkers />
-      </MapView>
+    <MapCameraProvider moveCamera={moveCamera}>
+      <View style={styles.container}>
+        <MapView
+          provider={PROVIDER_GOOGLE}
+          customMapStyle={mapStyle}
+          showsPointsOfInterest={false}
+          ref={mapRef}
+          showsMyLocationButton={false} // remove default google location button
+          style={styles.map}
+          showsUserLocation={true}
+          initialRegion={{
+            // coordinates for SGW campus (default)
+            latitude: CAMPUS_COORDS[CampusCode.SGW].latitude,
+            longitude: CAMPUS_COORDS[CampusCode.SGW].longitude,
+            latitudeDelta: DEFAULT_MAP_DELTA,
+            longitudeDelta: DEFAULT_MAP_DELTA,
+          }}
+          onRegionChangeComplete={handleRegionChangeComplete}
+        >
+          <CampusBuildingPolygons buildings={buildingsToRender} />
+          {mapState.currentMode === MapMode.NAVIGATION && (
+            <NavigationPolylines showEndPoint />
+          )}
+          {mapState.currentMode === MapMode.POI && <PoiOutdoorMarkers />}
+          <ShuttleBusMarkers />
+        </MapView>
 
-      {mapState.currentMode === MapMode.NAVIGATION ? (
-        <NavigationHeader
-          onStartLocationPress={handleStartLocationPress}
-          onEndLocationPress={handleEndLocationPress}
+        {mapState.currentMode === MapMode.NAVIGATION ? (
+          <NavigationHeader
+            onStartLocationPress={handleStartLocationPress}
+            onEndLocationPress={handleEndLocationPress}
+          />
+        ) : (
+          <MapHeader
+            campus={campus}
+            onCampusChange={handleCampusChange}
+            searchText={params.query || ""}
+            onSearchClear={handleSearchBarClear}
+            onMenuPress={() => {}}
+            camLat={String((cameraCenter || CAMPUS_COORDS[campus]).latitude)}
+            camLng={String((cameraCenter || CAMPUS_COORDS[campus]).longitude)}
+          />
+        )}
+        <MapBottomSection
+          goToMyLocation={goToMyLocation}
+          moveCamera={moveCamera}
+          userLocation={location?.coords}
+          nextClass={nextClass}
         />
-      ) : (
-        <MapHeader
-          campus={campus}
-          onCampusChange={handleCampusChange}
-          searchText={params.query || ""}
-          onSearchClear={handleSearchBarClear}
-          onMenuPress={() => {}}
-          camLat={String((cameraCenter || CAMPUS_COORDS[campus]).latitude)}
-          camLng={String((cameraCenter || CAMPUS_COORDS[campus]).longitude)}
-        />
-      )}
-      <MapBottomSection
-        goToMyLocation={goToMyLocation}
-        moveCamera={moveCamera}
-        userLocation={location?.coords}
-        nextClass={nextClass}
-      />
-    </View>
+      </View>
+    </MapCameraProvider>
   );
 }
 
