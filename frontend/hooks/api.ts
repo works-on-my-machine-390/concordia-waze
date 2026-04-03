@@ -42,7 +42,7 @@ const getBaseUrl = () => {
   }
 
   if (__DEV__) {
-    return NGROK_URL;
+    return `http://${debuggerHost}:8080`; // default to local development server while in development
   }
 
   return FALLBACK_PRODUCTION_API_URL;
