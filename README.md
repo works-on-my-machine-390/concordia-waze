@@ -2,6 +2,8 @@
 
 Concordia Waze is a mobile application developed by the Works on My Machine team to help students, staff, and visitors navigate Concordia University campuses.
 
+For more information and documentation, see our [wiki](https://github.com/works-on-my-machine-390/concordia-waze/wiki).
+
 ## Getting started
 
 To deploy and run the app locally, follow these steps:
