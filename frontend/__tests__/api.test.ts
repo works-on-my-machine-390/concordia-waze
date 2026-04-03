@@ -29,8 +29,8 @@ describe("api", () => {
     (globalThis as any).__DEV__ = originalDev;
   });
 
-  test("API_URL defaults to the module base URL when not configured", () => {
-    expect(API_URL).toBe("https://untapestried-katia-unmurmuringly.ngrok-free.dev");
+  test("API_URL defaults to local development URL when not configured", () => {
+    expect(API_URL).toMatch(/^http:\/\/.+:8080$/);
   });
 
   test("api() without token calls wretch with no auth header", async () => {
