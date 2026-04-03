@@ -191,4 +191,56 @@ describe("MapBottomSection", () => {
 
     expect(getByTestId("next-class-drawer")).toBeTruthy();
   });
+
+  test("sets floatingButtonsBottom to 0 when no sheet is open", () => {
+    useMapStore.getState().setCurrentMode(MapMode.NONE);
+
+    const { getByTestId } = render(
+      <MapBottomSection goToMyLocation={jest.fn()} />,
+    );
+
+    const floatingButtonsContainer = getByTestId("floating-buttons-container");
+    const styleArray = floatingButtonsContainer.props.style;
+    const bottomStyle = Array.isArray(styleArray) 
+      ? styleArray.find((s: any) => s?.bottom !== undefined)
+      : styleArray;
+    expect(bottomStyle?.bottom).toBe(0);
+  });
+
+  test("sets floatingButtonsBottom to 20% of screen height when small snap point is active", () => {
+    const { height } = require("react-native").Dimensions.get("window");
+    const expectedBottom = height * 0.2;
+
+    useMapStore.getState().setCurrentMode(MapMode.POI);
+
+    const { getByTestId } = render(
+      <MapBottomSection goToMyLocation={jest.fn()} />,
+    );
+
+    const floatingButtonsContainer = getByTestId("floating-buttons-container");
+    const styleArray = floatingButtonsContainer.props.style;
+    const bottomStyle = Array.isArray(styleArray)
+      ? styleArray.find((s: any) => s?.bottom !== undefined)
+      : styleArray;
+    
+    expect(bottomStyle?.bottom).toBe(expectedBottom);
+  });
+
+  test("hides floating buttons when large sheet is open and index is 1 or more", () => {
+    useMapStore.getState().setCurrentMode(MapMode.BUILDING);
+
+    const { queryByTestId, getByTestId } = render(
+      <MapBottomSection goToMyLocation={jest.fn()} />,
+    );
+
+    // Initially index is 0 (small snap point), so buttons should be visible
+    expect(queryByTestId("floating-buttons-container")).toBeTruthy();
+
+    // Simulate sheet expanding to large index (>=1)
+    const buildingSheet = getByTestId("building-bottom-sheet");
+    fireEvent(buildingSheet, "onSheetIndexChange", 1);
+
+    // After index changes to 1+, buttons should be hidden
+    expect(queryByTestId("floating-buttons-container")).toBeNull();
+  });
 });

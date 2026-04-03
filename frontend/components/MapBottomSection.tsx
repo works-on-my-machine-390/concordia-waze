@@ -109,6 +109,7 @@ export default function MapBottomSection(
 
       {!isLargeSheetOpen && (
         <View
+          testID="floating-buttons-container"
           pointerEvents="box-none"
           style={[
             mapBottomSheetStyles.floatingButtonsContainer,
