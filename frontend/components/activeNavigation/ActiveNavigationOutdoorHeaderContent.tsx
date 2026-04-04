@@ -17,6 +17,7 @@ import { useRouter } from "expo-router";
 import { Text, View } from "react-native";
 import DirectionIcon from "../DirectionIcon";
 import ActiveNavigationHeaderStepper from "./ActiveNavigationHeaderStepper";
+import useMapSettings from "@/hooks/useMapSettings";
 
 function getTransitInstruction(step: StepModel): string {
   const type = step.transit_type?.toLowerCase();
@@ -38,6 +39,7 @@ export default function ActiveNavigationOutdoorHeaderContent() {
   const router = useRouter();
   const navigationState = useNavigationStore();
   const { moveCamera } = useMapCamera();
+  const { mapSettings } = useMapSettings();
   const resetMapState = useMapStore((state) => state.closeSheet);
 
   if (!navigationState.currentDirections) {
@@ -57,6 +59,7 @@ export default function ActiveNavigationOutdoorHeaderContent() {
 
   const focusOnStep = (step: StepModel | undefined) => {
     if (!step) return;
+    if (!mapSettings.recenterOnStepDuringActiveNavigation) return;
 
     moveCamera({
       latitude: step.start.latitude,

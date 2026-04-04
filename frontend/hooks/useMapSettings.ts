@@ -9,6 +9,7 @@ export const MapSettings = {
   showShuttleStops: "showShuttleStops",
   showBuildingPolygons: "showBuildingPolygons",
   preferAccessibleRoutes: "preferAccessibleRoutes",
+  recenterOnStepDuringActiveNavigation: "recenterOnStepDuringActiveNavigation",
 } as const;
 
 export type MapSettingRecord = {
@@ -23,6 +24,7 @@ export type MapSettings = {
   showShuttleStops: boolean;
   showBuildingPolygons: boolean;
   preferAccessibleRoutes: boolean;
+  recenterOnStepDuringActiveNavigation: boolean;
 };
 
 type MapSettingsKey = (typeof MapSettings)[keyof typeof MapSettings];
@@ -31,6 +33,7 @@ const INITIAL_MAP_SETTINGS: MapSettings = {
   showShuttleStops: false,
   showBuildingPolygons: true,
   preferAccessibleRoutes: false,
+  recenterOnStepDuringActiveNavigation: true,
 };
 
 type MapSettingsStore = {
@@ -107,5 +110,13 @@ export const MapSettingsList: MapSettingRecord[] = [
     description:
       "(For Indoor Navigation) When enabled, routes avoid stairs and elevators or ramps are used when changing floors.",
     defaultValue: false,
+  },
+  {
+    key: MapSettings.recenterOnStepDuringActiveNavigation,
+    controlType: "switch",
+    label: "Recenter on Step During Navigation",
+    description:
+      "While actively navigating, pressing next or previous step will recenter the map on the step's start point.",
+    defaultValue: true,
   },
 ];
