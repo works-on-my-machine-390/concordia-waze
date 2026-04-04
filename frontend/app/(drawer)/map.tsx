@@ -35,11 +35,10 @@ import {
   CAMPUS_COORDS,
   DEFAULT_CAMERA_MOVE_DURATION_IN_MS,
   DEFAULT_MAP_DELTA,
+  STEP_START_PROXIMITY_THRESHOLD_IN_KM,
 } from "../constants";
 import { getDistance } from "../utils/mapUtils";
 import useMapSettings from "@/hooks/useMapSettings";
-
-const STEP_START_PROXIMITY_THRESHOLD_IN_KM = 0.03;
 
 export type MapQueryParamsModel = {
   selected?: string;
