@@ -594,40 +594,6 @@ func normalizeTransitionKey(s string) string {
 	return key
 }
 
-// findClosestTransitionPoint finds the transition point of given type closest to the reference coordinate
-func (s *IndoorPathService) findClosestTransitionPoint(floor *domain.Floor, transType TransitionType, refCoord domain.Coordinates) *domain.Coordinates {
-	typeStr := transType.String()
-	if typeStr == "none" {
-		return nil
-	}
-
-	var closest *domain.Coordinates
-	minDist := math.MaxFloat64
-
-	for _, poi := range floor.POIs {
-		if !strings.EqualFold(poi.Type, typeStr) && !strings.Contains(strings.ToLower(poi.Type), typeStr) {
-			continue
-		}
-		d := euclid(poi.Position, refCoord)
-		if d < minDist {
-			minDist = d
-			pos := poi.Position
-			closest = &pos
-		}
-	}
-	return closest
-}
-
-// findTransitionPoint finds stairs or elevator POI on a floor (legacy, finds first match)
-func (s *IndoorPathService) findTransitionPoint(floor *domain.Floor, poiType string) *domain.Coordinates {
-	for _, poi := range floor.POIs {
-		if strings.EqualFold(poi.Type, poiType) || strings.Contains(strings.ToLower(poi.Type), poiType) {
-			return &poi.Position
-		}
-	}
-	return nil
-}
-
 func (s *IndoorPathService) resolveEndpoints(req IndoorPathRequest, g *graph, floor *domain.Floor, building string, floorNum int) (int, int, error) {
 	if req.StartVertex != nil && req.EndVertex != nil {
 		return *req.StartVertex, *req.EndVertex, nil
