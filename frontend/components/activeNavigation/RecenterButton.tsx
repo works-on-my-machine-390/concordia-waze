@@ -1,6 +1,7 @@
 import { COLORS } from "@/app/constants";
 import NavigationBottomSheetStyles from "@/app/styles/navigationBottomSheetStyles";
 import { MoveCameraParams, useMapCamera } from "@/contexts/MapCameraContext";
+import useMapSettings from "@/hooks/useMapSettings";
 import { useMapStore } from "@/hooks/useMapStore";
 import { useNavigationStore } from "@/hooks/useNavigationStore";
 import MaterialCommunityIcons from "@expo/vector-icons/build/MaterialCommunityIcons";
@@ -9,8 +10,12 @@ import { Text, TouchableOpacity } from "react-native";
 export default function RecenterButton() {
   const userLocation = useMapStore((state) => state.userLocation);
   const navigationState = useNavigationStore();
-  const shouldHide = !userLocation || navigationState.followingGPS;
-    const {moveCamera} = useMapCamera();
+  const { mapSettings } = useMapSettings();
+  const shouldHide =
+    !userLocation ||
+    navigationState.followingGPS ||
+    !mapSettings.recenterAutomaticallyDuringActiveNavigation;
+  const { moveCamera } = useMapCamera();
 
   if (shouldHide) {
     return null;
@@ -19,8 +24,8 @@ export default function RecenterButton() {
   const handlePress = () => {
     navigationState.setFollowingGPS?.(true);
     moveCamera({
-        latitude: userLocation.coords.latitude,
-        longitude: userLocation.coords.longitude,
+      latitude: userLocation.coords.latitude,
+      longitude: userLocation.coords.longitude,
     } as MoveCameraParams);
   };
   return (

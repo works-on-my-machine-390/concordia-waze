@@ -37,6 +37,7 @@ import {
   DEFAULT_MAP_DELTA,
 } from "../constants";
 import { getDistance } from "../utils/mapUtils";
+import useMapSettings from "@/hooks/useMapSettings";
 
 const STEP_START_PROXIMITY_THRESHOLD_IN_KM = 0.03;
 
@@ -66,6 +67,7 @@ export default function MainMap() {
 
   const mapState = useMapStore();
   const navigationState = useNavigationStore();
+  const { mapSettings } = useMapSettings();
 
   const [buildingsByCampus, setBuildingsByCampus] = useState<
     Record<string, CampusBuilding[]>
@@ -151,15 +153,12 @@ export default function MainMap() {
   // Automatic step detection useEffect
   useEffect(() => {
     // early return when we're not in active navigation, or if location isn't available
-    if (mapState.currentMode !== MapMode.NAVIGATION) {
-      return;
-    }
-
-    if (navigationState.navigationPhase !== NavigationPhase.ACTIVE) {
-      return;
-    }
-
-    if (!location?.coords) {
+    if (
+      mapState.currentMode !== MapMode.NAVIGATION ||
+      navigationState.navigationPhase !== NavigationPhase.ACTIVE ||
+      !location?.coords ||
+      !mapSettings.recenterAutomaticallyDuringActiveNavigation
+    ) {
       return;
     }
 
@@ -212,6 +211,7 @@ export default function MainMap() {
     navigationState.trackedOutdoorStepIndex,
     navigationState.navigationPhase,
     navigationState.transitMode,
+    mapSettings.recenterAutomaticallyDuringActiveNavigation,
   ]);
 
   useEffect(() => {
@@ -229,20 +229,15 @@ export default function MainMap() {
     navigationState.endLocation,
   ]);
 
+  // Auto-follow user location when it changes during active navigation
   useEffect(() => {
-    if (mapState.currentMode !== MapMode.NAVIGATION) {
-      return;
-    }
-
-    if (navigationState.navigationPhase !== NavigationPhase.ACTIVE) {
-      return;
-    }
-
-    if (!navigationState.followingGPS) {
-      return;
-    }
-
-    if (!location?.coords) {
+    if (
+      mapState.currentMode !== MapMode.NAVIGATION ||
+      navigationState.navigationPhase !== NavigationPhase.ACTIVE ||
+      !navigationState.followingGPS ||
+      !location?.coords ||
+      !mapSettings.recenterAutomaticallyDuringActiveNavigation
+    ) {
       return;
     }
 
@@ -257,6 +252,7 @@ export default function MainMap() {
     mapState.currentMode,
     navigationState.navigationPhase,
     navigationState.followingGPS,
+    mapSettings.recenterAutomaticallyDuringActiveNavigation,
   ]);
 
   useEffect(() => {
@@ -521,7 +517,7 @@ export default function MainMap() {
     if (navigationState.followingGPS) {
       navigationState.setFollowingGPS(false);
     }
-  }
+  };
 
   const { nextClass } = useNextClass();
 

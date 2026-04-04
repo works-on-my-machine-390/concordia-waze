@@ -10,6 +10,7 @@ export const MapSettings = {
   showBuildingPolygons: "showBuildingPolygons",
   preferAccessibleRoutes: "preferAccessibleRoutes",
   recenterOnStepDuringActiveNavigation: "recenterOnStepDuringActiveNavigation",
+  recenterAutomaticallyDuringActiveNavigation: "recenterAutomaticallyDuringActiveNavigation",
 } as const;
 
 export type MapSettingRecord = {
@@ -25,6 +26,7 @@ export type MapSettings = {
   showBuildingPolygons: boolean;
   preferAccessibleRoutes: boolean;
   recenterOnStepDuringActiveNavigation: boolean;
+  recenterAutomaticallyDuringActiveNavigation: boolean;
 };
 
 type MapSettingsKey = (typeof MapSettings)[keyof typeof MapSettings];
@@ -34,6 +36,7 @@ const INITIAL_MAP_SETTINGS: MapSettings = {
   showBuildingPolygons: true,
   preferAccessibleRoutes: false,
   recenterOnStepDuringActiveNavigation: true,
+  recenterAutomaticallyDuringActiveNavigation: false,
 };
 
 type MapSettingsStore = {
@@ -117,6 +120,14 @@ export const MapSettingsList: MapSettingRecord[] = [
     label: "Recenter on Step During Navigation",
     description:
       "While actively navigating, pressing next or previous step will recenter the map on the step's start point.",
+    defaultValue: true,
+  },
+  {
+    key: MapSettings.recenterAutomaticallyDuringActiveNavigation,
+    controlType: "switch",
+    label: "Recenter Automatically During Navigation",
+    description:
+      "While actively navigating, the map will automatically recenter on the user's location.",
     defaultValue: true,
   },
 ];
