@@ -179,11 +179,14 @@ describe("ActiveNavigationOutdoorHeaderContent", () => {
     fireEvent.press(getByTestId("main-action"));
 
     expect(state.setCurrentOutdoorStepIndex).toHaveBeenCalledWith(1);
-    expect(mockMoveCamera).toHaveBeenCalledWith({
-      latitude: 45.4972,
-      longitude: -73.5788,
-      duration: 500,
-    });
+    expect(mockMoveCamera).toHaveBeenCalledWith(
+      expect.objectContaining({
+        latitude: 45.49735,
+        longitude: -73.57865000000001,
+        duration: 500,
+      }),
+    );
+    expect(mockMoveCamera.mock.calls[0][0].delta).toBeCloseTo(-0.0012, 6);
   });
 
   test("does nothing when previous is pressed at first step", () => {

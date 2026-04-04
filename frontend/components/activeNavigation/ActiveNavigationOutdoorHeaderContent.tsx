@@ -2,22 +2,22 @@ import { COLORS } from "@/app/constants";
 import { LoginIcon } from "@/app/icons";
 import { activeNavigationHeaderStyles } from "@/app/styles/navigationHeaderStyles";
 import { stripHtmlTags } from "@/app/utils/stringUtils";
+import { MoveCameraParams, useMapCamera } from "@/contexts/MapCameraContext";
 import {
   DirectionsResponseBlockType,
   OutdoorDirectionsBlockModel,
   StepModel,
 } from "@/hooks/queries/navigationQueries";
+import useMapSettings from "@/hooks/useMapSettings";
 import { useMapStore } from "@/hooks/useMapStore";
 import {
   getDirectionsSequence,
   useNavigationStore,
 } from "@/hooks/useNavigationStore";
-import { useMapCamera } from "@/contexts/MapCameraContext";
 import { useRouter } from "expo-router";
 import { Text, View } from "react-native";
 import DirectionIcon from "../DirectionIcon";
 import ActiveNavigationHeaderStepper from "./ActiveNavigationHeaderStepper";
-import useMapSettings from "@/hooks/useMapSettings";
 
 function getTransitInstruction(step: StepModel): string {
   const type = step.transit_type?.toLowerCase();
@@ -61,11 +61,24 @@ export default function ActiveNavigationOutdoorHeaderContent() {
     if (!step) return;
     if (!mapSettings.recenterOnStepDuringActiveNavigation) return;
 
-    moveCamera({
+    const isFinalStep =
+      step === outdoorDirections?.steps?.[outdoorDirections.steps.length - 1];
+
+    let moveCamParams: MoveCameraParams = {
       latitude: step.start.latitude,
       longitude: step.start.longitude,
       duration: 500,
-    });
+    };
+    if (isFinalStep) {
+      moveCamParams = {
+        latitude: (step.start.latitude + step.end.latitude) / 2,
+        longitude: (step.start.longitude + step.end.longitude) / 2,
+        delta: (step.start.latitude - step.end.latitude) * 4, // zoom out to fit both start and end of the final step
+        duration: 500,
+      };
+    }
+
+    moveCamera(moveCamParams);
   };
 
   const handlePreviousStepPress = () => {
