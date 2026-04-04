@@ -5,6 +5,8 @@ const mockPush = jest.fn();
 const mockCloseSheet = jest.fn();
 const mockGetDirectionsSequence = jest.fn();
 const mockUseNavigationStore = jest.fn();
+const mockMoveCamera = jest.fn();
+const mockUseMapSettings = jest.fn();
 
 jest.mock("expo-router", () => ({
   useRouter: () => ({
@@ -31,6 +33,15 @@ jest.mock("@/hooks/useMapStore", () => ({
 jest.mock("@/hooks/useNavigationStore", () => ({
   useNavigationStore: () => mockUseNavigationStore(),
   getDirectionsSequence: (...args: any[]) => mockGetDirectionsSequence(...args),
+}));
+
+jest.mock("@/contexts/MapCameraContext", () => ({
+  useMapCamera: () => ({ moveCamera: mockMoveCamera }),
+}));
+
+jest.mock("@/hooks/useMapSettings", () => ({
+  __esModule: true,
+  default: () => mockUseMapSettings(),
 }));
 
 jest.mock("../components/DirectionIcon", () => {
@@ -111,6 +122,11 @@ describe("ActiveNavigationOutdoorHeaderContent", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockGetDirectionsSequence.mockReturnValue({ 0: "outdoor" });
+    mockUseMapSettings.mockReturnValue({
+      mapSettings: {
+        recenterOnStepDuringActiveNavigation: true,
+      },
+    });
     mockUseNavigationStore.mockReturnValue(createState());
   });
 
@@ -163,6 +179,11 @@ describe("ActiveNavigationOutdoorHeaderContent", () => {
     fireEvent.press(getByTestId("main-action"));
 
     expect(state.setCurrentOutdoorStepIndex).toHaveBeenCalledWith(1);
+    expect(mockMoveCamera).toHaveBeenCalledWith({
+      latitude: 45.4972,
+      longitude: -73.5788,
+      duration: 500,
+    });
   });
 
   test("does nothing when previous is pressed at first step", () => {
@@ -185,6 +206,28 @@ describe("ActiveNavigationOutdoorHeaderContent", () => {
     fireEvent.press(getByTestId("previous-step"));
 
     expect(state.setCurrentOutdoorStepIndex).toHaveBeenCalledWith(0);
+    expect(mockMoveCamera).toHaveBeenCalledWith({
+      latitude: 45.497,
+      longitude: -73.579,
+      duration: 500,
+    });
+  });
+
+  test("does not recenter camera when recenter setting is disabled", () => {
+    const state = createState({ currentOutdoorStepIndex: 0 });
+    mockUseNavigationStore.mockReturnValue(state);
+    mockUseMapSettings.mockReturnValue({
+      mapSettings: {
+        recenterOnStepDuringActiveNavigation: false,
+      },
+    });
+
+    const { getByTestId } = render(<ActiveNavigationOutdoorHeaderContent />);
+
+    fireEvent.press(getByTestId("main-action"));
+
+    expect(state.setCurrentOutdoorStepIndex).toHaveBeenCalledWith(1);
+    expect(mockMoveCamera).not.toHaveBeenCalled();
   });
 
   test("continues indoors on final outdoor step when indoor block follows", () => {

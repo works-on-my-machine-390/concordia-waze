@@ -103,11 +103,17 @@ let capturedGoToMyLocation: (() => void) | undefined;
 
 jest.mock("@/components/MapBottomSection", () => {
   return ({ goToMyLocation }: any) => {
+    const { useMapCamera } = require("@/contexts/MapCameraContext");
+    const { moveCamera } = useMapCamera();
     capturedGoToMyLocation = goToMyLocation;
     const { View, Button } = require("react-native");
     return (
       <View>
         <Button title="My Location" onPress={goToMyLocation} />
+        <Button
+          title="Context Move Camera"
+          onPress={() => moveCamera({ latitude: 45.499, longitude: -73.58 })}
+        />
       </View>
     );
   };
@@ -328,6 +334,30 @@ describe("MainMap screen", () => {
       {
         latitude: 45.4589,
         longitude: -73.64,
+        latitudeDelta: 0.005,
+        longitudeDelta: 0.005,
+      },
+      500,
+    );
+  });
+
+  test("MapCameraProvider exposes moveCamera to descendants", async () => {
+    (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue(
+      {
+        status: "denied",
+      },
+    );
+
+    const { getByText } = renderWithProviders(<MainMap />);
+
+    await act(async () => {
+      fireEvent.press(getByText("Context Move Camera"));
+    });
+
+    expect(mockAnimateToRegion).toHaveBeenCalledWith(
+      {
+        latitude: 45.499,
+        longitude: -73.58,
         latitudeDelta: 0.005,
         longitudeDelta: 0.005,
       },
