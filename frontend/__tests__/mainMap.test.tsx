@@ -604,6 +604,31 @@ describe("MainMap screen", () => {
     });
   });
 
+  test("keeps the camera centered on the user during active navigation when following GPS", async () => {
+    mockGrantedWatchLocation(45.501, -73.601);
+
+    useMapStore.getState().setCurrentMode(MapMode.NAVIGATION);
+
+    useNavigationStore.setState({
+      navigationPhase: NavigationPhase.ACTIVE,
+      followingGPS: true,
+    });
+
+    renderWithProviders(<MainMap />);
+
+    await waitFor(() => {
+      expect(mockAnimateToRegion).toHaveBeenCalledWith(
+        {
+          latitude: 45.501,
+          longitude: -73.601,
+          latitudeDelta: 0.005,
+          longitudeDelta: 0.005,
+        },
+        500,
+      );
+    });
+  });
+
   test("does not update current outdoor step when closest step start is outside threshold", async () => {
     mockGrantedWatchLocation(45.497, -73.579);
 

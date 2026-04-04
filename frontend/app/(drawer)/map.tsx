@@ -230,6 +230,36 @@ export default function MainMap() {
   ]);
 
   useEffect(() => {
+    if (mapState.currentMode !== MapMode.NAVIGATION) {
+      return;
+    }
+
+    if (navigationState.navigationPhase !== NavigationPhase.ACTIVE) {
+      return;
+    }
+
+    if (!navigationState.followingGPS) {
+      return;
+    }
+
+    if (!location?.coords) {
+      return;
+    }
+
+    moveCamera({
+      latitude: location.coords.latitude,
+      longitude: location.coords.longitude,
+      duration: 200,
+    });
+  }, [
+    location?.coords?.latitude,
+    location?.coords?.longitude,
+    mapState.currentMode,
+    navigationState.navigationPhase,
+    navigationState.followingGPS,
+  ]);
+
+  useEffect(() => {
     if (buildingListQuery.data) {
       setBuildingsByCampus((prev) => ({
         ...prev,
@@ -487,6 +517,12 @@ export default function MainMap() {
     });
   };
 
+  const handlePanDrag = () => {
+    if (navigationState.followingGPS) {
+      navigationState.setFollowingGPS(false);
+    }
+  }
+
   const { nextClass } = useNextClass();
 
   return (
@@ -508,6 +544,7 @@ export default function MainMap() {
             longitudeDelta: DEFAULT_MAP_DELTA,
           }}
           onRegionChangeComplete={handleRegionChangeComplete}
+          onPanDrag={handlePanDrag}
         >
           <CampusBuildingPolygons buildings={buildingsToRender} />
           {mapState.currentMode === MapMode.NAVIGATION && (

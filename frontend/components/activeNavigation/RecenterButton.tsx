@@ -1,18 +1,28 @@
 import { COLORS } from "@/app/constants";
 import NavigationBottomSheetStyles from "@/app/styles/navigationBottomSheetStyles";
+import { MoveCameraParams, useMapCamera } from "@/contexts/MapCameraContext";
+import { useMapStore } from "@/hooks/useMapStore";
 import { useNavigationStore } from "@/hooks/useNavigationStore";
 import MaterialCommunityIcons from "@expo/vector-icons/build/MaterialCommunityIcons";
 import { Text, TouchableOpacity } from "react-native";
 
 export default function RecenterButton() {
+  const userLocation = useMapStore((state) => state.userLocation);
   const navigationState = useNavigationStore();
-  const shouldHide = navigationState.followingGPS;
+  const shouldHide = !userLocation || navigationState.followingGPS;
+    const {moveCamera} = useMapCamera();
 
   if (shouldHide) {
     return null;
   }
 
-  const handlePress = () => {};
+  const handlePress = () => {
+    navigationState.setFollowingGPS?.(true);
+    moveCamera({
+        latitude: userLocation.coords.latitude,
+        longitude: userLocation.coords.longitude,
+    } as MoveCameraParams);
+  };
   return (
     <TouchableOpacity
       style={NavigationBottomSheetStyles.recenterButton}
