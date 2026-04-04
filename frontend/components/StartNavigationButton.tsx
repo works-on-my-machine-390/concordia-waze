@@ -1,6 +1,7 @@
 import { IndoorMapPageParams } from "@/app/(drawer)/indoor-map";
 import { COLORS } from "@/app/constants";
 import { isFloorPlanAvailable } from "@/app/utils/indoorMapUtils";
+import { useMapCamera } from "@/contexts/MapCameraContext";
 import {
   IndoorNavigableLocation,
   NavigationPhase,
@@ -17,6 +18,7 @@ type Props = {
 export default function StartNavigationButton(props: Readonly<Props>) {
   const navigationState = useNavigationStore();
   const router = useRouter();
+  const { moveCamera } = useMapCamera();
 
   const isButtonHidden = !navigationState.startLocation;
   if (isButtonHidden) return null; // hides button instead of disabling to leave space for the "Please select a start location" message.
@@ -65,6 +67,12 @@ export default function StartNavigationButton(props: Readonly<Props>) {
     // Otherwise, push the outdoor map.
     router.push({
       pathname: "/map",
+    });
+    // attempt to move the camera, only works if we're already on outdoor map.
+    moveCamera({
+      latitude: startLocation.latitude,
+      longitude: startLocation.longitude,
+      duration: 750,
     });
   };
 
