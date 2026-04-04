@@ -63,8 +63,14 @@ interface NavigationState {
   currentDirections?: DirectionsModel;
   setCurrentDirections?: (directions: DirectionsModel) => void;
 
-  currentOutdoorStepIndex?: number;
+  currentOutdoorStepIndex?: number; // differs from the trackedOutdoorStep, as in this corresponds to the step being displayed.
   setCurrentOutdoorStepIndex?: (index: number) => void;
+
+  trackedOutdoorStepIndex?: number; // the current step the user is at based on GPS location.
+  setTrackedOutdoorStepIndex?: (index: number) => void;
+
+  followingGPS?: boolean; // whether the app is currently trying to sync the displayed step with the user's actual location.
+  setFollowingGPS?: (following: boolean) => void;
 
   currentIndoorStepIndex?: number;
   setCurrentIndoorStepIndex?: (index: number) => void;
@@ -102,6 +108,13 @@ export const useNavigationStore = create<NavigationState>()((set) => ({
   setCurrentOutdoorStepIndex: (index: number) =>
     set({ currentOutdoorStepIndex: index }),
 
+  trackedOutdoorStepIndex: 0,
+  setTrackedOutdoorStepIndex: (index: number) =>
+    set({ trackedOutdoorStepIndex: index }),
+
+  followingGPS: true,
+  setFollowingGPS: (following: boolean) => set({ followingGPS: following }),
+
   currentIndoorStepIndex: 0,
   setCurrentIndoorStepIndex: (index: number) =>
     set({ currentIndoorStepIndex: index }),
@@ -128,10 +141,12 @@ export const useNavigationStore = create<NavigationState>()((set) => ({
       transitMode: undefined,
       currentDirections: undefined,
       currentOutdoorStepIndex: undefined,
+      trackedOutdoorStepIndex: undefined,
       currentIndoorStepIndex: undefined,
       indoorNavigationSteps: [],
       startDateTime: undefined,
       modifyingField: null,
+      followingGPS: true,
       navigationPhase: undefined,
     }),
 }));
