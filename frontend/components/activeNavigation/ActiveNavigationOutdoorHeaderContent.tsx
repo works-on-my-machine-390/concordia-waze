@@ -86,6 +86,7 @@ export default function ActiveNavigationOutdoorHeaderContent() {
     const previousStepIndex = (currentStepIndex || 0) - 1;
     navigationState.setCurrentOutdoorStepIndex(previousStepIndex);
     focusOnStep(outdoorDirections.steps[previousStepIndex]);
+    navigationState.setFollowingGPS(false); // stop following GPS when user manually changes step
   };
 
   const isLastStep = currentStepIndex === outdoorDirections?.steps?.length - 1;
@@ -133,6 +134,7 @@ export default function ActiveNavigationOutdoorHeaderContent() {
     }
     const nextStepIndex = (currentStepIndex || 0) + 1;
     navigationState.setCurrentOutdoorStepIndex(nextStepIndex);
+    navigationState.setFollowingGPS(false); // stop following GPS when user manually changes step
     focusOnStep(outdoorDirections?.steps[nextStepIndex]);
   };
 
