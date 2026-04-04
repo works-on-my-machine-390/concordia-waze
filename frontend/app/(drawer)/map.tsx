@@ -3,12 +3,17 @@ import NavigationPolylines from "@/components/NavigationPolylines";
 import PoiOutdoorMarkers from "@/components/poi/PoiOutdoorMarkers";
 import ShuttleBusMarkers from "@/components/ShuttleBusMarkers";
 import {
+  MapCameraProvider,
+  MoveCameraParams,
+} from "@/contexts/MapCameraContext";
+import {
   CampusBuilding,
   CampusCode,
   useGetBuildingDetails,
   useGetBuildings,
 } from "@/hooks/queries/buildingQueries";
 import { TextSearchRankPreferenceType } from "@/hooks/queries/poiQueries";
+import useMapSettings from "@/hooks/useMapSettings";
 import { MapMode, useMapStore } from "@/hooks/useMapStore";
 import {
   ModifyingFieldOptions,
@@ -17,10 +22,6 @@ import {
 } from "@/hooks/useNavigationStore";
 import { useNextClass } from "@/hooks/useNextClass";
 import { endTaskTimer, startTaskTimer } from "@/lib/telemetry";
-import {
-  MapCameraProvider,
-  MoveCameraParams,
-} from "@/contexts/MapCameraContext";
 import * as Location from "expo-location";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -38,7 +39,6 @@ import {
   STEP_START_PROXIMITY_THRESHOLD_IN_KM,
 } from "../constants";
 import { getDistance } from "../utils/mapUtils";
-import useMapSettings from "@/hooks/useMapSettings";
 
 export type MapQueryParamsModel = {
   selected?: string;
@@ -149,9 +149,8 @@ export default function MainMap() {
     }
   }, [mapState.currentMode]);
 
-  // Automatic step detection useEffect
+  // Automatic step detection + auto following useEffect
   useEffect(() => {
-    // early return when we're not in active navigation, or if location isn't available
     if (
       mapState.currentMode !== MapMode.NAVIGATION ||
       navigationState.navigationPhase !== NavigationPhase.ACTIVE ||
@@ -161,6 +160,11 @@ export default function MainMap() {
       return;
     }
 
+    const userPoint = {
+      latitude: location.coords.latitude,
+      longitude: location.coords.longitude,
+    };
+
     const outdoorDirections =
       navigationState.currentDirections?.directionBlocks.find(
         (block) => block.type === "outdoor",
@@ -168,39 +172,36 @@ export default function MainMap() {
 
     const steps = outdoorDirections?.steps;
 
-    // early return because it's an indoor-only navigation
-    if (!steps?.length) {
-      return;
+    if (steps?.length) {
+      let closestStepIndex = -1;
+      let closestDistanceInKm = Number.POSITIVE_INFINITY;
+
+      steps.forEach((step, index) => {
+        const distanceInKm = getDistance(userPoint, step.start);
+        if (distanceInKm < closestDistanceInKm) {
+          closestDistanceInKm = distanceInKm;
+          closestStepIndex = index;
+        }
+      });
+
+      if (
+        closestStepIndex >= 0 &&
+        closestDistanceInKm <= STEP_START_PROXIMITY_THRESHOLD_IN_KM &&
+        closestStepIndex !== navigationState.trackedOutdoorStepIndex
+      ) {
+        navigationState.setTrackedOutdoorStepIndex?.(closestStepIndex);
+        if (navigationState.followingGPS) {
+          navigationState.setCurrentOutdoorStepIndex?.(closestStepIndex);
+        }
+      }
     }
 
-    const userPoint = {
-      latitude: location.coords.latitude,
-      longitude: location.coords.longitude,
-    };
-
-    let closestStepIndex = -1;
-    let closestDistanceInKm = Number.POSITIVE_INFINITY;
-
-    steps.forEach((step, index) => {
-      // compare against the start points of a step
-      const distanceInKm = getDistance(userPoint, step.start);
-      if (distanceInKm < closestDistanceInKm) {
-        closestDistanceInKm = distanceInKm;
-        closestStepIndex = index;
-      }
-    });
-
-    // we check against the threshold because it would be silly to automatically switch
-    // steps if the user is actually far away.
-    if (
-      closestStepIndex >= 0 &&
-      closestDistanceInKm <= STEP_START_PROXIMITY_THRESHOLD_IN_KM &&
-      closestStepIndex !== navigationState.trackedOutdoorStepIndex
-    ) {
-      navigationState.setTrackedOutdoorStepIndex?.(closestStepIndex);
-      if (navigationState.followingGPS) {
-        navigationState.setCurrentOutdoorStepIndex?.(closestStepIndex); // since we're following the user, change the step text
-      }
+    if (navigationState.followingGPS) {
+      moveCamera({
+        latitude: userPoint.latitude,
+        longitude: userPoint.longitude,
+        duration: 200,
+      });
     }
   }, [
     location?.coords?.latitude,
@@ -210,6 +211,7 @@ export default function MainMap() {
     navigationState.trackedOutdoorStepIndex,
     navigationState.navigationPhase,
     navigationState.transitMode,
+    navigationState.followingGPS,
     mapSettings.recenterAutomaticallyDuringActiveNavigation,
   ]);
 
@@ -226,32 +228,6 @@ export default function MainMap() {
     mapState.currentMode,
     navigationState.startLocation,
     navigationState.endLocation,
-  ]);
-
-  // Auto-follow user location when it changes during active navigation
-  useEffect(() => {
-    if (
-      mapState.currentMode !== MapMode.NAVIGATION ||
-      navigationState.navigationPhase !== NavigationPhase.ACTIVE ||
-      !navigationState.followingGPS ||
-      !location?.coords ||
-      !mapSettings.recenterAutomaticallyDuringActiveNavigation
-    ) {
-      return;
-    }
-
-    moveCamera({
-      latitude: location.coords.latitude,
-      longitude: location.coords.longitude,
-      duration: 200,
-    });
-  }, [
-    location?.coords?.latitude,
-    location?.coords?.longitude,
-    mapState.currentMode,
-    navigationState.navigationPhase,
-    navigationState.followingGPS,
-    mapSettings.recenterAutomaticallyDuringActiveNavigation,
   ]);
 
   useEffect(() => {
