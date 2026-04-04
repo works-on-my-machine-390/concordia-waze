@@ -36,7 +36,7 @@ const INITIAL_MAP_SETTINGS: MapSettings = {
   showBuildingPolygons: true,
   preferAccessibleRoutes: false,
   recenterOnStepDuringActiveNavigation: true,
-  recenterAutomaticallyDuringActiveNavigation: false,
+  recenterAutomaticallyDuringActiveNavigation: true,
 };
 
 type MapSettingsStore = {

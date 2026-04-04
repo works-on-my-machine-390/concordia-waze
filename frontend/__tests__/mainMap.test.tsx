@@ -617,14 +617,14 @@ describe("MainMap screen", () => {
     renderWithProviders(<MainMap />);
 
     await waitFor(() => {
-      expect(mockAnimateToRegion).toHaveBeenCalledWith(
+      expect(mockAnimateToRegion).toHaveBeenLastCalledWith(
         {
           latitude: 45.501,
           longitude: -73.601,
           latitudeDelta: 0.005,
           longitudeDelta: 0.005,
         },
-        500,
+        200,
       );
     });
   });
