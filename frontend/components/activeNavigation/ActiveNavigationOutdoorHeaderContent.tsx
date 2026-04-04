@@ -2,11 +2,13 @@ import { COLORS } from "@/app/constants";
 import { LoginIcon } from "@/app/icons";
 import { activeNavigationHeaderStyles } from "@/app/styles/navigationHeaderStyles";
 import { stripHtmlTags } from "@/app/utils/stringUtils";
+import { MoveCameraParams, useMapCamera } from "@/contexts/MapCameraContext";
 import {
   DirectionsResponseBlockType,
   OutdoorDirectionsBlockModel,
   StepModel,
 } from "@/hooks/queries/navigationQueries";
+import useMapSettings from "@/hooks/useMapSettings";
 import { useMapStore } from "@/hooks/useMapStore";
 import {
   getDirectionsSequence,
@@ -36,6 +38,8 @@ function getTransitInstruction(step: StepModel): string {
 export default function ActiveNavigationOutdoorHeaderContent() {
   const router = useRouter();
   const navigationState = useNavigationStore();
+  const { moveCamera } = useMapCamera();
+  const { mapSettings } = useMapSettings();
   const resetMapState = useMapStore((state) => state.closeSheet);
 
   if (!navigationState.currentDirections) {
@@ -53,9 +57,35 @@ export default function ActiveNavigationOutdoorHeaderContent() {
   const currentStepIndex = navigationState.currentOutdoorStepIndex;
   const currentStep = outdoorDirections?.steps[currentStepIndex || 0];
 
+  const focusOnStep = (step: StepModel | undefined) => {
+    if (!step) return;
+    if (!mapSettings.recenterOnStepDuringActiveNavigation) return;
+
+    const isFinalStep =
+      step === outdoorDirections?.steps?.[outdoorDirections.steps.length - 1];
+
+    let moveCamParams: MoveCameraParams = {
+      latitude: step.start.latitude,
+      longitude: step.start.longitude,
+      duration: 500,
+    };
+    if (isFinalStep) {
+      moveCamParams = {
+        latitude: (step.start.latitude + step.end.latitude) / 2,
+        longitude: (step.start.longitude + step.end.longitude) / 2,
+        delta: (step.start.latitude - step.end.latitude) * 4, // zoom out to fit both start and end of the final step
+        duration: 500,
+      };
+    }
+
+    moveCamera(moveCamParams);
+  };
+
   const handlePreviousStepPress = () => {
     if (!currentStep || !outdoorDirections || currentStepIndex === 0) return;
-    navigationState.setCurrentOutdoorStepIndex((currentStepIndex || 0) - 1);
+    const previousStepIndex = (currentStepIndex || 0) - 1;
+    navigationState.setCurrentOutdoorStepIndex(previousStepIndex);
+    focusOnStep(outdoorDirections.steps[previousStepIndex]);
   };
 
   const isLastStep = currentStepIndex === outdoorDirections?.steps?.length - 1;
@@ -101,7 +131,9 @@ export default function ActiveNavigationOutdoorHeaderContent() {
 
       return;
     }
-    navigationState.setCurrentOutdoorStepIndex((currentStepIndex || 0) + 1);
+    const nextStepIndex = (currentStepIndex || 0) + 1;
+    navigationState.setCurrentOutdoorStepIndex(nextStepIndex);
+    focusOnStep(outdoorDirections?.steps[nextStepIndex]);
   };
 
   const getStepperButtonText = () => {

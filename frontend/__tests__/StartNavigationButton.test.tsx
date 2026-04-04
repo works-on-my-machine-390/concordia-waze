@@ -5,6 +5,7 @@ import StartNavigationButton from "../components/StartNavigationButton";
 const mockUseNavigationStore = jest.fn();
 const mockPush = jest.fn();
 const mockIsFloorPlanAvailable = jest.fn();
+const mockMoveCamera = jest.fn();
 
 jest.mock("expo-router", () => ({
   useRouter: () => ({
@@ -22,6 +23,10 @@ jest.mock("../hooks/useNavigationStore", () => ({
     ACTIVE: "ACTIVE",
   },
   useNavigationStore: () => mockUseNavigationStore(),
+}));
+
+jest.mock("@/contexts/MapCameraContext", () => ({
+  useMapCamera: () => ({ moveCamera: mockMoveCamera }),
 }));
 
 jest.mock("@expo/vector-icons/MaterialCommunityIcons", () => {
@@ -93,6 +98,11 @@ describe("StartNavigationButton", () => {
     expect(state.setCurrentOutdoorStepIndex).toHaveBeenCalledWith(0);
     expect(state.setStartDateTime).toHaveBeenCalledWith(expect.any(Date));
     expect(mockPush).toHaveBeenCalledWith({ pathname: "/map" });
+    expect(mockMoveCamera).toHaveBeenCalledWith({
+      latitude: 45.497,
+      longitude: -73.579,
+      duration: 750,
+    });
   });
 
   test("navigates to indoor map when start location is indoor and floor map exists", () => {
@@ -123,6 +133,7 @@ describe("StartNavigationButton", () => {
         selectedPoiName: "MB S2",
       },
     });
+    expect(mockMoveCamera).not.toHaveBeenCalled();
   });
 
   test("does not start navigation when disabled prop is true", () => {
