@@ -1,0 +1,77 @@
+appId: host.exp.Exponent
+---
+# 1) Sign in
+- tapOn: "Sign Up / Log in"
+
+- assertVisible: "Welcome back!"
+
+- tapOn:
+    id: "email-input-login"
+- inputText: "e2e@cwaze.ca"
+
+- scroll
+
+- tapOn:
+    id: "password-input-login"
+- inputText: "e2eCwaze!"
+- scroll
+
+- tapOn: "Sign in" # The sign in button
+
+# 2) Wait until the map screen is loaded (SGW campus label visible)
+- extendedWaitUntil:
+    visible: "SGW"
+    timeout: 8000
+
+# 3) Open menu
+- tapOn: 
+
+# 4) Open Schedule tab
+- assertVisible: Schedule
+- tapOn: Schedule
+
+# 5) Wait until schedule page is open
+- assertVisible: Upcoming Classes
+
+# 6) Click the + icon
+- tapOn: 
+
+# 5) Check for "Add a course"
+- assertVisible: Add a Course
+
+# 6) Focus course name input
+- tapOn: e.g. SOEN 384
+
+# 7) Input course name
+- inputText: "SOEN 390"
+
+# 8) Click Add a lec/lab/tut (double tap to deselect the course name input)
+- doubleTapOn: Add a lecture, lab or tutorial for this course
+
+# 9) Fill out form
+- tapOn: Lecture
+- tapOn: e.g. S JL
+- inputText: "Q"
+- doubleTapOn: MON
+- tapOn: 09:00
+- tapOn: OK
+- tapOn: 10:30
+- swipe:
+    from:
+      text: "09"
+    direction: UP
+- tapOn: OK
+- tapOn: Building (e.g. H)
+- inputText: "H"
+- doubleTapOn: Room (e.g. 110)
+- inputText: "825"
+- doubleTapOn: Add Class
+
+# 10) Save class
+
+- assertVisible: Save Class
+- tapOn: Save Class
+
+# 11) Check if class is added
+- assertVisible: Schedule
+- assertVisible: SOEN 390

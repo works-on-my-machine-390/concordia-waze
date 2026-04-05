@@ -1,0 +1,33 @@
+appId: host.exp.Exponent
+---
+# 1) Continue as guest (skip login and enter app as a guest user)
+- tapOn: "Use without account"
+
+# 2) Wait until the map screen is loaded (SGW campus label visible)
+- extendedWaitUntil:
+    visible: "SGW"
+    timeout: 8000
+
+# 3) Open next class drawer
+- tapOn:
+    point: 2%,85%
+
+# 4) Assert next class shown (alarm icon)
+- assertVisible: 
+
+# 5) Get directions to next class
+- tapOn: 
+
+# 6) Assert navigation mode entered (preparation phase)
+- assertVisible: "Start"
+- assertVisible: "Drive"
+
+# 7) Expand bottom sheet
+- swipe:
+    from:
+      text: "Drive"
+    direction: UP
+    duration: 600
+
+# 8) Assert directions available
+- assertVisible: "Steps"
