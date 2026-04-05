@@ -33,7 +33,9 @@ export default function MapBottomSection(
   const state = useMapStore();
   const navigationPhase = useNavigationStore((state) => state.navigationPhase);
 
-  const [currentSheetIndex, setCurrentSheetIndex] = useState<number | null>(null);
+  const [currentSheetIndex, setCurrentSheetIndex] = useState<number | null>(
+    null,
+  );
 
   // Reset sheet index when mode changes
   useEffect(() => {
@@ -69,7 +71,9 @@ export default function MapBottomSection(
   }, [isNoSheetOpen, currentSheetIndex]);
 
   const renderNextClassDrawer = () => {
-    if (navigationPhase) return null;
+    const bottomSheetVisible = state.currentMode !== MapMode.NONE;
+    const navigationActive = navigationPhase !== undefined;
+    if (bottomSheetVisible || navigationActive) return null;
     return <NextClassDrawer nextClass={props.nextClass ?? null} />;
   };
 
@@ -77,7 +81,10 @@ export default function MapBottomSection(
     return (
       <>
         {state.currentMode === MapMode.POI && (
-          <PoiSearchBottomSheet moveCamera={props.moveCamera} onSheetIndexChange={handleSheetIndexChange} />
+          <PoiSearchBottomSheet
+            moveCamera={props.moveCamera}
+            onSheetIndexChange={handleSheetIndexChange}
+          />
         )}
 
         {state.currentMode === MapMode.BUILDING && (
@@ -86,15 +93,21 @@ export default function MapBottomSection(
 
         {state.currentMode === MapMode.NAVIGATION &&
           navigationPhase === NavigationPhase.PREPARATION && (
-            <NavigationBottomSheet onSheetIndexChange={handleSheetIndexChange} />
+            <NavigationBottomSheet
+              onSheetIndexChange={handleSheetIndexChange}
+            />
           )}
 
         {state.currentMode === MapMode.NAVIGATION &&
           navigationPhase === NavigationPhase.ACTIVE && (
-            <ActiveNavigationBottomSheet onSheetIndexChange={handleSheetIndexChange} />
+            <ActiveNavigationBottomSheet
+              onSheetIndexChange={handleSheetIndexChange}
+            />
           )}
 
-        {state.currentMode === MapMode.SETTINGS && <MapSettingsBottomSheet onSheetIndexChange={handleSheetIndexChange} />}
+        {state.currentMode === MapMode.SETTINGS && (
+          <MapSettingsBottomSheet onSheetIndexChange={handleSheetIndexChange} />
+        )}
       </>
     );
   };
@@ -104,8 +117,8 @@ export default function MapBottomSection(
       style={mapBottomSheetStyles.bottomSheetContainer}
       pointerEvents="box-none"
     >
-      {renderSheets()}
       {renderNextClassDrawer()}
+      {renderSheets()}
 
       {!isLargeSheetOpen && (
         <View
