@@ -1,0 +1,49 @@
+appId: host.exp.Exponent
+---
+# 1) Continue as guest (skip login and enter app as a guest user)
+- tapOn: "Use without account"
+
+# 2) Wait until the map screen is loaded (SGW campus label visible)
+- extendedWaitUntil:
+    visible: "SGW"
+    timeout: 8000
+
+# 3) Open menu
+- tapOn: 
+
+# 4) Open Schedule tab
+- assertVisible: Schedule
+- tapOn: Schedule
+
+# 5) Wait until schedule page is open
+- assertVisible: Upcoming Classes
+
+# 6) Click on the edit icon of the first upcoming class in the schedule.
+- tapOn: 
+
+# 7) Assert that the edit class screen is visible
+- assertVisible: Edit Class
+
+# 8) Modify class fields
+
+- tapOn:
+    id: "section-input"
+- eraseText
+- inputText: E2E
+
+- doubleTapOn:
+    id: "building-input"
+- eraseText
+- inputText: MB
+
+- doubleTapOn:
+    id: "room-input"
+- eraseText
+- inputText: "1.031"
+
+# 9) Save
+- scroll
+- doubleTapOn: Confirm & Save
+
+# 10) Assert successful modification
+- assertVisible: "MB 1.031"
