@@ -1,5 +1,6 @@
 import SearchNearbyButton from "@/components/poi/SearchNearbyButton";
 import SearchNearbySuggestions from "@/components/poi/SearchNearbySuggestions";
+import SearchForTypeButton from "@/components/SearchForTypeButton";
 import {
   addGuestSearchHistory,
   clearGuestSearchHistory,
@@ -38,10 +39,9 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { COLORS } from "./constants";
 import { colors, SHADOW } from "./styles/theme";
 import { filterBuildingsByQuery } from "./utils/searchUtils";
-import SearchForTypeButton from "@/components/SearchForTypeButton";
-import { COLORS } from "./constants";
 
 export type SearchQueryParamsModel = {
   campus?: string;

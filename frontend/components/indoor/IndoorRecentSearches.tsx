@@ -1,7 +1,6 @@
 import { searchStyles } from "@/app/search";
-import { colors, SHADOW } from "@/app/styles/theme";
 import type { RecentIndoorSearch } from "@/hooks/useIndoorSearch";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 
 type Props = {
   searches: RecentIndoorSearch[];
