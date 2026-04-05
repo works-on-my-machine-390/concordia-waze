@@ -1,0 +1,117 @@
+import { IndoorMapPageParams } from "@/app/(drawer)/indoor-map";
+import { COLORS } from "@/app/constants";
+import { isFloorPlanAvailable } from "@/app/utils/indoorMapUtils";
+import { useMapCamera } from "@/contexts/MapCameraContext";
+import {
+  IndoorNavigableLocation,
+  NavigationPhase,
+  useNavigationStore,
+} from "@/hooks/useNavigationStore";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { useRouter } from "expo-router";
+import { StyleSheet, Text, TouchableOpacity } from "react-native";
+
+type Props = {
+  disabled?: boolean;
+};
+
+export default function StartNavigationButton(props: Readonly<Props>) {
+  const navigationState = useNavigationStore();
+  const router = useRouter();
+  const { moveCamera } = useMapCamera();
+
+  const isButtonHidden = !navigationState.startLocation;
+  if (isButtonHidden) return null; // hides button instead of disabling to leave space for the "Please select a start location" message.
+
+  const isNavigationReady =
+    navigationState.navigationPhase === NavigationPhase.PREPARATION &&
+    !!navigationState.currentDirections &&
+    !!navigationState.startLocation &&
+    !!navigationState.endLocation &&
+    !!navigationState.transitMode;
+
+  // start navigation logic centralized here
+  const handleStartNavigation = () => {
+    if (!isNavigationReady || props.disabled) return;
+
+    navigationState.setNavigationPhase(NavigationPhase.ACTIVE);
+    navigationState.setCurrentOutdoorStepIndex(0);
+    navigationState.setStartDateTime(new Date()); // set start time to now
+
+    const startLocation = navigationState.startLocation;
+
+    // If the start location is an indoor location, validate that we have the floor map for it before navigating to the indoor map page.
+    if ((startLocation as IndoorNavigableLocation).building) {
+      const startAsIndoorLocation = startLocation as IndoorNavigableLocation;
+
+      if (
+        isFloorPlanAvailable(
+          startAsIndoorLocation.building,
+          startAsIndoorLocation.floor_number,
+        )
+      ) {
+        const upcomingQueryParams: IndoorMapPageParams = {
+          buildingCode: startAsIndoorLocation.building,
+          selectedFloor: startAsIndoorLocation.floor_number.toString(),
+          selectedPoiName: startAsIndoorLocation.name,
+        };
+
+        router.push({
+          pathname: "/indoor-map",
+          params: upcomingQueryParams,
+        });
+        return;
+      }
+    }
+
+    // Otherwise, push the outdoor map.
+    router.push({
+      pathname: "/map",
+    });
+    // attempt to move the camera, only works if we're already on outdoor map.
+    moveCamera({
+      latitude: startLocation.latitude,
+      longitude: startLocation.longitude,
+      duration: 750,
+    });
+  };
+
+  return (
+    <TouchableOpacity
+      onPress={handleStartNavigation}
+      disabled={!isNavigationReady || props.disabled} // prop override
+      style={[styles.button, !isNavigationReady && styles.disabledButton]}
+    >
+      <Text style={[styles.text, !isNavigationReady && styles.disabledText]}>
+        Start
+      </Text>
+      <MaterialCommunityIcons
+        name="navigation"
+        size={20}
+        color={isNavigationReady ? COLORS.textPrimary : COLORS.textMuted}
+      />
+    </TouchableOpacity>
+  );
+}
+
+const styles = StyleSheet.create({
+  button: {
+    backgroundColor: COLORS.conuRedLight,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 32,
+    flexDirection: "row",
+    gap: 8,
+  },
+
+  disabledButton: {
+    backgroundColor: COLORS.bgDark,
+  },
+  text: {
+    fontSize: 16,
+    color: COLORS.textPrimary,
+  },
+  disabledText: {
+    color: COLORS.textMuted,
+  },
+});

@@ -5,7 +5,7 @@ import {
   getTransitStepVerticalLineColorStyle,
 } from "@/app/styles/directionStyles";
 import {
-  DirectionsModel,
+  OutdoorDirectionsModel,
   StepModel,
   TransitMode,
   TransitType,
@@ -16,7 +16,7 @@ import TransitTypeIcon from "./TransitTypeIcon";
 import WalkingDottedLine from "./WalkingDottedLine";
 
 export type OutdoorNavigationStepsProps = {
-  directions: DirectionsModel;
+  directions: OutdoorDirectionsModel;
 };
 
 export default function OutdoorNavigationTransitSteps(
@@ -158,7 +158,8 @@ export default function OutdoorNavigationTransitSteps(
       </View>
 
       {props.directions.steps.map((step: StepModel, index) => {
-        if (step.travel_mode === TransitMode.TRANSIT) {
+        const travelMode = step.travel_mode?.toLowerCase();
+        if (travelMode === TransitMode.transit) {
           return renderTransitStep(step, index);
         } else {
           return renderWalkingStep(step, index);

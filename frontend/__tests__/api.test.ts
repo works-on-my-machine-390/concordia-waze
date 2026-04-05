@@ -1,4 +1,7 @@
-import { api, API_URL } from "../hooks/api";
+import { AUTH_EXPIRED_EVENT, api, API_URL, isTokenExpired } from "../hooks/api";
+import * as SecureStore from "expo-secure-store";
+
+const testApiUrl = "https://api.example.com";
 
 // Mock wretch
 jest.mock("wretch", () => {
@@ -13,19 +16,27 @@ jest.mock("wretch", () => {
 });
 
 describe("api", () => {
+  const originalDev = (globalThis as any).__DEV__;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    (globalThis as any).__DEV__ = true;
+    delete process.env.EXPO_PUBLIC_API_URL;
+    delete process.env.EXPO_PUBLIC_API_OVERRIDE_TYPE;
   });
 
-  test("API_URL defaults to localhost:8080", () => {
-    // When REACT_APP_API_BASE is not set
-    expect(API_URL).toBe("http://localhost:8080");
+  afterAll(() => {
+    (globalThis as any).__DEV__ = originalDev;
+  });
+
+  test("API_URL defaults to local development URL when not configured", () => {
+    expect(API_URL).toMatch(/^http:\/\/.+:8080$/);
   });
 
   test("api() without token calls wretch with no auth header", async () => {
     const wretch = require("wretch");
     await api();
-    expect(wretch).toHaveBeenCalledWith("http://localhost:8080");
+    expect(wretch).toHaveBeenCalledWith(API_URL);
   });
 
   test("api() with token includes Authorization header", async () => {
@@ -36,7 +47,7 @@ describe("api", () => {
     const validToken = "eyJhbGciOiJIUzI1NiJ9.eyJleHAiOjk5OTk5OTk5OTl9.fake";
     await api(validToken);
 
-    expect(wretch).toHaveBeenCalledWith("http://localhost:8080");
+    expect(wretch).toHaveBeenCalledWith(API_URL);
     expect(mockHeadersFn).toHaveBeenCalledWith({
       Authorization: `Bearer ${validToken}`,
     });
@@ -45,19 +56,19 @@ describe("api", () => {
   test("api() with empty token string calls wretch without auth header", async () => {
     const wretch = require("wretch");
     await api("");
-    expect(wretch).toHaveBeenCalledWith("http://localhost:8080");
+    expect(wretch).toHaveBeenCalledWith(API_URL);
   });
 
   test("api() with null token calls without auth header", async () => {
     const wretch = require("wretch");
     await api(null as any);
-    expect(wretch).toHaveBeenCalledWith("http://localhost:8080");
+    expect(wretch).toHaveBeenCalledWith(API_URL);
   });
 
   test("api() with undefined token calls without auth header", async () => {
     const wretch = require("wretch");
-    await api(undefined);
-    expect(wretch).toHaveBeenCalledWith("http://localhost:8080");
+    await api();
+    expect(wretch).toHaveBeenCalledWith(API_URL);
   });
 
   test("api() with long token string includes full Authorization header", async () => {
@@ -68,7 +79,7 @@ describe("api", () => {
     });
 
     const longToken =
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c";
+      "eyJhbGciOiJIUzI1NiJ9.eyJleHAiOjk5OTk5OTk5OTl9.signature-with-many-characters";
 
     await api(longToken);
 
@@ -85,7 +96,86 @@ describe("api", () => {
 
     await api(expiredToken);
 
-    expect(emitSpy).toHaveBeenCalledWith("auth:expired");
-    expect(wretch).toHaveBeenCalledWith("http://localhost:8080");
+    expect(SecureStore.deleteItemAsync).toHaveBeenCalledWith("accessToken");
+    expect(emitSpy).toHaveBeenCalledWith(AUTH_EXPIRED_EVENT);
+    expect(wretch).toHaveBeenCalledWith(API_URL);
+  });
+
+  test("isTokenExpired() returns true for malformed token payload", () => {
+    expect(isTokenExpired("not-a-jwt")).toBe(true);
+  });
+
+  test("API_URL uses EXPO_PUBLIC_API_URL when configured", () => {
+    jest.resetModules();
+    process.env.EXPO_PUBLIC_API_URL = testApiUrl;
+
+    jest.isolateModules(() => {
+      const isolated = require("../hooks/api");
+      expect(isolated.API_URL).toBe(testApiUrl);
+    });
+  });
+
+  test("API_URL uses local override when EXPO_PUBLIC_API_OVERRIDE_TYPE is local", () => {
+    jest.resetModules();
+    process.env.EXPO_PUBLIC_API_OVERRIDE_TYPE = "local";
+    process.env.EXPO_PUBLIC_API_URL = testApiUrl;
+
+    jest.isolateModules(() => {
+      const isolated = require("../hooks/api");
+      expect(isolated.API_URL).not.toBe(testApiUrl);
+    });
+  });
+
+  test("API_URL uses ngrok override when EXPO_PUBLIC_API_OVERRIDE_TYPE is ngrok", () => {
+    jest.resetModules();
+    process.env.EXPO_PUBLIC_API_OVERRIDE_TYPE = "ngrok";
+
+    jest.isolateModules(() => {
+      const isolated = require("../hooks/api");
+      expect(isolated.API_URL).not.toBe(testApiUrl);
+    });
+  });
+
+  test("API_URL uses production override when EXPO_PUBLIC_API_OVERRIDE_TYPE is prod", () => {
+    jest.resetModules();
+    process.env.EXPO_PUBLIC_API_OVERRIDE_TYPE = "prod";
+
+    jest.isolateModules(() => {
+      const isolated = require("../hooks/api");
+      expect(isolated.API_URL).not.toBe(testApiUrl);
+    });
+  });
+
+  test("API_URL ignores configured URL when override is set", () => {
+    jest.resetModules();
+    process.env.EXPO_PUBLIC_API_OVERRIDE_TYPE = "ngrok";
+    process.env.EXPO_PUBLIC_API_URL = testApiUrl;
+
+    jest.isolateModules(() => {
+      const isolated = require("../hooks/api");
+      expect(isolated.API_URL).not.toBe(testApiUrl);
+    });
+  });
+
+  test("API_URL falls back to configured URL when override is none", () => {
+    jest.resetModules();
+    process.env.EXPO_PUBLIC_API_OVERRIDE_TYPE = "none";
+    process.env.EXPO_PUBLIC_API_URL = testApiUrl;
+
+    jest.isolateModules(() => {
+      const isolated = require("../hooks/api");
+      expect(isolated.API_URL).toBe(testApiUrl);
+    });
+  });
+
+  test("API_URL uses production fallback when not in development", () => {
+    jest.resetModules();
+    delete process.env.EXPO_PUBLIC_API_URL;
+
+    jest.isolateModules(() => {
+      (globalThis as any).__DEV__ = false;
+      const isolated = require("../hooks/api");
+      expect(isolated.API_URL).toBe("https://concordia-waze.onrender.com");
+    });
   });
 });

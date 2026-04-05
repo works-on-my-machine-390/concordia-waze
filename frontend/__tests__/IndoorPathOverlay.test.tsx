@@ -1,6 +1,7 @@
 import React from "react";
 import { render } from "@testing-library/react-native";
 import IndoorPathOverlay from "@/components/indoor/IndoorPathOverlay";
+import { useNavigationStore } from "@/hooks/useNavigationStore";
 
 jest.mock("react-native-svg", () => {
   const React = require("react");
@@ -12,84 +13,116 @@ jest.mock("react-native-svg", () => {
   };
 });
 
+jest.mock("expo-router", () => ({
+  useLocalSearchParams: jest.fn(() => ({
+    buildingCode: "H",
+    selectedFloor: "1",
+  })),
+}));
+
+jest.mock("@/app/utils/pathUtils", () => ({
+  createDottedPathPoints: jest.fn((path) => path),
+  getClosestPointIndex: jest.fn(() => 0),
+  getSafeStepIndex: jest.fn((index) => index ?? 0),
+  getSegmentIndexFromStepId: jest.fn(() => undefined),
+  orthogonalizePath: jest.fn((path) => path),
+  simplifyOrthogonalPath: jest.fn((path) => path),
+}));
+
 describe("IndoorPathOverlay", () => {
-  it("returns null when path is missing", () => {
+  beforeEach(() => {
+    useNavigationStore.setState({
+      currentDirections: undefined,
+      startLocation: undefined,
+      endLocation: undefined,
+      indoorNavigationSteps: [],
+      currentIndoorStepIndex: 0,
+    });
+  });
+
+  it("returns null when no matching floor segment is available", () => {
     const { queryByTestId } = render(
-      <IndoorPathOverlay path={[]} width={100} height={100} />,
+      <IndoorPathOverlay width={100} height={100} />,
     );
 
     expect(queryByTestId("svg-root")).toBeNull();
   });
 
-  it("renders svg dots and start marker for a simple path", () => {
+  it("renders dots and markers for a valid indoor segment", () => {
+    useNavigationStore.setState({
+      startLocation: {
+        name: "Hall",
+        code: "H",
+        latitude: 45.49,
+        longitude: -73.57,
+        building: "H",
+        floor_number: 1,
+        indoor_position: { x: 0.1, y: 0.1 },
+      } as any,
+      currentDirections: {
+        durationBlock: { type: "duration", durations: {} },
+        directionBlocks: [
+          {
+            type: "indoor",
+            directions: {
+              segments: [
+                {
+                  floorNumber: 1,
+                  distance: 10,
+                  path: [
+                    { x: 0.1, y: 0.1 },
+                    { x: 0.8, y: 0.1 },
+                  ],
+                },
+              ],
+            },
+          },
+        ],
+      } as any,
+    });
+
     const { getByTestId, getAllByTestId } = render(
-      <IndoorPathOverlay
-        path={[
-          { x: 0.1, y: 0.1 },
-          { x: 0.8, y: 0.1 },
-        ]}
-        width={200}
-        height={200}
-      />,
+      <IndoorPathOverlay width={200} height={200} />,
     );
 
     expect(getByTestId("svg-root")).toBeTruthy();
-    expect(getAllByTestId("svg-circle").length).toBeGreaterThan(0);
+    expect(getAllByTestId("indoor-path-dot").length).toBeGreaterThan(0);
+    expect(getByTestId("indoor-path-start")).toBeTruthy();
+    expect(getByTestId("indoor-path-end")).toBeTruthy();
   });
 
-  it("applies endOverride when provided", () => {
-    const { getAllByTestId } = render(
-      <IndoorPathOverlay
-        path={[
-          { x: 0.1, y: 0.1 },
-          { x: 0.8, y: 0.1 },
-        ]}
-        width={200}
-        height={200}
-        endOverride={{ x: 0.6, y: 0.2 }}
-      />,
-    );
+  it("returns null when current segment path is too short", () => {
+    useNavigationStore.setState({
+      startLocation: {
+        name: "Hall",
+        code: "H",
+        latitude: 45.49,
+        longitude: -73.57,
+        building: "H",
+        floor_number: 1,
+        indoor_position: { x: 0.1, y: 0.1 },
+      } as any,
+      currentDirections: {
+        durationBlock: { type: "duration", durations: {} },
+        directionBlocks: [
+          {
+            type: "indoor",
+            directions: {
+              segments: [
+                {
+                  floorNumber: 1,
+                  distance: 10,
+                  path: [{ x: 0.1, y: 0.1 }],
+                },
+              ],
+            },
+          },
+        ],
+      } as any,
+    });
 
-    expect(getAllByTestId("svg-circle").length).toBeGreaterThan(0);
-  });
+    const { queryByTestId } = render(<IndoorPathOverlay width={200} height={200} />);
 
-  it("uses startOverride to trim the path", () => {
-    const { getAllByTestId } = render(
-      <IndoorPathOverlay
-        path={[
-          { x: 0.1, y: 0.1 },
-          { x: 0.4, y: 0.1 },
-          { x: 0.4, y: 0.5 },
-        ]}
-        width={200}
-        height={200}
-        startOverride={{ x: 0.3, y: 0.1 }}
-      />,
-    );
-
-    expect(getAllByTestId("svg-circle").length).toBeGreaterThan(0);
-  });
-
-  it("handles orthogonalization and polygon snapping", () => {
-    const { getAllByTestId } = render(
-      <IndoorPathOverlay
-        path={[
-          { x: 0.1, y: 0.1 },
-          { x: 0.5, y: 0.4 },
-          { x: 0.8, y: 0.4 },
-        ]}
-        width={300}
-        height={300}
-        endPolygon={[
-          { x: 0.75, y: 0.35 },
-          { x: 0.85, y: 0.35 },
-          { x: 0.85, y: 0.45 },
-          { x: 0.75, y: 0.45 },
-        ]}
-        color="#FF0000"
-      />,
-    );
-
-    expect(getAllByTestId("svg-circle").length).toBeGreaterThan(0);
+    expect(queryByTestId("svg-root")).toBeNull();
   });
 });

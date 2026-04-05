@@ -28,6 +28,10 @@ const createPoiWithPolygon = (
     x: i * 0.1,
     y: i * 0.1,
   })),
+  floor_number: 1,
+  latitude: 45.497,
+  longitude: -73.579,
+  building: "CC",
 });
 
 const createPoiWithoutPolygon = (name: string): PointOfInterest => ({
@@ -35,6 +39,10 @@ const createPoiWithoutPolygon = (name: string): PointOfInterest => ({
   type: "room",
   position: { x: 0.5, y: 0.5 },
   polygon: [],
+  floor_number: 1,
+  latitude: 45.497,
+  longitude: -73.579,
+  building: "CC",
 });
 
 describe("PolygonOverlay", () => {
@@ -145,7 +153,7 @@ describe("PolygonOverlay", () => {
     expect(queryAllByTestId("room-polygon")).toHaveLength(0);
   });
 
-  test("calls onSelectPoi with poi name when polygon is pressed", () => {
+  test("calls onSelectPoi with poi object when polygon is pressed", () => {
     const pois = [
       createPoiWithPolygon("Room 101", 4),
       createPoiWithPolygon("Room 102", 5),
@@ -165,12 +173,16 @@ describe("PolygonOverlay", () => {
 
     // Press the first polygon
     fireEvent.press(polygons[0]);
-    expect(mockOnSelectPoi).toHaveBeenCalledWith("Room 101");
+    expect(mockOnSelectPoi).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "Room 101" }),
+    );
     expect(mockOnSelectPoi).toHaveBeenCalledTimes(1);
 
     // Press the second polygon
     fireEvent.press(polygons[1]);
-    expect(mockOnSelectPoi).toHaveBeenCalledWith("Room 102");
+    expect(mockOnSelectPoi).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "Room 102" }),
+    );
     expect(mockOnSelectPoi).toHaveBeenCalledTimes(2);
   });
 

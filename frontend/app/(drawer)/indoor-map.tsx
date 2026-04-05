@@ -1,123 +1,84 @@
 import IndoorMapContainer from "@/components/indoor/IndoorMapContainer";
 import IndoorMapHeader from "@/components/indoor/IndoorMapHeader";
-import IndoorItineraryBottomSheet, {
-  ITINERARY_SHEET_HEIGHT,
-} from "@/components/indoor/IndoorItineraryBottomSheet";
-import IndoorItineraryHeader from "@/components/indoor/IndoorItineraryHeader";
 
 import { useGetBuildingDetails } from "@/hooks/queries/buildingQueries";
-import { useIndoorItineraryController } from "@/hooks/useIndoorItineraryController";
-import { useIndoorNavigationStore } from "@/hooks/useIndoorNavigationStore";
+import { useGetBuildingFloors } from "@/hooks/queries/indoorMapQueries";
+import useMapSettings, { MapSettings } from "@/hooks/useMapSettings";
+import { trackEvent } from "@/lib/telemetry";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect } from "react";
 import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import useMapSettings, { MapSettings } from "@/hooks/useMapSettings";
 
 const BROWSE_SHEET_HEIGHT = 160;
+
+// for these variables, the search params are the source of truth.
+export type IndoorMapPageParams = {
+  buildingCode: string;
+  selectedFloor: string;
+
+  // including both room and non-room POIs. POIs don't have IDs which is why we resort to names.
+  // names aren't unique across floors which is why they must be processed in conjunction with the selected floor & building.
+  selectedPoiName?: string;
+};
 
 export default function IndoorMapPage() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const nav = useIndoorNavigationStore();
+  const params = useLocalSearchParams<IndoorMapPageParams>();
 
-  const params = useLocalSearchParams<{
-    buildingCode?: string;
-    selectedRoom?: string;
-    selectedFloor?: string;
-  }>();
+  const floorQuery = useGetBuildingFloors(params.buildingCode);
 
-  const buildingCode = params.buildingCode ?? "";
-  const ctrl = useIndoorItineraryController(buildingCode);
+  useEffect(() => {
+    if (!params.selectedFloor) {
+      router.setParams({
+        selectedFloor: floorQuery.data?.floors[0].number.toString(),
+      });
+    }
+  }, [floorQuery.data, params.selectedFloor, router]);
 
-  const { data: buildingData } = useGetBuildingDetails(buildingCode);
+  const { data: buildingData } = useGetBuildingDetails(params.buildingCode);
   const { mapSettings, updateSetting } = useMapSettings();
 
   const isAccessibilityMode = mapSettings.preferAccessibleRoutes;
   const handleToggleAccessibilityMode = () => {
-    updateSetting(
-      MapSettings.preferAccessibleRoutes,
-      !mapSettings.preferAccessibleRoutes,
-    );
+    const newValue = !mapSettings.preferAccessibleRoutes;
+    updateSetting(MapSettings.preferAccessibleRoutes, newValue);
+    void trackEvent("accessibility_toggled", { enabled: newValue });
   };
-
-  const hardReset = () => {
-    if (typeof (nav as any).reset === "function") {
-      (nav as any).reset();
-      return;
-    }
-
-    nav.exitItinerary();
-    nav.setSelectedRoom(null);
-    nav.setPickMode("start");
-    nav.setStart(null);
-    nav.setEnd(null);
-    nav.clearRoute();
-    nav.setCurrentFloor?.(null);
-  };
-
-  useEffect(() => {
-    hardReset();
-    return () => hardReset();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [buildingCode]);
 
   const handleSearchPress = () => {
     router.push({
       pathname: "/indoor-search",
       params: {
-        buildingCode,
-        buildingName: buildingData?.long_name || buildingCode,
+        buildingCode: params.buildingCode,
+        buildingName: buildingData?.long_name || params.buildingCode,
+        previouslySelectedFloor: params.selectedFloor,
       },
     });
   };
 
   const handleBackToOutdoor = () => {
-    hardReset();
     router.replace("/map");
   };
 
-  const selectorOffset =
-    nav.mode === "ITINERARY"
-      ? ITINERARY_SHEET_HEIGHT + Math.max(insets.bottom, 8) + 24
-      : BROWSE_SHEET_HEIGHT + Math.max(insets.bottom, 8) + 24;
-
-  const parsedSearchFloor = params.selectedFloor
-    ? Number.parseInt(params.selectedFloor, 10)
-    : undefined;
+  const floorSelectorBottomOffset =
+    BROWSE_SHEET_HEIGHT + Math.max(insets.bottom, 8) + 24;
 
   return (
     <View style={styles.container}>
       <IndoorMapContainer
-        buildingCode={buildingCode}
-        routeSegments={ctrl.routeSegments}
-        preferredFloorNumber={nav.currentFloor ?? null}
-        floorSelectorBottomOffset={selectorOffset}
-        selectedRoomFromSearch={
-          nav.mode === "BROWSE" ? params.selectedRoom : undefined
-        }
-        selectedFloorFromSearch={
-          nav.mode === "BROWSE" ? parsedSearchFloor : undefined
-        }
+        buildingCode={params.buildingCode}
+        floorSelectorBottomOffset={floorSelectorBottomOffset}
         requireAccessible={isAccessibilityMode}
       />
 
-      {nav.mode === "ITINERARY" ? (
-        <>
-          <IndoorItineraryHeader
-            buildingCode={buildingCode}
-            buildingName={buildingData?.long_name || buildingCode}
-          />
-          <IndoorItineraryBottomSheet buildingCode={buildingCode} />
-        </>
-      ) : (
-        <IndoorMapHeader
-          onSearchPress={handleSearchPress}
-          onBackToOutdoor={handleBackToOutdoor}
-          isAccessibilityMode={isAccessibilityMode}
-          onAccessibilityToggle={handleToggleAccessibilityMode}
-        />
-      )}
+      <IndoorMapHeader
+        onSearchPress={handleSearchPress}
+        onBackToOutdoor={handleBackToOutdoor}
+        isAccessibilityMode={isAccessibilityMode}
+        onAccessibilityToggle={handleToggleAccessibilityMode}
+      />
     </View>
   );
 }

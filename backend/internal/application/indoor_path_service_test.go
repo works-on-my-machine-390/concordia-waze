@@ -215,6 +215,39 @@ func TestMultiFloorShortestPath_DifferentFloors_PreferElevator(t *testing.T) {
 	assert.Equal(t, TransitionElevator, result.TransitionType)
 }
 
+func TestMultiFloorShortestPath_DifferentFloors_UnlinkedStairs_UsesGeometricFallback(t *testing.T) {
+	floor1 := createSimpleFloor(1, "VLFloor1", []domain.PointOfInterest{
+		{Name: "stairs_a", Type: "stairs", Position: domain.Coordinates{X: 0.5, Y: 0.5}},
+	})
+	floor2 := createSimpleFloor(2, "VLFloor2", []domain.PointOfInterest{
+		{Name: "stairs_b", Type: "stairs", Position: domain.Coordinates{X: 0.5, Y: 0.5}},
+	})
+
+	floorRepo := &mockFloorRepoForPath{
+		floors: map[string][]domain.Floor{
+			"VL": {floor1, floor2},
+		},
+	}
+	roomRepo := &mockIndoorRoomRepoForPath{rooms: map[string][]domain.IndoorRoom{}}
+
+	svc := NewIndoorPathService(floorRepo, roomRepo)
+
+	start := domain.Coordinates{X: 0, Y: 0}
+	end := domain.Coordinates{X: 1, Y: 1}
+
+	result, err := svc.MultiFloorShortestPath(MultiFloorPathRequest{
+		BuildingCode: "VL",
+		StartFloor:   1,
+		EndFloor:     2,
+		StartCoord:   &start,
+		EndCoord:     &end,
+	})
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, TransitionStairs, result.TransitionType)
+}
+
 func TestMultiFloorShortestPath_FallbackToStairs_WhenNoElevator(t *testing.T) {
 	floorRepo := &mockFloorRepoForPath{
 		floors: map[string][]domain.Floor{
@@ -333,7 +366,7 @@ func TestMultiFloorShortestPath_MissingEndCoordAndRoom_ReturnsError(t *testing.T
 	})
 
 	assert.Error(t, err)
-	assert.Equal(t, "end coordinate or endRoom is required", err.Error())
+	assert.Contains(t, err.Error(), "end coordinate or endRoom is required")
 }
 
 func TestMultiFloorShortestPath_StartFloorNotFound_ReturnsError(t *testing.T) {
@@ -472,7 +505,7 @@ func TestMultiFloorShortestPath_RoomNotFound_ReturnsError(t *testing.T) {
 	})
 
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "room not found")
+	assert.Contains(t, err.Error(), "room 'NonExistentRoom' not found on floor 1 of building VL")
 }
 
 func TestMultiFloorShortestPath_TotalDistance_IsCalculated(t *testing.T) {
@@ -726,7 +759,7 @@ func TestShortestPath_RoomNotFound_ReturnsError(t *testing.T) {
 	})
 
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "room not found")
+	assert.Contains(t, err.Error(), "room 'NonExistent' not found on floor 1 of building VL")
 }
 
 // ==================== Graph Function Tests ====================
@@ -1007,7 +1040,7 @@ func TestMultiFloorShortestPath_MultiFloor_StartRoomNotFound(t *testing.T) {
 	})
 
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "room not found")
+	assert.Contains(t, err.Error(), "room 'NonExistent' not found on floor 1 of building VL")
 }
 
 func TestMultiFloorShortestPath_MultiFloor_EndRoomNotFound(t *testing.T) {
@@ -1577,95 +1610,6 @@ func TestMultiFloorShortestPath_RequireAccessible_BothFloorsHaveBoth_UsesElevato
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, TransitionElevator, result.TransitionType)
-}
-
-// ========== findClosestTransitionPoint Tests ==========
-
-func TestFindClosestTransitionPoint_ReturnsClosestStairs(t *testing.T) {
-	floor := domain.Floor{
-		FloorNumber: 1,
-		FloorName:   "Test",
-		POIs: []domain.PointOfInterest{
-			{Name: "stairs_far", Type: "stairs", Position: domain.Coordinates{X: 0.9, Y: 0.9}},
-			{Name: "stairs_close", Type: "stairs", Position: domain.Coordinates{X: 0.2, Y: 0.2}},
-			{Name: "elevator", Type: "elevator", Position: domain.Coordinates{X: 0.5, Y: 0.5}},
-		},
-	}
-
-	floorRepo := &mockFloorRepoForPath{floors: map[string][]domain.Floor{}}
-	roomRepo := &mockIndoorRoomRepoForPath{rooms: map[string][]domain.IndoorRoom{}}
-	svc := NewIndoorPathService(floorRepo, roomRepo)
-
-	refPoint := domain.Coordinates{X: 0.1, Y: 0.1}
-	result := svc.findClosestTransitionPoint(&floor, TransitionStairs, refPoint)
-
-	assert.NotNil(t, result)
-	// Should return the closer stairs at (0.2, 0.2)
-	assert.InDelta(t, 0.2, result.X, 0.001)
-	assert.InDelta(t, 0.2, result.Y, 0.001)
-}
-
-func TestFindClosestTransitionPoint_ReturnsClosestElevator(t *testing.T) {
-	floor := domain.Floor{
-		FloorNumber: 1,
-		FloorName:   "Test",
-		POIs: []domain.PointOfInterest{
-			{Name: "stairs", Type: "stairs", Position: domain.Coordinates{X: 0.1, Y: 0.1}},
-			{Name: "elevator_far", Type: "elevator", Position: domain.Coordinates{X: 0.9, Y: 0.9}},
-			{Name: "elevator_close", Type: "elevator", Position: domain.Coordinates{X: 0.3, Y: 0.3}},
-		},
-	}
-
-	floorRepo := &mockFloorRepoForPath{floors: map[string][]domain.Floor{}}
-	roomRepo := &mockIndoorRoomRepoForPath{rooms: map[string][]domain.IndoorRoom{}}
-	svc := NewIndoorPathService(floorRepo, roomRepo)
-
-	refPoint := domain.Coordinates{X: 0.2, Y: 0.2}
-	result := svc.findClosestTransitionPoint(&floor, TransitionElevator, refPoint)
-
-	assert.NotNil(t, result)
-	// Should return the closer elevator at (0.3, 0.3)
-	assert.InDelta(t, 0.3, result.X, 0.001)
-	assert.InDelta(t, 0.3, result.Y, 0.001)
-}
-
-func TestFindClosestTransitionPoint_NoMatchingType_ReturnsNil(t *testing.T) {
-	floor := domain.Floor{
-		FloorNumber: 1,
-		FloorName:   "Test",
-		POIs: []domain.PointOfInterest{
-			{Name: "stairs", Type: "stairs", Position: domain.Coordinates{X: 0.5, Y: 0.5}},
-		},
-	}
-
-	floorRepo := &mockFloorRepoForPath{floors: map[string][]domain.Floor{}}
-	roomRepo := &mockIndoorRoomRepoForPath{rooms: map[string][]domain.IndoorRoom{}}
-	svc := NewIndoorPathService(floorRepo, roomRepo)
-
-	refPoint := domain.Coordinates{X: 0.1, Y: 0.1}
-	result := svc.findClosestTransitionPoint(&floor, TransitionElevator, refPoint)
-
-	assert.Nil(t, result)
-}
-
-func TestFindClosestTransitionPoint_TransitionNone_ReturnsNil(t *testing.T) {
-	floor := domain.Floor{
-		FloorNumber: 1,
-		FloorName:   "Test",
-		POIs: []domain.PointOfInterest{
-			{Name: "stairs", Type: "stairs", Position: domain.Coordinates{X: 0.5, Y: 0.5}},
-			{Name: "elevator", Type: "elevator", Position: domain.Coordinates{X: 0.6, Y: 0.6}},
-		},
-	}
-
-	floorRepo := &mockFloorRepoForPath{floors: map[string][]domain.Floor{}}
-	roomRepo := &mockIndoorRoomRepoForPath{rooms: map[string][]domain.IndoorRoom{}}
-	svc := NewIndoorPathService(floorRepo, roomRepo)
-
-	refPoint := domain.Coordinates{X: 0.1, Y: 0.1}
-	result := svc.findClosestTransitionPoint(&floor, TransitionNone, refPoint)
-
-	assert.Nil(t, result)
 }
 
 // ========== Additional Edge Case Tests ==========

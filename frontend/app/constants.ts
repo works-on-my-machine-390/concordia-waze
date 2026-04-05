@@ -25,6 +25,8 @@ export const COLORS = {
   success: "#4CAF50",
   warning: "#FF9800",
   accessibilityIcon: "#0E4C92",
+  darkBgOverlay: "rgba(0, 0, 0, 0.9)",
+  white: "#FFFFFF",
 };
 
 export const DIRECTION_COLORS = {
@@ -33,6 +35,7 @@ export const DIRECTION_COLORS = {
   shuttle: COLORS.goldDark,
   transit: "#429FE1", // the color to use is typically returned but this is the fallback for transit
   bicycling: "#1F8E3F",
+  completed: COLORS.textMuted,
 };
 
 // App Info
@@ -58,3 +61,8 @@ export const CAMPUS_COORDS = {
 
 export const QUERY_RETRY_DELAY_MS = 3000;
 export const BUILDINGS_WITH_INDOOR_MAPS = ['CC', 'H', 'LB', 'MB', 'VL'] as const;
+
+// Classes constants
+export const TYPES = ["Lecture", "Lab", "Tutorial"] as const;
+
+export const STEP_START_PROXIMITY_THRESHOLD_IN_KM = 0.03;

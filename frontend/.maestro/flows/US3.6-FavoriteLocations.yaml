@@ -1,0 +1,61 @@
+appId: host.exp.Exponent
+---
+# 1) Continue as guest (skip login and enter app as a guest user)
+- tapOn: "Use without account"
+
+# 2) Wait until the map screen is loaded (SGW campus label visible)
+- extendedWaitUntil:
+    visible: "SGW"
+    timeout: 8000
+
+# 3) Open search
+- tapOn: Where to…
+
+# 4) Locate LB building
+- inputText: LB
+
+# 4) Select LB search result
+- doubleTapOn: LB - J.W. McConnell Building
+
+# 5) Assert building bottom sheet visible
+- assertVisible: J.W. McConnell Building (LB)
+
+# 6) Open indoor map
+- tapOn:
+    point: "21%, 75%"
+
+# 7) Wait for the Indoor map to load
+- extendedWaitUntil:
+    visible: "J.W. McConnell Building (LB) - 2nd Floor"
+    timeout: 15000
+
+# 8) Select Ireland Reading Room Polygon
+- tapOn:
+    point: 69%,35%
+- assertVisible: Ireland Reading Room
+
+# 9) Add as favorite
+- tapOn: 
+
+# 10) Open menu
+- tapOn: 
+
+# 11) Open favorites tab
+- tapOn: Favorite Locations
+
+# 11) Assert favorites tab open
+- assertVisible: "Search favorites"
+
+# 12) Assert that the reading room was added as a favorite
+- scrollUntilVisible:
+    element:
+      text: "Ireland Reading Room"
+- assertVisible: "Ireland Reading Room"
+
+# 13) Select the reading room
+- tapOn: "Ireland Reading Room"
+
+# 14) Wait until the floor plan is visible, and assert that the room is selected (by being visible).
+- extendedWaitUntil:
+    visible: "Ireland Reading Room"
+    timeout: 10000

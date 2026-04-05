@@ -10,18 +10,22 @@ import {
 import { MapMode, useMapStore } from "@/hooks/useMapStore";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useMemo, useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { ScrollView } from "react-native-gesture-handler";
 import { BottomSheetStyles } from "../BuildingBottomSheet";
 import PoiSearchBottomSheetHeader from "./PoiSearchBottomSheetHeader";
 import PoiSearchRankPreferenceFilter from "./PoiSearchRankPreferenceFilter";
 import PoiSearchResult from "./PoiSearchResult";
-import { useNavigationStore } from "@/hooks/useNavigationStore";
+import {
+  NavigationPhase,
+  useNavigationStore,
+} from "@/hooks/useNavigationStore";
 import useStartLocation from "@/hooks/useStartLocation";
 
 export type PoiSearchBottomSheetProps = {
   moveCamera?: (params: { latitude: number; longitude: number }) => void;
+  onSheetIndexChange?: (index: number) => void;
 };
 
 export type ExtendedPoiSearchResultModel = {
@@ -45,6 +49,17 @@ export default function PoiSearchBottomSheet(
     Number.parseFloat(params.poiLat),
     Number.parseFloat(params.poiLng),
     params.rankPref,
+  );
+
+  const handleSheetChanges = useCallback((index: number) => {
+    props.onSheetIndexChange?.(index);
+  }, [props.onSheetIndexChange]);
+
+  const handleSheetAnimate = useCallback(
+    (_fromIndex: number, toIndex: number) => {
+      props.onSheetIndexChange?.(toIndex);
+    },
+    [props.onSheetIndexChange],
   );
 
   const results: ExtendedPoiSearchResultModel[] = useMemo(() => {
@@ -95,16 +110,18 @@ export default function PoiSearchBottomSheet(
   const handleDirectionsPressed = (result: PoiSearchResultModel) => {
     setCurrentMode(MapMode.NAVIGATION);
 
-    console.log(navigationState.startLocation, !navigationState.startLocation);
-
-    if (!navigationState.startLocation) {
-      findAndSetStartLocation();
-    }
-    navigationState.setEndLocation({
+    const endLocation = {
       latitude: result.latitude,
       longitude: result.longitude,
       name: result.name,
-    });
+      code: "", // no code as it's not a concordia building
+    }
+
+    if (!navigationState.startLocation) {
+      findAndSetStartLocation(endLocation);
+    }
+    navigationState.setEndLocation(endLocation);
+    navigationState.setNavigationPhase(NavigationPhase.PREPARATION);
   };
   const performRefetch = () => {
     poiSearchQuery.refetch();
@@ -118,6 +135,8 @@ export default function PoiSearchBottomSheet(
       snapPoints={snapPoints}
       enableContentPanningGesture
       enableDynamicSizing={false}
+      onChange={handleSheetChanges}
+      onAnimate={handleSheetAnimate}
       detached
       backgroundStyle={[BottomSheetStyles.bottomSheet]}
       containerStyle={{ overflow: "visible" }}

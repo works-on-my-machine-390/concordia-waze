@@ -10,6 +10,7 @@ import {
   SlopeUpIcon,
   CirculationDeskIcon,
   ReferenceDeskIcon,
+  ExitIcon
 } from "@/app/icons";
 import type { PointOfInterest } from "@/hooks/queries/indoorMapQueries";
 import { Pressable, StyleSheet, View } from "react-native";
@@ -21,8 +22,6 @@ type Props = {
   height: number;
   onPress?: () => void;
   highlighted?: boolean;
-  selected?: boolean;
-  isSelected?: boolean;
 };
 
 const ICON_SIZE = 20;
@@ -53,6 +52,8 @@ const getIconComponent = (type: string) => {
       return CirculationDeskIcon;
     case "reference_desk":
       return ReferenceDeskIcon;
+    case "exit":
+      return ExitIcon;
     default:
       return null;
   }
@@ -63,14 +64,10 @@ export default function PoiMarker({
   width,
   height,
   onPress,
-  highlighted,
-  selected,
-  isSelected,
+  highlighted
 }: Readonly<Props>) {
   const IconComponent = getIconComponent(poi.type);
   if (!IconComponent) return null;
-
-  const active = !!(highlighted || selected || isSelected);
 
   const x = poi.position.x * width;
   const y = poi.position.y * height;
@@ -84,10 +81,10 @@ export default function PoiMarker({
         { left: x - ICON_SIZE / 2, top: y - ICON_SIZE / 2 },
       ]}
     >
-      {active ? <View style={styles.halo} /> : null}
+      {highlighted ? <View style={styles.halo} /> : null}
       <IconComponent
         size={ICON_SIZE}
-        color={active ? COLORS.selectionBlue : COLORS.maroon}
+        color={highlighted ? COLORS.selectionBlue : COLORS.maroon}
       />
     </Pressable>
   );

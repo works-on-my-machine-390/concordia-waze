@@ -13,7 +13,7 @@ type AuthResult =
   | { success: true; data?: any }
   | { success: false; error: string };
 
-const API_BASE = process.env.REACT_APP_API_BASE || API_URL;
+const API_BASE = API_URL;
 const REQUEST_TIMEOUT_MS = 6000;
 
 export function useAuth() {

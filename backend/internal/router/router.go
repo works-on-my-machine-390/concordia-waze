@@ -41,9 +41,27 @@ func SetupRouter() *gin.Engine {
 	buildingService := application.NewBuildingService(buildingDataRepo, floorDataRepo, placesClient, "./")
 	campusService := application.NewCampusService(buildingDataRepo)
 	imageService := application.NewImageService(buildingService, placesClient)
-	firebaseService := application.NewFirebaseService()
+	var authFirebaseService handler.FirebaseProfileService
+	var firebaseHandlerService handler.FirebaseService
+	var firebaseSvc *application.FirebaseService
+	if os.Getenv("SKIP_FIREBASE") != "true" {
+		firebaseSvc = application.NewFirebaseService()
+		authFirebaseService = firebaseSvc
+		firebaseHandlerService = firebaseSvc
+	}
 	shuttleService := application.NewShuttleService(shuttleDataRepo)
 	pointOfInterestService := application.NewPointOfInterestService(placesClient)
+
+	calendarClient := google.NewCalendarClient(buildingDataRepo)
+	calendarService := application.NewCalendarService(calendarClient, firebaseSvc)
+
+	var favoriteRepo repository.FavoriteRepository
+	if firebaseSvc != nil {
+		favoriteRepo = application.NewHybridFavoriteRepository(firebaseSvc)
+	} else {
+		favoriteRepo = repository.NewInMemoryFavoriteRepository()
+	}
+	favoritesService := application.NewFavoritesService(favoriteRepo)
 
 	dataDir, err := findIndoorDataDir()
 	if err != nil {
@@ -53,7 +71,7 @@ func SetupRouter() *gin.Engine {
 	indoorPOIRepo := repository.NewIndoorPOIRepository(dataDir)
 	indoorPOIService := application.NewIndoorPointOfInterestService(indoorPOIRepo)
 	indoorRoomRepo := repository.NewIndoorRoomRepository(dataDir) // reuse same base dir you used for POIs
-	roomSearchService := application.NewRoomSearchService(indoorRoomRepo)
+	roomSearchService := application.NewRoomSearchService(indoorRoomRepo, buildingDataRepo, floorDataRepo)
 	roomSearchHandler := handler.NewRoomSearchHandler(roomSearchService)
 
 	indoorPathService := application.NewIndoorPathService(floorDataRepo, indoorRoomRepo)
@@ -62,17 +80,25 @@ func SetupRouter() *gin.Engine {
 	// ---- Directions wiring (FIXED: inject shuttle schedule repo) ----
 	directionsClient := google.NewGoogleDirectionsClient(os.Getenv("GOOGLE_DIRECTIONS_API_KEY"))
 	directionsService := application.NewDirectionsService(directionsClient).WithShuttleRepo(shuttleService)
-	directionsHandler := handler.NewDirectionsHandler(directionsService, buildingService)
+	directionsRedirector := application.NewDirectionsRedirectorService(directionsService, indoorPathService, indoorPOIRepo, buildingDataRepo)
+	directionsHandler := handler.NewDirectionsHandler(directionsRedirector, directionsService, buildingService)
 	// ---------------------------------------------------------------
 
-	authHandler := handler.NewAuthHandler(userService, firebaseService)
+	authHandler := handler.NewAuthHandler(userService, authFirebaseService)
 
 	buildingHandler := handler.NewBuildingHandler(buildingService)
 	campusHandler := handler.NewCampusHandler(campusService)
 	imageHandler := handler.NewImageHandler(imageService)
-	firebaseHandler := handler.NewFirebaseHandler(firebaseService)
+	firebaseHandler := handler.NewFirebaseHandler(firebaseHandlerService)
 	shuttleHandler := handler.NewShuttleHandler(shuttleService)
+
+	//var scheduleService handler.ScheduleService
+	//if firebaseSvc != nil {
+	//	scheduleService = firebaseSvc
+	//}
+	//scheduleHandler := handler.NewScheduleHandler(scheduleService)
 	pointOfInterestHandler := handler.NewPointOfInterestHandler(pointOfInterestService, indoorPOIService)
+	favoritesHandler := handler.NewFavoritesHandler(favoritesService)
 
 	googleRateLimiter := middleware.NewIPRateLimiterFromEnv(
 		"GOOGLE",
@@ -83,12 +109,23 @@ func SetupRouter() *gin.Engine {
 
 	router.Use(middleware.AuthMiddleware(jwtManager))
 
+	tokenStorePath := os.Getenv("GOOGLE_TOKEN_STORE_FILE")
+	if tokenStorePath == "" {
+		tokenStorePath = "data/google-token-store.json"
+	}
+	googleOAuthHandler := handler.NewGoogleOAuthHandler(firebaseSvc)
+
+	calendarHandler := handler.NewCalendarHandler(firebaseSvc, calendarService, firebaseSvc, buildingDataRepo, indoorRoomRepo)
+
 	authGroup := router.Group("/auth")
 	{
 		authGroup.POST("/signup", authHandler.SignUp)
 		authGroup.POST("/login", authHandler.Login)
 		authGroup.GET("/profile", middleware.RequireAuth(), authHandler.GetProfile)
 		authGroup.POST("/logout", middleware.RequireAuth(), authHandler.Logout)
+
+		authGroup.GET("/google", middleware.RequireAuth(), googleOAuthHandler.GetAuthStatus)
+		authGroup.GET("/google/callback", googleOAuthHandler.Callback)
 	}
 
 	buildingsGroup := router.Group("/buildings")
@@ -109,8 +146,7 @@ func SetupRouter() *gin.Engine {
 	router.GET("/images/*path", imageHandler.GetStaticImage)
 
 	// Directions endpoints (PUBLIC) - calls Google Directions API -> rate limit
-	router.GET("/directions", googleLimited, directionsHandler.GetDirections)
-	router.GET("/directions/buildings", googleLimited, directionsHandler.GetDirectionsByBuildings)
+	router.POST("/directions", googleLimited, directionsHandler.GetFullDirections)
 	router.POST("/directions/indoor/multi-floor-path", indoorPathHandler.GetMultiFloorShortestPath)
 
 	shuttleGroup := router.Group("/shuttle")
@@ -129,7 +165,36 @@ func SetupRouter() *gin.Engine {
 
 	// Indoor POIs + room search are local repo-based -> no external API calls (leave unlimited)
 	router.GET("/pointofinterest/indoor", pointOfInterestHandler.GetNearbyIndoorPOIs)
-	router.GET("/rooms/search", roomSearchHandler.SearchRoom)
+
+	roomSearchGroup := router.Group("/rooms")
+	{
+		roomSearchGroup.GET("/search", roomSearchHandler.SearchRoom)
+		roomSearchGroup.GET("/safesearch", roomSearchHandler.FindRoomOrDefaultToBuilding)
+	}
+
+	// Favorites (optional auth — ownership enforced in handler)
+	userFavGroup := router.Group("/users/:userId/favorites")
+	{
+		userFavGroup.POST("", favoritesHandler.CreateFavorite)
+		userFavGroup.GET("", favoritesHandler.GetFavorites)
+		userFavGroup.DELETE("/:id", favoritesHandler.DeleteFavorite)
+	}
+
+	// Calendar
+	calendarGroup := router.Group("/courses")
+	calendarGroup.Use(middleware.RequireAuth())
+	{
+		calendarGroup.GET("/sync", calendarHandler.SyncCalendarEvents)
+		calendarGroup.GET("/next", calendarHandler.GetNextClass)
+		calendarGroup.GET("", calendarHandler.GetCourses)
+		calendarGroup.POST("", calendarHandler.AddCourse)
+		calendarGroup.DELETE("/:title", calendarHandler.DeleteCourse)
+
+		calendarGroup.GET("/:title/items", calendarHandler.GetClassItems)
+		calendarGroup.POST("/:title/items", calendarHandler.AddClassItem)
+		calendarGroup.DELETE("/:title/items/:classID", calendarHandler.DeleteClassItem)
+		calendarGroup.PATCH("/:title/items/:classID", calendarHandler.UpdateClassItem)
+	}
 
 	// =========================
 	// PROTECTED ROUTES (auth)
@@ -141,11 +206,6 @@ func SetupRouter() *gin.Engine {
 		usersGroup.POST("/:userId/profile", firebaseHandler.CreateUserProfile)
 		usersGroup.GET("/:userId/profile", firebaseHandler.GetUserProfile)
 
-		usersGroup.POST("/:userId/schedule", firebaseHandler.AddScheduleItem)
-		usersGroup.GET("/:userId/schedule", firebaseHandler.GetUserSchedule)
-		usersGroup.PUT("/:userId/schedule/:scheduleId", firebaseHandler.UpdateScheduleItem)
-		usersGroup.DELETE("/:userId/schedule/:scheduleId", firebaseHandler.DeleteScheduleItem)
-
 		usersGroup.POST("/:userId/savedAddresses", firebaseHandler.AddSavedAddress)
 		usersGroup.GET("/:userId/savedAddresses", firebaseHandler.GetSavedAddresses)
 		usersGroup.PUT("/:userId/savedAddresses/:addressId", firebaseHandler.UpdateSavedAddress)
@@ -154,6 +214,7 @@ func SetupRouter() *gin.Engine {
 		usersGroup.POST("/:userId/history", firebaseHandler.AddDestinationHistory)
 		usersGroup.GET("/:userId/history", firebaseHandler.GetDestinationHistory)
 		usersGroup.DELETE("/:userId/history", firebaseHandler.ClearDestinationHistory)
+
 	}
 
 	return router

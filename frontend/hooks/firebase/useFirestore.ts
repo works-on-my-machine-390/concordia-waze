@@ -1,4 +1,6 @@
 import { api } from "../api";
+import { TYPES } from "../../app/constants";
+import { DAYS } from "../../app/utils/dateUtils";
 
 export interface UserProfile {
   userId: string;
@@ -11,17 +13,25 @@ export interface SearchHistoryItem {
   locations: string;
   query: string;
   timestamp: Date;
+  destinationType?: "building" | "poi";
 }
 
-export interface ScheduleItem {
-  scheduleId?: string;
+export interface CourseItem {
+  courseId?: string;
   name: string;
-  building?: string;
-  room?: string;
+  classes: ClassItem[];
+}
+
+export interface ClassItem {
+  classId?: string;
+  type: (typeof TYPES)[number];
+  section: string;
+  day: (typeof DAYS)[number];
   startTime: string;
   endTime: string;
-  daysOfWeek: string[];
-  type: string;
+  buildingCode: string;
+  room: string;
+  origin: "manual" | "google";
 }
 
 export interface SavedAddress {
@@ -97,39 +107,59 @@ export const clearSearchHistory = async (userId: string) => {
 };
 
 // ===== Schedule =====
-
-export const addScheduleItem = async (
+// == Courses ==
+export const createCourse = async (
   userId: string,
-  item: Omit<ScheduleItem, "scheduleId">,
-) => {
+  title: string,
+): Promise<void> => {
+  await (await api()).post({}, `/users/${userId}/courses/${title}`).res();
+};
+
+export const getUserCourses = async (userId: string): Promise<CourseItem[]> => {
+  const courses = await (await api())
+    .get(`/users/${userId}/courses`)
+    .json<CourseItem[]>();
+  return courses;
+};
+
+export const deleteCourse = async (
+  userId: string,
+  title: string,
+): Promise<void> => {
+  await (await api()).delete(`/users/${userId}/courses/${title}`).res();
+};
+
+// == Classes ==
+export const addClass = async (
+  userId: string,
+  title: string,
+  item: Omit<ClassItem, "classId">,
+): Promise<string> => {
   const response = await (await api())
-    .post(item, `/users/${userId}/schedule`)
+    .post(item, `/users/${userId}/courses/${title}/classes`)
     .json<{ id: string }>();
   return response.id;
 };
 
-export const getUserSchedule = async (userId: string) => {
-  const schedule = await (await api())
-    .get(`/users/${userId}/schedule`)
-    .json<ScheduleItem[]>();
-  return schedule;
-};
-
-export const updateScheduleItem = async (
+export const deleteClass = async (
   userId: string,
-  scheduleId: string,
-  updates: Partial<ScheduleItem>,
-) => {
+  title: string,
+  classId: string,
+): Promise<void> => {
   await (await api())
-    .put(updates, `/users/${userId}/schedule/${scheduleId}`)
+    .delete(`/users/${userId}/courses/${title}/classes/${classId}`)
     .res();
 };
 
-export const deleteScheduleItem = async (
+export const updateClass = async (
   userId: string,
-  scheduleId: string,
-) => {
-  await (await api()).delete(`/users/${userId}/schedule/${scheduleId}`).res();
+  title: string,
+  classId: string,
+  updates: Partial<ClassItem>,
+): Promise<void> => {
+  await (await api())
+    .put(updates, `/users/${userId}/courses/${title}/classes/${classId}`)
+    .res();
 };
 
 // ===== Saved Addresses =====

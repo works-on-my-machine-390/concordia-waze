@@ -1,21 +1,22 @@
-import { useQueries, useQuery } from "@tanstack/react-query";
-import { NavigableLocation } from "../useNavigationStore";
-import { Point } from "./buildingQueries";
+import { useQuery } from "@tanstack/react-query";
 import { api } from "../api";
-import { getIsCrossCampus } from "@/app/utils/mapUtils";
-import { shouldRetry429 } from "@/app/utils/queryUtils";
-import { QUERY_RETRY_DELAY_MS } from "@/app/constants";
+import {
+  IndoorNavigableLocation,
+  NavigableLocation,
+  OutdoorNavigableLocation,
+} from "../useNavigationStore";
+import { Point } from "./buildingQueries";
+import { MultiFloorPathResult } from "./indoorDirectionsQueries";
 
 export const TransitMode = {
-  DRIVING: "DRIVING",
-  TRANSIT: "TRANSIT",
-  WALKING: "WALKING",
-  BICYCLING: "BICYCLING",
-  SHUTTLE: "SHUTTLE",
+  driving: "driving",
+  transit: "transit",
+  walking: "walking",
+  bicycling: "bicycling",
+  shuttle: "shuttle",
 } as const;
 
 export type TransitMode = (typeof TransitMode)[keyof typeof TransitMode];
-
 
 export const TransitType = {
   BUS: "BUS",
@@ -27,42 +28,91 @@ export const TransitType = {
 
 export type TransitType = (typeof TransitType)[keyof typeof TransitType];
 
+export const DirectionsResponseBlockType = {
+  OUTDOOR: "outdoor",
+  INDOOR: "indoor",
+  DURATION: "duration",
+} as const;
+
+export type DirectionsResponseBlockType =
+  (typeof DirectionsResponseBlockType)[keyof typeof DirectionsResponseBlockType];
+
+// matches the backend's RouteRequest, see direction_request.go
+export type DirectionsRequestModel = {
+  start:
+    | Omit<IndoorNavigableLocation, "latitude" | "longitude">
+    | OutdoorNavigableLocation;
+  end:
+    | Omit<IndoorNavigableLocation, "latitude" | "longitude">
+    | OutdoorNavigableLocation;
+  preferences: RoutePreferences;
+};
+
+/**
+ * many of these aren't used currently, but they're here for future extension
+ */
+export type RoutePreferences = {
+  mode?: TransitMode;
+  day?: string; // e.g. "Monday"
+  time?: string; // e.g. "14:30"
+  prefer_elevator?: boolean;
+  require_accessible?: boolean;
+};
+
 // returns the query key and params
 export function prepareDirectionsQuery(
   startLocation: NavigableLocation,
   endLocation: NavigableLocation,
-  mode: TransitMode,
   startDateTime: Date,
-): { queryKey: any[]; queryParams: string } {
-  if (!startLocation || !endLocation || !mode || !startDateTime) {
+  requireAccessible: boolean = false,
+): { queryKey: any[]; queryRequestBody: DirectionsRequestModel | null } {
+  if (!startLocation || !endLocation || !startDateTime) {
     return {
-      queryKey: ["directions", "disabled", mode ?? "UNKNOWN"],
-      queryParams: "",
+      queryKey: ["directions", "disabled"],
+      queryRequestBody: null,
     }; // handle by disabling the query in useGetDirections
   }
 
   // round to nearest minute
   const roundedStartTime = Math.round(startDateTime.getTime() / 60000) * 60000;
 
-  const queryParams = new URLSearchParams({
-    start_lat: startLocation.latitude.toString(),
-    start_lng: startLocation.longitude.toString(),
-    end_lat: endLocation.latitude.toString(),
-    end_lng: endLocation.longitude.toString(),
-    mode,
-  }).toString();
+  let finalStartLocation = startLocation;
+  let finalEndLocation = endLocation;
 
+  if (startLocation && "building" in startLocation) {
+    finalStartLocation = { ...startLocation };
+    delete finalStartLocation.latitude;
+    delete finalStartLocation.longitude;
+  }
+
+  if (endLocation && "building" in endLocation) {
+    finalEndLocation = { ...endLocation };
+    delete finalEndLocation.latitude;
+    delete finalEndLocation.longitude;
+  }
+
+  const queryRequestBody: DirectionsRequestModel = {
+    start: finalStartLocation,
+    end: finalEndLocation,
+    preferences: {
+      prefer_elevator: requireAccessible, // using prefer_elevator because we still want to display routes with stairs if there are no fully accessible options
+    },
+  };
+
+  // it would be nice if locations had IDs, but i'm hoping that we won't have clashing names.
   return {
     queryKey: [
       "directions",
+      startLocation.name,
+      endLocation.name,
+      roundedStartTime,
       startLocation.latitude,
       startLocation.longitude,
       endLocation.latitude,
       endLocation.longitude,
-      mode,
-      roundedStartTime,
+      requireAccessible,
     ],
-    queryParams,
+    queryRequestBody,
   };
 }
 
@@ -93,6 +143,11 @@ type StepModelExtension = {
 };
 
 export type DirectionsModel = {
+  durationBlock: DurationBlockModel;
+  directionBlocks: DirectionsResponseBlockModel[];
+};
+
+export type OutdoorDirectionsModel = {
   mode: string;
   duration: string; // e.g. "15 mins"
   distance: string; // e.g. "1.2km"
@@ -101,69 +156,108 @@ export type DirectionsModel = {
   steps: StepModel[];
 };
 
+export type DirectionsResponseBlockModel =
+  | OutdoorDirectionsBlockModel
+  | IndoorDirectionsBlockModel
+  | DurationBlockModel;
+
+export type OutdoorDirectionsBlockModel = {
+  type: "outdoor";
+  directionsByMode: Record<string, OutdoorDirectionsModel>; // maps a transit mode (e.g. "walking", "shuttle") to its corresponding directions model
+  sequenceNumber?: number; // indicates the order of this block in the overall directions.
+};
+
+export type IndoorDirectionsBlockModel = {
+  type: "indoor";
+  directions: MultiFloorPathResult;
+  sequenceNumber?: number; // indicates the order of this block in the overall directions.
+};
+
+export type DurationBlockModel = {
+  type: "duration";
+  durations: Record<string, number>; // e.g. { "walking": 5, "driving": 2 } where time is in seconds.
+};
+
 export const useGetDirections = (
   startLocation: NavigableLocation,
   endLocation: NavigableLocation,
-  mode: TransitMode,
   startDateTime: Date,
+  requireAccessible: boolean = false,
 ) => {
-  const { queryKey, queryParams } = prepareDirectionsQuery(
+  const { queryRequestBody, queryKey } = prepareDirectionsQuery(
     startLocation,
     endLocation,
-    mode,
     startDateTime,
+    requireAccessible,
   );
-
   const query = useQuery<DirectionsModel>({
     queryKey,
     queryFn: async () => {
       const apiClient = await api();
       return apiClient
-        .get(`/directions?${queryParams}`)
-        .json<DirectionsModel>();
+        .url("/directions")
+        .post(queryRequestBody)
+        .json<DirectionsModel>((res) => {
+          return apiResponseToDirectionsModel(res);
+        })
+        .catch((error) => {
+          console.error("Error fetching directions:", error);
+          throw error;
+        });
     },
     staleTime: Infinity,
-    enabled: !!startLocation && !!endLocation && !!startDateTime && !!mode,
-    retry: shouldRetry429,
-    retryDelay: QUERY_RETRY_DELAY_MS,
+    enabled: !!startLocation && !!endLocation && !!startDateTime,
+    retry: 1,
   });
 
   return query;
 };
 
-export const useGetAllModesDirections = (
-  startLocation: NavigableLocation,
-  endLocation: NavigableLocation,
-  startDateTime: Date,
-) => {
-  let modes = Object.values(TransitMode);
-  if (!getIsCrossCampus(startLocation, endLocation)) {
-    modes = modes.filter((mode) => mode !== TransitMode.SHUTTLE);
+// converts the raw API response to the DirectionsModel used in the frontend.
+// the backend response has a lot of fields marked as "body" which aren't very descriptive,
+// so this function also adds more meaningful field names and
+// structures the data in a way that's easier for the frontend to consume.
+const apiResponseToDirectionsModel = (response: any): DirectionsModel => {
+  if (response.error) {
+    throw new Error(response.error);
   }
 
-  const queries = useQueries({
-    queries: modes.map((mode) => {
-      const { queryKey, queryParams } = prepareDirectionsQuery(
-        startLocation,
-        endLocation,
-        mode,
-        startDateTime,
-      );
-      return {
-        queryKey,
-        queryFn: async () => {
-          const apiClient = await api();
-          return apiClient
-            .get(`/directions?${queryParams}`)
-            .json<DirectionsModel>();
-        },
-        staleTime: Infinity,
-        enabled: !!startLocation && !!endLocation && !!startDateTime && !!mode,
-        retry: shouldRetry429,
-        retryDelay: QUERY_RETRY_DELAY_MS,
-      };
-    }),
-  });
+  let directionBlocks: DirectionsResponseBlockModel[] = [];
+  let durationBlock: DurationBlockModel = null;
 
-  return queries;
+  // parse blocks. the backend returns an array of blocks,
+  // where each block can be either "outdoor", "indoor", or "duration" type.
+  response.forEach((block: any, index: number) => {
+    switch (block.type) {
+      case DirectionsResponseBlockType.OUTDOOR: {
+        let directionsByMode: Record<string, OutdoorDirectionsModel> = {};
+        block.body.forEach((singleModeDirections: OutdoorDirectionsModel) => {
+          directionsByMode[singleModeDirections.mode] = singleModeDirections;
+        });
+        directionBlocks.push({
+          type: DirectionsResponseBlockType.OUTDOOR,
+          directionsByMode,
+          sequenceNumber: index,
+        } as OutdoorDirectionsBlockModel);
+        break;
+      }
+      case DirectionsResponseBlockType.INDOOR:
+        directionBlocks.push({
+          type: DirectionsResponseBlockType.INDOOR,
+          directions: block.body as MultiFloorPathResult,
+          sequenceNumber: index,
+        } as IndoorDirectionsBlockModel);
+
+        break;
+
+      // duration is always returned as the last one
+      case DirectionsResponseBlockType.DURATION: {
+        durationBlock = {
+          type: DirectionsResponseBlockType.DURATION,
+          durations: block.body as Record<string, number>,
+        };
+      }
+    }
+  });
+  return { durationBlock, directionBlocks };
 };

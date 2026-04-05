@@ -6,8 +6,124 @@
         "contact": {},
         "version": "1.0"
     },
-    "host": "localhost:8080",
     "paths": {
+        "/auth/google": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Checks stored Google tokens for the authenticated user and returns either a short-lived auth URL (when re-auth is required) or {\"ok\": true} when the token is usable. This endpoint SHOULD be called by an authenticated user (server-side JWT). The handler will use the server-side user ID from the auth context (do not rely on query userId in production).",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Get Google OAuth2 status / auth URL",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Optional fallback userId if not available in auth context",
+                        "name": "userId",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "No valid token; frontend should redirect user to this URL",
+                        "schema": {
+                            "$ref": "#/definitions/handler.AuthURLResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Missing userId or invalid request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Server error checking token or generating URL",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/google/callback": {
+            "get": {
+                "description": "Callback endpoint invoked by Google after user consent. Exchanges the authorization code for tokens and persists them on the server. The `state` parameter must be a signed short-lived token previously returned to the frontend by GetAuthStatus (contains the userId). This endpoint is public (called by Google) and must validate the signed state.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Google OAuth2 callback",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Authorization code returned by Google",
+                        "name": "code",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Signed state token issued by backend (contains userId and short expiry)",
+                        "name": "state",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Tokens saved on server",
+                        "schema": {
+                            "$ref": "#/definitions/handler.TokenSaveResponse"
+                        }
+                    },
+                    "302": {
+                        "description": "Redirect to configured frontend success URL",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Missing or invalid code/state",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to exchange code or save token",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/auth/login": {
             "post": {
                 "description": "Authenticate a user with email and password, receive JWT token",
@@ -258,6 +374,14 @@
                     "buildings"
                 ],
                 "summary": "List all buildings grouped by campus",
+                "parameters": [
+                    {
+                        "type": "boolean",
+                        "description": "Whether to append floor information",
+                        "name": "appendFloors",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -427,6 +551,503 @@
                 }
             }
         },
+        "/courses": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves all class titles for the authenticated user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "class"
+                ],
+                "summary": "List user classes",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Creates a new class for the authenticated user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "class"
+                ],
+                "summary": "Create a new class (container)",
+                "parameters": [
+                    {
+                        "description": "Class Title",
+                        "name": "class",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.createCourseRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Created class",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/courses/next": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns the next class session based on the authenticated user's schedule and the current time",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "class"
+                ],
+                "summary": "Get the user's next upcoming class",
+                "responses": {
+                    "200": {
+                        "description": "Next class found, or message when no more classes today",
+                        "schema": {
+                            "$ref": "#/definitions/handler.NextClassResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/courses/sync": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Synchronizes Google Calendar events for the authenticated user since a given date",
+                "tags": [
+                    "class"
+                ],
+                "summary": "Sync Google Calendar events",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Sync events since this date (YYYY-MM-DD)",
+                        "name": "since",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "calendar id, default to primary",
+                        "name": "calendar_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Events synced successfully",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid date",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Google auth required",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Google Calendar permission denied",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Unexpected sync failure",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Google Calendar service unavailable",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/courses/{title}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Deletes a specified class for the authenticated user",
+                "tags": [
+                    "class"
+                ],
+                "summary": "Delete a class and its items",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Class title",
+                        "name": "title",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/courses/{title}/items": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Lists schedule items in the given class",
+                "tags": [
+                    "class"
+                ],
+                "summary": "List items in a class",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Class title",
+                        "name": "title",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/domain.ClassItem"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Add a new class item to an existing class",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "class"
+                ],
+                "summary": "Add a schedule item to a class",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Class title",
+                        "name": "title",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Class Item",
+                        "name": "item",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/domain.ClassItem"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/courses/{title}/items/{classID}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Delete a specific class item from a user's class",
+                "tags": [
+                    "class"
+                ],
+                "summary": "Delete a single item from a class",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Class title",
+                        "name": "title",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Class item ID",
+                        "name": "classID",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update fields of a class item (PATCH semantics)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "class"
+                ],
+                "summary": "Update a class item (partial)",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Class title",
+                        "name": "title",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Class item ID",
+                        "name": "classID",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Updates",
+                        "name": "updates",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/directions": {
             "get": {
                 "description": "Returns route polyline + step instructions (walking/driving/transit/shuttle/bicycling)",
@@ -515,6 +1136,50 @@
                     },
                     "500": {
                         "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Returns list of routes polyline + step instructions (walking/driving/transit/shuttle/bicycling)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "directions"
+                ],
+                "summary": "Get directions between coordinates, adapts between indoor/outdoor as needed",
+                "parameters": [
+                    {
+                        "description": "Route request with start/end locations and preferences",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/request_format.RouteRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/domain.DirectionsResponse"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -853,6 +1518,61 @@
                 }
             }
         },
+        "/rooms/safesearch": {
+            "get": {
+                "description": "Returns room information if found, using the building as fallback.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "rooms"
+                ],
+                "summary": "Search a room by number, with building fallback",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Building code (MB, LB, CC, VL)",
+                        "name": "building",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Room name/number (e.g., S2.285)",
+                        "name": "room",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/rooms/search": {
             "get": {
                 "description": "Returns room centroid coordinates by room number (EPSG:32198)",
@@ -1053,6 +1773,176 @@
                     },
                     "500": {
                         "description": "internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/users/{userId}/favorites": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieve all saved favorite locations for the given user. Returns an empty array when no favorites exist.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "favorites"
+                ],
+                "summary": "List favorites",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "userId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/domain.Favorite"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "JWT user does not match path userId",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Save a named location as a favorite for the given user. Supports both outdoor (lat/lng) and indoor (building/floor/x/y) favorites. If \"type\" is omitted the request is treated as outdoor for backward compatibility. Authenticated users' favorites are persisted in Firestore; anonymous requests are kept in memory.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "favorites"
+                ],
+                "summary": "Create a favorite",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "userId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Favorite location",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handler.CreateFavoriteRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/domain.Favorite"
+                        }
+                    },
+                    "400": {
+                        "description": "Missing or invalid fields",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "JWT user does not match path userId",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/users/{userId}/favorites/{id}": {
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Remove a saved favorite location by ID. Authenticated users may only delete their own favorites (403 on mismatch). Returns 404 if the favorite does not exist.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "favorites"
+                ],
+                "summary": "Delete a favorite",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "userId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Favorite ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "favorite deleted",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "JWT user does not match path userId",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Favorite not found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -1677,315 +2567,6 @@
                     }
                 }
             }
-        },
-        "/users/{userId}/schedule": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get schedule items for a user",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "schedule"
-                ],
-                "summary": "Get user schedule",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "User ID",
-                        "name": "userId",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/application.ScheduleItem"
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Not authenticated",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            },
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Add a schedule item for a user",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "schedule"
-                ],
-                "summary": "Add schedule item",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "User ID",
-                        "name": "userId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Schedule item",
-                        "name": "item",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/application.ScheduleItem"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Not authenticated",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/users/{userId}/schedule/{scheduleId}": {
-            "put": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Update a schedule item for a user",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "schedule"
-                ],
-                "summary": "Update schedule item",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "User ID",
-                        "name": "userId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Schedule ID",
-                        "name": "scheduleId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Schedule updates",
-                        "name": "updates",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Not authenticated",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Delete a schedule item for a user",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "schedule"
-                ],
-                "summary": "Delete schedule item",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "User ID",
-                        "name": "userId",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Schedule ID",
-                        "name": "scheduleId",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Not authenticated",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
         }
     },
     "definitions": {
@@ -2066,6 +2647,10 @@
                 "preferElevator": {
                     "type": "boolean"
                 },
+                "requireAccessible": {
+                    "description": "filter out inaccessible edges",
+                    "type": "boolean"
+                },
                 "start": {
                     "$ref": "#/definitions/domain.Coordinates"
                 },
@@ -2101,38 +2686,6 @@
                     "type": "string"
                 },
                 "addressId": {
-                    "type": "string"
-                }
-            }
-        },
-        "application.ScheduleItem": {
-            "type": "object",
-            "properties": {
-                "building": {
-                    "type": "string"
-                },
-                "daysOfWeek": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "endTime": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "room": {
-                    "type": "string"
-                },
-                "scheduleId": {
-                    "type": "string"
-                },
-                "startTime": {
-                    "type": "string"
-                },
-                "type": {
                     "type": "string"
                 }
             }
@@ -2243,6 +2796,12 @@
                 "code": {
                     "type": "string"
                 },
+                "floors": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.Floor"
+                    }
+                },
                 "latitude": {
                     "type": "number"
                 },
@@ -2267,6 +2826,43 @@
                     }
                 },
                 "campus": {
+                    "type": "string"
+                }
+            }
+        },
+        "domain.ClassItem": {
+            "type": "object",
+            "properties": {
+                "buildingCode": {
+                    "type": "string"
+                },
+                "day": {
+                    "type": "string"
+                },
+                "endTime": {
+                    "type": "string"
+                },
+                "eventId": {
+                    "type": "string"
+                },
+                "itemId": {
+                    "type": "string"
+                },
+                "origin": {
+                    "description": "\"manual\" or \"google\"",
+                    "type": "string"
+                },
+                "room": {
+                    "type": "string"
+                },
+                "section": {
+                    "type": "string"
+                },
+                "startTime": {
+                    "type": "string"
+                },
+                "type": {
+                    "description": "lab, lec, tut",
                     "type": "string"
                 }
             }
@@ -2362,7 +2958,8 @@
                     "type": "string"
                 },
                 "duration": {
-                    "type": "string"
+                    "description": "duration in seconds",
+                    "type": "integer"
                 },
                 "mode": {
                     "type": "string"
@@ -2388,6 +2985,57 @@
                     "type": "integer"
                 }
             }
+        },
+        "domain.Favorite": {
+            "type": "object",
+            "properties": {
+                "buildingCode": {
+                    "description": "Indoor fields",
+                    "type": "string"
+                },
+                "floorNumber": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "latitude": {
+                    "description": "Outdoor fields",
+                    "type": "number"
+                },
+                "longitude": {
+                    "type": "number"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "poiType": {
+                    "type": "string"
+                },
+                "type": {
+                    "$ref": "#/definitions/domain.FavoriteType"
+                },
+                "userId": {
+                    "type": "string"
+                },
+                "x": {
+                    "type": "number"
+                },
+                "y": {
+                    "type": "number"
+                }
+            }
+        },
+        "domain.FavoriteType": {
+            "type": "string",
+            "enum": [
+                "outdoor",
+                "indoor"
+            ],
+            "x-enum-varnames": [
+                "FavoriteTypeOutdoor",
+                "FavoriteTypeIndoor"
+            ]
         },
         "domain.Floor": {
             "type": "object",
@@ -2418,6 +3066,17 @@
                     "items": {
                         "$ref": "#/definitions/domain.Coordinates"
                     }
+                }
+            }
+        },
+        "domain.IndoorPosition": {
+            "type": "object",
+            "properties": {
+                "x": {
+                    "type": "number"
+                },
+                "y": {
+                    "type": "number"
                 }
             }
         },
@@ -2489,6 +3148,14 @@
                 }
             }
         },
+        "handler.AuthURLResponse": {
+            "type": "object",
+            "properties": {
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
         "handler.BuildingImagesResponse": {
             "type": "object",
             "properties": {
@@ -2500,6 +3167,42 @@
                     "items": {
                         "type": "string"
                     }
+                }
+            }
+        },
+        "handler.CreateFavoriteRequest": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "buildingCode": {
+                    "description": "Indoor-specific fields. Pointer types allow the handler to distinguish\n\"field not provided\" from \"field provided as zero\".",
+                    "type": "string"
+                },
+                "floorNumber": {
+                    "type": "integer"
+                },
+                "latitude": {
+                    "type": "number"
+                },
+                "longitude": {
+                    "type": "number"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "poiType": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "x": {
+                    "type": "number"
+                },
+                "y": {
+                    "type": "number"
                 }
             }
         },
@@ -2515,6 +3218,32 @@
                 },
                 "password": {
                     "type": "string"
+                }
+            }
+        },
+        "handler.NextClassResponse": {
+            "type": "object",
+            "properties": {
+                "buildingLatitude": {
+                    "type": "number"
+                },
+                "buildingLongitude": {
+                    "type": "number"
+                },
+                "className": {
+                    "type": "string"
+                },
+                "floorNumber": {
+                    "type": "integer"
+                },
+                "item": {
+                    "$ref": "#/definitions/domain.ClassItem"
+                },
+                "roomX": {
+                    "type": "number"
+                },
+                "roomY": {
+                    "type": "number"
                 }
             }
         },
@@ -2535,6 +3264,109 @@
                 "password": {
                     "type": "string",
                     "minLength": 6
+                }
+            }
+        },
+        "handler.StatusOKResponse": {
+            "type": "object",
+            "properties": {
+                "ok": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "handler.TokenSaveResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "ok": {
+                    "type": "boolean"
+                },
+                "userId": {
+                    "type": "string"
+                }
+            }
+        },
+        "handler.createCourseRequest": {
+            "type": "object",
+            "required": [
+                "name"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "request_format.RouteLocation": {
+            "type": "object",
+            "properties": {
+                "building": {
+                    "type": "string"
+                },
+                "floor_number": {
+                    "type": "integer"
+                },
+                "indoor_position": {
+                    "$ref": "#/definitions/domain.IndoorPosition"
+                },
+                "latitude": {
+                    "type": "number"
+                },
+                "longitude": {
+                    "type": "number"
+                }
+            }
+        },
+        "request_format.RoutePreferences": {
+            "type": "object",
+            "properties": {
+                "day": {
+                    "type": "string",
+                    "enum": [
+                        "Monday",
+                        "Tuesday",
+                        "Wednesday",
+                        "Thursday",
+                        "Friday",
+                        "Saturday",
+                        "Sunday"
+                    ]
+                },
+                "mode": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "prefer_elevator": {
+                    "type": "boolean"
+                },
+                "require_accessible": {
+                    "type": "boolean"
+                },
+                "time": {
+                    "type": "string"
+                }
+            }
+        },
+        "request_format.RouteRequest": {
+            "type": "object",
+            "required": [
+                "end",
+                "start"
+            ],
+            "properties": {
+                "end": {
+                    "$ref": "#/definitions/request_format.RouteLocation"
+                },
+                "preferences": {
+                    "$ref": "#/definitions/request_format.RoutePreferences"
+                },
+                "start": {
+                    "$ref": "#/definitions/request_format.RouteLocation"
                 }
             }
         }

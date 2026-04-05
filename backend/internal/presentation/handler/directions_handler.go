@@ -6,20 +6,27 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
 
 	"github.com/works-on-my-machine-390/concordia-waze/internal/application"
-	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
+	"github.com/works-on-my-machine-390/concordia-waze/internal/domain/request_format"
 )
 
 type DirectionsHandler struct {
-	directions *application.DirectionsService
-	buildings  *application.BuildingService
+	directionsRedirector application.DirectionsRedirector
+	directions           *application.DirectionsService
+	buildings            *application.BuildingService
 }
 
-func NewDirectionsHandler(directions *application.DirectionsService, buildings *application.BuildingService) *DirectionsHandler {
+func NewDirectionsHandler(
+	directionsRedirector application.DirectionsRedirector,
+	directionsService *application.DirectionsService,
+	buildingsService *application.BuildingService,
+) *DirectionsHandler {
 	return &DirectionsHandler{
-		directions: directions,
-		buildings:  buildings,
+		directionsRedirector: directionsRedirector,
+		directions:           directionsService,
+		buildings:            buildingsService,
 	}
 }
 
@@ -145,19 +152,12 @@ func (h *DirectionsHandler) GetDirections(c *gin.Context) {
 	at := c.Query("time")
 
 	// Manual shuttle params
-	shuttleDay := c.Query("shuttle_day")
-	shuttleTime := c.Query("shuttle_time")
 
 	start := domain.LatLng{Lat: startLat, Lng: startLng}
 	end := domain.LatLng{Lat: endLat, Lng: endLng}
 
-	// ---- Manual shuttle selection takes priority if present ----
-	if h.handleShuttleRouting(c, start, end, mode, day, at, shuttleDay, shuttleTime) {
-		return
-	}
-
 	// ---- Automatic behavior ----
-	resp, err := h.directions.GetDirectionsWithSchedule(start, end, mode, day, at)
+	resp, err := h.directions.GetDirectionsWithSchedule(start, end, []string{mode}, day, at)
 	if err != nil {
 		h.writeDirectionsError(c, err)
 		return
@@ -219,16 +219,9 @@ func (h *DirectionsHandler) GetDirectionsByBuildings(c *gin.Context) {
 	at := c.Query("time")
 
 	// Manual shuttle params
-	shuttleDay := c.Query("shuttle_day")
-	shuttleTime := c.Query("shuttle_time")
-
-	// ---- Manual shuttle selection takes priority if present ----
-	if h.handleShuttleRouting(c, start, end, mode, day, at, shuttleDay, shuttleTime) {
-		return
-	}
 
 	// ---- Automatic behavior ----
-	resp, err := h.directions.GetDirectionsWithSchedule(start, end, mode, day, at)
+	resp, err := h.directions.GetDirectionsWithSchedule(start, end, []string{mode}, day, at)
 	if err != nil {
 		h.writeDirectionsError(c, err)
 		return
@@ -242,35 +235,33 @@ type errorString string
 
 func (e errorString) Error() string { return string(e) }
 
-func (h *DirectionsHandler) handleShuttleRouting(
-	c *gin.Context,
-	start, end domain.LatLng,
-	mode, day, at, shuttleDay, shuttleTime string,
-) bool {
+// GetFullDirections godoc
+// @Summary      Get directions between coordinates, adapts between indoor/outdoor as needed
+// @Description  Returns list of routes polyline + step instructions (walking/driving/transit/shuttle/bicycling)
+// @Tags         directions
+// @Accept       json
+// @Produce      json
+// @Param        body body request_format.RouteRequest true "Route request with start/end locations and preferences"
+// @Success      200 {object} []domain.DirectionsResponse
+// @Failure      400 {object} map[string]string
+// @Router       /directions [post]
+func (h *DirectionsHandler) GetFullDirections(c *gin.Context) {
+	var req *request_format.RouteRequest
 
-	if !hasAny(shuttleDay, shuttleTime) {
-		return false
-	}
-
-	if hasAny(day, at) {
-		h.writeDirectionsError(c, errorString("cannot combine day/time with shuttle_day/shuttle_time"))
-		return true
-	}
-	if strings.TrimSpace(shuttleDay) == "" || strings.TrimSpace(shuttleTime) == "" {
-		h.writeDirectionsError(c, errorString("shuttle_day and shuttle_time must both be provided"))
-		return true
-	}
-	if mode != "shuttle" {
-		h.writeDirectionsError(c, errorString("shuttle_day/shuttle_time can only be used with mode=shuttle"))
-		return true
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{"error": "Invalid request format", "details": err.Error()})
+		return
 	}
 
-	resp, err := h.directions.GetShuttleDirectionsManual(start, end, shuttleDay, shuttleTime)
+	if req.Preferences.Mode == nil || len(req.Preferences.Mode) == 0 {
+		req.Preferences.Mode = []string{"walking", "driving", "transit", "shuttle", "bicycling"}
+	}
+
+	result, err := h.directionsRedirector.GetFullDirections(req)
 	if err != nil {
-		h.writeDirectionsError(c, err)
-		return true
+		c.JSON(400, gin.H{"error": "Could not process request", "details": err.Error()})
+		return
 	}
 
-	c.JSON(http.StatusOK, resp)
-	return true
+	c.JSON(200, result)
 }

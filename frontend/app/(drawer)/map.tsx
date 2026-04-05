@@ -1,6 +1,11 @@
 import MapBottomSection from "@/components/MapBottomSection";
+import NavigationPolylines from "@/components/NavigationPolylines";
 import PoiOutdoorMarkers from "@/components/poi/PoiOutdoorMarkers";
 import ShuttleBusMarkers from "@/components/ShuttleBusMarkers";
+import {
+  MapCameraProvider,
+  MoveCameraParams,
+} from "@/contexts/MapCameraContext";
 import {
   CampusBuilding,
   CampusCode,
@@ -8,13 +13,20 @@ import {
   useGetBuildings,
 } from "@/hooks/queries/buildingQueries";
 import { TextSearchRankPreferenceType } from "@/hooks/queries/poiQueries";
+import useMapSettings from "@/hooks/useMapSettings";
 import { MapMode, useMapStore } from "@/hooks/useMapStore";
-import { useNavigationStore } from "@/hooks/useNavigationStore";
+import {
+  ModifyingFieldOptions,
+  NavigationPhase,
+  useNavigationStore,
+} from "@/hooks/useNavigationStore";
+import { useNextClass } from "@/hooks/useNextClass";
+import { endTaskTimer, startTaskTimer } from "@/lib/telemetry";
 import * as Location from "expo-location";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
-import MapView, { Region } from "react-native-maps";
+import MapView, { PROVIDER_GOOGLE, Region } from "react-native-maps";
 import { Toast } from "toastify-react-native";
 import { isPointInPolygon } from "~/app/utils/pointInPolygon";
 import CampusBuildingPolygons from "~/components/CampusBuildingPolygons";
@@ -24,9 +36,9 @@ import {
   CAMPUS_COORDS,
   DEFAULT_CAMERA_MOVE_DURATION_IN_MS,
   DEFAULT_MAP_DELTA,
+  STEP_START_PROXIMITY_THRESHOLD_IN_KM,
 } from "../constants";
 import { getDistance } from "../utils/mapUtils";
-import NavigationPolylines from "@/components/NavigationPolylines";
 
 export type MapQueryParamsModel = {
   selected?: string;
@@ -54,6 +66,7 @@ export default function MainMap() {
 
   const mapState = useMapStore();
   const navigationState = useNavigationStore();
+  const { mapSettings } = useMapSettings();
 
   const [buildingsByCampus, setBuildingsByCampus] = useState<
     Record<string, CampusBuilding[]>
@@ -62,6 +75,44 @@ export default function MainMap() {
     latitude: number;
     longitude: number;
   } | null>(null);
+  const sgwToLoyolaTimerActiveRef = useRef(false);
+
+  const getClosestCampus = (location: {
+    latitude: number;
+    longitude: number;
+  }) => {
+    const distanceToSGW = getDistance(location, CAMPUS_COORDS[CampusCode.SGW]);
+    const distanceToLOY = getDistance(location, CAMPUS_COORDS[CampusCode.LOY]);
+
+    return distanceToSGW < distanceToLOY ? CampusCode.SGW : CampusCode.LOY;
+  };
+
+  const isSgwToLoyolaRoute = () => {
+    if (!navigationState.startLocation || !navigationState.endLocation) {
+      return false;
+    }
+
+    return (
+      getClosestCampus(navigationState.startLocation) === CampusCode.SGW &&
+      getClosestCampus(navigationState.endLocation) === CampusCode.LOY
+    );
+  };
+
+  const endSgwToLoyolaTimer = (
+    success: boolean,
+    reason: "arrived_loyola" | "navigation_exit",
+  ) => {
+    if (!sgwToLoyolaTimerActiveRef.current) {
+      return;
+    }
+
+    sgwToLoyolaTimerActiveRef.current = false;
+    void endTaskTimer("sgw_to_loyola_travel", {
+      success,
+      reason,
+      mode: navigationState.transitMode ?? "unknown",
+    });
+  };
 
   // queried, but not acccessed here. the data is cached for when the user begins navigation
   useGetBuildingDetails(mapState.currentBuildingCode || undefined);
@@ -72,12 +123,7 @@ export default function MainMap() {
 
   const buildingListQuery = useGetBuildings(campus);
 
-  const moveCamera = (params: {
-    latitude: number;
-    longitude: number;
-    delta?: number;
-    duration?: number;
-  }) => {
+  const moveCamera = (params: MoveCameraParams) => {
     setCameraCenter({
       latitude: params.latitude,
       longitude: params.longitude,
@@ -98,9 +144,91 @@ export default function MainMap() {
 
   useEffect(() => {
     if (mapState.currentMode !== MapMode.NAVIGATION) {
+      endSgwToLoyolaTimer(false, "navigation_exit");
       navigationState.clearState();
     }
   }, [mapState.currentMode]);
+
+  // Automatic step detection + auto following useEffect
+  useEffect(() => {
+    if (
+      mapState.currentMode !== MapMode.NAVIGATION ||
+      navigationState.navigationPhase !== NavigationPhase.ACTIVE ||
+      !location?.coords ||
+      !mapSettings.recenterAutomaticallyDuringActiveNavigation
+    ) {
+      return;
+    }
+
+    const userPoint = {
+      latitude: location.coords.latitude,
+      longitude: location.coords.longitude,
+    };
+
+    const outdoorDirections =
+      navigationState.currentDirections?.directionBlocks.find(
+        (block) => block.type === "outdoor",
+      )?.directionsByMode?.[navigationState.transitMode || ""];
+
+    const steps = outdoorDirections?.steps;
+
+    if (steps?.length) {
+      let closestStepIndex = -1;
+      let closestDistanceInKm = Number.POSITIVE_INFINITY;
+
+      steps.forEach((step, index) => {
+        const distanceInKm = getDistance(userPoint, step.start);
+        if (distanceInKm < closestDistanceInKm) {
+          closestDistanceInKm = distanceInKm;
+          closestStepIndex = index;
+        }
+      });
+
+      if (
+        closestStepIndex >= 0 &&
+        closestDistanceInKm <= STEP_START_PROXIMITY_THRESHOLD_IN_KM &&
+        closestStepIndex !== navigationState.trackedOutdoorStepIndex
+      ) {
+        navigationState.setTrackedOutdoorStepIndex?.(closestStepIndex);
+        if (navigationState.followingGPS) {
+          navigationState.setCurrentOutdoorStepIndex?.(closestStepIndex);
+        }
+      }
+    }
+
+    if (navigationState.followingGPS) {
+      moveCamera({
+        latitude: userPoint.latitude,
+        longitude: userPoint.longitude,
+        duration: 200,
+      });
+    }
+  }, [
+    location?.coords?.latitude,
+    location?.coords?.longitude,
+    mapState.currentMode,
+    navigationState.currentDirections,
+    navigationState.trackedOutdoorStepIndex,
+    navigationState.navigationPhase,
+    navigationState.transitMode,
+    navigationState.followingGPS,
+    mapSettings.recenterAutomaticallyDuringActiveNavigation,
+  ]);
+
+  useEffect(() => {
+    if (
+      mapState.currentMode === MapMode.NAVIGATION &&
+      isSgwToLoyolaRoute() &&
+      !sgwToLoyolaTimerActiveRef.current
+    ) {
+      startTaskTimer("sgw_to_loyola_travel");
+      sgwToLoyolaTimerActiveRef.current = true;
+    }
+  }, [
+    mapState.currentMode,
+    navigationState.startLocation,
+    navigationState.endLocation,
+  ]);
 
   useEffect(() => {
     if (buildingListQuery.data) {
@@ -303,19 +431,15 @@ export default function MainMap() {
       camLng: String(longitude),
     });
 
-    // Calculate distance to each campus
-    const distanceToSGW = getDistance(
-      { latitude, longitude },
-      CAMPUS_COORDS[CampusCode.SGW],
-    );
-    const distanceToLOY = getDistance(
-      { latitude, longitude },
-      CAMPUS_COORDS[CampusCode.LOY],
-    );
+    const closestCampus = getClosestCampus({ latitude, longitude });
 
-    // Determine which campus is closer
-    const closestCampus =
-      distanceToSGW < distanceToLOY ? CampusCode.SGW : CampusCode.LOY;
+    if (
+      sgwToLoyolaTimerActiveRef.current &&
+      mapState.currentMode === MapMode.NAVIGATION &&
+      closestCampus === CampusCode.LOY
+    ) {
+      endSgwToLoyolaTimer(true, "arrived_loyola");
+    }
 
     // Update campus if different
     if (closestCampus !== campus) {
@@ -323,7 +447,15 @@ export default function MainMap() {
     }
   };
 
+  useEffect(() => {
+    return () => {
+      endSgwToLoyolaTimer(false, "navigation_exit");
+    };
+  }, []);
+
   const handleStartLocationPress = () => {
+    navigationState.setModifyingField(ModifyingFieldOptions.start);
+
     router.push({
       pathname: "/search",
       params: {
@@ -337,6 +469,7 @@ export default function MainMap() {
   };
 
   const handleEndLocationPress = () => {
+    navigationState.setModifyingField(ModifyingFieldOptions.end);
     router.push({
       pathname: "/search",
       params: {
@@ -355,54 +488,67 @@ export default function MainMap() {
     });
   };
 
-  return (
-    <View style={styles.container}>
-      <MapView
-        customMapStyle={mapStyle}
-        showsPointsOfInterest={false}
-        ref={mapRef}
-        showsMyLocationButton={false} // remove default google location button
-        style={styles.map}
-        showsUserLocation={true}
-        initialRegion={{
-          // coordinates for SGW campus (default)
-          latitude: CAMPUS_COORDS[CampusCode.SGW].latitude,
-          longitude: CAMPUS_COORDS[CampusCode.SGW].longitude,
-          latitudeDelta: DEFAULT_MAP_DELTA,
-          longitudeDelta: DEFAULT_MAP_DELTA,
-        }}
-        onRegionChangeComplete={handleRegionChangeComplete}
-      >
-        <CampusBuildingPolygons buildings={buildingsToRender} />
-        {mapState.currentMode === MapMode.NAVIGATION && (
-          <NavigationPolylines showEndPoint />
-        )}
-        {mapState.currentMode === MapMode.POI && <PoiOutdoorMarkers />}
-        <ShuttleBusMarkers />
-      </MapView>
+  const handlePanDrag = () => {
+    if (navigationState.followingGPS) {
+      navigationState.setFollowingGPS(false);
+    }
+  };
 
-      {mapState.currentMode === MapMode.NAVIGATION ? (
-        <NavigationHeader
-          onStartLocationPress={handleStartLocationPress}
-          onEndLocationPress={handleEndLocationPress}
+  const { nextClass } = useNextClass();
+
+  return (
+    <MapCameraProvider moveCamera={moveCamera}>
+      <View style={styles.container}>
+        <MapView
+          provider={PROVIDER_GOOGLE}
+          customMapStyle={mapStyle}
+          showsPointsOfInterest={false}
+          ref={mapRef}
+          showsMyLocationButton={false} // remove default google location button
+          style={styles.map}
+          showsUserLocation={true}
+          initialRegion={{
+            // coordinates for SGW campus (default)
+            latitude: CAMPUS_COORDS[CampusCode.SGW].latitude,
+            longitude: CAMPUS_COORDS[CampusCode.SGW].longitude,
+            latitudeDelta: DEFAULT_MAP_DELTA,
+            longitudeDelta: DEFAULT_MAP_DELTA,
+          }}
+          onRegionChangeComplete={handleRegionChangeComplete}
+          onPanDrag={handlePanDrag}
+        >
+          <CampusBuildingPolygons buildings={buildingsToRender} />
+          {mapState.currentMode === MapMode.NAVIGATION && (
+            <NavigationPolylines showEndPoint />
+          )}
+          {mapState.currentMode === MapMode.POI && <PoiOutdoorMarkers />}
+          <ShuttleBusMarkers />
+        </MapView>
+
+        {mapState.currentMode === MapMode.NAVIGATION ? (
+          <NavigationHeader
+            onStartLocationPress={handleStartLocationPress}
+            onEndLocationPress={handleEndLocationPress}
+          />
+        ) : (
+          <MapHeader
+            campus={campus}
+            onCampusChange={handleCampusChange}
+            searchText={params.query || ""}
+            onSearchClear={handleSearchBarClear}
+            onMenuPress={() => {}}
+            camLat={String((cameraCenter || CAMPUS_COORDS[campus]).latitude)}
+            camLng={String((cameraCenter || CAMPUS_COORDS[campus]).longitude)}
+          />
+        )}
+        <MapBottomSection
+          goToMyLocation={goToMyLocation}
+          moveCamera={moveCamera}
+          userLocation={location?.coords}
+          nextClass={nextClass}
         />
-      ) : (
-        <MapHeader
-          campus={campus}
-          onCampusChange={handleCampusChange}
-          searchText={params.query || ""}
-          onSearchClear={handleSearchBarClear}
-          onMenuPress={() => {}}
-          camLat={String((cameraCenter || CAMPUS_COORDS[campus]).latitude)}
-          camLng={String((cameraCenter || CAMPUS_COORDS[campus]).longitude)}
-        />
-      )}
-      <MapBottomSection
-        goToMyLocation={goToMyLocation}
-        moveCamera={moveCamera}
-        userLocation={location?.coords}
-      />
-    </View>
+      </View>
+    </MapCameraProvider>
   );
 }
 

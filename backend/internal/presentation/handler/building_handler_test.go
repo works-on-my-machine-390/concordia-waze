@@ -85,6 +85,16 @@ func (f *fakeFloorRepo) GetBuildingFloors(code string) ([]domain.Floor, error) {
 	return m, nil
 }
 
+func (f *fakeFloorRepo) GetAllBuildingFloors() (map[string][]domain.Floor, error) {
+	if f.err != nil {
+		return nil, f.err
+	}
+	if f.floors == nil {
+		return map[string][]domain.Floor{}, nil
+	}
+	return f.floors, nil
+}
+
 func TestBuildingHandler_GetBuilding_Success200(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 

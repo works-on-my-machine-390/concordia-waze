@@ -1,5 +1,6 @@
 import AntDesign from "@expo/vector-icons/AntDesign";
 import Entypo from "@expo/vector-icons/Entypo";
+import Feather from "@expo/vector-icons/Feather";
 import FontAwesome5 from "@expo/vector-icons/FontAwesome5";
 import FontAwesome6 from "@expo/vector-icons/FontAwesome6";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -53,6 +54,12 @@ export const BackIcon: React.FC<IconProps> = ({
   size = DEFAULT_ICON_SIZE,
   color = DEFAULT_ICON_COLOR,
 }) => <Ionicons name="arrow-back" size={size} color={color} />;
+
+// Go forward icon
+export const ForwardIcon: React.FC<IconProps> = ({
+  size = DEFAULT_ICON_SIZE,
+  color = DEFAULT_ICON_COLOR,
+}) => <Ionicons name="arrow-forward" size={size} color={color} />;
 
 // Logout icon
 export const LogoutIcon: React.FC<IconProps> = ({
@@ -269,3 +276,49 @@ export const ReferenceDeskIcon: React.FC<IconProps> = ({
   size = DEFAULT_ICON_SIZE,
   color = DEFAULT_ICON_COLOR,
 }) => <MaterialCommunityIcons name="bookshelf" size={size} color={color} />;
+
+// Delete icon
+export const DeleteIcon: React.FC<IconProps> = ({
+  size = DEFAULT_ICON_SIZE,
+  color = DEFAULT_ICON_COLOR,
+}) => <Feather name="trash-2" size={size} color={color} />;
+
+// Add icon
+export const AddIcon: React.FC<IconProps> = ({
+  size = DEFAULT_ICON_SIZE,
+  color = DEFAULT_ICON_COLOR,
+}) => <MaterialIcons name="add-box" size={size} color={color} />;
+
+// Time icon
+export const TimeIcon: React.FC<IconProps> = ({
+  size = DEFAULT_ICON_SIZE,
+  color = DEFAULT_ICON_COLOR,
+}) => <Ionicons name="time-outline" size={size} color={color} />;
+
+// Double arrow right
+export const DrawerOpenIcon: React.FC<IconProps> = ({
+  size = DEFAULT_ICON_SIZE,
+  color = DEFAULT_ICON_COLOR,
+}) => (
+  <MaterialIcons name="keyboard-double-arrow-right" size={size} color={color} />
+);
+
+// Double arrow left
+export const DrawerCloseIcon: React.FC<IconProps> = ({
+  size = DEFAULT_ICON_SIZE,
+  color = DEFAULT_ICON_COLOR,
+}) => (
+  <MaterialIcons name="keyboard-double-arrow-left" size={size} color={color} />
+);
+
+// Edit icon
+export const EditIcon: React.FC<IconProps> = ({
+  size = DEFAULT_ICON_SIZE,
+  color = DEFAULT_ICON_COLOR,
+}) => <Feather name="edit-2" size={size} color={color} />;
+
+// Exit icon
+export const ExitIcon: React.FC<IconProps> = ({
+  size = DEFAULT_ICON_SIZE,
+  color = DEFAULT_ICON_COLOR,
+}) => <Ionicons name="exit" size={size} color={color} />;

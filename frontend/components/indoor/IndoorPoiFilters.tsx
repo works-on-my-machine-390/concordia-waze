@@ -11,6 +11,7 @@ import {
   SlopeUpIcon,
   StairsIcon,
   StudySpotIcon,
+  ExitIcon
 } from "@/app/icons";
 import { Pressable, ScrollView, StyleSheet, Text } from "react-native";
 
@@ -45,6 +46,7 @@ export default function IndoorPoiFilters({ onFilterPress }: Readonly<Props>) {
       type: "reference_desk",
       Icon: ReferenceDeskIcon,
     },
+    { label: "Exit", type: "exit", Icon: ExitIcon},
   ];
 
   return (
@@ -70,7 +72,7 @@ export default function IndoorPoiFilters({ onFilterPress }: Readonly<Props>) {
 
 const styles = StyleSheet.create({
   scrollView: {
-    marginTop: 12,
+    // marginTop: 12,
     paddingHorizontal: 12,
     flexGrow: 0,
   },

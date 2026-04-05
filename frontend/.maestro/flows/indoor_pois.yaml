@@ -1,0 +1,74 @@
+appId: host.exp.Exponent
+---
+
+# 1) Continue as guest
+- tapOn: "Use without account"
+- waitForAnimationToEnd
+
+# 2) Assert map loads
+- assertVisible: "SGW"
+- waitForAnimationToEnd
+
+# 3) Tap on Hall building on the map
+- tapOn:
+    point: "55%, 48%"
+- waitForAnimationToEnd
+
+# 4) Assert bottom sheet appears with building name
+- assertVisible: "Henry F. Hall Building (H)"
+- waitForAnimationToEnd
+
+# 5) Click on view indoor map
+- tapOn:
+    point: "21%, 75%"
+
+# 6) Select floors within the building
+- assertVisible: "Henry F. Hall Building (H) - 1st Floor"
+
+- tapOn:
+    text: "8"
+
+# 7) Tap on the search bar to search for an indoor poi
+- tapOn: Search rooms...
+
+# 8) Search for a specific indoor poi
+- inputText: "bath"
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# 9) Wait for the appropiate indoor poi to appear
+- extendedWaitUntil:
+    visible: Floor 8
+    timeout: 8000
+
+# 10) Select the indoor poi
+- tapOn: Bathroom, Floor 8
+
+# 11) Tap on the search bar to search for another indoor poi
+- tapOn: Search rooms...
+
+# 12) Search for a specific indoor poi
+- inputText: "sitti"
+- waitForAnimationToEnd:
+    timeout: 3000
+
+# 13) Wait for the appropiate indoor poi to appear
+- extendedWaitUntil:
+    visible: Sitting area
+    timeout: 8000
+
+# 14) Select the indoor poi
+- tapOn:
+    text: Sitting area, Floor 8
+    index: 2
+
+# 15) Tap on other indoor pois on the screen
+- tapOn:
+    text: 
+    index: 1
+- tapOn: 
+- tapOn: 󰋨
+- tapOn: 
+- tapOn:
+    text: 
+    index: 2

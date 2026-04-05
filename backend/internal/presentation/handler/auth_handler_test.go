@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -62,6 +63,39 @@ func setupAuthTest(t *testing.T) (*handler.AuthHandler, *application.JWTManager)
 	userService := application.NewUserService(repo, jwtManager)
 	authHandler := handler.NewAuthHandler(userService, newFakeProfileService())
 	return authHandler, jwtManager
+}
+
+func setupAuthTestNoFirebase(t *testing.T) (*handler.AuthHandler, *application.JWTManager) {
+	repo := repository.NewInMemoryUserRepository()
+	jwtManager := application.NewJWTManager("test-secret-key", 24*time.Hour)
+	userService := application.NewUserService(repo, jwtManager)
+	authHandler := handler.NewAuthHandler(userService, nil)
+	return authHandler, jwtManager
+}
+
+type erringProfileService struct {
+	createErr     error
+	getErr        error
+	getByEmailErr error
+	profile       *domain.User
+}
+
+func (e *erringProfileService) CreateUserProfile(ctx context.Context, userID string, profile domain.User) error {
+	return e.createErr
+}
+
+func (e *erringProfileService) GetUserProfile(ctx context.Context, userID string) (*domain.User, error) {
+	if e.getErr != nil {
+		return nil, e.getErr
+	}
+	return e.profile, nil
+}
+
+func (e *erringProfileService) GetUserProfileByEmail(ctx context.Context, email string) (*domain.User, error) {
+	if e.getByEmailErr != nil {
+		return nil, e.getByEmailErr
+	}
+	return e.profile, nil
 }
 
 func TestSignUpSuccess(t *testing.T) {
@@ -464,5 +498,131 @@ func TestLogoutTokenRevoked(t *testing.T) {
 
 	if w.Code != http.StatusUnauthorized {
 		t.Errorf("Expected status %d after logout, got %d", http.StatusUnauthorized, w.Code)
+	}
+}
+
+func TestSignUpDuplicateEmail(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	authHandler, _ := setupAuthTest(t)
+
+	router := gin.New()
+	router.POST("/auth/signup", authHandler.SignUp)
+
+	reqBody := handler.SignUpRequest{
+		Name:     "John Doe",
+		Email:    "john.doe@concordia.ca",
+		Password: "password123",
+	}
+
+	body, _ := json.Marshal(reqBody)
+	req := httptest.NewRequest("POST", "/auth/signup", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	req = httptest.NewRequest("POST", "/auth/signup", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("Expected status %d, got %d", http.StatusBadRequest, w.Code)
+	}
+}
+
+func TestLoginSuccessWithoutFirebaseFallback(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	authHandler, _ := setupAuthTestNoFirebase(t)
+
+	router := gin.New()
+	router.POST("/auth/signup", authHandler.SignUp)
+	router.POST("/auth/login", authHandler.Login)
+
+	signupReq := handler.SignUpRequest{
+		Name:     "Fallback User",
+		Email:    "fallback@concordia.ca",
+		Password: "password123",
+	}
+
+	body, _ := json.Marshal(signupReq)
+	req := httptest.NewRequest("POST", "/auth/signup", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	loginReq := handler.LoginRequest{
+		Email:    "fallback@concordia.ca",
+		Password: "password123",
+	}
+	body, _ = json.Marshal(loginReq)
+	req = httptest.NewRequest("POST", "/auth/login", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	w = httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status %d, got %d", http.StatusOK, w.Code)
+	}
+}
+
+func TestGetProfileFirebaseErrorReturnsNotFound(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	repo := repository.NewInMemoryUserRepository()
+	jwtManager := application.NewJWTManager("test-secret-key", 24*time.Hour)
+	userService := application.NewUserService(repo, jwtManager)
+	authHandler := handler.NewAuthHandler(userService, &erringProfileService{getErr: errors.New("profile missing")})
+
+	router := gin.New()
+	router.GET("/auth/profile", func(c *gin.Context) {
+		c.Set("user", &domain.UserClaims{ID: "u-1", Email: "x@concordia.ca"})
+		authHandler.GetProfile(c)
+	})
+
+	req := httptest.NewRequest("GET", "/auth/profile", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusNotFound {
+		t.Errorf("Expected status %d, got %d", http.StatusNotFound, w.Code)
+	}
+}
+
+func TestLogoutInvalidAuthorizationHeaderFormat(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	authHandler, _ := setupAuthTestNoFirebase(t)
+
+	router := gin.New()
+	router.POST("/auth/logout", func(c *gin.Context) {
+		c.Set("user", &domain.UserClaims{ID: "u-1", Email: "user@concordia.ca"})
+		authHandler.Logout(c)
+	})
+
+	req := httptest.NewRequest("POST", "/auth/logout", nil)
+	req.Header.Set("Authorization", "Token abc123")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("Expected status %d, got %d", http.StatusUnauthorized, w.Code)
+	}
+}
+
+func TestLogoutMissingAuthorizationHeader(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	authHandler, _ := setupAuthTestNoFirebase(t)
+
+	router := gin.New()
+	router.POST("/auth/logout", func(c *gin.Context) {
+		c.Set("user", &domain.UserClaims{ID: "u-1", Email: "user@concordia.ca"})
+		authHandler.Logout(c)
+	})
+
+	req := httptest.NewRequest("POST", "/auth/logout", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("Expected status %d, got %d", http.StatusUnauthorized, w.Code)
 	}
 }

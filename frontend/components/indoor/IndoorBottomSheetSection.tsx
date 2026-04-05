@@ -1,12 +1,17 @@
 import type { Floor } from "@/hooks/queries/indoorMapQueries";
 import { useGetBuildingFloors } from "@/hooks/queries/indoorMapQueries";
 import { useIndoorSearchStore } from "@/hooks/useIndoorSearchStore";
-import { useIndoorNavigationStore } from "@/hooks/useIndoorNavigationStore";
-import { useRouter } from "expo-router";
+import { MapMode, useMapStore } from "@/hooks/useMapStore";
+import {
+  NavigationPhase,
+  useNavigationStore,
+} from "@/hooks/useNavigationStore";
 import { StyleSheet, View } from "react-native";
+import ActiveNavigationBottomSheet from "../activeNavigation/ActiveNavigationBottomSheet";
+import NavigationBottomSheet from "../NavigationBottomSheet";
 import IndoorFloorBottomSheet from "./IndoorFloorBottomSheet";
-import PoiFilterBottomSheet from "./PoiFilterBottomSheet";
 import IndoorRoomBottomSheet from "./IndoorRoomBottomSheet";
+import PoiFilterBottomSheet from "./PoiFilterBottomSheet";
 
 export type IndoorBottomSheetSectionProps = {
   floor: Floor | undefined;
@@ -16,16 +21,11 @@ export type IndoorBottomSheetSectionProps = {
 
   selectedPoiName?: string;
   onClearSelectedPoi: () => void;
-
-  onDirectionsPress?: () => void;
-  directionsDisabled?: boolean;
 };
 
 export default function IndoorBottomSheetSection(
   props: Readonly<IndoorBottomSheetSectionProps>,
 ) {
-  const navMode = useIndoorNavigationStore((s) => s.mode);
-
   const {
     floor,
     buildingCode,
@@ -33,9 +33,10 @@ export default function IndoorBottomSheetSection(
     metroAccessible,
     selectedPoiName,
     onClearSelectedPoi,
-    onDirectionsPress,
-    directionsDisabled = false,
   } = props;
+
+  const navigationState = useNavigationStore();
+  const currentMapMode = useMapStore((s) => s.currentMode);
 
   const selectedPoiFilter = useIndoorSearchStore((s) => s.selectedPoiFilter);
   const clearSelectedPoiFilter = useIndoorSearchStore(
@@ -44,58 +45,48 @@ export default function IndoorBottomSheetSection(
 
   const { data } = useGetBuildingFloors(buildingCode);
   const floors = data?.floors || [];
-  const router = useRouter();
 
   const selectedPoi = selectedPoiName
     ? floor?.pois.find((poi) => poi.name === selectedPoiName)
     : undefined;
 
-  const handlePoiSelect = (roomCode: string, floorNumber: number) => {
-    clearSelectedPoiFilter();
-    router.push({
-      pathname: "/indoor-map",
-      params: {
-        buildingCode,
-        selectedRoom: roomCode,
-        selectedFloor: floorNumber.toString(),
-      },
-    });
-  };
-
-  // ✅ early return only AFTER all hooks
-  if (navMode === "ITINERARY") return null;
-
   return (
     <View style={indoorBottomSheetStyles.bottomSheetContainer}>
-      {floor && !selectedPoi && !selectedPoiFilter && (
-        <IndoorFloorBottomSheet
-          floor={floor}
-          buildingName={buildingName}
-          buildingCode={buildingCode}
-          metroAccessible={metroAccessible}
-        />
-      )}
+      {floor &&
+        !selectedPoi &&
+        !selectedPoiFilter &&
+        currentMapMode !== MapMode.NAVIGATION && (
+          <IndoorFloorBottomSheet
+            floor={floor}
+            buildingName={buildingName}
+            buildingCode={buildingCode}
+            metroAccessible={metroAccessible}
+          />
+        )}
 
-      {selectedPoi && (
+      {selectedPoi && currentMapMode !== MapMode.NAVIGATION && (
+        // room and POI bottom sheet
         <IndoorRoomBottomSheet
-          roomCode={selectedPoi.name}
-          buildingCode={buildingCode}
-          roomType={selectedPoi.type}
+          selectedPoi={selectedPoi}
           onClose={onClearSelectedPoi}
-          onDirectionsPress={onDirectionsPress}
-          directionsDisabled={directionsDisabled}
         />
       )}
 
-      {selectedPoiFilter && (
+      {selectedPoiFilter && currentMapMode !== MapMode.NAVIGATION && (
         <PoiFilterBottomSheet
           poiType={selectedPoiFilter.type}
           poiLabel={selectedPoiFilter.label}
           floors={floors}
-          buildingCode={buildingCode}
-          onPoiSelect={handlePoiSelect}
           onClose={clearSelectedPoiFilter}
         />
+      )}
+
+      {navigationState.navigationPhase === NavigationPhase.PREPARATION && (
+        <NavigationBottomSheet />
+      )}
+
+      {navigationState.navigationPhase === NavigationPhase.ACTIVE && (
+        <ActiveNavigationBottomSheet />
       )}
     </View>
   );

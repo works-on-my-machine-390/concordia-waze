@@ -55,11 +55,13 @@ func (h *BuildingHandler) GetBuilding(c *gin.Context) {
 // @Tags        buildings
 // @Accept      json
 // @Produce     json
+// @Param       appendFloors query bool false "Whether to append floor information"
 // @Success     200 {object} map[string]map[string][]domain.BuildingSummary
 // @Failure     500 {object} map[string]string "internal server error"
 // @Router      /buildings/list [get]
 func (h *BuildingHandler) GetAllBuildingsByCampus(c *gin.Context) {
-	result, err := h.service.GetAllBuildingsByCampus()
+	appendFloors := c.Query("appendFloors") == "true"
+	result, err := h.service.GetAllBuildingsByCampus(appendFloors)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

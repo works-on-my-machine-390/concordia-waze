@@ -1,4 +1,5 @@
-import { useRouter } from "expo-router";
+import { DrawerActions } from "@react-navigation/native";
+import { useNavigation, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -16,14 +17,15 @@ import {
   useGetAllBuildings,
 } from "../../hooks/queries/buildingQueries";
 import { COLORS } from "../constants";
-import { DirectoryIcon } from "../icons";
+import { DirectoryIcon, MenuIcon } from "../icons";
 
 export default function Directory() {
   const router = useRouter();
+  const nav = useNavigation();
   const [searchQuery, setSearchQuery] = useState("");
 
   // Connected to backend /buildings/list endpoint
-  const { data: buildingsData, isLoading, error } = useGetAllBuildings();
+  const { data: buildingsData, isLoading, error } = useGetAllBuildings(true);
 
   // Filter buildings based on search query
   const filteredBuildings = useMemo(() => {
@@ -142,6 +144,12 @@ export default function Directory() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
+        <MenuIcon
+          size={24}
+          color={COLORS.maroon}
+          onPress={() => nav.dispatch(DrawerActions.openDrawer())}
+          testID="directory-menu-button"
+        />
         <DirectoryIcon size={32} color={COLORS.maroon} />
         <Text style={styles.headerTitle}>Building Directory</Text>
       </View>
@@ -189,8 +197,10 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   header: {
+    display: "flex",
     flexDirection: "row",
     alignItems: "center",
+    gap: 10,
     paddingHorizontal: 20,
     paddingVertical: 16,
     backgroundColor: COLORS.surface,
@@ -201,7 +211,6 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "700",
     color: COLORS.textPrimary,
-    marginLeft: 12,
   },
   searchContainer: {
     paddingHorizontal: 20,

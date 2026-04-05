@@ -1,5 +1,6 @@
 import SearchNearbyButton from "@/components/poi/SearchNearbyButton";
 import SearchNearbySuggestions from "@/components/poi/SearchNearbySuggestions";
+import SearchForTypeButton from "@/components/SearchForTypeButton";
 import {
   addGuestSearchHistory,
   clearGuestSearchHistory,
@@ -21,8 +22,11 @@ import {
   useSaveToHistory,
 } from "@/hooks/queries/userHistoryQueries";
 import { useGetProfile } from "@/hooks/queries/userQueries";
-import { useNavigationStore } from "@/hooks/useNavigationStore";
-import { Ionicons } from "@expo/vector-icons";
+import {
+  ModifyingFieldOptions,
+  useNavigationStore,
+} from "@/hooks/useNavigationStore";
+import { FontAwesome6, Ionicons } from "@expo/vector-icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
@@ -35,6 +39,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { COLORS } from "./constants";
 import { colors, SHADOW } from "./styles/theme";
 import { filterBuildingsByQuery } from "./utils/searchUtils";
 
@@ -73,7 +78,7 @@ export default function SearchPage() {
     locations: string;
   } | null>(null);
 
-  const allBuildingsQuery = useGetAllBuildings();
+  const allBuildingsQuery = useGetAllBuildings(true);
   const navigationState = useNavigationStore();
 
   useEffect(() => {
@@ -84,11 +89,15 @@ export default function SearchPage() {
         const entries = userHistoryQuery.data ?? [];
         if (active) {
           setRecentSearches(
-            entries.map((item) => ({
-              query: item.name,
-              locations: item.address,
-              code: item.building_code || undefined,
-            })),
+            entries
+              .filter(
+                (item) => (item.destinationType ?? "building") === "building", // for legacy entries -> assume building if type is missing
+              )
+              .map((item) => ({
+                query: item.name,
+                locations: item.address,
+                code: item.building_code || undefined,
+              })),
           );
         }
       } else if (!userId) {
@@ -96,10 +105,14 @@ export default function SearchPage() {
         const items = await getGuestSearchHistory();
         if (active) {
           setRecentSearches(
-            items.map((item) => ({
-              query: item.query,
-              locations: item.locations,
-            })),
+            items
+              .filter(
+                (item) => (item.destinationType ?? "building") === "building",
+              )
+              .map((item) => ({
+                query: item.query,
+                locations: item.locations,
+              })),
           );
         }
       }
@@ -155,6 +168,16 @@ export default function SearchPage() {
     loyBuildingsQuery.data?.buildings,
   ]);
 
+  const allBuildingsData = useMemo(() => {
+    if (allBuildingsQuery.isLoading || !allBuildingsQuery.data) {
+      return [];
+    }
+    return [
+      ...allBuildingsQuery.data.buildings.SGW,
+      ...allBuildingsQuery.data.buildings.LOY,
+    ];
+  }, [allBuildingsQuery.data]);
+
   const results: BuildingListItem[] = useMemo(() => {
     if (allBuildingsQuery.isLoading) {
       return [];
@@ -197,11 +220,8 @@ export default function SearchPage() {
           query: label,
           locations: address,
           timestamp: new Date(),
+          destinationType: "building",
         });
-        setRecentSearches((prev) => [
-          { query: label, locations: address },
-          ...prev.filter((entry) => entry.query !== label),
-        ]);
       }
     } catch {
       // Best effort only; search should still navigate even if persistence fails.
@@ -241,28 +261,53 @@ export default function SearchPage() {
     cameraPosition?: { latitude: number; longitude: number },
   ) => {
     const resolvedCampus = targetCampus ?? (campus as CampusCode);
+    const resolvedLabel = label ?? code;
+    const resolvedAddress = address ?? "";
+
+    if (!userProfile?.id) {
+      // Update local recent list before navigation unmounts this screen.
+      setRecentSearches((prev) => [
+        { query: resolvedLabel, locations: resolvedAddress },
+        ...prev.filter((entry) => entry.query !== resolvedLabel),
+      ]);
+    }
 
     // if user in edit mode, pass the edit info back to map
     if (editMode) {
-      if (editMode === "start") {
+      if (
+        editMode === "start" ||
+        navigationState.modifyingField === ModifyingFieldOptions.start
+      ) {
         navigationState.setStartLocation({
           name: label ?? code,
-          latitude: results.find((r) => r.code === code)?.latitude || 0,
-          longitude: results.find((r) => r.code === code)?.longitude || 0,
+          latitude:
+            allBuildingsData.find((r) => r.code === code)?.latitude || 0,
+          longitude:
+            allBuildingsData.find((r) => r.code === code)?.longitude || 0,
           code,
           address:
-            address || results.find((r) => r.code === code)?.address || "",
+            address ||
+            allBuildingsData.find((r) => r.code === code)?.address ||
+            "",
         });
-      } else if (editMode === "end") {
+      } else if (
+        editMode === "end" ||
+        navigationState.modifyingField === ModifyingFieldOptions.end
+      ) {
         navigationState.setEndLocation({
           name: label ?? code,
-          latitude: results.find((r) => r.code === code)?.latitude || 0,
-          longitude: results.find((r) => r.code === code)?.longitude || 0,
+          latitude:
+            allBuildingsData.find((r) => r.code === code)?.latitude || 0,
+          longitude:
+            allBuildingsData.find((r) => r.code === code)?.longitude || 0,
           code,
           address:
-            address || results.find((r) => r.code === code)?.address || "",
+            address ||
+            allBuildingsData.find((r) => r.code === code)?.address ||
+            "",
         });
       }
+      navigationState.setModifyingField(null);
 
       router.replace({
         pathname: "/map",
@@ -387,6 +432,12 @@ export default function SearchPage() {
     });
   };
 
+  const handleSearchForRoomsPress = () => {
+    router.replace({
+      pathname: "/indoor-search",
+      params: {},
+    });
+  };
   const renderHeaderComponent = () => {
     // search nearby and recent searches are mutually exclusive,
     // so nearby gets priority when query is present
@@ -398,22 +449,26 @@ export default function SearchPage() {
 
     if (showRecent) {
       return (
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Recent searches</Text>
+        <View style={searchStyles.section}>
+          <View style={searchStyles.sectionHeader}>
+            <Text style={searchStyles.sectionTitle}>Recent searches</Text>
             <Pressable onPress={handleClearRecent}>
-              <Text style={styles.clearText}>Clear</Text>
+              <Text style={searchStyles.clearText}>Clear</Text>
             </Pressable>
           </View>
           {recentItems.map((item) => (
             <Pressable
               key={`${item.query}-${item.locations}`}
-              style={styles.resultItem}
+              style={searchStyles.resultItem}
               onPress={() => handleRecentItemPress(item)}
             >
-              <Text style={styles.resultTitle}>{getRecentItemTitle(item)}</Text>
+              <Text style={searchStyles.resultTitle}>
+                {getRecentItemTitle(item)}
+              </Text>
               {item.locations ? (
-                <Text style={styles.resultSubtitle}>{item.locations}</Text>
+                <Text style={searchStyles.resultSubtitle}>
+                  {item.locations}
+                </Text>
               ) : null}
             </Pressable>
           ))}
@@ -425,8 +480,8 @@ export default function SearchPage() {
   const renderEmptyComponent = () => {
     if (query.trim().length > 0)
       return (
-        <View style={styles.empty}>
-          <Text style={styles.emptyText}>No matches found</Text>
+        <View style={searchStyles.empty}>
+          <Text style={searchStyles.emptyText}>No matches found</Text>
         </View>
       );
 
@@ -435,16 +490,22 @@ export default function SearchPage() {
     }
 
     return (
-      <View style={styles.empty}>
-        <Text style={styles.emptyText}>Start typing to search</Text>
+      <View style={searchStyles.empty}>
+        <Text style={searchStyles.emptyText}>Start typing to search</Text>
       </View>
     );
   };
 
   const getSearchPlaceholderText = () => {
-    if (params.editMode === "start") {
+    if (
+      params.editMode === "start" ||
+      navigationState.modifyingField === ModifyingFieldOptions.start
+    ) {
       return "Search for start location";
-    } else if (params.editMode === "end") {
+    } else if (
+      params.editMode === "end" ||
+      navigationState.modifyingField === ModifyingFieldOptions.end
+    ) {
       return "Search for destination";
     }
     return "Where to…";
@@ -452,17 +513,20 @@ export default function SearchPage() {
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
-      <View style={styles.page}>
-        <View style={styles.headerContainer}>
-          <View style={styles.header}>
+      <View style={searchStyles.page}>
+        <View style={searchStyles.headerContainer}>
+          <View style={searchStyles.header}>
             <Pressable
-              style={styles.iconButton}
-              onPress={() => router.back()}
+              style={searchStyles.iconButton}
+              onPress={() => {
+                router.back();
+                navigationState.setModifyingField(null);
+              }}
               testID="back-button"
             >
               <Ionicons name="arrow-back" size={26} color={colors.maroon} />
             </Pressable>
-            <View style={styles.searchPill}>
+            <View style={searchStyles.searchPill}>
               <Ionicons name="search" size={22} color={colors.maroon} />
               <TextInput
                 autoFocus
@@ -470,7 +534,7 @@ export default function SearchPage() {
                 onChangeText={setQuery}
                 placeholder={getSearchPlaceholderText()}
                 placeholderTextColor="#818181"
-                style={styles.searchInput}
+                style={searchStyles.searchInput}
               />
               {query.length > 0 && (
                 <Pressable onPress={() => setQuery("")}>
@@ -479,17 +543,31 @@ export default function SearchPage() {
               )}
             </View>
           </View>
-          {editMode !== "start" && <SearchNearbySuggestions onClick={handleSearchNearbyPressed} />}
+          {!(
+            editMode === "start" ||
+            navigationState.modifyingField === ModifyingFieldOptions.start
+          ) && <SearchNearbySuggestions onClick={handleSearchNearbyPressed} />}
+          <SearchForTypeButton
+            onPress={handleSearchForRoomsPress}
+            label={"Looking for rooms?"}
+            icon={
+              <FontAwesome6
+                name="door-open"
+                size={24}
+                color={COLORS.textMuted}
+              />
+            }
+          />
         </View>
 
         <FlatList
           data={results}
           keyExtractor={(item) => item.code}
-          contentContainerStyle={styles.listContainer}
+          contentContainerStyle={searchStyles.listContainer}
           ListHeaderComponent={renderHeaderComponent()}
           renderItem={({ item }) => (
             <Pressable
-              style={styles.resultItem}
+              style={searchStyles.resultItem}
               onPress={() =>
                 handleSelect(
                   item.code,
@@ -502,13 +580,13 @@ export default function SearchPage() {
                 )
               }
             >
-              <Text style={styles.resultTitle}>
+              <Text style={searchStyles.resultTitle}>
                 {item.long_name || item.name
                   ? `${item.code} - ${item.long_name ?? item.name}`
                   : item.code}
               </Text>
               {item.address ? (
-                <Text style={styles.resultSubtitle}>{item.address}</Text>
+                <Text style={searchStyles.resultSubtitle}>{item.address}</Text>
               ) : null}
             </Pressable>
           )}
@@ -519,7 +597,7 @@ export default function SearchPage() {
   );
 }
 
-const styles = StyleSheet.create({
+export const searchStyles = StyleSheet.create({
   page: {
     flex: 1,
     backgroundColor: colors.background,
@@ -532,6 +610,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
     paddingHorizontal: 16,
+    paddingVertical: 6,
   },
   iconButton: {
     width: 44,

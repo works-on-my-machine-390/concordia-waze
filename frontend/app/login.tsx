@@ -16,9 +16,11 @@ import { TermsText } from "../components/TermsText";
 import { useAuth } from "../hooks/useAuth";
 import { COLORS } from "./constants";
 import { validateLogin } from "./utils/validators";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function LoginScreen() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { login, loading } = useAuth();
 
   const [email, setEmail] = useState("");
@@ -44,6 +46,7 @@ export default function LoginScreen() {
 
     if (result.success) {
       router.replace("/map"); // Navigate to main app
+      queryClient.refetchQueries({ queryKey: ["auth", "isAuthenticated"] });
       Toast.success("Login successful!");
     } else {
       setPassword("");

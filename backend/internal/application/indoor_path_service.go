@@ -2,9 +2,11 @@ package application
 
 import (
 	"errors"
+	"fmt"
 	"math"
 	"strings"
 
+	"github.com/works-on-my-machine-390/concordia-waze/internal/constants"
 	"github.com/works-on-my-machine-390/concordia-waze/internal/domain"
 )
 
@@ -37,8 +39,10 @@ const (
 	TurnStraight TurnDirection = "straight"
 )
 
-// StraightTurnThreshold is the cosine threshold for considering a turn as "straight" (cos 15°)
-const StraightTurnThreshold = 0.966
+type IndoorPathFinder interface {
+	ShortestPath(req IndoorPathRequest) (*IndoorPathResult, error)
+	MultiFloorShortestPath(req MultiFloorPathRequest) (*MultiFloorPathResult, error)
+}
 
 type FloorGetter interface {
 	GetBuildingFloors(code string) ([]domain.Floor, error)
@@ -154,132 +158,206 @@ func (s *IndoorPathService) ShortestPath(req IndoorPathRequest) (*IndoorPathResu
 
 // MultiFloorShortestPath calculates shortest path from (x,y) on one floor to (x,y) on another floor
 func (s *IndoorPathService) MultiFloorShortestPath(req MultiFloorPathRequest) (*MultiFloorPathResult, error) {
-	if strings.TrimSpace(req.BuildingCode) == "" {
-		return nil, errors.New("buildingCode is required")
-	}
-	if req.StartCoord == nil && req.StartRoom == "" {
-		return nil, errors.New("start coordinate or startRoom is required")
-	}
-	if req.EndCoord == nil && req.EndRoom == "" {
-		return nil, errors.New("end coordinate or endRoom is required")
+	if err := validateMultiFloorRequest(req); err != nil {
+		return nil, err
 	}
 
-	floors, err := s.floors.GetBuildingFloors(req.BuildingCode)
+	startFloor, endFloor, err := s.resolveStartEndFloors(req)
 	if err != nil {
 		return nil, err
 	}
 
-	// Get start and end floors
-	var startFloor, endFloor *domain.Floor
-	for i := range floors {
-		if floors[i].FloorNumber == req.StartFloor {
-			startFloor = &floors[i]
-		}
-		if floors[i].FloorNumber == req.EndFloor {
-			endFloor = &floors[i]
-		}
-	}
-	if startFloor == nil {
-		return nil, errors.New("start floor not found")
-	}
-	if endFloor == nil {
-		return nil, errors.New("end floor not found")
-	}
-
-	// Handle same-floor navigation (no transition needed)
 	if req.StartFloor == req.EndFloor {
 		return s.sameFloorPath(req, startFloor)
 	}
 
-	// Resolve start and end points
+	startPoint, endPoint, err := s.resolveStartEndPoints(req)
+	if err != nil {
+		return nil, err
+	}
+
+	transitionType, startTransition, endTransition, err := s.resolveTransitions(req, startFloor, endFloor, startPoint, endPoint)
+	if err != nil {
+		return nil, err
+	}
+
+	startSeg, distToTransition, err := s.startFloorSegment(req, startFloor, startPoint, *startTransition)
+	if err != nil {
+		return nil, err
+	}
+
+	endSeg, distFromTransition, err := s.endFloorSegment(req, endFloor, *endTransition, endPoint)
+	if err != nil {
+		return nil, err
+	}
+
+	return buildMultiFloorResult(startSeg, endSeg, distToTransition, distFromTransition, transitionType), nil
+}
+
+func validateMultiFloorRequest(req MultiFloorPathRequest) error {
+	if strings.TrimSpace(req.BuildingCode) == "" {
+		return errors.New("buildingCode is required")
+	}
+	if req.StartCoord == nil && req.StartRoom == "" {
+		return errors.New("start coordinate or startRoom is required")
+	}
+	if req.EndCoord == nil && req.EndRoom == "" {
+		return fmt.Errorf("end coordinate or endRoom is required for building %s floor %d", req.BuildingCode, req.EndFloor)
+	}
+	return nil
+}
+
+func (s *IndoorPathService) resolveStartEndFloors(req MultiFloorPathRequest) (*domain.Floor, *domain.Floor, error) {
+	floors, err := s.floors.GetBuildingFloors(req.BuildingCode)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var startFloor, endFloor *domain.Floor
+	for i := range floors {
+		f := &floors[i]
+		if f.FloorNumber == req.StartFloor {
+			startFloor = f
+		}
+		if f.FloorNumber == req.EndFloor {
+			endFloor = f
+		}
+	}
+
+	if startFloor == nil {
+		return nil, nil, errors.New("start floor not found")
+	}
+	if endFloor == nil {
+		return nil, nil, errors.New("end floor not found")
+	}
+
+	return startFloor, endFloor, nil
+}
+
+func (s *IndoorPathService) resolveStartEndPoints(req MultiFloorPathRequest) (domain.Coordinates, domain.Coordinates, error) {
 	startPoint, err := s.resolveCoordinate(req.StartCoord, req.BuildingCode, req.StartFloor, req.StartRoom)
 	if err != nil {
-		return nil, err
+		return domain.Coordinates{}, domain.Coordinates{}, err
 	}
+
 	endPoint, err := s.resolveCoordinate(req.EndCoord, req.BuildingCode, req.EndFloor, req.EndRoom)
 	if err != nil {
-		return nil, err
+		return domain.Coordinates{}, domain.Coordinates{}, err
 	}
 
-	// Find transition points (stairs/elevator) on both floors using enum
-	preferredType := TransitionStairs
+	return startPoint, endPoint, nil
+}
+
+func preferredTransitionType(req MultiFloorPathRequest) TransitionType {
 	if req.PreferElevator || req.RequireAccessible {
-		preferredType = TransitionElevator
+		return TransitionElevator
 	}
+	return TransitionStairs
+}
 
-	// When accessibility required, only allow elevator (no stairs fallback)
-	var transitionType TransitionType
-	var startTransition, endTransition *domain.Coordinates
-	if req.RequireAccessible {
-		startTransition = s.findClosestTransitionPoint(startFloor, TransitionElevator, startPoint)
-		endTransition = s.findClosestTransitionPoint(endFloor, TransitionElevator, endPoint)
-		if startTransition != nil && endTransition != nil {
-			transitionType = TransitionElevator
-		}
-	} else {
-		transitionType, startTransition, endTransition = s.findBestTransitions(
-			startFloor, endFloor, startPoint, endPoint, preferredType,
-		)
-	}
-
+func (s *IndoorPathService) resolveTransitions(
+	req MultiFloorPathRequest,
+	startFloor, endFloor *domain.Floor,
+	startPoint, endPoint domain.Coordinates,
+) (TransitionType, *domain.Coordinates, *domain.Coordinates, error) {
+	pref := preferredTransitionType(req)
+	transitionType, startTransition, endTransition := s.selectTransitions(req, startFloor, endFloor, startPoint, endPoint, pref)
 	if startTransition == nil || endTransition == nil {
-		return nil, errors.New("no transition point (stairs/elevator) found on floor")
+		return TransitionNone, nil, nil, errors.New("no transition point (stairs/elevator) found on floor or no linked pair exists across floors")
 	}
+	return transitionType, startTransition, endTransition, nil
+}
 
-	// Calculate path on start floor: from start point to transition
-	startGraph, err := newGraphFromFloor(*startFloor, req.RequireAccessible)
+func (s *IndoorPathService) startFloorSegment(
+	req MultiFloorPathRequest,
+	startFloor *domain.Floor,
+	startPoint domain.Coordinates,
+	startTransition domain.Coordinates,
+) (FloorSegment, float64, error) {
+	seg, dist, err := s.computeFloorSegment(startFloor, req.RequireAccessible, req.StartFloor, startPoint, startTransition)
 	if err != nil {
-		return nil, err
+		return FloorSegment{}, 0, errors.New("no path to transition point on start floor")
 	}
+	return seg, dist, nil
+}
 
-	startIdx := startGraph.nearestVertexWithSplit(startPoint)
-	transitionStartIdx := startGraph.nearestVertexWithSplit(*startTransition)
-
-	pathToTransition, distToTransition, err := startGraph.shortestPath(startIdx, transitionStartIdx)
+func (s *IndoorPathService) endFloorSegment(
+	req MultiFloorPathRequest,
+	endFloor *domain.Floor,
+	endTransition domain.Coordinates,
+	endPoint domain.Coordinates,
+) (FloorSegment, float64, error) {
+	seg, dist, err := s.computeFloorSegment(endFloor, req.RequireAccessible, req.EndFloor, endTransition, endPoint)
 	if err != nil {
-		return nil, errors.New("no path to transition point on start floor")
+		return FloorSegment{}, 0, errors.New("no path from transition point on end floor")
 	}
+	return seg, dist, nil
+}
 
-	// Calculate path on end floor: from transition to end point
-	endGraph, err := newGraphFromFloor(*endFloor, req.RequireAccessible)
-	if err != nil {
-		return nil, err
-	}
-
-	transitionEndIdx := endGraph.nearestVertexWithSplit(*endTransition)
-	endIdx := endGraph.nearestVertexWithSplit(endPoint)
-
-	pathFromTransition, distFromTransition, err := endGraph.shortestPath(transitionEndIdx, endIdx)
-	if err != nil {
-		return nil, errors.New("no path from transition point on end floor")
-	}
-
-	// Build result with floor segments
-	pathToTransitionCoords := startGraph.pathCoordinates(pathToTransition)
-	pathFromTransitionCoords := endGraph.pathCoordinates(pathFromTransition)
-
-	segments := []FloorSegment{
-		{
-			FloorNumber: req.StartFloor,
-			FloorName:   startFloor.FloorName,
-			Path:        pathToTransitionCoords,
-			Distance:    distToTransition,
-			Directions:  calculateTurnDirections(pathToTransitionCoords),
-		},
-		{
-			FloorNumber: req.EndFloor,
-			FloorName:   endFloor.FloorName,
-			Path:        pathFromTransitionCoords,
-			Distance:    distFromTransition,
-			Directions:  calculateTurnDirections(pathFromTransitionCoords),
-		},
-	}
-
+func buildMultiFloorResult(
+	startSeg, endSeg FloorSegment,
+	distToTransition, distFromTransition float64,
+	transitionType TransitionType,
+) *MultiFloorPathResult {
 	return &MultiFloorPathResult{
-		Segments:       segments,
+		Segments:       []FloorSegment{startSeg, endSeg},
 		TotalDistance:  distToTransition + distFromTransition,
 		TransitionType: transitionType,
-	}, nil
+	}
+}
+
+// selectTransitions encapsulates the logic that chooses the transition type and pair of coordinates.
+// It returns the chosen TransitionType and the start/end transition coordinates (or nils).
+func (s *IndoorPathService) selectTransitions(
+	req MultiFloorPathRequest,
+	startFloor, endFloor *domain.Floor,
+	startPoint, endPoint domain.Coordinates,
+	preferred TransitionType,
+) (TransitionType, *domain.Coordinates, *domain.Coordinates) {
+	// When accessibility required, only allow elevator (no stairs fallback)
+	if req.RequireAccessible {
+		startTransition, endTransition := s.findClosestLinkedTransitionPair(startFloor, endFloor, TransitionElevator, startPoint, endPoint)
+		if startTransition != nil && endTransition != nil {
+			return TransitionElevator, startTransition, endTransition
+		}
+		return TransitionNone, nil, nil
+	}
+
+	// Otherwise try preferred then fallback inside findBestTransitions
+	transitionType, startTransition, endTransition := s.findBestTransitions(startFloor, endFloor, startPoint, endPoint, preferred)
+	return transitionType, startTransition, endTransition
+}
+
+// computeFloorSegment builds a graph for the given floor, finds nearest/split vertices,
+// computes the shortest path between 'from' and 'to' coordinates and returns a FloorSegment and its distance.
+func (s *IndoorPathService) computeFloorSegment(
+	floor *domain.Floor,
+	requireAccessible bool,
+	floorNumber int,
+	from, to domain.Coordinates,
+) (FloorSegment, float64, error) {
+	g, err := newGraphFromFloor(*floor, requireAccessible)
+	if err != nil {
+		return FloorSegment{}, 0, err
+	}
+
+	startIdx := g.nearestVertexWithSplit(from)
+	endIdx := g.nearestVertexWithSplit(to)
+
+	vertexPath, dist, err := g.shortestPath(startIdx, endIdx)
+	if err != nil {
+		return FloorSegment{}, 0, err
+	}
+
+	pathCoords := g.pathCoordinates(vertexPath)
+	segment := FloorSegment{
+		FloorNumber: floorNumber,
+		FloorName:   floor.FloorName,
+		Path:        pathCoords,
+		Distance:    dist,
+		Directions:  calculateTurnDirections(pathCoords),
+	}
+	return segment, dist, nil
 }
 
 // resolveCoordinate resolves a coordinate from either a direct coord or a room name
@@ -353,8 +431,7 @@ func (s *IndoorPathService) findBestTransitions(
 	}
 
 	for _, tt := range typesToTry {
-		startTrans := s.findClosestTransitionPoint(startFloor, tt, startPoint)
-		endTrans := s.findClosestTransitionPoint(endFloor, tt, endPoint)
+		startTrans, endTrans := s.findClosestLinkedTransitionPair(startFloor, endFloor, tt, startPoint, endPoint)
 		if startTrans != nil && endTrans != nil {
 			return tt, startTrans, endTrans
 		}
@@ -363,38 +440,158 @@ func (s *IndoorPathService) findBestTransitions(
 	return TransitionNone, nil, nil
 }
 
-// findClosestTransitionPoint finds the transition point of given type closest to the reference coordinate
-func (s *IndoorPathService) findClosestTransitionPoint(floor *domain.Floor, transType TransitionType, refCoord domain.Coordinates) *domain.Coordinates {
-	typeStr := transType.String()
-	if typeStr == "none" {
+func (s *IndoorPathService) findClosestLinkedTransitionPair(
+	startFloor, endFloor *domain.Floor,
+	transType TransitionType,
+	startRef, endRef domain.Coordinates,
+) (*domain.Coordinates, *domain.Coordinates) {
+	if transType.String() == "none" {
+		return nil, nil
+	}
+
+	startTransitions := s.transitionPOIsByType(startFloor, transType)
+	endTransitions := s.transitionPOIsByType(endFloor, transType)
+	if len(startTransitions) == 0 || len(endTransitions) == 0 {
+		return nil, nil
+	}
+
+	endByKey := groupTransitionsByNormalizedKey(endTransitions)
+	bestStart, bestEnd := findBestLinkedTransitionPair(startTransitions, endByKey, startRef, endRef)
+	if bestStart != nil && bestEnd != nil {
+		return bestStart, bestEnd
+	}
+
+	return s.findClosestGeometricTransitionPair(startTransitions, endTransitions, startRef, endRef)
+}
+
+func groupTransitionsByNormalizedKey(transitions []domain.PointOfInterest) map[string][]domain.PointOfInterest {
+	grouped := make(map[string][]domain.PointOfInterest)
+
+	for _, poi := range transitions {
+		key := normalizeTransitionKey(poi.Name)
+		if key == "" {
+			continue
+		}
+		grouped[key] = append(grouped[key], poi)
+	}
+
+	return grouped
+}
+
+func findBestLinkedTransitionPair(
+	startTransitions []domain.PointOfInterest,
+	endByKey map[string][]domain.PointOfInterest,
+	startRef, endRef domain.Coordinates,
+) (*domain.Coordinates, *domain.Coordinates) {
+	minCost := math.MaxFloat64
+	var bestStart, bestEnd *domain.Coordinates
+
+	for _, startPOI := range startTransitions {
+		candidates := matchingTransitionCandidates(startPOI, endByKey)
+		if len(candidates) == 0 {
+			continue
+		}
+
+		bestStart, bestEnd, minCost = updateBestTransitionPair(
+			startPOI,
+			candidates,
+			startRef,
+			endRef,
+			bestStart,
+			bestEnd,
+			minCost,
+		)
+	}
+
+	return bestStart, bestEnd
+}
+
+func matchingTransitionCandidates(
+	startPOI domain.PointOfInterest,
+	endByKey map[string][]domain.PointOfInterest,
+) []domain.PointOfInterest {
+	key := normalizeTransitionKey(startPOI.Name)
+	if key == "" {
 		return nil
 	}
 
-	var closest *domain.Coordinates
-	minDist := math.MaxFloat64
-
-	for _, poi := range floor.POIs {
-		if !strings.EqualFold(poi.Type, typeStr) && !strings.Contains(strings.ToLower(poi.Type), typeStr) {
-			continue
-		}
-		d := euclid(poi.Position, refCoord)
-		if d < minDist {
-			minDist = d
-			pos := poi.Position
-			closest = &pos
-		}
-	}
-	return closest
+	return endByKey[key]
 }
 
-// findTransitionPoint finds stairs or elevator POI on a floor (legacy, finds first match)
-func (s *IndoorPathService) findTransitionPoint(floor *domain.Floor, poiType string) *domain.Coordinates {
-	for _, poi := range floor.POIs {
-		if strings.EqualFold(poi.Type, poiType) || strings.Contains(strings.ToLower(poi.Type), poiType) {
-			return &poi.Position
+func updateBestTransitionPair(
+	startPOI domain.PointOfInterest,
+	candidates []domain.PointOfInterest,
+	startRef, endRef domain.Coordinates,
+	currentBestStart, currentBestEnd *domain.Coordinates,
+	currentMinCost float64,
+) (*domain.Coordinates, *domain.Coordinates, float64) {
+	bestStart := currentBestStart
+	bestEnd := currentBestEnd
+	minCost := currentMinCost
+
+	for _, endPOI := range candidates {
+		cost := euclid(startPOI.Position, startRef) + euclid(endPOI.Position, endRef)
+		if cost < minCost {
+			minCost = cost
+			start := startPOI.Position
+			end := endPOI.Position
+			bestStart = &start
+			bestEnd = &end
 		}
 	}
-	return nil
+
+	return bestStart, bestEnd, minCost
+}
+
+func (s *IndoorPathService) findClosestGeometricTransitionPair(
+	startTransitions, endTransitions []domain.PointOfInterest,
+	startRef, endRef domain.Coordinates,
+) (*domain.Coordinates, *domain.Coordinates) {
+	const interFloorAlignmentWeight = 2.0
+
+	minCost := math.MaxFloat64
+	var bestStart, bestEnd *domain.Coordinates
+
+	for _, startPOI := range startTransitions {
+		for _, endPOI := range endTransitions {
+			cost := euclid(startPOI.Position, startRef) +
+				euclid(endPOI.Position, endRef) +
+				(interFloorAlignmentWeight * euclid(startPOI.Position, endPOI.Position))
+
+			if cost < minCost {
+				minCost = cost
+				s := startPOI.Position
+				e := endPOI.Position
+				bestStart = &s
+				bestEnd = &e
+			}
+		}
+	}
+
+	return bestStart, bestEnd
+}
+
+func (s *IndoorPathService) transitionPOIsByType(floor *domain.Floor, transType TransitionType) []domain.PointOfInterest {
+	typeStr := transType.String()
+	if typeStr == "none" || floor == nil {
+		return nil
+	}
+
+	pois := make([]domain.PointOfInterest, 0)
+	for _, poi := range floor.POIs {
+		if strings.EqualFold(poi.Type, typeStr) || strings.Contains(strings.ToLower(poi.Type), typeStr) {
+			pois = append(pois, poi)
+		}
+	}
+	return pois
+}
+
+func normalizeTransitionKey(s string) string {
+	key := strings.ToUpper(strings.TrimSpace(s))
+	key = strings.ReplaceAll(key, " ", "")
+	key = strings.ReplaceAll(key, "_", "")
+	key = strings.ReplaceAll(key, "-", "")
+	return key
 }
 
 func (s *IndoorPathService) resolveEndpoints(req IndoorPathRequest, g *graph, floor *domain.Floor, building string, floorNum int) (int, int, error) {
@@ -434,12 +631,13 @@ func (s *IndoorPathService) roomCentroid(building string, floorNum int, room str
 		if r.Floor != floorNum {
 			continue
 		}
+
 		if normalizeRoom(r.Room) == target {
 			return &domain.Coordinates{X: r.Centroid.X, Y: r.Centroid.Y}, nil
 		}
 	}
 
-	return nil, errors.New("room not found on that floor")
+	return nil, fmt.Errorf("room '%s' not found on floor %d of building %s", room, floorNum, building)
 }
 
 func normalizeRoom(s string) string {
@@ -512,14 +710,44 @@ func euclid(a, b domain.Coordinates) float64 {
 
 func (g *graph) shortestPath(start, goal int) ([]int, float64, error) {
 	n := len(g.pos)
-	if start < 0 || start >= n || goal < 0 || goal >= n {
-		return nil, 0, errors.New("start/goal out of range")
+
+	if err := validateEndpoints(start, goal, n); err != nil {
+		return nil, 0, err
 	}
 	if start == goal {
 		return []int{start}, 0, nil
 	}
 
+	dist, prev, used := initDijkstraState(n, start)
+
+	for {
+		u := selectClosestUnused(dist, used)
+		if u == -1 || u == goal {
+			break
+		}
+
+		used[u] = true
+		relaxNeighbors(g.adj[u], u, dist, prev, used)
+	}
+
+	if dist[goal] == math.MaxFloat64 {
+		return nil, 0, ErrNoPath
+	}
+
+	path := reconstructPath(prev, goal)
+	return path, constants.IndoorPathDistanceToMeterRatio * dist[goal], nil
+}
+
+func validateEndpoints(start, goal, n int) error {
+	if start < 0 || start >= n || goal < 0 || goal >= n {
+		return errors.New("start/goal out of range")
+	}
+	return nil
+}
+
+func initDijkstraState(n, start int) ([]float64, []int, []bool) {
 	const inf = math.MaxFloat64
+
 	dist := make([]float64, n)
 	prev := make([]int, n)
 	used := make([]bool, n)
@@ -530,41 +758,37 @@ func (g *graph) shortestPath(start, goal int) ([]int, float64, error) {
 	}
 	dist[start] = 0
 
-	for {
-		u := -1
-		best := inf
-		for i := 0; i < n; i++ {
-			if !used[i] && dist[i] < best {
-				best = dist[i]
-				u = i
-			}
-		}
-		if u == -1 {
-			break
-		}
-		if u == goal {
-			break
-		}
+	return dist, prev, used
+}
 
-		used[u] = true
-		for _, nb := range g.adj[u] {
-			if used[nb.to] {
-				continue
-			}
-			nd := dist[u] + nb.weight
-			if nd < dist[nb.to] {
-				dist[nb.to] = nd
-				prev[nb.to] = u
-			}
+func selectClosestUnused(dist []float64, used []bool) int {
+	best := math.MaxFloat64
+	u := -1
+
+	for i := 0; i < len(dist); i++ {
+		if !used[i] && dist[i] < best {
+			best = dist[i]
+			u = i
 		}
 	}
+	return u
+}
 
-	if dist[goal] == inf {
-		return nil, 0, ErrNoPath
+func relaxNeighbors(neighbors []neighbor, u int, dist []float64, prev []int, used []bool) {
+	for _, nb := range neighbors {
+		if used[nb.to] {
+			continue
+		}
+		nd := dist[u] + nb.weight
+		if nd < dist[nb.to] {
+			dist[nb.to] = nd
+			prev[nb.to] = u
+		}
 	}
+}
 
-	// Reconstruct path
-	path := []int{}
+func reconstructPath(prev []int, goal int) []int {
+	path := make([]int, 0)
 	for v := goal; v != -1; v = prev[v] {
 		path = append(path, v)
 	}
@@ -572,7 +796,7 @@ func (g *graph) shortestPath(start, goal int) ([]int, float64, error) {
 		path[i], path[j] = path[j], path[i]
 	}
 
-	return path, dist[goal], nil
+	return path
 }
 
 // calculateTurnDirections computes turn directions (left/right/straight) at each point in the path
@@ -608,7 +832,7 @@ func calculateTurnDirections(coords []domain.Coordinates) []TurnDirection {
 
 		if magCurr > 0 && magNext > 0 {
 			cosAngle := dotProduct / (magCurr * magNext)
-			if cosAngle > StraightTurnThreshold {
+			if cosAngle > constants.IndoorPathStraightTurnThreshold {
 				directions = append(directions, TurnStraight)
 			} else if crossProduct > 0 {
 				directions = append(directions, TurnLeft)

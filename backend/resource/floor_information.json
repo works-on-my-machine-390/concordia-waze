@@ -6732,6 +6732,15 @@
             "polygon": []
           },
           {
+            "name": "poi_61",
+            "type": "exit",
+            "position": {
+              "x": 0.17871823759371,
+              "y": 0.42978665468126565
+            },
+            "polygon": []
+          },
+          {
             "name": "Ireland Reading Room",
             "type": "room",
             "position": {
@@ -10305,6 +10314,24 @@
             "polygon": []
           },
           {
+            "name": "poi_28",
+            "type": "exit",
+            "position": {
+              "x": 0.06758832141986204,
+              "y": 0.8965950311999222
+            },
+            "polygon": []
+          },
+          {
+            "name": "poi_29",
+            "type": "exit",
+            "position": {
+              "x": 0.8934430749304738,
+              "y": 0.7403751946221746
+            },
+            "polygon": []
+          },
+          {
             "name": "210",
             "type": "room",
             "position": {
@@ -10565,6 +10592,15 @@
             "position": {
               "x": 0.7837255837450812,
               "y": 0.8173106794547493
+            },
+            "polygon": []
+          },
+          {
+            "name": "poi_34",
+            "type": "exit",
+            "position": {
+              "x": 0.48499466539192326,
+              "y": 0.9660781864913588
             },
             "polygon": []
           },
