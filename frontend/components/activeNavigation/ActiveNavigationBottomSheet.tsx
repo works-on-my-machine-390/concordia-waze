@@ -8,12 +8,13 @@ import {
   useNavigationStore,
 } from "@/hooks/useNavigationStore";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
-import { useCallback } from "react";
 import { useLocalSearchParams, usePathname } from "expo-router";
+import { useCallback } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BottomSheetStyles } from "../BuildingBottomSheet";
 import OutdoorNavigationSteps from "../OutdoorNavigationSteps";
+import RecenterButton from "./RecenterButton";
 import ReturnOutdoorButton from "./ReturnOutdoorButton";
 
 const HandleComponent = () => (
@@ -26,7 +27,9 @@ export type ActiveNavigationBottomSheetProps = {
   onSheetIndexChange?: (index: number) => void;
 };
 
-export default function ActiveNavigationBottomSheet(props: Readonly<ActiveNavigationBottomSheetProps> = {}) {
+export default function ActiveNavigationBottomSheet(
+  props: Readonly<ActiveNavigationBottomSheetProps> = {},
+) {
   const snapPoints = ["15%", "70%"];
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams();
@@ -44,9 +47,12 @@ export default function ActiveNavigationBottomSheet(props: Readonly<ActiveNaviga
     navigationState.setCurrentIndoorStepIndex(undefined);
   };
 
-  const handleSheetChanges = useCallback((index: number) => {
-    props.onSheetIndexChange?.(index);
-  }, [props.onSheetIndexChange]);
+  const handleSheetChanges = useCallback(
+    (index: number) => {
+      props.onSheetIndexChange?.(index);
+    },
+    [props.onSheetIndexChange],
+  );
 
   const handleSheetAnimate = useCallback(
     (_fromIndex: number, toIndex: number) => {
@@ -135,6 +141,10 @@ export default function ActiveNavigationBottomSheet(props: Readonly<ActiveNaviga
       containerStyle={{ overflow: "visible" }}
     >
       <View style={NavigationBottomSheetStyles.headerContainer}>
+        <View style={NavigationBottomSheetStyles.recenterButtonContainer}>
+          <RecenterButton />
+        </View>
+
         <View style={NavigationBottomSheetStyles.navModeHeader}>
           {renderETABlock()}
           <View
