@@ -3,17 +3,25 @@ import NavigationPolylines from "@/components/NavigationPolylines";
 import PoiOutdoorMarkers from "@/components/poi/PoiOutdoorMarkers";
 import ShuttleBusMarkers from "@/components/ShuttleBusMarkers";
 import {
+  MapCameraProvider,
+  MoveCameraParams,
+} from "@/contexts/MapCameraContext";
+import {
   CampusBuilding,
   CampusCode,
   useGetBuildingDetails,
   useGetBuildings,
 } from "@/hooks/queries/buildingQueries";
 import { TextSearchRankPreferenceType } from "@/hooks/queries/poiQueries";
+import useMapSettings from "@/hooks/useMapSettings";
 import { MapMode, useMapStore } from "@/hooks/useMapStore";
-import { ModifyingFieldOptions, useNavigationStore } from "@/hooks/useNavigationStore";
+import {
+  ModifyingFieldOptions,
+  NavigationPhase,
+  useNavigationStore,
+} from "@/hooks/useNavigationStore";
 import { useNextClass } from "@/hooks/useNextClass";
 import { endTaskTimer, startTaskTimer } from "@/lib/telemetry";
-import { MapCameraProvider, MoveCameraParams } from "@/contexts/MapCameraContext";
 import * as Location from "expo-location";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -28,6 +36,7 @@ import {
   CAMPUS_COORDS,
   DEFAULT_CAMERA_MOVE_DURATION_IN_MS,
   DEFAULT_MAP_DELTA,
+  STEP_START_PROXIMITY_THRESHOLD_IN_KM,
 } from "../constants";
 import { getDistance } from "../utils/mapUtils";
 
@@ -57,6 +66,7 @@ export default function MainMap() {
 
   const mapState = useMapStore();
   const navigationState = useNavigationStore();
+  const { mapSettings } = useMapSettings();
 
   const [buildingsByCampus, setBuildingsByCampus] = useState<
     Record<string, CampusBuilding[]>
@@ -138,6 +148,72 @@ export default function MainMap() {
       navigationState.clearState();
     }
   }, [mapState.currentMode]);
+
+  // Automatic step detection + auto following useEffect
+  useEffect(() => {
+    if (
+      mapState.currentMode !== MapMode.NAVIGATION ||
+      navigationState.navigationPhase !== NavigationPhase.ACTIVE ||
+      !location?.coords ||
+      !mapSettings.recenterAutomaticallyDuringActiveNavigation
+    ) {
+      return;
+    }
+
+    const userPoint = {
+      latitude: location.coords.latitude,
+      longitude: location.coords.longitude,
+    };
+
+    const outdoorDirections =
+      navigationState.currentDirections?.directionBlocks.find(
+        (block) => block.type === "outdoor",
+      )?.directionsByMode?.[navigationState.transitMode || ""];
+
+    const steps = outdoorDirections?.steps;
+
+    if (steps?.length) {
+      let closestStepIndex = -1;
+      let closestDistanceInKm = Number.POSITIVE_INFINITY;
+
+      steps.forEach((step, index) => {
+        const distanceInKm = getDistance(userPoint, step.start);
+        if (distanceInKm < closestDistanceInKm) {
+          closestDistanceInKm = distanceInKm;
+          closestStepIndex = index;
+        }
+      });
+
+      if (
+        closestStepIndex >= 0 &&
+        closestDistanceInKm <= STEP_START_PROXIMITY_THRESHOLD_IN_KM &&
+        closestStepIndex !== navigationState.trackedOutdoorStepIndex
+      ) {
+        navigationState.setTrackedOutdoorStepIndex?.(closestStepIndex);
+        if (navigationState.followingGPS) {
+          navigationState.setCurrentOutdoorStepIndex?.(closestStepIndex);
+        }
+      }
+    }
+
+    if (navigationState.followingGPS) {
+      moveCamera({
+        latitude: userPoint.latitude,
+        longitude: userPoint.longitude,
+        duration: 200,
+      });
+    }
+  }, [
+    location?.coords?.latitude,
+    location?.coords?.longitude,
+    mapState.currentMode,
+    navigationState.currentDirections,
+    navigationState.trackedOutdoorStepIndex,
+    navigationState.navigationPhase,
+    navigationState.transitMode,
+    navigationState.followingGPS,
+    mapSettings.recenterAutomaticallyDuringActiveNavigation,
+  ]);
 
   useEffect(() => {
     if (
@@ -412,6 +488,12 @@ export default function MainMap() {
     });
   };
 
+  const handlePanDrag = () => {
+    if (navigationState.followingGPS) {
+      navigationState.setFollowingGPS(false);
+    }
+  };
+
   const { nextClass } = useNextClass();
 
   return (
@@ -433,6 +515,7 @@ export default function MainMap() {
             longitudeDelta: DEFAULT_MAP_DELTA,
           }}
           onRegionChangeComplete={handleRegionChangeComplete}
+          onPanDrag={handlePanDrag}
         >
           <CampusBuildingPolygons buildings={buildingsToRender} />
           {mapState.currentMode === MapMode.NAVIGATION && (

@@ -88,7 +88,7 @@ export default function NavigationPolylines(
           {...getStepStyling(step, isStepCompleted(index))}
         />
       ))}
-      {props.showEndPoint && (
+      {props.showEndPoint && navigationState.endLocation && (
         <Marker
           coordinate={{
             latitude: navigationState.endLocation.latitude,

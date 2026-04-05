@@ -132,6 +132,28 @@ const NavigationBottomSheetStyles = StyleSheet.create({
     left: 10,
     zIndex: 10,
   },
+  recenterButtonContainer: {
+    position: "absolute",
+    top: -80,
+    left: 10,
+    zIndex: 10,
+  },
+  recenterButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: COLORS.background,
+    elevation: 3,
+    borderRadius: 32,
+    display: "flex",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  recenterButtonText: {
+    color: COLORS.selectionBlue,
+    fontSize: 16,
+    fontWeight: "bold",
+  },
 });
 
 export default NavigationBottomSheetStyles;

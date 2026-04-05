@@ -64,3 +64,5 @@ export const BUILDINGS_WITH_INDOOR_MAPS = ['CC', 'H', 'LB', 'MB', 'VL'] as const
 
 // Classes constants
 export const TYPES = ["Lecture", "Lab", "Tutorial"] as const;
+
+export const STEP_START_PROXIMITY_THRESHOLD_IN_KM = 0.03;

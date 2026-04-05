@@ -9,7 +9,7 @@ import * as Location from "expo-location";
 import MainMap from "../app/(drawer)/map";
 import { getDistance } from "../app/utils/mapUtils";
 import { MapMode, useMapStore } from "../hooks/useMapStore";
-import { useNavigationStore } from "../hooks/useNavigationStore";
+import { NavigationPhase, useNavigationStore } from "../hooks/useNavigationStore";
 import { renderWithProviders } from "../test_utils/renderUtils";
 
 const mockStartTaskTimer = jest.fn();
@@ -125,6 +125,10 @@ let latestMapProps: any;
 jest.mock("react-native-maps", () => {
   const React = require("react");
   const { View } = require("react-native");
+  const Marker = (props: any) => <View testID="marker">{props.children}</View>;
+  const Polyline = (props: any) => (
+    <View testID="polyline">{props.children}</View>
+  );
 
   return {
     __esModule: true,
@@ -135,6 +139,8 @@ jest.mock("react-native-maps", () => {
       latestMapProps = props;
       return <View testID="map">{props.children}</View>;
     }),
+    Marker,
+    Polyline,
   };
 });
 
@@ -527,5 +533,170 @@ describe("MainMap screen", () => {
         mode: "TRANSIT",
       });
     });
+  });
+
+  test("updates current outdoor step to the closest step start point when within threshold", async () => {
+    mockGrantedWatchLocation(45.497, -73.579);
+
+    useMapStore.getState().setCurrentMode(MapMode.NAVIGATION);
+
+    useNavigationStore.setState({
+      navigationPhase: NavigationPhase.ACTIVE,
+      transitMode: "walking" as any,
+      currentOutdoorStepIndex: 0,
+      endLocation: {
+        latitude: 45.4972,
+        longitude: -73.5788,
+        name: "Destination",
+      },
+      currentDirections: {
+        directionBlocks: [
+          {
+            type: "outdoor",
+            directionsByMode: {
+              walking: {
+                steps: [
+                  {
+                    start: { latitude: 45.5, longitude: -73.6 },
+                    end: { latitude: 45.5001, longitude: -73.6001 },
+                    instruction: "step 1",
+                    distance: "10m",
+                    duration: "1m",
+                    travel_mode: "walking",
+                    polyline: "",
+                  },
+                  {
+                    start: { latitude: 45.497, longitude: -73.579 },
+                    end: { latitude: 45.4971, longitude: -73.5789 },
+                    instruction: "step 2",
+                    distance: "10m",
+                    duration: "1m",
+                    travel_mode: "walking",
+                    polyline: "",
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      } as any,
+    });
+
+    (getDistance as jest.Mock).mockImplementation(
+      (
+        point1: { latitude: number; longitude: number },
+        point2: { latitude: number; longitude: number },
+      ) => {
+        if (point2.latitude === 45.497 && point2.longitude === -73.579) {
+          return 0.01;
+        }
+        if (point2.latitude === 45.5 && point2.longitude === -73.6) {
+          return 0.2;
+        }
+        return 1;
+      },
+    );
+
+    renderWithProviders(<MainMap />);
+
+    await waitFor(() => {
+      expect(useNavigationStore.getState().currentOutdoorStepIndex).toBe(1);
+    });
+  });
+
+  test("keeps the camera centered on the user during active navigation when following GPS", async () => {
+    mockGrantedWatchLocation(45.501, -73.601);
+
+    useMapStore.getState().setCurrentMode(MapMode.NAVIGATION);
+
+    useNavigationStore.setState({
+      navigationPhase: NavigationPhase.ACTIVE,
+      followingGPS: true,
+    });
+
+    renderWithProviders(<MainMap />);
+
+    await waitFor(() => {
+      expect(mockAnimateToRegion).toHaveBeenLastCalledWith(
+        {
+          latitude: 45.501,
+          longitude: -73.601,
+          latitudeDelta: 0.005,
+          longitudeDelta: 0.005,
+        },
+        200,
+      );
+    });
+  });
+
+  test("does not update current outdoor step when closest step start is outside threshold", async () => {
+    mockGrantedWatchLocation(45.497, -73.579);
+
+    useMapStore.getState().setCurrentMode(MapMode.NAVIGATION);
+
+    useNavigationStore.setState({
+      navigationPhase: NavigationPhase.ACTIVE,
+      transitMode: "walking" as any,
+      currentOutdoorStepIndex: 0,
+      endLocation: {
+        latitude: 45.4972,
+        longitude: -73.5788,
+        name: "Destination",
+      },
+      currentDirections: {
+        directionBlocks: [
+          {
+            type: "outdoor",
+            directionsByMode: {
+              walking: {
+                steps: [
+                  {
+                    start: { latitude: 45.5, longitude: -73.6 },
+                    end: { latitude: 45.5001, longitude: -73.6001 },
+                    instruction: "step 1",
+                    distance: "10m",
+                    duration: "1m",
+                    travel_mode: "walking",
+                    polyline: "",
+                  },
+                  {
+                    start: { latitude: 45.497, longitude: -73.579 },
+                    end: { latitude: 45.4971, longitude: -73.5789 },
+                    instruction: "step 2",
+                    distance: "10m",
+                    duration: "1m",
+                    travel_mode: "walking",
+                    polyline: "",
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      } as any,
+    });
+
+    (getDistance as jest.Mock).mockImplementation(
+      (
+        point1: { latitude: number; longitude: number },
+        point2: { latitude: number; longitude: number },
+      ) => {
+        if (point2.latitude === 45.497 && point2.longitude === -73.579) {
+          return 0.2;
+        }
+        if (point2.latitude === 45.5 && point2.longitude === -73.6) {
+          return 0.1;
+        }
+        return 1;
+      },
+    );
+
+    renderWithProviders(<MainMap />);
+
+    await waitFor(() => {
+      expect(Location.watchPositionAsync).toHaveBeenCalled();
+    });
+
+    expect(useNavigationStore.getState().currentOutdoorStepIndex).toBe(0);
   });
 });
