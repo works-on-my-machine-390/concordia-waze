@@ -2,10 +2,10 @@ import { render } from "@testing-library/react-native";
 import WalkingDottedLine from "../components/WalkingDottedLine";
 
 const mockSvg = jest.fn(({ children }) => children);
-const mockCircle = jest.fn(() => null);
+const mockCircle = jest.fn((props: unknown) => null);
 const mockDefs = jest.fn(({ children }) => children);
 const mockPattern = jest.fn(({ children }) => children);
-const mockRect = jest.fn(() => null);
+const mockRect = jest.fn((props: unknown) => null);
 
 jest.mock("react-native-svg", () => ({
   __esModule: true,

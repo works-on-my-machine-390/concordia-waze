@@ -3,7 +3,7 @@ import { Animated } from "react-native";
 import { render } from "@testing-library/react-native";
 import NoAccessibleRouteNotice from "../components/indoor/NoAccessibleRouteNotice";
 
-const mockWheelchairIcon = jest.fn(() => null);
+const mockWheelchairIcon = jest.fn((props: unknown) => null);
 
 jest.mock("@/app/icons", () => ({
   WheelchairIcon: (props: unknown) => mockWheelchairIcon(props),

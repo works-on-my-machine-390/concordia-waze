@@ -2,7 +2,7 @@ import { fireEvent, render } from "@testing-library/react-native";
 import { TouchableOpacity } from "react-native";
 import PoiSearchBottomSheetHeader from "../components/poi/PoiSearchBottomSheetHeader";
 
-const mockCloseIcon = jest.fn(() => null);
+const mockCloseIcon = jest.fn((props: unknown) => null);
 
 jest.mock("../app/icons", () => ({
   CloseIcon: (props: unknown) => mockCloseIcon(props),

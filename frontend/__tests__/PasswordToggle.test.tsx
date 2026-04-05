@@ -2,8 +2,8 @@ import { fireEvent, render } from "@testing-library/react-native";
 import { TouchableOpacity } from "react-native";
 import PasswordToggle from "../components/PasswordToggle";
 
-const mockEyeHidingIcon = jest.fn(() => null);
-const mockEyeShowingIcon = jest.fn(() => null);
+const mockEyeHidingIcon = jest.fn((props: unknown) => null);
+const mockEyeShowingIcon = jest.fn((props: unknown) => null);
 
 jest.mock("../app/icons", () => ({
   EyeHidingIcon: (props: unknown) => mockEyeHidingIcon(props),

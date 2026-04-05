@@ -6,8 +6,8 @@ const mockRegister = jest.fn();
 const mockValidateRegister = jest.fn();
 let mockLoading = false;
 
-const mockEyeHidingIcon = jest.fn(() => null);
-const mockEyeShowingIcon = jest.fn(() => null);
+const mockEyeHidingIcon = jest.fn((props: unknown) => null);
+const mockEyeShowingIcon = jest.fn((props: unknown) => null);
 
 jest.mock("expo-router", () => ({
   useRouter: () => ({

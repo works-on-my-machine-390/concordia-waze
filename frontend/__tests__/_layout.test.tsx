@@ -6,7 +6,7 @@ const mockInitTelemetry = jest.fn();
 const mockTrackScreen = jest.fn();
 let mockStack: jest.Mock;
 let mockStackScreen: jest.Mock;
-const mockToastManager = jest.fn(() => null);
+const mockToastManager = jest.fn((props: unknown) => null);
 
 jest.mock("expo-router", () => {
   const React = require("react");

@@ -2,7 +2,7 @@ import { COLORS } from "@/app/constants";
 import { fireEvent, render } from "@testing-library/react-native";
 import IndoorPoiFilters from "../components/indoor/IndoorPoiFilters";
 
-const iconMockFactory = () => jest.fn(() => null);
+const iconMockFactory = () => jest.fn((props: unknown) => null);
 
 const mockBathroomIcon = iconMockFactory();
 const mockStairsIcon = iconMockFactory();

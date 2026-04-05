@@ -2,7 +2,7 @@ import { fireEvent, render } from "@testing-library/react-native";
 import ReturnOutdoorButton from "../components/activeNavigation/ReturnOutdoorButton";
 
 const mockPush = jest.fn();
-const mockLogoutIcon = jest.fn(() => null);
+const mockLogoutIcon = jest.fn((props: unknown) => null);
 
 jest.mock("expo-router", () => ({
   useRouter: () => ({

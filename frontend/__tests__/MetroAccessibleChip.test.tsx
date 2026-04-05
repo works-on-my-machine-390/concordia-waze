@@ -1,7 +1,7 @@
 import { render } from "@testing-library/react-native";
 import MetroAccessibleChip from "../components/MetroAccessibleChip";
 
-const mockMaterialIcons = jest.fn(() => null);
+const mockMaterialIcons = jest.fn((props: unknown) => null);
 
 jest.mock("@expo/vector-icons", () => ({
   MaterialIcons: (props: unknown) => mockMaterialIcons(props),
