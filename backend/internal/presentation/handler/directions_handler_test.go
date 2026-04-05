@@ -231,3 +231,29 @@ func TestErrorString(t *testing.T) {
 	err := errorString("custom error message")
 	assert.Equal(t, "custom error message", err.Error())
 }
+
+func TestWriteDirectionsError_BadRequestFamilyMessages(t *testing.T) {
+	badRequestErrors := []string{
+		"invalid day",
+		"invalid time",
+		"invalid shuttle_day",
+		"invalid shuttle_time",
+		"invalid shuttle departure",
+		"cannot combine day/time with shuttle_day/shuttle_time",
+		"shuttle_day and shuttle_time must both be provided",
+		"shuttle_day/shuttle_time can only be used with mode=shuttle",
+	}
+
+	for _, msg := range badRequestErrors {
+		t.Run(msg, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+
+			h := &DirectionsHandler{}
+			h.writeDirectionsError(c, errors.New(msg))
+
+			assert.Equal(t, http.StatusBadRequest, w.Code)
+			assert.JSONEq(t, `{"error":"`+msg+`"}`, w.Body.String())
+		})
+	}
+}
