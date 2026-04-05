@@ -1,5 +1,6 @@
 import SearchNearbyButton from "@/components/poi/SearchNearbyButton";
 import SearchNearbySuggestions from "@/components/poi/SearchNearbySuggestions";
+import SearchForTypeButton from "@/components/SearchForTypeButton";
 import {
   addGuestSearchHistory,
   clearGuestSearchHistory,
@@ -38,10 +39,9 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { COLORS } from "./constants";
 import { colors, SHADOW } from "./styles/theme";
 import { filterBuildingsByQuery } from "./utils/searchUtils";
-import SearchForTypeButton from "@/components/SearchForTypeButton";
-import { COLORS } from "./constants";
 
 export type SearchQueryParamsModel = {
   campus?: string;
@@ -91,8 +91,7 @@ export default function SearchPage() {
           setRecentSearches(
             entries
               .filter(
-                (item) =>
-                  (item.destinationType ?? "building") === "building", // for legacy entries -> assume building if type is missing
+                (item) => (item.destinationType ?? "building") === "building", // for legacy entries -> assume building if type is missing
               )
               .map((item) => ({
                 query: item.name,
@@ -108,8 +107,7 @@ export default function SearchPage() {
           setRecentSearches(
             items
               .filter(
-                (item) =>
-                  (item.destinationType ?? "building") === "building",
+                (item) => (item.destinationType ?? "building") === "building",
               )
               .map((item) => ({
                 query: item.query,
@@ -451,22 +449,26 @@ export default function SearchPage() {
 
     if (showRecent) {
       return (
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Recent searches</Text>
+        <View style={searchStyles.section}>
+          <View style={searchStyles.sectionHeader}>
+            <Text style={searchStyles.sectionTitle}>Recent searches</Text>
             <Pressable onPress={handleClearRecent}>
-              <Text style={styles.clearText}>Clear</Text>
+              <Text style={searchStyles.clearText}>Clear</Text>
             </Pressable>
           </View>
           {recentItems.map((item) => (
             <Pressable
               key={`${item.query}-${item.locations}`}
-              style={styles.resultItem}
+              style={searchStyles.resultItem}
               onPress={() => handleRecentItemPress(item)}
             >
-              <Text style={styles.resultTitle}>{getRecentItemTitle(item)}</Text>
+              <Text style={searchStyles.resultTitle}>
+                {getRecentItemTitle(item)}
+              </Text>
               {item.locations ? (
-                <Text style={styles.resultSubtitle}>{item.locations}</Text>
+                <Text style={searchStyles.resultSubtitle}>
+                  {item.locations}
+                </Text>
               ) : null}
             </Pressable>
           ))}
@@ -478,8 +480,8 @@ export default function SearchPage() {
   const renderEmptyComponent = () => {
     if (query.trim().length > 0)
       return (
-        <View style={styles.empty}>
-          <Text style={styles.emptyText}>No matches found</Text>
+        <View style={searchStyles.empty}>
+          <Text style={searchStyles.emptyText}>No matches found</Text>
         </View>
       );
 
@@ -488,8 +490,8 @@ export default function SearchPage() {
     }
 
     return (
-      <View style={styles.empty}>
-        <Text style={styles.emptyText}>Start typing to search</Text>
+      <View style={searchStyles.empty}>
+        <Text style={searchStyles.emptyText}>Start typing to search</Text>
       </View>
     );
   };
@@ -511,11 +513,11 @@ export default function SearchPage() {
 
   return (
     <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
-      <View style={styles.page}>
-        <View style={styles.headerContainer}>
-          <View style={styles.header}>
+      <View style={searchStyles.page}>
+        <View style={searchStyles.headerContainer}>
+          <View style={searchStyles.header}>
             <Pressable
-              style={styles.iconButton}
+              style={searchStyles.iconButton}
               onPress={() => {
                 router.back();
                 navigationState.setModifyingField(null);
@@ -524,7 +526,7 @@ export default function SearchPage() {
             >
               <Ionicons name="arrow-back" size={26} color={colors.maroon} />
             </Pressable>
-            <View style={styles.searchPill}>
+            <View style={searchStyles.searchPill}>
               <Ionicons name="search" size={22} color={colors.maroon} />
               <TextInput
                 autoFocus
@@ -532,7 +534,7 @@ export default function SearchPage() {
                 onChangeText={setQuery}
                 placeholder={getSearchPlaceholderText()}
                 placeholderTextColor="#818181"
-                style={styles.searchInput}
+                style={searchStyles.searchInput}
               />
               {query.length > 0 && (
                 <Pressable onPress={() => setQuery("")}>
@@ -561,11 +563,11 @@ export default function SearchPage() {
         <FlatList
           data={results}
           keyExtractor={(item) => item.code}
-          contentContainerStyle={styles.listContainer}
+          contentContainerStyle={searchStyles.listContainer}
           ListHeaderComponent={renderHeaderComponent()}
           renderItem={({ item }) => (
             <Pressable
-              style={styles.resultItem}
+              style={searchStyles.resultItem}
               onPress={() =>
                 handleSelect(
                   item.code,
@@ -578,13 +580,13 @@ export default function SearchPage() {
                 )
               }
             >
-              <Text style={styles.resultTitle}>
+              <Text style={searchStyles.resultTitle}>
                 {item.long_name || item.name
                   ? `${item.code} - ${item.long_name ?? item.name}`
                   : item.code}
               </Text>
               {item.address ? (
-                <Text style={styles.resultSubtitle}>{item.address}</Text>
+                <Text style={searchStyles.resultSubtitle}>{item.address}</Text>
               ) : null}
             </Pressable>
           )}
@@ -595,7 +597,7 @@ export default function SearchPage() {
   );
 }
 
-const styles = StyleSheet.create({
+export const searchStyles = StyleSheet.create({
   page: {
     flex: 1,
     backgroundColor: colors.background,
