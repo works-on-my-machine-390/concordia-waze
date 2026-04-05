@@ -16,6 +16,9 @@ There are additional, optional tools for development in the frontend and backend
 - [Go](https://go.dev/dl/)
 - [Bun](https://bun.com/get)
 
+> [!NOTE]
+> The following steps in "Running the application" make use of a live reload tool for Go called [air](https://github.com/air-verse/air), which is recommended but not necessary. If running without air, the backend and frontend instances should be run individually (see respective README.md's).
+
 ### Setup
 
 Install the frontend dependencies:

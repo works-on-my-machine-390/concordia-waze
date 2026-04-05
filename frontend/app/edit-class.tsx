@@ -138,7 +138,7 @@ export default function EditClassScreen() {
         await updateGuestClass(
           params.courseName,
           Number(params.classIndex),
-          updates as any
+          updates as any,
         );
       }
       router.back();
@@ -199,6 +199,7 @@ export default function EditClassScreen() {
             placeholder="e.g. N"
             placeholderTextColor="#bbb"
             autoCapitalize="characters"
+            testID="section-input"
           />
 
           <Field label="Day" />
@@ -234,6 +235,7 @@ export default function EditClassScreen() {
             placeholder="e.g. H"
             placeholderTextColor="#bbb"
             autoCapitalize="characters"
+            testID="building-input"
           />
 
           <Field label="Room" />
@@ -243,6 +245,7 @@ export default function EditClassScreen() {
             onChangeText={setRoom}
             placeholder="e.g. 110"
             placeholderTextColor="#bbb"
+            testID="room-input"
           />
 
           {!!error && <Text style={s.error}>{error}</Text>}
